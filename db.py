@@ -5,7 +5,7 @@ def get_db_connection():
     try:
         connection = mysql.connector.connect(
             host='127.0.0.1',
-            database='mosla_pionners',
+            database='mosla_pioneers',
             user='root',
             password=''
         )
