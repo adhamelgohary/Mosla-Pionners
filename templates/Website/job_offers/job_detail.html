@@ -1,0 +1,265 @@
+{% extends "Website/base.html" %} {# Corrected path #}
+
+{% block title %}{{ offer.Title }} - Mosla Pioneers{% endblock %}
+
+{% block head_extra %}
+<style>
+    /* Styles specific to job_detail.html if not already in website_styles.css */
+    .job-detail-header img.company-logo-img {
+        width: 60px; height: 60px; border-radius: 8px; margin-right: 15px;
+        object-fit: contain; border: 1px solid var(--border-color);
+    }
+    .job-detail-header { display: flex; align-items: center; margin-bottom: 1.5rem; }
+    .job-title-company h1 { margin-bottom: 0.15rem; text-align: left; font-size: 1.8rem; }
+    .job-title-company p { margin-bottom: 0; font-size: 1rem; color: var(--text-muted-color); }
+    .job-offer-page-container .details h3 { margin-top: 1.5rem; font-size: 1.2rem; color: var(--heading-color); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.75rem;}
+    .job-offer-page-container .details ul li::before { content: '✓'; color: var(--primary-color); margin-right: 0.5em; } /* Checkmark instead of disc */
+    .application-section { margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color); }
+    .application-section h3 { text-align: left; }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container">
+    <div class="job-offer-page-container"> 
+        <div class="job-detail-header">
+            {% if offer.CompanyLogoURL %}
+            <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="company-logo-img">
+            {% else %}
+            <div class="company-logo-placeholder" style="width:60px; height:60px; font-size:1.5rem; margin-right:15px; border-radius:8px; background-color: var(--bg-color); display:flex; align-items:center; justify-content:center; color:var(--primary-color); border:1px solid var(--border-color);">{{ offer.CompanyName[0] if offer.CompanyName else 'M' }}</div>
+            {% endif %}
+            <div class="job-title-company">
+                <h1>{{ offer.Title }}</h1>
+                <p>
+                    <a href="{{ offer.CompanyWebsite or '#' }}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration:none;">
+                        {{ offer.CompanyName }}
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <div class="details">
+            {% if offer.Location %}
+            <p><strong>Location:</strong> {{ offer.Location }}{% if offer.WorkLocationType and offer.WorkLocationType != 'On-site' %} ({{ offer.WorkLocationType|replace('WorkFromHome', 'Remote/Work From Home') }}){% endif %}</p>
+            {% endif %}
+            {% if offer.JobType %}<p><strong>Type:</strong> {{ offer.JobType }}</p>{% endif %}
+            {% if offer.ShiftType %}<p><strong>Shift:</strong> {{ offer.ShiftType }}</p>{% endif %}
+            {% if offer.NetSalary %}<p><strong>Salary:</strong> {{ offer.NetSalary | currency(offer.Currency or 'EGP') }} / Monthly</p>{% endif %}
+            
+            {% if offer.Description %}
+                <h3>Job Description</h3>
+                <p>{{ offer.Description|nl2br }}</p>
+            {% endif %}
+
+            {% if offer.Requirements %}
+                <h3>Requirements</h3>
+                <p>{{ offer.Requirements|nl2br }}</p> {# Assume requirements is a block of text #}
+                {% if offer.EnglishLevelRequirement %}
+                    <p><strong>English Level Required:</strong> {{ offer.EnglishLevelRequirement }}</p>
+                {% endif %}
+                 {% if offer.GraduationStatusRequirement %}
+                    <p><strong>Education:</strong> {{ offer.GraduationStatusRequirement|replace('GapYear', 'Gap Year') }}</p>
+                {% endif %}
+                {% if offer.NationalityRequirement and offer.NationalityRequirement != 'Any' %}
+                    <p><strong>Nationality:</strong> {{ offer.NationalityRequirement }}</p>
+                {% endif %}
+            {% endif %}
+
+            {% if offer.Benefits_list and offer.Benefits_list|select('strip')|list %} {# Check if list is not empty after stripping #}
+                <h3>Benefits</h3>
+                <ul>
+                    {% for benefit in offer.Benefits_list %}
+                        {% if benefit.strip() %}
+                        <li>{{ benefit.strip()|replace('PaidTraining', 'Paid Training')|replace('SocialInsurance', 'Social Insurance')|replace('MedicalInsurance', 'Medical Insurance') }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+             {% if offer.IsTransportationProvided %}
+                <p><strong>Transportation:</strong> Provided {% if offer.TransportationType %}({{ offer.TransportationType|replace('DoorToDoor', 'Door to Door')|replace('PickupPoint', 'To Nearest Pickup Point') }}){% endif %}</p>
+            {% endif %}
+        </div>
+
+        <div class="application-section">
+            <h3>Apply for this Role</h3>
+            <form id="jobApplicationForm" method="POST" action="{{ url_for('job_board_bp.submit_job_application', offer_id=offer.OfferID) }}" enctype="multipart/form-data">
+                {# CSRF token if using Flask-WTF would go here: {{ form.csrf_token }} #}
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="full_name" required placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="you@example.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input type="tel" id="phoneNumber" name="phone_number" required placeholder="e.g., 01xxxxxxxxx">
+                </div>
+
+                <div class="voice-section">
+                    <h3>Voice Introduction</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted-color); margin-bottom: 1rem;">
+                        Record a brief (60-90 seconds) introduction: Why are you interested, and what makes you a good fit for this role specifically?
+                    </p>
+                    <div class="radio-options">
+                        <label><input type="radio" name="voice_option_choice" value="record" checked> Record Now</label>
+                        <label><input type="radio" name="voice_option_choice" value="upload"> Upload from Device</label>
+                    </div>
+                    <div id="recordSection" class="voice-record-controls">
+                        <button type="button" id="startBtn" class="action-button">Start Recording</button>
+                        <button type="button" id="stopBtn" class="action-button" disabled>Stop Recording</button>
+                        <div id="recordingStatus">Recording...</div>
+                        <audio id="audioPlayback" controls style="display:none; margin-top:1rem;"></audio>
+                    </div>
+                    <div id="uploadSection" class="hidden" style="margin-top:1rem;">
+                        <input type="file" id="voiceUpload" name="voice_note_file" accept="audio/*" class="form-control-file" />
+                        <audio id="uploadedAudioPlayback" controls style="display:none; margin-top:1rem;"></audio>
+                    </div>
+                    {# Hidden input to signal to backend that a recording was made if JS is used for blob submission #}
+                    <input type="hidden" name="voice_note_blob_data_exists" id="voiceNoteBlobDataExists" value="false">
+                </div>
+
+                <div class="cv-upload-section" style="margin-top: 1.5rem;">
+                    <h3>Upload Your CV</h3>
+                    <input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx,.txt" required class="form-control-file">
+                </div>
+                
+                <div style="text-align:center; margin-top: 2rem;">
+                    <button type="submit" class="submit-btn">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const voiceOptionRadios = document.querySelectorAll('input[name="voice_option_choice"]');
+    const recordSection = document.getElementById("recordSection");
+    const uploadSection = document.getElementById("uploadSection");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const audioPlayback = document.getElementById("audioPlayback");
+    const recordingStatusEl = document.getElementById("recordingStatus"); // Corrected variable name
+    const voiceUploadInput = document.getElementById("voiceUpload");
+    const uploadedAudioPlayback = document.getElementById("uploadedAudioPlayback"); // Corrected ID
+    const voiceNoteBlobDataExistsInput = document.getElementById("voiceNoteBlobDataExists");
+    const applicationForm = document.getElementById("jobApplicationForm");
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordedAudioBlob = null;
+
+    function toggleVoiceSections(showRecord) {
+        if (showRecord) {
+            recordSection.classList.remove("hidden");
+            uploadSection.classList.add("hidden");
+            voiceUploadInput.value = ''; // Clear file input if switching to record
+            uploadedAudioPlayback.style.display = 'none';
+            uploadedAudioPlayback.src = '';
+        } else {
+            recordSection.classList.add("hidden");
+            uploadSection.classList.remove("hidden");
+            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop(); // Stop if recording
+            startBtn.disabled = false; stopBtn.disabled = true; recordingStatusEl.style.display = 'none';
+            audioPlayback.style.display = 'none'; audioPlayback.src = '';
+            recordedAudioBlob = null;
+        }
+        voiceNoteBlobDataExistsInput.value = "false";
+    }
+
+    voiceOptionRadios.forEach(radio => {
+        radio.addEventListener("change", () => {
+            toggleVoiceSections(radio.value === "record");
+        });
+    });
+    // Initialize based on checked
+    const initiallyCheckedVoiceOption = document.querySelector('input[name="voice_option_choice"]:checked');
+    if (initiallyCheckedVoiceOption) {
+        toggleVoiceSections(initiallyCheckedVoiceOption.value === "record");
+    }
+
+
+    if (startBtn) {
+        startBtn.addEventListener("click", async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm; codecs=opus' }); // Common compatible format
+                audioChunks = [];
+                recordedAudioBlob = null;
+                voiceNoteBlobDataExistsInput.value = "false";
+                audioPlayback.style.display = 'none'; audioPlayback.src = '';
+                
+                mediaRecorder.ondataavailable = (event) => { audioChunks.push(event.data); };
+                mediaRecorder.onstop = () => {
+                    recordedAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                    const audioUrl = URL.createObjectURL(recordedAudioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioPlayback.style.display = 'block';
+                    recordingStatusEl.style.display = 'none';
+                    voiceNoteBlobDataExistsInput.value = "true"; // Signal that a recording exists
+                };
+                mediaRecorder.start();
+                recordingStatusEl.style.display = 'block';
+                startBtn.disabled = true; stopBtn.disabled = false;
+            } catch (err) {
+                alert("Microphone access denied or not available. Please check browser permissions.");
+                recordingStatusEl.style.display = 'none';
+            }
+        });
+    }
+
+    if (stopBtn) {
+        stopBtn.addEventListener("click", () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") { mediaRecorder.stop(); }
+            startBtn.disabled = false; stopBtn.disabled = true; recordingStatusEl.style.display = 'none';
+        });
+    }
+
+    if (voiceUploadInput) {
+        voiceUploadInput.addEventListener("change", () => {
+            const file = voiceUploadInput.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                uploadedAudioPlayback.src = url;
+                uploadedAudioPlayback.style.display = 'block';
+                recordedAudioBlob = null; voiceNoteBlobDataExistsInput.value = "false"; // Clear recorded if uploading
+            } else {
+                uploadedAudioPlayback.src = ''; uploadedAudioPlayback.style.display = 'none';
+            }
+        });
+    }
+
+    if(applicationForm) {
+        applicationForm.addEventListener('submit', function(event) {
+            const selectedVoiceOption = document.querySelector('input[name="voice_option_choice"]:checked');
+            if (selectedVoiceOption) {
+                if (selectedVoiceOption.value === 'record' && !recordedAudioBlob) {
+                    alert('Please complete your voice recording or select the upload option.');
+                    event.preventDefault(); return;
+                }
+                if (selectedVoiceOption.value === 'upload' && (!voiceUploadInput.files || voiceUploadInput.files.length === 0)) {
+                    alert('Please upload a voice note file or select the record option.');
+                    event.preventDefault(); return;
+                }
+            } else if (!voiceUploadInput.files || voiceUploadInput.files.length === 0) {
+                // Default case if no radio is somehow selected but record wasn't made
+                 alert('Please provide a voice introduction by recording or uploading.');
+                 event.preventDefault(); return;
+            }
+
+            // If JS is to handle the recorded blob submission, it would modify FormData here
+            // This example assumes server will check for 'voice_note_file' (from upload)
+            // or that if 'voice_note_blob_data_exists' is true, JS has populated a field or FormData object.
+            // For simplicity of this example, the `voice_note_blob_data_exists` flag helps the backend.
+        });
+    }
+});
+</script>
+{% endblock %}

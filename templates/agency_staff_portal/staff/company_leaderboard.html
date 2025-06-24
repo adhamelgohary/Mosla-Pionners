@@ -1,0 +1,70 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="dashboard-module">
+    <div class="leaderboard-header">
+        <div>
+            <h3>{{ title }}</h3>
+            <p class="text-muted mb-0">{{ subtitle }}</p>
+        </div>
+        {# Placeholder for any future filters #}
+    </div>
+
+    <!-- Podium Section for Top 3 -->
+    <div class="podium-container">
+        {% if top_companies|length >= 2 %}
+        <div class="podium-place podium-2">
+            <i class="bi bi-award-fill rank-icon"></i>
+            <img src="{{ top_companies[1].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[1].CompanyName }}" class="profile-pic">
+            <div class="name">{{ top_companies[1].CompanyName }}</div>
+            <div class="points">{{ top_companies[1].FilledJobsCount }} <small>hires</small></div>
+        </div>
+        {% endif %}
+        
+        {% if top_companies|length >= 1 %}
+        <div class="podium-place podium-1">
+            <i class="bi bi-trophy-fill rank-icon"></i>
+            <img src="{{ top_companies[0].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[0].CompanyName }}" class="profile-pic">
+            <div class="name">{{ top_companies[0].CompanyName }}</div>
+            <div class="points">{{ top_companies[0].FilledJobsCount }} <small>hires</small></div>
+        </div>
+        {% endif %}
+
+        {% if top_companies|length >= 3 %}
+        <div class="podium-place podium-3">
+            <i class="bi bi-award-fill rank-icon"></i>
+            <img src="{{ top_companies[2].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[2].CompanyName }}" class="profile-pic">
+            <div class="name">{{ top_companies[2].CompanyName }}</div>
+            <div class="points">{{ top_companies[2].FilledJobsCount }} <small>hires</small></div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not top_companies %}
+        <p class="text-center text-muted mt-4">No company performance data found.</p>
+    {% endif %}
+
+    <!-- Rest of the Leaderboard -->
+    {% if top_companies|length > 3 %}
+    <h4 class="mt-5 mb-3 text-center">Top Company Rankings</h4>
+    <ul class="leaderboard-list">
+        {% for company in top_companies[3:] %}
+        <li class="leaderboard-list-item">
+            <div class="list-rank">{{ loop.index + 3 }}</div>
+            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" class="list-pic">
+            <div class="list-name">{{ company.CompanyName }}</div>
+            <div class="list-points">{{ company.FilledJobsCount }} <small>hires</small></div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+{% endblock %}

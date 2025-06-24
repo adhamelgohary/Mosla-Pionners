@@ -1,0 +1,32 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="dashboard-page-actions">
+    <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="btn btn-primary">
+        <i class="bi bi-people-fill"></i> View All Staff
+    </a>
+</div>
+
+<div class="dashboard-module kpi-overview-module">
+    <h3>Team Composition</h3>
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="card-header"><h4>Total Active Staff</h4></div>
+            <div class="card-body"><div class="kpi-value">{{ kpis.get('total_staff', '0') }}</div></div>
+        </div>
+        {% for role, count in kpis.get('role_breakdown', {}).items() %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>{{ role | replace('_', ' ') | title }}s</h4></div>
+            <div class="card-body"><div class="kpi-value">{{ count }}</div></div>
+        </div>
+        {% endfor %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>New Staff (Last 30 Days)</h4></div>
+            <div class="card-body"><div class="kpi-value">{{ kpis.get('new_staff_30_days', '0') }}</div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

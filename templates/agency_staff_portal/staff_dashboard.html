@@ -1,0 +1,159 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}Staff Dashboard{% endblock %}
+{% block staff_page_title %}Agency Staff Dashboard{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+    {# Assuming dashboard_specific_styles.css or portal_styles.css is linked #}
+{% endblock %}
+
+{% block staff_content %}
+<div class="dashboard-greeting">
+    <p>Welcome back to the Agency Staff Portal, <strong>{{ current_user.first_name }}</strong>!</p>
+    <p>Your role: <strong>{{ current_user.role_type }}</strong></p>
+</div>
+
+{# System Announcements (Manual) Section - Assuming ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE is passed #}
+{% if manual_announcements or (current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE) %}
+<div class="dashboard-module announcements-module">
+    <h3>System Announcements</h3>
+    {% if manual_announcements %}
+        {% for announcement in manual_announcements %}
+        <div class="announcement-item priority-{{ announcement.Priority }}">
+            <div class="announcement-title">{{ announcement.Title }}</div>
+            <div class="announcement-meta">
+                Posted {{ announcement.CreatedAt | timeago }}
+                {% if announcement.PosterFirstName %}
+                    by {{ announcement.PosterFirstName }} {{ announcement.PosterLastName }}
+                {% endif %}
+            </div>
+            <div class="announcement-content">{{ announcement.Content | nl2br }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No active manual announcements for your audience at the moment.</p>
+    {% endif %}
+
+    {% if current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE %}
+        <p style="margin-top: 1rem; text-align: right;">
+            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="btn btn-sm btn-outline-secondary">Manage Announcements</a>
+        </p>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Activity Feed (Automated Announcements) Section #}
+{% if activity_feed_items %}
+<div class="dashboard-module activity-feed-module">
+    <h3>Recent Agency Activity</h3>
+    {% for item in activity_feed_items %}
+    <div class="announcement-item activity-item source-{{ item.Source }}">
+        <div class="announcement-title">
+            {% if item.Source == 'Automated_Course' %}<span class="activity-icon">🎓</span>{% endif %}
+            {% if item.Source == 'Automated_Offer' %}<span class="activity-icon">💼</span>{% endif %}
+            {{ item.Title }}
+        </div>
+        <div class="announcement-meta">
+            Occurred {{ item.CreatedAt | timeago }}
+        </div>
+        {% if item.Content %}
+        <div class="announcement-content">{{ item.Content | nl2br | truncate(150) }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
+{# General Stats Section - Agency Overview #}
+<div class="dashboard-module general-stats-module">
+    <h3>Agency Overview</h3>
+    <div class="kpi-grid">
+
+        {# Open Job Offers - Visible to all staff #}
+        <div class="kpi-card">
+            <div class="card-header"><h4>Open Job Offers</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('open_job_offers', '0') }}</p></div>
+        </div>
+
+        {# Total System Candidates - Only for CEO #}
+        {% if current_user.role_type == 'CEO' %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>Total System Candidates</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('total_candidates_system', '0') }}</p></div>
+        </div>
+        {% endif %}
+
+        {# Active Companies - Visible to CEO, OpsMan, SalesMan, AMs #}
+        {% if current_user.role_type in ['CEO', 'OperationsManager', 'SalesManager', 'AccountManager', 'SeniorAccountManager'] %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>Active Companies</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('total_companies', '0') }}</p></div>
+        </div>
+        {% endif %}
+        
+        {# Active Recruiters - Visible to CEO, OpsMan, SourcingTeamLead, SalesMan #}
+        {% if current_user.role_type in ['CEO', 'OperationsManager', 'SourcingTeamLead', 'SalesManager'] %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>Active Recruiters</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('active_recruiters', '0') }}</p></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# Course Management Link Section #}
+{% if can_manage_courses %}
+    <div class="dashboard-module course-management-module">
+        <h3>Course Overview & Management</h3>
+        <p style="display: flex; gap: 10px;">
+            <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="btn btn-info">View Courses Dashboard</a>
+            <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="btn btn-primary">Manage All Courses</a>
+        </p>
+    </div>
+{% endif %}
+
+{# Role-Specific Section for Sourcing #}
+{% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'CEO', 'SalesManager', 'OperationsManager'] %}
+<div class="dashboard-module sourcing-module">
+    <h3>My Sourcing Activity</h3>
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="card-header"><h4>My Sourced Candidates (Last 30d)</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('my_sourced_candidates_month', '0') }}</p></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# Role-Specific Section for Account/Sales Management (UPDATED) #}
+{% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'SalesManager', 'CEO'] %}
+<div class="dashboard-module sales-am-module">
+    <h3>Client & Sales Overview</h3>
+    <div class="kpi-grid">
+        {# KPI for Account Manager #}
+        {% if current_user.role_type == 'AccountManager' %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>My Managed Clients</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('my_managed_clients', '0') }}</p></div>
+        </div>
+        {% endif %}
+        
+        {# KPI for Senior Account Manager #}
+        {% if current_user.role_type == 'SeniorAccountManager' %}
+        <div class="kpi-card">
+            <div class="card-header"><h4>Clients Managed by My Team</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('team_managed_clients', '0') }}</p></div>
+        </div>
+        {% endif %}
+
+        <div class="kpi-card">
+            <div class="card-header"><h4>New Clients (Agency, Last 30d)</h4></div>
+            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('new_clients_agency_month', '0') }}</p></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

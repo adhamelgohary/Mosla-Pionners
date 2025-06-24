@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" {% if session.get('theme') == 'dark' %}data-theme="dark"{% endif %}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title if title else 'Apply to Join Our Team' }} - Mosla Pioneers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .input-group { position: relative; margin-bottom: 1.5rem; }
+        .input-group .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--icon-color, #9CA3AF); pointer-events: none; }
+        .input-group input[type="text"], .input-group input[type="email"], .input-group input[type="password"], .input-group input[type="url"], .input-group input[type="tel"], .input-group textarea {
+            width: 100%; padding: 14px 20px 14px 45px; border: 1px solid var(--input-border, #D0D5DD); border-radius: 8px;
+            font-family: 'Poppins', sans-serif; font-size: 1rem; background-color: var(--input-background); color: var(--text-color);
+        }
+        .input-group textarea { padding-top: 14px; padding-bottom:14px; min-height: 80px; resize: vertical; }
+        .input-group .icon-textarea { top: 20px; transform: translateY(0); }
+        .input-group input:focus, .input-group textarea:focus { outline: none; border-color: var(--primary-accent); }
+        .password-input-wrapper { position: relative; }
+        .password-toggle-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--icon-color, #9CA3AF); }
+        .eye-slashed { display: none; }
+        .file-upload-group { display: flex; align-items: center; width: 100%; border: 1px solid var(--input-border, #ccc); border-radius: 8px; padding-left: 12px; transition: border-color 0.3s; margin-bottom: 1.5rem; }
+        .file-upload-group:has(input:focus-visible), .file-upload-group:hover { border-color: var(--primary-accent); }
+        .file-upload-group .icon { color: var(--icon-color, #9CA3AF); margin-right: 10px; }
+        .file-upload-label { flex-grow: 1; padding: 14px 0; cursor: pointer; color: var(--subtle-text-color, #888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
+        body.dark-mode .file-upload-label { color: var(--subtle-text-color, #aaa); }
+        .file-upload-label.has-file { color: var(--text-color); }
+        .file-upload-group input[type="file"] { display: none; }
+        .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
+        .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+        .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+        .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
+        .input-group input.is-invalid, .input-group textarea.is-invalid, .file-upload-group.is-invalid { border-color: #dc3545; }
+    </style>
+</head>
+<body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
+    <nav>
+        <button id="theme-toggle" class="theme-toggle-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+            <svg class="moon-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>
+        </button>
+    </nav>
+    <div class="login-page-container">
+        <div class="background-images">
+             <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
+            <img src="{{ url_for('static', filename='png/customer-service.png') }}" alt="" class="bg-image image-10">
+        </div>
+        <div class="form-wrapper">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
+                <span>Mosla Pioneers</span>
+            </div>
+            <h2>Apply to Join Our Team</h2>
+            <p class="subtitle">We're looking for talented individuals to join Mosla Pioneers.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('register_bp.apply_to_be_staff', next=request.args.get('next', '')) }}" enctype="multipart/form-data">
+                
+                <div class="input-group">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 13C10.6193 13 9.5 11.8807 9.5 10.5C9.5 9.11929 10.6193 8 12 8C13.3807 8 14.5 9.11929 14.5 10.5C14.5 11.8807 13.3807 13 12 13ZM7.00104 18C7.06833 15.7533 8.84534 14 11 14H13C15.1547 14 16.9317 15.7533 16.9989 18H7.00104Z"/></svg>
+                    </span>
+                    <input type="text" name="first_name" id="first_name" placeholder="First Name" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}">
+                    {% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}
+                </div>
+
+                <div class="input-group">
+                    <span class="icon">
+                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 13C10.6193 13 9.5 11.8807 9.5 10.5C9.5 9.11929 10.6193 8 12 8C13.3807 8 14.5 9.11929 14.5 10.5C14.5 11.8807 13.3807 13 12 13ZM7.00104 18C7.06833 15.7533 8.84534 14 11 14H13C15.1547 14 16.9317 15.7533 16.9989 18H7.00104Z"/></svg>
+                    </span>
+                    <input type="text" name="last_name" id="last_name" placeholder="Last Name" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}">
+                    {% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}
+                </div>
+
+                <div class="input-group">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H20C20.5523 2 21 2.44772 21 3V21C21 21.5523 20.5523 22 20 22ZM19 20V4H5V20H19ZM12 13C10.6193 13 9.5 11.8807 9.5 10.5C9.5 9.11929 10.6193 8 12 8C13.3807 8 14.5 9.11929 14.5 10.5C14.5 11.8807 13.3807 13 12 13ZM7.00104 18C7.06833 15.7533 8.84534 14 11 14H13C15.1547 14 16.9317 15.7533 16.9989 18H7.00104Z"/></svg>
+                    </span>
+                    <input type="email" name="email" id="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}">
+                    {% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}
+                </div>
+
+                <div class="input-group">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.94116 16.0588C9.94116 19.0588 14.01 20.5 18 20.5C18.5304 20.5 19.0588 20.4696 19.5882 20.4118L19.9412 20.3824L20.2059 20.3529C20.5588 20.2941 20.8529 20.0294 20.9412 19.6765L21.8235 16.4412C21.9412 15.9706 21.7353 15.4706 21.3235 15.1765L18.4412 13.1471C17.9706 12.8235 17.3529 12.8824 16.9412 13.2647L15.6765 14.4706C13.5 13.4706 11.5 11.5 10.5 9.32353L11.7353 8.05882C12.1176 7.64706 12.1765 7.02941 11.8529 6.55882L9.82353 3.67647C9.52941 3.26471 9.02941 3.05882 8.55882 3.17647L5.32353 4.05882C4.97059 4.14706 4.70588 4.44118 4.64706 4.79412L4.61765 4.97059L4.58824 5.29412C4.53041 5.94116 4.5 6.5 4.5 6.97059C4.5 10.99 5.94116 13.0588 6.94116 16.0588Z"/></svg>
+                    </span>
+                    <input type="tel" name="phone_number" id="phone_number" placeholder="Phone Number" value="{{ form_data.get('phone_number', '') }}" class="{{ 'is-invalid' if errors.get('phone_number') }}">
+                    {% if errors.get('phone_number') %}<div class="invalid-feedback">{{ errors.get('phone_number') }}</div>{% endif %}
+                </div>
+                
+                <div class="input-group">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 22H4C2.89543 22 2 21.1046 2 20V4C2 2.89543 2.89543 2 4 2H20C21.1046 2 22 2.89543 22 4V20C22 21.1046 21.1046 22 20 22ZM8 10H5V17H8V10ZM6.5 6.25C5.55964 6.25 4.75 7.05964 4.75 8C4.75 8.94036 5.55964 9.75 6.5 9.75C7.44036 9.75 8.25 8.94036 8.25 8C8.25 7.05964 7.44036 6.25 6.5 6.25ZM18 17H15V13.75C15 12.9467 14.3284 12.25 13.5 12.25C12.6716 12.25 12 12.9467 12 13.75V17H9V10H12V11.25C12.464 10.4215 13.4113 9.75 14.5 9.75C16.433 9.75 18 11.067 18 13.25V17Z"/></svg>
+                    </span>
+                    <input type="url" name="linkedin_profile_url" id="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}" class="{{ 'is-invalid' if errors.get('linkedin_profile_url') }}">
+                    {% if errors.get('linkedin_profile_url') %}<div class="invalid-feedback">{{ errors.get('linkedin_profile_url') }}</div>{% endif %}
+                </div>
+
+                <div class="input-group">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8H17V6C17 3.23858 14.7614 1 12 1C9.23858 1 7 3.23858 7 6V8H6C4.89543 8 4 8.89543 4 10V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V10C20 8.89543 19.1046 8 18 8ZM15 8H9V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V8Z"/></svg>
+                    </span>
+                    <div class="password-input-wrapper">
+                        <input type="password" name="password" id="password" placeholder="Create Password" class="{{ 'is-invalid' if errors.get('password') }}">
+                        <span class="password-toggle-icon" data-target="password" aria-label="Show password">
+                            <svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg>
+                            <svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg>
+                        </span>
+                    </div>
+                    {% if errors.get('password') %}<div class="invalid-feedback">{{ errors.get('password') }}</div>{% endif %}
+                </div>
+
+                <div class="input-group">
+                    <span class="icon">
+                         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8H17V6C17 3.23858 14.7614 1 12 1C9.23858 1 7 3.23858 7 6V8H6C4.89543 8 4 8.89543 4 10V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V10C20 8.89543 19.1046 8 18 8ZM15 8H9V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V8Z"/></svg>
+                    </span>
+                     <div class="password-input-wrapper">
+                        <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" class="{{ 'is-invalid' if errors.get('confirm_password') }}">
+                         <span class="password-toggle-icon" data-target="confirm_password" aria-label="Show password">
+                            <svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg>
+                            <svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg>
+                        </span>
+                    </div>
+                    {% if errors.get('confirm_password') %}<div class="invalid-feedback">{{ errors.get('confirm_password') }}</div>{% endif %}
+                </div>
+                
+                <div class="file-upload-group {{ 'is-invalid' if errors.get('profile_picture') }}">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3C2.44772 3 2 3.44772 2 4V20C2 20.5523 2.44772 21 3 21H21C21.5523 21 22 20.5523 22 20V4C22 3.44772 21.5523 3 21 3H3ZM5.64545 13.4085L9.39327 9.53951C9.782 9.13838 10.4147 9.13131 10.8042 9.5208L15.4187 14.1352L17.5878 11.8597C17.9715 11.4531 18.6033 11.4587 18.9791 11.8681L20 12.9385V19H4V16.0335L5.64545 13.4085ZM6 7C7.10457 7 8 7.89543 8 9C8 10.1046 7.10457 11 6 11C4.89543 11 4 10.1046 4 9C4 7.89543 4.89543 7 6 7Z"/></svg>
+                    </span>
+                    <label for="profile_picture" id="profile_picture_label" class="file-upload-label">Upload Profile Picture (Optional)</label>
+                    <input type="file" name="profile_picture" id="profile_picture" accept="image/*">
+                </div>
+                {% if errors.get('profile_picture') %}<div class="invalid-feedback" style="margin-top: -1.25rem; margin-bottom: 1.5rem;">{{ errors.get('profile_picture') }}</div>{% endif %}
+
+                <div class="file-upload-group {{ 'is-invalid' if errors.get('cv') }}">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.0007 10.5865L16.9504 5.63672L18.3646 7.05093L12.0007 13.4148L5.63672 7.05093L7.05093 5.63672L12.0007 10.5865ZM12.0007 18.5865L16.9504 13.6367L18.3646 15.0509L12.0007 21.4148L5.63672 15.0509L7.05093 13.6367L12.0007 18.5865Z"/></svg>
+                    </span>
+                    <label for="cv" id="cv_label" class="file-upload-label">Upload your Resume/CV (Optional)</label>
+                    <input type="file" name="cv" id="cv" accept=".pdf,.doc,.docx,.txt">
+                </div>
+                {% if errors.get('cv') %}<div class="invalid-feedback" style="margin-top: -1.25rem; margin-bottom: 1.5rem;">{{ errors.get('cv') }}</div>{% endif %}
+
+                <button type="submit" class="login-button">Submit Application</button>
+            </form>
+            <div class="signup-link">
+                <p>Already registered or looking for other options? <a href="{{ url_for('login_bp.login', next=request.args.get('next', '')) }}">Log In</a> or <a href="{{ url_for('register_bp.register_options', next=request.args.get('next', '')) }}">Back to Register Options</a></p>
+            </div>
+        </div>
+    </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+    const applyTheme = (theme) => {
+        if (theme === 'dark') { body.classList.add('dark-mode'); if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to light theme');
+        } else { body.classList.remove('dark-mode'); if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to dark theme'); }
+    };
+    let currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(currentTheme);
+
+    if(themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            currentTheme = body.classList.toggle('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', currentTheme);
+            applyTheme(currentTheme);
+            fetch("{{ url_for('set_theme') }}", { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({theme: currentTheme}) })
+                .catch(error => console.error("Error sending theme preference:", error));
+        });
+    }
+
+    document.querySelectorAll('.password-toggle-icon').forEach(toggle => {
+        const openEyeIcon = toggle.querySelector('svg.eye-open');
+        const slashedEyeIcon = toggle.querySelector('svg.eye-slashed');
+        const targetId = toggle.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+
+        if (!passwordInput || !openEyeIcon || !slashedEyeIcon) { return; }
+
+        const setIcons = () => {
+            if (passwordInput.type === 'password') {
+                openEyeIcon.style.display = 'inline-block';
+                slashedEyeIcon.style.display = 'none';
+                toggle.setAttribute('aria-label', 'Show password');
+            } else {
+                openEyeIcon.style.display = 'none';
+                slashedEyeIcon.style.display = 'inline-block';
+                toggle.setAttribute('aria-label', 'Hide password');
+            }
+        };
+        setIcons(); // Initial state
+
+        toggle.addEventListener('click', function () {
+            passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+            setIcons();
+        });
+    });
+
+    function setupFileInputLabel(inputId, labelId, defaultText) {
+        const fileInput = document.getElementById(inputId);
+        const fileLabel = document.getElementById(labelId);
+        if (fileInput && fileLabel) {
+            const updateLabel = () => {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    fileLabel.textContent = fileInput.files[0].name;
+                    fileLabel.classList.add('has-file');
+                } else {
+                    fileLabel.textContent = defaultText;
+                    fileLabel.classList.remove('has-file');
+                }
+            };
+            fileInput.addEventListener('change', updateLabel);
+            updateLabel(); // Initial check
+        }
+    }
+    setupFileInputLabel('profile_picture', 'profile_picture_label', 'Upload Profile Picture (Optional)');
+    setupFileInputLabel('cv', 'cv_label', 'Upload your Resume/CV (Optional)');
+});
+</script>
+</body>
+</html>

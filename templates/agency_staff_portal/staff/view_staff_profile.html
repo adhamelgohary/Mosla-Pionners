@@ -1,0 +1,181 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{# The page title is already dynamic from the route: {{ title }} #}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+{% endblock %}
+
+{% block staff_content %}
+{# --- Define helper variables for cleaner logic --- #}
+{# current_user.specific_role_id is StaffID for staff users #}
+{# user_profile.StaffID is the StaffID of the profile being viewed #}
+{% set is_executive_viewer = current_user.role_type in ['CEO', 'OperationsManager'] %}
+{% set is_leader_viewer = current_user.role_type in LEADER_ROLES %} {# LEADER_ROLES from decorators.py #}
+{% set is_viewing_own_profile = current_user.id == user_profile.UserID %}
+
+{# Permission to manage this user: Executive viewing anyone (except self for some actions), or direct manager #}
+{% set can_manage_this_user_fully = is_executive_viewer and not is_viewing_own_profile %}
+{% set is_direct_manager = current_user.specific_role_id == user_profile.ReportsToStaffID %}
+{% set can_manage_points_for_this_user = (is_executive_viewer or is_direct_manager) and not is_viewing_own_profile and user_profile.StaffID %}
+
+
+{# --- Dynamic "Back" Button --- #}
+{# This logic assumes your staff_hub redirects leaders to my_team, so we go back there #}
+{% if not is_viewing_own_profile and (is_executive_viewer or is_leader_viewer) %}
+    <a href="{{ url_for('employee_mgmt_bp.my_team') }}" class="btn btn-secondary mb-4"><i class="bi bi-arrow-left"></i> 
+        {% if is_executive_viewer %}Back to All Staff View{% else %}Back to My Group{% endif %}
+    </a>
+{% endif %}
+
+{# --- The Main Profile Header --- #}
+<div class="profile-header">
+    <img src="{{ user_profile.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ user_profile.FirstName }}" class="profile-pic-large">
+    <div class="profile-info">
+        <h3>{{ user_profile.FirstName }} {{ user_profile.LastName }}</h3>
+        <p class="text-muted">{{ user_profile.Role or 'No role assigned' }}</p>
+        {% if user_profile.IsActive %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-danger">Inactive</span>{% endif %}
+    </div>
+</div>
+
+<div class="profile-grid">
+    <!-- Left Column: Core Details & Points -->
+    <div>
+        <div class="profile-card mb-4">
+            <h4>Core Information</h4>
+            <div class="info-grid">
+                <strong>Email:</strong>       <span>{{ user_profile.Email }}</span>
+                <strong>Member Since:</strong>  <span>{{ user_profile.RegistrationDate | date }}</span>
+                {# Ensure user_profile has StaffID and TotalPoints if they are staff #}
+                {% if user_profile.StaffID %}
+                    <strong>Total Points:</strong>  <span>{{ user_profile.TotalPoints if user_profile.TotalPoints is not none else 'N/A' }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user_profile.StaffID %} {# Actions related to staff records #}
+        <div class="profile-card mb-4 text-center">
+            <h4>Sourcing Referral Code</h4>
+            {% if user_profile.ReferralCode %}
+                <p class="text-muted">Unique code for candidate referrals.</p>
+                <div class="referral-code-display">{{ user_profile.ReferralCode }}</div>
+            {% elif is_viewing_own_profile or can_manage_this_user_fully %}
+                <p class="text-muted">This user does not have a referral code yet.</p>
+                <form action="{{ url_for('employee_mgmt_bp.generate_referral_code', target_staff_id=user_profile.StaffID) }}" method="POST" class="mt-3">
+                    <button type="submit" class="btn btn-success"><i class="bi bi-magic"></i> Generate Code</button>
+                </form>
+            {% else %}
+                 <p class="text-muted">Referral code not generated.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Management Tools (if applicable) -->
+    {# Only executives can update role and leader #}
+    {% if can_manage_this_user_fully and user_profile.StaffID %}
+    <div>
+        <div class="profile-card mb-4">
+            <h4>Management Tools</h4>
+            <form action="{{ url_for('employee_mgmt_bp.update_role', staff_id_to_edit=user_profile.StaffID) }}" method="POST" class="mb-3">
+                <input type="hidden" name="user_id" value="{{ user_profile.UserID }}"> {# For redirect #}
+                <div class="form-group">
+                    <label for="role">Assign Role</label>
+                    <select name="role" id="role" class="form-control">
+                        {% for role_option in possible_roles %}
+                        <option value="{{ role_option }}" {% if role_option == user_profile.Role %}selected{% endif %}>{{ role_option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-2">Update Role</button>
+            </form>
+            <hr>
+            <form action="{{ url_for('employee_mgmt_bp.update_leader', staff_id_to_edit=user_profile.StaffID) }}" method="POST" class="mt-3">
+                <input type="hidden" name="user_id" value="{{ user_profile.UserID }}"> {# For redirect #}
+                <div class="form-group">
+                    <label for="leader_id">Assign Manager (Reports To)</label>
+                    <select name="leader_id" id="leader_id" class="form-control">
+                        <option value="">-- No Manager --</option>
+                        {% for leader in team_leaders %}
+                            {% if leader.StaffID != user_profile.StaffID %} {# Cannot report to self #}
+                            <option value="{{ leader.StaffID }}" {% if leader.StaffID == user_profile.ReportsToStaffID %}selected{% endif %}>
+                                {{ leader.FirstName }} {{ leader.LastName }} ({{ leader.Role }})
+                            </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-2">Update Manager</button>
+            </form>
+        </div>
+    {% endif %}
+    
+    {# Points management: For direct manager or executives #}
+    {% if can_manage_points_for_this_user %}
+        <div class="profile-card mb-4">
+            <h4>Manage Points</h4>
+            <form action="{{ url_for('employee_mgmt_bp.add_points', staff_id_award_points=user_profile.StaffID) }}" method="POST">
+                <input type="hidden" name="user_id" value="{{ user_profile.UserID }}"> {# For redirect #}
+                <div class="form-group"><label for="action_type">Action Type</label><select name="action_type" id="action_type" class="form-control" required><option value="award">Award Points</option><option value="deduct">Deduct Points</option></select></div>
+                <div class="form-group"><label for="points">Points Value</label><input type="number" name="points" id="points" class="form-control" required placeholder="e.g., 50" min="1"></div>
+                <div class="form-group"><label for="reason">Reason / Note</label><textarea name="reason" id="reason" class="form-control" rows="2" required></textarea></div>
+                <button type="submit" class="btn btn-success w-100 mt-2">Submit Points Adjustment</button>
+            </form>
+        </div>
+    {% endif %}
+    </div>
+</div>
+
+<!-- Points Activity Log -->
+{% if user_profile.StaffID and points_log %}
+<div class="profile-card mt-4">
+    <h4>Recent Points Activity</h4>
+    <div class="table-container">
+        <table class="table table-sm">
+            <thead><tr><th>Points</th><th>Reason</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for log in points_log %}
+                <tr>
+                    <td>{% if log.PointsAmount > 0 %}<span class="text-success">+{{ log.PointsAmount }}</span>{% else %}<span class="text-danger">{{ log.PointsAmount }}</span>{% endif %}</td>
+                    <td>{{ log.Notes or log.ActivityType }}</td>
+                    <td>{{ log.AwardDate | date }}</td> {# Assuming you have a 'date' Jinja filter #}
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">No points activity found for this user.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Direct Reports Section - Title is dynamic -->
+{# The direct_reports variable should be passed from the view_staff_profile route #}
+{# direct_reports_section_title also passed from the route #}
+{% if direct_reports %}
+<div class="profile-card mt-4">
+    <h4>{{ direct_reports_section_title or "Manages Directly" }}</h4>
+    <div class="table-container">
+        <table class="table table-sm">
+            <thead><tr><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for report in direct_reports %}
+                <tr>
+                    <td>{{ report.FirstName }} {{ report.LastName }}</td>
+                    <td><span class="badge bg-info">{{ report.Role }}</span></td>
+                    <td>
+                        <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=report.UserID) }}" class="btn btn-xs btn-outline-primary">View Profile</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted">This user does not directly manage any staff.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

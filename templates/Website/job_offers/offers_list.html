@@ -1,0 +1,171 @@
+{% extends "Website/base.html" %}
+
+{% block title %}{{ title }} - Mosla Pioneers{% endblock %}
+
+{% block head_extra %}
+    {# Styles specific to this page can be added here if not in website_styles.css #}
+    <style>
+        .job-filters .category-item.active-filter {
+            background-color: rgba(var(--primary-color-rgb), 0.1);
+            border-left: 3px solid var(--primary-color);
+            padding-left: calc(0.75rem - 3px); /* Adjust padding to account for border */
+        }
+        .job-filters .category-item.active-filter .category-name {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<main class="container">
+    <form class="job-search-hero" method="GET" action="{{ url_for('job_board_bp.job_offers_list') }}">
+        <h1>Find Your Next Opportunity</h1>
+        <div class="search-row">
+            <div class="search-container">
+                <span class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                    </svg>
+                </span>
+                <input type="text" class="search-input" name="q" placeholder="Job title, keywords, or company" value="{{ search_term or '' }}">
+            </div>
+            <div class="controls-row">
+                <div class="search-container">
+                     <span class="search-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                           <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
+                        </svg>
+                     </span>
+                    <input type="text" class="search-input" name="location" placeholder="Location (e.g., Cairo)" value="{{ selected_location or '' }}">
+                </div>
+                {# <button type="button" class="filters-button" onclick="alert('Advanced filters modal coming soon!');">
+                    <span>⚙️ Filters</span>
+                </button> #}
+            </div>
+        </div>
+        <div class="tags-container" id="activeFiltersContainer">
+            {% if search_term %}
+                <span class="tag">Keyword: {{ search_term }} <a href="{{ url_for('.job_offers_list', category=selected_category_id, location=selected_location) }}" class="tag-close" title="Clear keyword">×</a></span>
+            {% endif %}
+            {% if selected_category_id %}
+                {% set category_name_display = "Unknown Category" %}
+                {% for cat in job_categories %}{% if cat.CategoryID == selected_category_id %}{% set category_name_display = cat.CategoryName %}{% endif %}{% endfor %}
+                <span class="tag">Category: {{ category_name_display }} <a href="{{ url_for('.job_offers_list', q=search_term, location=selected_location) }}" class="tag-close" title="Clear category">×</a></span>
+            {% endif %}
+            {% if selected_location %}
+                 <span class="tag">Location: {{ selected_location }} <a href="{{ url_for('.job_offers_list', q=search_term, category=selected_category_id) }}" class="tag-close" title="Clear location">×</a></span>
+            {% endif %}
+            {% if search_term or selected_category_id or selected_location %}
+                <a href="{{ url_for('.job_offers_list') }}" class="clear-all">Clear All Filters</a>
+            {% endif %}
+        </div>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button type="submit" class="btn-primary" style="padding: 10px 20px;">Search Jobs</button>
+        </div>
+    </form>
+
+    <div class="job-board-container">
+        <aside class="sidebar job-filters">
+           <div class="job-categories">
+                <h3>Job Categories</h3>
+                <a href="{{ url_for('.job_offers_list', q=search_term, location=selected_location) }}" 
+                   class="category-item {% if not selected_category_id %}active-filter{% endif %}">
+                    <div class="category-info"><span class="category-name">All Categories</span></div>
+                </a>
+                {% for category in job_categories %}
+                <a href="{{ url_for('.job_offers_list', category=category.CategoryID, q=search_term, location=selected_location) }}" 
+                   class="category-item {% if selected_category_id == category.CategoryID %}active-filter{% endif %}">
+                    <div class="category-info">
+                        {# <span class="category-icon">💼</span> Example Icon #}
+                        <span class="category-name">{{ category.CategoryName }}</span>
+                    </div>
+                    {# Count can be added later via backend if needed #}
+                </a>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <div class="main-content job-listings">
+            <section class="section job-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Available Job Openings</h2>
+                        <p class="section-subtitle" id="jobCountDisplay">
+                            Showing {{ job_offers_list|length }} job opening{{ 's' if job_offers_list|length != 1 else '' }}
+                            {% if search_term or selected_category_id or selected_location %} (filtered results){% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="job-list" id="jobListContainer">
+                    {% if job_offers_list %}
+                        {% for job in job_offers_list %}
+                        <div class="job-card">
+                            <div class="job-header">
+                                <div class="job-info">
+                                    <div class="job-meta">
+                                        <span>Type: {{ job.JobType or 'Full-time' }}</span>
+                                        <span>Posted: {{ job.DatePosted | timeago }}</span> 
+                                    </div>
+                                    <h3 class="job-title">{{ job.Title }}</h3>
+                                    <p class="job-company">{{ job.CompanyName }}</p>
+                                    <p class="job-salary">
+                                        {% if job.NetSalary %}
+                                            {{ job.NetSalary | currency(job.Currency or 'EGP') }} / Monthly
+                                        {% else %}
+                                            Salary Undisclosed
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <button class="favorite-btn" aria-label="Favorite job" data-offer-id="{{ job.OfferID }}">♡</button>
+                            </div>
+                            <div class="job-tags">
+                                {% if job.Location %}<span class="job-tag location">🌍 {{ job.Location }}</span>{% endif %}
+                                {% if job.CategoryName %}<span class="job-tag category">{{ job.CategoryName }}</span>{% endif %}
+                                {% if job.EnglishLevelRequirement %}<span class="job-tag english-level">🇬🇧 {{ job.EnglishLevelRequirement }}</span>{% endif %}
+                            </div>
+                            <a href="{{ url_for('job_board_bp.job_detail', offer_id=job.OfferID) }}" class="apply-btn">View Details & Apply</a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                         <div id="noResultsMessage" style="text-align: center; padding: 2rem; color: var(--text-muted-color);">
+                            <p>No jobs found matching your current criteria. Try broadening your search or clearing filters.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Favorite button toggle logic
+    document.querySelectorAll('.favorite-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation(); 
+            this.classList.toggle('favorited');
+            this.innerHTML = this.classList.contains('favorited') ? '♥' : '♡';
+            const offerId = this.dataset.offerId;
+            // TODO: AJAX call to backend to save/unsave favorite status for this user and offerId
+            console.log(`Favorite toggled for offer ID: ${offerId}`);
+        });
+    });
+    
+    // Make entire job card clickable, except for favorite button
+    document.querySelectorAll('.job-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A' && !e.target.closest('.favorite-btn')) {
+                const detailLink = this.querySelector('.apply-btn');
+                if (detailLink && detailLink.href) {
+                    window.location.href = detailLink.href;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

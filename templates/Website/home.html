@@ -1,0 +1,102 @@
+{% extends "Website/base.html" %} {# Corrected path #}
+
+{% block title %}Welcome to Mosla Pioneers - Your Recruitment Partner{% endblock %}
+
+{% block content %}
+    <section id="home" class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text fade-in">
+                    <h1>The Ultimate Recruitment<span class="highlight">Partner for High-Performance Teams</span></h1>
+                   <p>We specialize in building high-performing teams for the nation's leading customer service, telesales, call center, and real estate companies...</p>
+                    <div class="hero-buttons">
+                        <a href="{{ url_for('public_routes_bp.home_page') }}#services" class="btn-secondary">Get Started</a>
+                    </div>
+                    <div class="hero-stats">
+                        {% if recent_jobs %}
+                            <div class="stat">
+                                <span class="stat-number">{{ recent_jobs|length }}+</span>
+                                <span class="stat-label">Recent Openings</span>
+                            </div>
+                        {% endif %}
+                        <div class="stat"><span class="stat-number">10k+</span><span class="stat-label">Agents Placed</span></div>
+                        <div class="stat"><span class="stat-number">2k+</span><span class="stat-label">Happy Clients</span></div>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Team" >
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="services" class="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>Our <span class="highlight-text">Services</span></h2>
+                <p>A streamlined approach to connect you with top-tier talent.</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card fade-in">
+                    <div class="service-header"><div class="service-icon">💼</div><h3>Our Offers</h3></div>
+                    <p>We connect you with elite frontline talent...</p>
+                    {# UPDATED LINK #}
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="service-link">Learn More →</a>
+                </div>
+                <div class="service-card fade-in">
+                    <div class="service-header"><div class="service-icon">🌐</div><h3>Train To Hire Course</h3></div>
+                    <p>Upskill and get ready for the market with our specialized courses...</p>
+                    <a href="#" class="service-link">Explore Courses →</a> {# Placeholder for courses page #}
+                </div>
+                <div class="service-card fade-in">
+                    <div class="service-header"><div class="service-icon">🤝</div><h3>Join Our Team</h3></div>
+                    <p>Become a part of Mosla Pioneers and help connect talent with opportunities...</p>
+                    <a href="{{ url_for('register_bp.apply_to_be_staff') }}" class="service-link">Apply as Staff →</a>
+                </div>
+                <div class="service-card fade-in">
+                    <div class="service-header"><div class="service-icon">🚀</div><h3>Post a Job</h3></div>
+                    <p>Clients, find your next top performer by posting your job openings with us...</p>
+                    <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Clients Post Here →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text">
+                    <h2>Why Choose <span class="highlight-text">Mosla Pioneers</span>?</h2>
+                    <p>We are your strategic growth partner, committed from initial sourcing to post-hire success...</p>
+                    <div class="about-features">
+                        <div class="feature"><div class="feature-icon">✓</div><span><strong>End-to-End Support:</strong> Full lifecycle management.</span></div>
+                        <div class="feature"><div class="feature-icon">✓</div><span><strong>Train-to-Hire Program:</strong> Custom-molded talent.</span></div>
+                        {## ... other features ... ##}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <h2>What Our <span class="highlight-text">Clients</span> Say</h2>
+                <p>Hear from companies who've transformed their operations with our talent.</p>
+            </div>
+            <div class="testimonial-grid">
+                {# Example Testimonial #}
+                <div class="testimonial-card">
+                    <div class="testimonial-text">Mosla Pioneers helped us scale our customer service team...</div>
+                    <div class="testimonial-author">Sarah Johnson</div>
+                    <div class="testimonial-company">Operations Manager, TechSupport Plus</div>
+                </div>
+                {# Add more testimonials #}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    {# No page-specific scripts needed for home.html if proximity nav is in base #}
+{% endblock %}

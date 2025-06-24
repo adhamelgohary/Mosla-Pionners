@@ -1,0 +1,77 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="form-container">
+    <form method="POST" action="{{ url_for(request.endpoint, announcement_id=announcement_id if announcement_id else None) }}">
+        {# Hidden field for edit form to preserve original title on POST validation fail #}
+        {% if action_verb == 'Update' %}
+            <input type="hidden" name="original_title_hidden" value="{{ original_title_hidden or form_data.get('Title', '') }}">
+        {% endif %}
+
+        <div class="form-group">
+            <label for="title">Title <span style="color:red;">*</span></label>
+            <input type="text" id="title" name="title" class="{{ 'is-invalid' if errors.get('title') }}" 
+                   value="{{ form_data.get('title', form_data.get('Title', '')) }}" required>
+            {% if errors.get('title') %}<div class="invalid-feedback">{{ errors.get('title') }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="content">Content <span style="color:red;">*</span></label>
+            <textarea id="content" name="content" class="{{ 'is-invalid' if errors.get('content') }}" 
+                      rows="6" required>{{ form_data.get('content', form_data.get('Content', '')) }}</textarea>
+            {% if errors.get('content') %}<div class="invalid-feedback">{{ errors.get('content') }}</div>{% endif %}
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.25rem;">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label for="audience">Audience</label>
+                <select id="audience" name="audience" class="{{ 'is-invalid' if errors.get('audience') }}">
+                    {% set current_audience = form_data.get('audience', form_data.get('Audience', 'AllStaff')) %}
+                    <option value="AllStaff" {% if current_audience == 'AllStaff' %}selected{% endif %}>All Staff</option>
+                    <option value="Recruiters" {% if current_audience == 'Recruiters' %}selected{% endif %}>Recruiters Only</option>
+                    <option value="AccountManagers" {% if current_audience == 'AccountManagers' %}selected{% endif %}>Account Managers Only</option>
+                    <option value="Sales" {% if current_audience == 'Sales' %}selected{% endif %}>Sales Team Only</option>
+                    <option value="AllUsers" {% if current_audience == 'AllUsers' %}selected{% endif %}>All Portal Users</option>
+                </select>
+                {% if errors.get('audience') %}<div class="invalid-feedback">{{ errors.get('audience') }}</div>{% endif %}
+            </div>
+
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label for="priority">Priority</label>
+                <select id="priority" name="priority" class="{{ 'is-invalid' if errors.get('priority') }}">
+                    {% set current_priority = form_data.get('priority', form_data.get('Priority', 'Normal')) %}
+                    <option value="Normal" {% if current_priority == 'Normal' %}selected{% endif %}>Normal</option>
+                    <option value="High" {% if current_priority == 'High' %}selected{% endif %}>High</option>
+                    <option value="Urgent" {% if current_priority == 'Urgent' %}selected{% endif %}>Urgent</option>
+                </select>
+                {% if errors.get('priority') %}<div class="invalid-feedback">{{ errors.get('priority') }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="display_until">Display Until (Optional)</label>
+            <input type="datetime-local" id="display_until" name="display_until" class="{{ 'is-invalid' if errors.get('display_until') }}"
+                   value="{{ form_data.get('display_until', form_data.get('DisplayUntil', '')) }}">
+            <small class="form-text text-muted">Leave blank if the announcement should not expire.</small>
+            {% if errors.get('display_until') %}<div class="invalid-feedback">{{ errors.get('display_until') }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <input type="checkbox" id="is_active" name="is_active" value="on"
+                   {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
+            <label for="is_active" style="display: inline; font-weight: normal; margin-left: 0.25rem;">Is Active (Visible)</label>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ action_verb }} Announcement</button>
+            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+         {% if errors.get('form') %} 
+            <div class="alert alert-danger" style="margin-top: 1rem;">{{ errors.get('form') }}</div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+{{ super() }}
+{% endblock %}
+
+
+{% block staff_content %}
+<!-- NEW: Header with back button -->
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create New Offer
+    </a>
+</div>
+
+{% if offers %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Company</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Date Posted</th>
+                    <th>Featured</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr>
+                    <td>{{ offer.OfferID }}</td>
+                    <td>
+                        <a href="{{ url_for('job_offer_mgmt_bp.view_live_job_offer_detail', offer_id=offer.OfferID) }}">{{ offer.Title }}</a>
+                    </td>
+                    <td>{{ offer.CompanyName }}</td>
+                    <td>{{ offer.CategoryName or 'N/A' }}</td>
+                    <td>
+                        <span class="status-badge status-{{ offer.Status | lower | replace(' ', '-') }}">{{ offer.Status }}</span>
+                    </td>
+                    <td>{{ offer.DatePosted | datetime }}</td>
+                    <td>{{ 'Yes' if offer.IsFeatured else 'No' }}</td>
+                    <td>
+                        <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="btn btn-sm btn-info" title="Edit"><i class="fas fa-edit"></i> Edit</a> {# Example using Font Awesome #}
+                        <form action="{{ url_for('job_offer_mgmt_bp.delete_live_job_offer', offer_id=offer.OfferID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this live job offer: \'{{ offer.Title|e }}\'? This action cannot be undone.');">
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i> Delete</button>
+                        </form>
+                        {# <a href="#" class="btn btn-sm btn-outline-secondary">Applicants</a> #}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">No live job offers found. <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}">Create one now!</a></div>
+{% endif %}
+{% endblock %}

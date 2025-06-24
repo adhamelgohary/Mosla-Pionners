@@ -1,0 +1,81 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="page-header" style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="btn btn-outline-secondary btn-sm">View All Live Offers</a>
+</div>
+
+{% if submissions %}
+    {% for sub in submissions %}
+    <div class="submission-card">
+        <h4>{{ sub.Title }} <span class="status-{{sub.ReviewStatus}}">({{ sub.ReviewStatus }})</span></h4>
+        <p class="company-name">From: {{ sub.CompanyName }} (Submitted by: {{ sub.SubmitterFirstName }} {{ sub.SubmitterLastName }})</p>
+        <p><em>Submission Date: {{ sub.SubmissionDate | datetime }}</em></p>
+
+        <div class="submission-details">
+            <p><strong>Candidates Needed:</strong> {{ sub.CandidatesNeeded or 'N/A' }}</p>
+            <p><strong>English Level:</strong> {{ sub.EnglishLevelRequirement or 'N/A' }}</p>
+            <p><strong>Graduation Status:</strong> {{ sub.GraduationStatusRequirement or 'N/A' }}</p>
+            <p><strong>Nationality:</strong> {{ sub.NationalityRequirement or 'Any' }}</p>
+            <p><strong>Work Location:</strong> {{ sub.WorkLocationType | replace('WorkFromHome', 'Work From Home') | replace('On-site', 'On-site') }}</p>
+            <p><strong>Site Address:</strong> {{ sub.Location or 'N/A' }}</p>
+            <p><strong>Schedule:</strong> {{ sub.JobType or 'N/A' }}</p>
+            <p><strong>Shifts:</strong> {{ sub.ShiftType or 'N/A' }}</p>
+            <p><strong>Net Salary:</strong> {{ sub.NetSalary | currency(sub.Currency) if sub.NetSalary else 'N/A' }}</p>
+            <p><strong>Transportation:</strong> {% if sub.IsTransportationProvided %}Yes ({{ sub.TransportationType | replace('DoorToDoor', 'Door to Door') | replace('PickupPoint', 'Pickup Point') }}){% else %}No{% endif %}</p>
+            <p class="full-width"><strong>Benefits:</strong>
+                {% if sub.Benefits_list %}
+                    {{ sub.Benefits_list | join(', ') | replace('PaidTraining', 'Paid Training') | replace('SocialInsurance', 'Social Insurance') | replace('MedicalInsurance', 'Medical Insurance') }}
+                {% else %}
+                    None specified
+                {% endif %}
+            </p>
+            {% if sub.ClientNotes %}
+                <p class="full-width"><strong>Client Notes:</strong> {{ sub.ClientNotes | nl2br }}</p>
+            {% endif %}
+            {% if sub.ReviewStatus == 'NeedsClarification' and sub.ReviewerComments %}
+                 <div class="feedback-from-reviewer full-width">
+                    <strong>Feedback from Reviewer ({{ sub.ReviewDate | date }}):</strong><br>
+                    {{ sub.ReviewerComments | nl2br }}
+                </div>
+            {% endif %}
+        </div>
+
+        <form class="review-actions-form" action="{{ url_for('job_offer_mgmt_bp.review_client_submission_action', submission_id=sub.SubmissionID) }}" method="POST">
+            <div class="form-group">
+                <label for="reviewer_comments_{{ sub.SubmissionID }}">Your Comments/Notes:</label>
+                <textarea name="reviewer_comments" id="reviewer_comments_{{ sub.SubmissionID }}" rows="3" placeholder="Required for 'Reject' or 'Needs Clarification' actions. Optional for 'Approve'."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="category_id_on_approval_{{ sub.SubmissionID }}">Final Job Category (Required for Approval):</label>
+                <select id="category_id_on_approval_{{ sub.SubmissionID }}" name="category_id_on_approval" class="form-control" required>
+                    <option value="">-- Select Category --</option>
+                    {% set selected_cat_id = sub.CategoryID|string if sub.CategoryID else '' %}
+                    {% for category_opt in categories_for_dropdown %}
+                    <option value="{{ category_opt.CategoryID }}" {% if selected_cat_id == category_opt.CategoryID|string %}selected{% endif %}>
+                        {{ category_opt.CategoryName }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="action-buttons">
+                <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve & Post Live</button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject Submission</button>
+                <button type="submit" name="action" value="needs_clarification" class="btn btn-warning btn-sm">Request Clarification from Client</button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info">No client job offer submissions are currently pending review or needing clarification.</div>
+{% endif %}
+{% endblock %}

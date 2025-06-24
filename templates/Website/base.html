@@ -1,0 +1,132 @@
+{# templates/Website/base.html #}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website_styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>{% block title %}Mosla Pioneers{% endblock %}</title>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container nav-container">
+            <nav>
+                <a href="{{ url_for('public_routes_bp.home_page') }}" class="logo">
+                    <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
+                    <span>Mosla Pioneers</span>
+                </a>
+                <div class="nav-controls">
+                    <ul class="nav-links">
+                        <li><a href="{{ url_for('public_routes_bp.home_page') }}" class="{{ 'active' if request.endpoint == 'public_routes_bp.home_page' else '' }}">Home</a></li>
+<li><a href="{{ url_for('job_board_bp.job_offers_list') }}" class="{{ 'active' if request.blueprint == 'job_board_bp' else '' }}">Jobs</a></li> {# Corrected link #}
+<li><a href="{{ url_for('public_routes_bp.home_page') }}#services">Services</a></li>
+<li><a href="{{ url_for('public_routes_bp.home_page') }}#about">About</a></li>
+<li><a href="{{ url_for('public_routes_bp.home_page') }}#testimonials">Testimonials</a></li>
+<li><a href="{{ url_for('public_routes_bp.contact_page') }}" class="{{ 'active' if request.endpoint == 'public_routes_bp.contact_page' else '' }}">Contact</a></li>
+                        <li><a href="{{ url_for('login_bp.login') }}">Login</a></li>
+                        <li><a href="{{ url_for('register_bp.register_options') }}">Register</a></li>
+                    </ul>
+                    <button id="theme-toggle" class="theme-toggle-button" aria-label="Toggle theme">
+                        <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+                        <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <div class="page-wrapper-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container flash-messages-container" style="padding-top: 1rem;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        <div class="container footer-content">
+            <a href="{{ url_for('public_routes_bp.home_page') }}" class="logo">
+                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
+                <span>Mosla Pioneers</span>
+            </a>
+            <div class="footer-links">
+                <a href="#">Terms</a>
+                <a href="#">Privacy</a>
+                <a href="#">Cookies</a>
+            </div>
+            <div class="social-links">
+                 <a href="#" aria-label="LinkedIn"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.47,2H3.53A1.45,1.45,0,0,0,2.06,3.43V20.57A1.45,1.45,0,0,0,3.53,22H20.47a1.45,1.45,0,0,0,1.47-1.43V3.43A1.45,1.45,0,0,0,20.47,2ZM8.09,18.94H5.1V9H8.09ZM6.59,7.67a1.48,1.48,0,1,1,1.48-1.48A1.48,1.48,0,0,1,6.59,7.67ZM18.94,18.94H16V13.1c0-1.41-.5-2.38-1.76-2.38a1.91,1.91,0,0,0-1.79,1.29,2,2,0,0,0-.12.85v6.08H9.41s.05-9,0-9.94H12.3v1.3A3,3,0,0,1,15,9.21c2,0,3.94,1.29,3.94,5Z"/></svg></a>
+                <a href="#" aria-label="Facebook"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M15.12,5.32H17V2.14A26.11,26.11,0,0,0,14.26,2C11.54,2,9.68,3.66,9.68,6.7V9.32H6.61v3.56H9.68V22h3.68V12.88h3.06l.46-3.56H13.36V7.05C13.37,6,13.64,5.32,15.12,5.32Z"/></svg></a>
+                <a href="#" aria-label="Twitter"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M22,5.21a7.07,7.07,0,0,1-2,.55,3.43,3.43,0,0,0,1.55-1.94,7,7,0,0,1-2.22.85,3.5,3.5,0,0,0-6,3.2,10.05,10.05,0,0,1-7.23-3.67,3.5,3.5,0,0,0,1.08,4.67,3.43,3.43,0,0,1-1.58-.43v.05A3.5,3.5,0,0,0,8,12.16a3.4,3.4,0,0,1-.92.12,3.52,3.52,0,0,1-.66-.06,3.5,3.5,0,0,0,3.26,2.43,7,7,0,0,1-4.33,1.5,6.81,6.81,0,0,1-.83,0,9.88,9.88,0,0,0,5.35,1.56c6.42,0,9.93-5.32,9.93-9.93,0-.15,0-.3,0-.45A7.1,7.1,0,0,0,22,5.21Z"/></svg></a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© {% block year %}{{ current_year }}{% endblock %} Mosla Pioneers. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const htmlElement = document.documentElement; 
+            const applyTheme = (theme) => {
+                htmlElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                if (theme === 'dark') { document.body.classList.add('dark-mode'); } 
+                else { document.body.classList.remove('dark-mode'); }
+            };
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    const currentTheme = htmlElement.getAttribute('data-theme') || 'light';
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    applyTheme(newTheme);
+                    // Example: Send theme preference to server
+                    // Ensure 'set_theme' endpoint is defined in your Flask app (e.g., in app.py or a utility blueprint)
+                    fetch("{{ url_for('set_theme') }}", { 
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({theme: newTheme})
+                    }).catch(error => console.error("Error sending theme preference:", error));
+                });
+            }
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+
+            const navLinks = document.querySelectorAll('.nav-links a');
+            const proximityThreshold = 100; 
+            if (navLinks.length > 0) {
+                const navElement = document.querySelector('header nav'); // Target the nav element within header
+                if (navElement) {
+                    document.addEventListener('mousemove', (e) => {
+                        navLinks.forEach(link => {
+                            if (e.target.closest('header nav')) { // Check if mouse is over the nav area
+                                const rect = link.getBoundingClientRect();
+                                const linkX = rect.left + rect.width / 2;
+                                const linkY = rect.top + rect.height / 2;
+                                const distance = Math.sqrt(Math.pow(e.clientX - linkX, 2) + Math.pow(e.clientY - linkY, 2));
+                                if (distance < proximityThreshold) { link.classList.add('is-near'); } 
+                                else { link.classList.remove('is-near'); }
+                            } else {
+                                link.classList.remove('is-near'); // Remove if mouse is not over nav
+                            }
+                        });
+                    });
+                    navElement.addEventListener('mouseleave', () => {
+                        navLinks.forEach(link => link.classList.remove('is-near'));
+                    });
+                }
+            }
+        });
+    </script>
+    {% block page_scripts %}{% endblock %}
+</body>
+</html>

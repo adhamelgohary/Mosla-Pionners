@@ -1,0 +1,95 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_specific_styles.css') }}">
+{% endblock %}
+
+{% block staff_content %}
+<!-- Header with navigation buttons -->
+<div class="dashboard-page-actions">
+    <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="btn btn-primary">
+        <i class="bi bi-list-ul"></i> View & Manage All Offers
+    </a>
+    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create New Offer
+    </a>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">
+        There was an error loading the dashboard data. Please try again later or contact support.
+    </div>
+{% else %}
+    <!-- KPI Overview Module -->
+    <div class="dashboard-module kpi-overview-module">
+        <h3>Key Performance Indicators</h3>
+        <div class="kpi-grid">
+
+            <!-- Row 1: Core Activity -->
+            <div class="kpi-card open-jobs-kpi">
+                <div class="card-header"><h4>Open Offers</h4></div>
+                <div class="card-body"><div class="kpi-value">{{ kpis.get('total_open_offers', '0') }}</div></div>
+                <div class="card-footer"><a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="kpi-card-link">View All</a></div>
+            </div>
+
+            <div class="kpi-card new-clients-kpi">
+                <div class="card-header"><h4>Candidates Needed</h4></div>
+                <div class="card-body"><div class="kpi-value">{{ kpis.get('total_candidates_needed', '0') }}</div></div>
+                <div class="card-footer"><span class="kpi-card-link" style="background:none; cursor:default;">For Open Jobs</span></div>
+            </div>
+
+            <div class="kpi-card sales-card">
+                <div class="card-header"><h4>New Offers This Month</h4></div>
+                <div class="card-body"><div class="kpi-value">{{ kpis.get('new_offers_this_month', '0') }}</div></div>
+                <div class="card-footer"><span class="kpi-card-link" style="background:none; cursor:default;">Pipeline Growth</span></div>
+            </div>
+
+            <div class="kpi-card enrollments-card">
+                <div class="card-header"><h4>Pending Submissions</h4></div>
+                <div class="card-body"><div class="kpi-value">{{ kpis.get('pending_submissions', '0') }}</div></div>
+                <div class="card-footer"><a href="{{ url_for('job_offer_mgmt_bp.list_review_client_submissions') }}" class="kpi-card-link">Review Now</a></div>
+            </div>
+
+            <!-- Row 2: Efficiency and Risk -->
+            <div class="kpi-card">
+                 <div class="card-header"><h4>Avg. Time to Fill</h4></div>
+                <div class="card-body">
+                    <div class="kpi-value">{{ kpis.get('avg_time_to_fill', 'N/A') }}</div>
+                    <div class="kpi-label">Days</div>
+                </div>
+            </div>
+
+            <div class="kpi-card active-candidates-kpi">
+                <div class="card-header"><h4>Client Approval Rate</h4></div>
+                <div class="card-body">
+                    <div class="kpi-value">{{ kpis.get('approval_rate', 'N/A') }}</div>
+                    <div class="kpi-label">Last 90 Days</div>
+                </div>
+            </div>
+
+            <!-- THIS IS THE MODIFIED CARD -->
+            <div class="kpi-card" style="border-left-color: #dc3545;">
+                <div class="card-header"><h4>Oldest Open Offer</h4></div>
+                <div class="card-body">
+                    <div class="kpi-value">{{ kpis.get('age_of_oldest_offer', 'N/A') }}</div>
+                    <div class="kpi-label">Days Old</div>
+                </div>
+                <!-- The footer now displays the dynamic offer and company name -->
+                <div class="card-footer">
+                    <div class="kpi-context-title" title="{{ kpis.get('oldest_offer_title', '') }}">
+                        {{ kpis.get('oldest_offer_title', '') }}
+                    </div>
+                    <div class="kpi-context-company">
+                        @ {{ kpis.get('oldest_offer_company', '') }}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

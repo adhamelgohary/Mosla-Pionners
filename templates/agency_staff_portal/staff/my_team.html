@@ -1,0 +1,122 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{# The page title is already dynamic from the route: {{ title }} #}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+{% endblock %}
+
+
+{% block staff_content %}
+<!-- KPI Module - Titles are now more dynamic -->
+<div class="dashboard-module kpi-overview-module">
+    {% if is_global_view %}
+        <h3>Company-Wide Snapshot</h3>
+    {% elif current_user.role_type == 'UnitManager' %}
+        <h3>Unit Snapshot</h3>
+    {% elif current_user.role_type == 'HeadSourcingTeamLead' %}
+        <h3>Division Snapshot</h3>
+    {% elif current_user.role_type == 'HeadAccountManager' or current_user.role_type == 'SeniorAccountManager' %}
+        <h3>Account Management Team Snapshot</h3>
+    {% else %} {# Default for SourcingTeamLead etc. #}
+        <h3>Team Snapshot</h3>
+    {% endif %}
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="card-header">
+                <h4>
+                    {% if is_global_view %}Total Staff (Active){% elif current_user.role_type == 'UnitManager' %}Staff in Unit{% elif current_user.role_type == 'HeadSourcingTeamLead' %}Staff in Division{% else %}Team Members{% endif %}
+                </h4>
+            </div>
+            <div class="card-body"><div class="kpi-value">{{ team_kpis.get('member_count', 0) }}</div></div>
+        </div>
+        <div class="kpi-card">
+            <div class="card-header">
+                <h4>
+                    {% if is_global_view %}Total Points (All Staff){% else %}Total Group Points{% endif %}
+                </h4>
+            </div>
+            <div class="card-body"><div class="kpi-value">{{ team_kpis.get('total_points', 0) }}</div></div>
+            <div class="kpi-label">All-Time</div>
+        </div>
+        <div class="kpi-card">
+            <div class="card-header"><h4>Net Points This Month (Group)</h4></div>
+            <div class="card-body">
+                <div class="kpi-value {% if team_kpis.get('monthly_net_points', 0) > 0 %}text-success{% elif team_kpis.get('monthly_net_points', 0) < 0 %}text-danger{% endif %}">
+                    {{ '%+d'|format(team_kpis.get('monthly_net_points', 0)) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sorting and Grid of Members - Titles are now more dynamic -->
+<div class="dashboard-module">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>
+            {% if is_global_view %}
+                All Staff Performance
+            {% elif current_user.role_type == 'UnitManager' %}
+                Performance: Staff in My Unit
+            {% elif current_user.role_type == 'HeadSourcingTeamLead' %}
+                Performance: Staff in My Division
+            {% elif current_user.role_type == 'HeadAccountManager' or current_user.role_type == 'SeniorAccountManager' %}
+                Performance: My Account Managers
+            {% else %}
+                Team Member Performance
+            {% endif %}
+        </h3>
+        <form method="GET" action="{{ url_for('.my_team') }}">
+            <select name="sort" class="form-control" onchange="this.form.submit()">
+                <option value="monthly" {% if current_sort == 'monthly' %}selected{% endif %}>Sort by Monthly Performance</option>
+                <option value="total" {% if current_sort == 'total' %}selected{% endif %}>Sort by All-Time Points</option>
+            </select>
+        </form>
+    </div>
+
+    {% if team_members %}
+    <div class="team-grid">
+        {% for member in team_members %}
+        <div class="team-member-card">
+            <div class="card-header-flex">
+                <img src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ member.FirstName }}" class="profile-pic">
+                <div class="member-info">
+                    <h5>{{ member.FirstName }} {{ member.LastName }}</h5>
+                    <span class="badge bg-primary">{{ member.Role }}</span> {# Changed from RecruiterRole to Role #}
+                </div>
+            </div>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Net (Month)</div>
+                    <div class="stat-value {% if member.NetMonthlyPoints > 0 %}text-success{% elif member.NetMonthlyPoints < 0 %}text-danger{% endif %}">
+                        {{ '%+d'|format(member.NetMonthlyPoints) }}
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Points</div>
+                    <div class="stat-value">{{ member.TotalPoints if member.TotalPoints is not none else 0 }}</div>
+                </div>
+            </div>
+            <div class="card-footer-actions">
+                {# Link to view_staff_profile now uses user_id_viewing #}
+                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-person-gear"></i> Manage Profile
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            {% if is_global_view %}
+                No staff members found in the system.
+            {% else %}
+                You currently do not have any direct reports or staff members assigned under your leadership in this view.
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

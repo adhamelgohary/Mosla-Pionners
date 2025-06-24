@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" {% if session.get('theme') == 'dark' %}data-theme="dark"{% endif %}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title if title else 'Register' }} - Mosla Pioneers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .role-selection { width: 100%; display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+        .role-button { display: flex; align-items: center; justify-content: center; gap: 0.75rem; text-decoration: none; padding: 14px 20px; background-color: var(--primary-accent); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.3s; text-align: center; }
+        .role-button:hover { background-color: var(--primary-accent-darker, #0056b3); }
+        .role-button svg { width: 22px; height: 22px; margin-right: 8px; }
+    </style>
+</head>
+<body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
+    <nav>
+        <button id="theme-toggle" class="theme-toggle-button" aria-label="Toggle theme">
+            <svg class="sun-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+            <svg class="moon-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>
+        </button>
+    </nav>
+    <div class="login-page-container">
+        <div class="background-images">
+            <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
+            <img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-2">
+        </div>
+
+        <div class="form-wrapper">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
+                <span>Mosla Pioneers</span>
+            </div>
+            <h2>How would you like to register?</h2>
+            <p class="subtitle">Select your role to get started with Mosla Pioneers.</p>
+
+            <div class="role-selection">
+                <a href="{{ url_for('register_bp.register_client', next=request.args.get('next', '')) }}" class="login-button role-button">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 20H3C2.44772 20 2 19.5523 2 19V7.23607C2 6.68378 2.44772 6.23607 3 6.23607H21C21.5523 6.23607 22 6.68378 22 7.23607V19C22 19.5523 21.5523 20 21 20ZM4 18H20V8.23607H4V18ZM7 15H17V13H7V15ZM7 11H17V9H7V11ZM17 5.23607H7V4C7 3.44772 7.44772 3 8 3H16C16.5523 3 17 3.44772 17 4V5.23607Z"></path></svg>
+                    I am a Client / Employer
+                </a>
+                <a href="{{ url_for('register_bp.register_candidate', next=request.args.get('next', '')) }}" class="login-button role-button">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14C9.79086 14 8 12.2091 8 10C8 7.79086 9.79086 6 12 6C14.2091 6 16 7.79086 16 10C16 12.2091 14.2091 14 12 14ZM12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2ZM6.00104 18C6.06833 15.7533 7.84534 14 10 14H14C16.1547 14 17.9317 15.7533 17.9989 18.0001C16.4455 19.2435 14.3524 20 12 20C9.64761 20 7.55452 19.2435 6.00104 18Z"></path></svg>
+                    I am a Candidate / Job Seeker
+                </a>
+                <a href="{{ url_for('register_bp.apply_to_be_staff', next=request.args.get('next', '')) }}" class="login-button role-button">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 14.252V16.341L12.023 17.5L10 16.341V14.252C11.189 14.092 12.811 14.092 14 14.252ZM18.225 12.118C19.324 12.5 20 13.43 20 14.5V16.5L18.023 17.659L16 16.5V14.5C16 14.417 15.994 14.335 15.982 14.253C16.732 13.731 17.561 13.064 18.225 12.118ZM13.03 12.026C14.418 11.238 15.53 10.113 16.204 8.75H18.25V6.75H16.204C15.53 5.387 14.418 4.262 13.03 3.474L14.5 2L12.5 1L11 2L12.47 3.474C11.082 4.262 9.97 5.387 9.296 6.75H7.25V8.75H9.296C9.97 10.113 11.082 11.238 12.47 12.026L11 13.5L12.5 14.5L14 13.5L13.03 12.026ZM12 10.75C10.757 10.75 9.75 9.743 9.75 8.5C9.75 7.257 10.757 6.25 12 6.25C13.243 6.25 14.25 7.257 14.25 8.5C14.25 9.743 13.243 10.75 12 10.75ZM6 14.5C6 13.43 6.676 12.5 7.775 12.118C8.439 13.064 9.268 13.731 10.018 14.253C10.006 14.335 10 14.417 10 14.5V16.5L7.977 17.659L6 16.5V14.5Z"></path></svg>
+                    I want to Apply to Join Your Team
+                </a>
+            </div>
+            <div class="signup-link">
+                <p>Already have an account? <a href="{{ url_for('login_bp.login', next=request.args.get('next', '')) }}">Log In</a></p>
+            </div>
+        </div>
+    </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+    const applyTheme = (theme) => {
+        if (theme === 'dark') { body.classList.add('dark-mode'); if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to light theme');
+        } else { body.classList.remove('dark-mode'); if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to dark theme'); }
+    };
+    let currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(currentTheme);
+
+    if(themeToggle){
+        themeToggle.addEventListener('click', () => {
+            currentTheme = body.classList.toggle('dark-mode') ? 'dark' : 'light';
+            localStorage.setItem('theme', currentTheme);
+            applyTheme(currentTheme);
+            fetch("{{ url_for('set_theme') }}", { 
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({theme: currentTheme})
+            }).catch(error => console.error("Error sending theme preference:", error));
+        });
+    }
+});
+</script>
+</body>
+</html>

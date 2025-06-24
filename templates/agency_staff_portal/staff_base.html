@@ -1,0 +1,135 @@
+{# templates/agency_staff_portal/staff_base.html #}
+<!DOCTYPE html>
+<html lang="en" {% if session.get('theme') == 'dark' %}data-theme="dark"{% endif %}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/portal_styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_specific_styles.css') }}">
+    {# Bootstrap Icons #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <title>{% block staff_title %}Agency Staff Portal{% endblock %} - Mosla Pioneers</title>
+    {% block head_scripts %}{% endblock %}
+</head>
+<body>
+    <aside class="sm-sidebar">
+        <h3>Staff Portal</h3>
+        <nav>
+            <ul>
+                {# --- Standard Navigation --- #}
+                <li><a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="{{ 'active' if request.endpoint == 'staff_dashboard_bp.main_dashboard' else '' }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
+                
+                {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}
+                    <li><a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="{{ 'active' if request.blueprint == 'course_mgmt_bp' else '' }}"><i class="bi bi-book-half"></i> Course Dashboard</a></li>
+                {% endif %}
+                
+                {# Placeholders for future sections - replace # with actual url_for when routes exist #}
+                {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'OperationsManager'] %}
+                     <li><a href="#"><i class="bi bi-building"></i> Company Management</a></li> 
+                {% endif %}
+                {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager','CEO', 'OperationsManager'] %}
+                     <li><a href="#"><i class="bi bi-person-lines-fill"></i> Candidate Sourcing</a></li> 
+                {% endif %}
+
+                {% if current_user.role_type in ['Admin', 'CEO', 'OperationsManager'] %}
+                <li><a href="{{ url_for('announcement_bp.list_announcements') }}" class="{{ 'active' if request.blueprint == 'announcement_bp' else '' }}"><i class="bi bi-megaphone-fill"></i> Announcements</a></li>
+                {% endif %}
+                
+                {# --- Role-Specific Management Links --- #}
+                
+                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.blueprint == 'job_offer_mgmt_bp' else '' }}" href="{{ url_for('job_offer_mgmt_bp.dashboard') }}">
+                        <i class="bi bi-briefcase-fill"></i> Job Offer Mgmt
+                    </a>
+                </li>
+                {% endif %}
+                
+                <!-- "Staff Management Dashboard" - ONLY FOR EXECUTIVES -->
+                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.staff_dashboard_view' else '' }}" href="{{ url_for('employee_mgmt_bp.staff_dashboard_view') }}">
+                        <i class="bi bi-person-gear"></i> Staff Admin
+                    </a>
+                </li>
+                <li class="nav-item"> {# Link to list all staff for executives #}
+                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.list_all_staff' else '' }}" href="{{ url_for('employee_mgmt_bp.list_all_staff') }}">
+                        <i class="bi bi-list-stars"></i> All Staff List
+                    </a>
+                </li>
+                {% endif %}
+
+                <!-- "My Team/Group/Unit/All Staff" - FOR ALL LEADERS -->
+                {# Ensure LEADER_ROLES is available; if not, define a similar list here or pass from context #}
+                {% set template_leader_roles = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'SeniorAccountManager', 'HeadAccountManager', 'OperationsManager', 'CEO'] %}
+                {% if current_user.role_type in template_leader_roles %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.my_team' else '' }}" href="{{ url_for('employee_mgmt_bp.my_team') }}">
+                        <i class="bi bi-people-fill"></i> 
+                        {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
+                            All Staff View
+                        {% elif current_user.role_type == 'UnitManager' %}
+                            My Unit
+                        {% elif current_user.role_type == 'HeadSourcingTeamLead' or current_user.role_type == 'HeadAccountManager' %}
+                            My Division/Group
+                        {% elif current_user.role_type == 'SeniorAccountManager' %}
+                            My AM Team
+                        {% else %}
+                            My Team
+                        {% endif %}
+                    </a>
+                </li>
+                {% endif %}
+
+                {# Performance Leaderboard - Accessible to all staff #}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'leaderboard_bp.performance_leaderboard' else '' }}" href="{{ url_for('leaderboard_bp.performance_leaderboard') }}">
+                        <i class="bi bi-trophy-fill"></i> Performance Ranks
+                    </a>
+                </li>
+                 {# Company Leaderboard - Example for executives #}
+                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'leaderboard_bp.company_leaderboard' else '' }}" href="{{ url_for('leaderboard_bp.company_leaderboard') }}">
+                        <i class="bi bi-building-check"></i> Top Companies
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        <hr style="border-color: #4f5962; margin-top:auto; margin-bottom: 1rem;">
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('homepage_bp.home_page') }}"><i class="bi bi-house-door-fill"></i> Main Site</a></li>
+                <li><a href="{{ url_for('login_bp.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+            </ul>
+        </nav>
+    </aside>
+    <div class="sm-main-content">
+        <header class="sm-header">
+             <h1>{% block staff_page_title %}{% endblock %}</h1>
+            <div>
+                {# Corrected link to view own profile #}
+                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="user-profile-link">
+                    Welcome, {{ current_user.first_name }} ({{ current_user.role_type }})!
+                </a>
+            </div>
+        </header>
+
+        <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        </div>
+
+        <main>
+            {% block staff_content %}{% endblock %}
+        </main>
+    </div>
+    {% block staff_scripts %}{% endblock %}
+</body>
+</html>

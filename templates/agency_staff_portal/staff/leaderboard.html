@@ -1,0 +1,83 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+
+{% endblock %}
+
+{% block staff_content %}
+<div class="dashboard-module">
+    <div class="leaderboard-header">
+        <div>
+            <h3>{{ title }}</h3>
+            <p class="text-muted mb-0">{{ subtitle }}</p>
+        </div>
+        <div class="btn-group">
+            <!-- CORRECTED url_for CALLS -->
+            <a href="{{ url_for('.performance_leaderboard', period='monthly') }}"
+               class="btn {% if current_period == 'monthly' %}btn-primary{% else %}btn-outline-primary{% endif %}">This Month</a>
+            <a href="{{ url_for('.performance_leaderboard', period='all_time') }}"
+               class="btn {% if current_period == 'all_time' %}btn-primary{% else %}btn-outline-primary{% endif %}">All-Time</a>
+        </div>
+    </div>
+
+    <!-- Podium Section for Top 3 -->
+    <div class="podium-container">
+        <!-- 2nd Place -->
+        {% if leaders|length >= 2 %}
+        <div class="podium-place podium-2">
+            <i class="bi bi-award-fill rank-icon"></i>
+            {# Assuming User.ProfilePictureURL is available on 'leaders' items if you want to use it #}
+            <img src="{{ leaders[1].ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ leaders[1].FirstName }}" class="profile-pic">
+            <div class="name">{{ leaders[1].FirstName }} {{ leaders[1].LastName }}</div>
+            <div class="points">{{ '%+d'|format(leaders[1].Points) if current_period == 'monthly' else leaders[1].Points }}</div>
+        </div>
+        {% endif %}
+        
+        <!-- 1st Place -->
+        {% if leaders|length >= 1 %}
+        <div class="podium-place podium-1">
+            <i class="bi bi-trophy-fill rank-icon"></i>
+            <img src="{{ leaders[0].ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ leaders[0].FirstName }}" class="profile-pic">
+            <div class="name">{{ leaders[0].FirstName }} {{ leaders[0].LastName }}</div>
+            <div class="points">{{ '%+d'|format(leaders[0].Points) if current_period == 'monthly' else leaders[0].Points }}</div>
+        </div>
+        {% endif %}
+
+        <!-- 3rd Place -->
+        {% if leaders|length >= 3 %}
+        <div class="podium-place podium-3">
+            <i class="bi bi-award-fill rank-icon"></i>
+            <img src="{{ leaders[2].ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ leaders[2].FirstName }}" class="profile-pic">
+            <div class="name">{{ leaders[2].FirstName }} {{ leaders[2].LastName }}</div>
+            <div class="points">{{ '%+d'|format(leaders[2].Points) if current_period == 'monthly' else leaders[2].Points }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not leaders %}
+        <p class="text-center text-muted mt-4">No performance data found for this period.</p>
+    {% endif %}
+
+    <!-- Rest of the Leaderboard (Ranks 4-20, since your query limits to 20) -->
+    {% if leaders|length > 3 %}
+    <h4 class="mt-5 mb-3 text-center">Top Rankings</h4> {# Changed from Top 10 #}
+    <ul class="leaderboard-list">
+        {% for leader in leaders[3:] %} {# Slice starts from the 4th item (index 3) #}
+        <li class="leaderboard-list-item">
+            <div class="list-rank">{{ loop.index + 3 }}</div> {# loop.index is 1-based, so add 3 #}
+            <img src="{{ leader.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ leader.FirstName }}" class="list-pic">
+            <div class="list-name">{{ leader.FirstName }} {{ leader.LastName }}</div>
+            <div class="list-points {% if current_period == 'monthly' and leader.Points > 0 %}text-success{% elif current_period == 'monthly' and leader.Points < 0 %}text-danger{% endif %}">
+                {{ '%+d'|format(leader.Points) if current_period == 'monthly' else leader.Points }}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+</div>
+{% endblock %}

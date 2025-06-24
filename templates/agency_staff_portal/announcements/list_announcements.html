@@ -1,0 +1,72 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="page-actions" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+    <a href="{{ url_for('announcement_bp.add_announcement') }}" class="btn btn-primary">Add New Announcement</a>
+    <div>
+        {% if show_all %}
+            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="btn btn-sm btn-outline-secondary">Show Active Only</a>
+        {% else %}
+            <a href="{{ url_for('announcement_bp.list_announcements', show_all='true') }}" class="btn btn-sm btn-outline-secondary">Show All (incl. Inactive/Expired)</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if announcements %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Audience</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Display Until</th>
+                    <th>Posted By</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ann in announcements %}
+                <tr>
+                    <td>{{ ann.AnnouncementID }}</td>
+                    <td>{{ ann.Title }}</td>
+                    <td>{{ ann.Audience }}</td>
+                    <td>
+                        <span class="priority-{{ ann.Priority }}">{{ ann.Priority }}</span>
+                    </td>
+                    <td>
+                        {% if ann.IsActive and (ann.DisplayUntil is none or ann.DisplayUntil >= datetime_now(ann.DisplayUntil.tzinfo if ann.DisplayUntil else None)) %}
+                            <span class="badge badge-success">Active</span>
+                        {% elif ann.IsActive and ann.DisplayUntil and ann.DisplayUntil < datetime_now(ann.DisplayUntil.tzinfo if ann.DisplayUntil else None) %}
+                            <span class="badge badge-warning">Expired</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ ann.DisplayUntil | datetime if ann.DisplayUntil else 'Never' }}</td>
+                    <td>{{ ann.PosterFirstName or 'N/A' }} {{ ann.PosterLastName or '' }}</td>
+                    <td>{{ ann.CreatedAt | timeago }}</td>
+                    <td>
+                        <a href="{{ url_for('announcement_bp.edit_announcement', announcement_id=ann.AnnouncementID) }}" class="btn btn-sm btn-info">Edit</a>
+                        <form action="{{ url_for('announcement_bp.delete_announcement', announcement_id=ann.AnnouncementID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this announcement?');">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">No announcements found. <a href="{{ url_for('announcement_bp.add_announcement') }}">Add the first one!</a></div>
+{% endif %}
+{% endblock %}
+
+{% block staff_scripts %}
+{% endblock %}
