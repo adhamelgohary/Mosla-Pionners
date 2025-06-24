@@ -11,7 +11,6 @@ from utils.directory_configs import configure_directories
 from utils.template_helpers import register_template_helpers
 
 # --- Import Blueprints ---
-from routes.Website.homepage_routes import homepage_bp
 from routes.Auth.login_routes import login_bp, init_login_manager # login_bp and its init function
 from routes.Auth.register_routes import register_bp
 from routes.Agency_Staff_Portal.dashboard_routes import staff_dashboard_bp # New
@@ -55,7 +54,6 @@ mail = Mail(app)
 init_login_manager(app) # Initialize Flask-Login via the function from login_routes
 
 # --- Register Blueprints ---
-app.register_blueprint(homepage_bp)
 app.register_blueprint(login_bp, url_prefix='/auth')
 app.register_blueprint(register_bp, url_prefix='/auth')
 
