@@ -131,7 +131,7 @@ body {
 html[data-theme="dark"] img:not(.logo-image):not(.company-logo-img) {
     filter: brightness(.8) contrast(1.2);
 }
-.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+.container {  margin: 0 auto; padding: 0 20px; }
 header nav { /* Combined nav styling */
     max-width: 1400px; 
     margin: 0 auto;
@@ -337,7 +337,7 @@ html[data-theme="dark"] .hero::before {
 .hero-content {
     display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
     position: relative; z-index: 1; 
-    max-width: 1200px; margin: 0 auto; padding: 0 35px; /* Container from home.css */
+    margin: 0; padding: 0 35px; /* Container from home.css */
 }
 .hero-text h1 { 
     font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 700; margin-bottom: 1rem;
@@ -375,7 +375,7 @@ html[data-theme="dark"] .btn-secondary:hover { background: var(--primary-color);
 .section-header p { color: var(--text-muted); font-size: 1.05rem; }
 .services-grid {
     display: flex; gap: 2rem; position: relative; z-index: 1;
-    max-width: 1200px; margin: 0 auto; padding: 0 35px 20px; /* Container from home.css with bottom padding */
+     margin: 0 ; padding: 0 35px 20px; /* Container from home.css with bottom padding */
     overflow-x: auto; 
     /* counter-reset: step-counter; */ /* Counter removed */
 }
@@ -415,7 +415,7 @@ html[data-theme="dark"] .about::before { background: rgba(0,0,0,0.05); } /* Slig
 .about-content {
     display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;
     position: relative; z-index: 1; 
-    max-width: 1200px; margin: 0 auto; padding: 0 35px; /* Container from home.css */
+     margin: 0; padding: 0 35px; /* Container from home.css */
 }
 .about-text h2 { font-size: 2.2rem; margin-bottom: 1.5rem; color: var(--dark-section-text); }
 html[data-theme="dark"] .about-text h2 { color: var(--heading-color); }
@@ -433,7 +433,7 @@ html[data-theme="dark"] .about-text p { color: var(--text-muted); }
 .testimonial-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; 
     margin-top: 3rem; 
-    max-width: 1200px; margin: 3rem auto 0; padding: 0 35px; /* Container from home.css */
+     margin: 3rem auto 0; padding: 0 35px; /* Container from home.css */
 }
 .testimonial-card {
     background: var(--card-bg); padding: 2.5rem; border-radius: 15px;
@@ -457,7 +457,7 @@ footer {
 .footer-content {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2.5rem; 
     margin-bottom: 2.5rem; 
-    max-width: 1200px; margin: 0 auto 2.5rem; padding: 0 35px; /* Container from home.css */
+     margin: 0 auto 2.5rem; padding: 0 35px; /* Container from home.css */
 }
 .footer-section h3 { color: var(--primary-color); margin-bottom: 1.25rem; font-size: 1.15rem; }
 .footer-section p, .footer-section a { color: var(--footer-text); text-decoration: none; line-height: 1.8; font-size: 0.95rem; }
