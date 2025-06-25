@@ -229,14 +229,12 @@ def login():
                         if 'cursor_update' in locals() and cursor_update: cursor_update.close()
                         if conn_update and conn_update.is_connected(): conn_update.close()
 
-                    next_page_from_url = request.args.get('next')
-                    
+                    next_page = request.args.get('next')
                     if user_obj.role_type == 'Candidate':
-                        if next_page_from_url and is_safe_url(next_page_from_url):
-                            current_app.logger.info(f"Candidate redirecting to 'next' from URL: {next_page_from_url}")
-                            # Clear session intended destination if 'next' is used
-                            session.pop('candidate_intended_destination', None)
-                            return redirect(next_page_from_url)
+                        # Priority 1: 'next' from URL (e.g., from @login_required or registration)
+                        if next_page and is_safe_url(next_page): # is_safe_url is important!
+                            current_app.logger.info(f"Candidate redirecting to 'next' from URL: {next_page}")
+                            return redirect(next_page)
                         
                         intended_destination = session.pop('candidate_intended_destination', None)
                         if intended_destination and is_safe_url(intended_destination):

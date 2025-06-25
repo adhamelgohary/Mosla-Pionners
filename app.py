@@ -7,7 +7,7 @@ from flask_login import login_required, current_user
 
 # --- Import Utility Functions ---
 from utils.MailConfig import MailConfig
-from utils.directory_configs import configure_directories
+from utils.directory_configs import configure_directories, save_file_from_config # Import the function
 from utils.template_helpers import register_template_helpers
 
 # --- Import Blueprints ---
@@ -23,6 +23,7 @@ from routes.Agency_Staff_Portal.leaderboard_routes import leaderboard_bp
 
 from routes.Website.public_routes import public_routes_bp
 from routes.Website.job_board_routes import job_board_bp # NEW: For job listings and details
+from routes.Candidate_Portal.candidate_routes import candidate_bp # IMPORT IT
 
 # --- Create Flask App ---
 app = Flask(__name__)
@@ -45,7 +46,7 @@ logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO if not app.debug else logging.DEBUG)
 
 # --- Configure Custom Features using Utility Functions ---
-configure_directories(app)
+configure_directories(app) # <<< CALL IT HERE
 register_template_helpers(app)
 
 # --- Initialize Extensions ---
@@ -71,6 +72,7 @@ app.register_blueprint(leaderboard_bp, url_prefix='/staff-portal/leaderboard')
 app.register_blueprint(admin_bp) # url_prefix is defined in admin_bp itself
 app.register_blueprint(public_routes_bp) # url_prefix is defined in public_routes_bp itself
 app.register_blueprint(job_board_bp) # url_prefix is defined in job_board_bp itself
+app.register_blueprint(candidate_bp) # url_prefix is defined in candidate_bp itself
 
 
 

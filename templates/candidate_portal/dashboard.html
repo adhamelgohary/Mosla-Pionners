@@ -1,0 +1,162 @@
+{% extends "Website/base.html" %} {# Or a specific candidate portal base if you create one #}
+
+{% block title %}{{ title }} - Candidate Portal{% endblock %}
+
+{% block head_extra %}
+    {{ super() }}
+    {# Add any specific CSS for candidate portal here if needed #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/candidate_portal_styles.css') }}">
+    <style>
+        .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;}
+        .profile-card { background-color: var(--content-bg-color); padding: 1.5rem; border-radius: 8px; box-shadow: var(--card-shadow); }
+        .profile-card h4 { color: var(--primary-color); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;}
+        .info-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.9rem;}
+        .info-grid strong { color: var(--text-color); }
+        .info-grid span { color: var(--text-muted); }
+        .cv-list ul, .applied-jobs-list ul { list-style: none; padding: 0; }
+        .cv-list li, .applied-jobs-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); }
+        .cv-list li:last-child, .applied-jobs-list li:last-child { border-bottom: none; }
+        .cv-actions button, .cv-actions a { font-size: 0.8rem; padding: 0.25rem 0.5rem; }
+        .primary-cv-badge { font-size: 0.75rem; margin-left: 0.5rem; }
+        .status-badge { padding: .25em .6em; font-size: .75em; font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; vertical-align: baseline; border-radius: .25rem; }
+        .status-Submitted { background-color: #ffc107; color: #212529; } /* Yellow */
+        .status-Reviewed { background-color: #17a2b8; color: white; } /* Teal */
+        .status-Interviewing { background-color: #007bff; color: white; } /* Blue */
+        .status-Offered { background-color: #28a745; color: white; } /* Green */
+        .status-Hired { background-color: #20c997; color: white; } /* Teal-Green */
+        .status-Rejected, .status-Withdrawn { background-color: #dc3545; color: white; } /* Red */
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ title }}</h2>
+        <a href="{{ url_for('candidate_bp.edit_profile') }}" class="btn btn-primary"><i class="bi bi-pencil-square"></i> Edit Profile</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if candidate_profile %}
+    <div class="profile-grid">
+        <div class="profile-card">
+            <h4>Personal Information</h4>
+            <div class="info-grid">
+                <strong>Full Name:</strong> <span>{{ candidate_profile.FirstName }} {{ candidate_profile.LastName }}</span>
+                <strong>Email:</strong> <span>{{ candidate_profile.Email }}</span>
+                <strong>Phone:</strong> <span>{{ candidate_profile.PhoneNumber or 'Not Provided' }}</span>
+                <strong>Date of Birth:</strong> <span>{{ candidate_profile.DateOfBirth | date if candidate_profile.DateOfBirth else 'N/A' }}</span>
+                <strong>Nationality:</strong> <span>{{ candidate_profile.Nationality or 'N/A' }}</span>
+                <strong>Gender:</strong> <span>{{ candidate_profile.Gender or 'N/A' }}</span>
+                <strong>Educational Status:</strong> <span>{{ candidate_profile.EducationalStatus or 'N/A' }}</span>
+            </div>
+        </div>
+
+        <div class="profile-card">
+            <h4>Professional Details</h4>
+            <div class="info-grid">
+                <strong>Portfolio URL:</strong> <span><a href="{{ candidate_profile.PortfolioURL }}" target="_blank" rel="noopener noreferrer">{{ candidate_profile.PortfolioURL or 'N/A' }}</a></span>
+                <strong>LinkedIn Profile:</strong> <span><a href="{{ candidate_profile.LinkedInProfileURL }}" target="_blank" rel="noopener noreferrer">{{ candidate_profile.LinkedInProfileURL or 'N/A' }}</a></span>
+                <strong>Years of Experience:</strong> <span>{{ candidate_profile.YearsOfExperience if candidate_profile.YearsOfExperience is not none else 'N/A' }} years</span>
+                <strong>Current Salary:</strong> <span>{{ candidate_profile.CurrentSalary | currency if candidate_profile.CurrentSalary else 'N/A' }}</span>
+                <strong>Expected Salary:</strong> <span>{{ candidate_profile.ExpectedSalary | currency if candidate_profile.ExpectedSalary else 'N/A' }}</span>
+                <strong>Availability Date:</strong> <span>{{ candidate_profile.AvailabilityDate | date if candidate_profile.AvailabilityDate else 'N/A' }}</span>
+                <strong>Preferred Job Types:</strong> <span>{{ candidate_profile.PreferredJobTypes or 'N/A' }}</span>
+                <strong>Preferred Locations:</strong> <span>{{ candidate_profile.PreferredLocations or 'N/A' }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if candidate_profile.Notes %}
+    <div class="profile-card mb-4">
+        <h4>Additional Notes</h4>
+        <p>{{ candidate_profile.Notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="profile-card mb-4 cv-list">
+                <h4>My CVs</h4>
+                <form action="{{ url_for('candidate_bp.upload_cv') }}" method="POST" enctype="multipart/form-data" class="mb-3">
+                    <div class="input-group">
+                        <input type="file" class="form-control" name="cv_file" id="cvFileToUpload" required>
+                        <button class="btn btn-outline-secondary" type="submit">Upload New CV</button>
+                    </div>
+                     <div class="form-text">Optionally give your CV a title below:</div>
+                     <input type="text" name="cv_title" class="form-control form-control-sm mt-1" placeholder="e.g., Technical Resume, Sales CV">
+                </form>
+                {% if cv_list %}
+                <ul>
+                    {% for cv in cv_list %}
+                    <li>
+                        <div>
+                            <a href="{{ url_for('static', filename=cv.CVFileUrl) }}" target="_blank">
+                                {{ cv.CVTitle or cv.OriginalFileName or "View CV" }}
+                            </a> 
+                            {% if cv.IsPrimary %}<span class="badge bg-success primary-cv-badge">Primary</span>{% endif %}
+                            <br><small class="text-muted">Uploaded: {{ cv.UploadedAt | date }}</small>
+                        </div>
+                        <div class="cv-actions">
+                            {% if not cv.IsPrimary %}
+                            <form action="{{ url_for('candidate_bp.set_primary_cv', cv_id=cv.CVID) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Set Primary</button>
+                            </form>
+                            {% endif %}
+                            <form action="{{ url_for('candidate_bp.delete_cv', cv_id=cv.CVID) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this CV?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">You haven't uploaded any CVs yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="profile-card mb-4 applied-jobs-list">
+                <h4>My Job Applications</h4>
+                {% if applied_jobs %}
+                <ul>
+                    {% for app in applied_jobs %}
+                    <li>
+                        <div>
+                            <a href="{{ url_for('job_board_bp.job_detail', offer_id=app.OfferID) }}">{{ app.JobTitle }}</a> at {{ app.CompanyName }}
+                            <br><small class="text-muted">Applied: {{ app.ApplicationDate | date }} - Status: <span class="status-badge status-{{app.Status}}">{{ app.Status }}</span></small>
+                        </div>
+                        {# Add actions like "Withdraw Application" if needed #}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">You haven't applied for any jobs yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <p class="text-center">Could not load your profile data.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+{{ super() }}
+<script>
+// Add any page-specific JavaScript here, e.g., for confirming CV deletion
+// The CV deletion forms already have an onsubmit confirm.
+// AJAX for set-primary and delete can be added for smoother UX.
+</script>
+{% endblock %}

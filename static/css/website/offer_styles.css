@@ -1,0 +1,577 @@
+/* static/css/offer_styles.css */
+
+/* --- THEME VARIABLES (Subset needed for offer styles, or assume they are inherited from website_styles.css) --- */
+/* It's often better to let offer_styles.css inherit common variables from website_styles.css
+   However, if you want it to be more standalone, you can copy relevant variables here.
+   For this example, I'll assume common variables like --primary-color, --text-color, etc.,
+   are available from website_styles.css, which will be loaded first.
+   I will include variables specific to job tags if they are ONLY used here. */
+
+   :root {
+    /* Job Tag Colors (Light Mode) - Moved here if exclusive to offers page */
+    --tag-location-bg: #FFFBEB; 
+    --tag-location-text: #B45309; 
+    --tag-category-bg: #F0FDF4; 
+    --tag-category-text: #15803D; 
+    --tag-english-bg: #EFF6FF;
+    --tag-english-text: #1D4ED8;
+}
+
+html[data-theme="dark"] {
+    /* Job Tag Colors (Dark Mode) - Moved here if exclusive to offers page */
+    --tag-location-bg: #422006; 
+    --tag-location-text: #FEF3C7; 
+    --tag-category-bg: #14532D; 
+    --tag-category-text: #DCFCE7; 
+    --tag-english-bg: #1E40AF;
+    --tag-english-text: #DBEAFE;
+}
+
+
+/* === JOB BOARD SPECIFIC STYLES === */
+.job-search-hero { 
+    background: var(--content-bg-color); 
+    border-radius: 16px; 
+    box-shadow: var(--card-shadow); 
+    padding: 2rem; 
+    margin-top: 2rem; 
+    margin-bottom: 2rem; /* Added margin for spacing */
+}
+.job-search-hero h1 { 
+    font-size: 1.75rem; 
+    font-weight: 700; 
+    color: var(--heading-color); /* Use heading color */
+    margin-bottom: 1.5rem; 
+    text-align: left; 
+}
+.search-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 1rem; 
+    margin-bottom: 1.5rem; 
+}
+.search-container { 
+    position: relative; 
+    flex: 1 1 300px; 
+    min-width: 250px; 
+}
+.search-input { 
+    width: 100%; 
+    padding: 12px 16px 12px 44px; 
+    border: 1px solid var(--input-border-color); 
+    border-radius: 10px; 
+    font-size: 0.95rem; 
+    outline: none; 
+    background-color: var(--input-bg-color); 
+    color: var(--text-color); 
+}
+.search-input:focus { 
+    border-color: var(--primary-color); 
+    box-shadow: 0 0 0 3px var(--focus-ring-color); /* Added focus ring */
+}
+.search-icon { 
+    position: absolute; 
+    left: 16px; 
+    top: 50%; 
+    transform: translateY(-50%); 
+    color: var(--text-muted); 
+    font-size: 1.2em; 
+}
+.controls-row { 
+    display: flex; 
+    gap: 0.75rem; 
+    flex-wrap: wrap; 
+    align-items: center; /* Align items */
+}
+.location-dropdown, .filters-button { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 10px 14px; 
+    border: 1px solid var(--input-border-color); 
+    border-radius: 10px; 
+    background: var(--input-bg-color); 
+    cursor: pointer; 
+    font-size: 0.9rem; 
+    color: var(--text-muted); 
+    transition: border-color var(--transition-speed);
+}
+.location-dropdown:hover, .filters-button:hover {
+    border-color: var(--primary-color);
+}
+.notification-badge { 
+    background: var(--primary-color); 
+    color: white; 
+    border-radius: 50%; 
+    width: 20px; 
+    height: 20px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 0.7rem; 
+    font-weight: 600; 
+}
+.tags-container { 
+    display: flex; 
+    gap: 8px; 
+    flex-wrap: wrap; 
+    align-items: center; 
+    margin-bottom: 1rem; 
+    margin-top: 1rem; /* Added margin */
+}
+.tag { 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    padding: 6px 12px; 
+    background: var(--bg-color); /* Use main bg for tags */
+    border: 1px solid var(--border-color); /* Use main border color */
+    border-radius: 8px; 
+    font-size: 0.8rem; 
+    color: var(--text-muted); 
+}
+.tag-close { 
+    cursor: pointer; 
+    font-weight: bold; 
+    line-height: 1;
+    font-size: 1rem;
+}
+.clear-all { 
+    color: var(--primary-color); 
+    font-size: 0.8rem; 
+    cursor: pointer; 
+    text-decoration: none; 
+    font-weight: 500; 
+    margin-left: auto; /* Push to the right */
+}
+.clear-all:hover {
+    text-decoration: underline;
+}
+
+.job-board-container { 
+    display: grid; 
+    grid-template-columns: 280px 1fr; 
+    gap: 2rem; 
+    margin-top: 2rem; 
+    max-width: 1400px; /* Wider container for job board */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 20px; /* Consistent padding */
+}
+aside.sidebar.job-filters { 
+    background: var(--content-bg-color); 
+    border-radius: 16px; 
+    box-shadow: var(--card-shadow); 
+    padding: 1.5rem; /* Reduced padding slightly */
+    height: fit-content; 
+    position: sticky; 
+    top: calc(1rem + 70px + 1rem); /* Header height (approx 70px) + margins */
+}
+.job-categories h3, .filter-group h3 { /* Combined for filter groups */
+    font-size: 1.1rem; 
+    font-weight: 600; 
+    color: var(--heading-color); 
+    margin-bottom: 1rem; 
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.category-item, .filter-item { /* Combined for filter items */
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    padding: 0.6rem 0; /* Adjusted padding */
+    border-bottom: 1px solid var(--border-color); 
+    cursor: pointer; 
+    transition: background-color 0.2s; 
+    font-size: 0.9rem;
+}
+.category-item:hover, .filter-item:hover { 
+    background-color: rgba(var(--primary-color-rgb), 0.05); 
+}
+.category-item:last-child, .filter-item:last-child { 
+    border-bottom: none; 
+}
+.category-info { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+.category-icon { 
+    font-size: 1.2em; 
+    color: var(--primary-color); /* Added color */
+}
+.category-name, .filter-label { /* Combined */
+    color: var(--text-color); 
+    font-weight: 500; 
+}
+.category-count { 
+    font-size: 0.75rem; 
+    color: var(--text-muted); 
+    background: var(--bg-color); 
+    padding: 4px 8px; 
+    border-radius: 6px; 
+}
+
+.main-content.job-listings { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1.5rem; /* Reduced gap slightly */
+}
+/* .section.job-section can be removed if not needed beyond .main-content */
+.job-list-header { /* New class for header above job list */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.job-list-header .section-title { /* More specific title for job list */
+    font-size: 1.3rem; /* Adjusted size */
+    font-weight: 600; 
+    color: var(--heading-color);
+    margin-bottom: 0;
+}
+.job-list-header .section-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+/* .section-actions can be removed if sort dropdown is placed differently */
+
+.job-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1.5rem; /* Was 1.25rem */
+}
+.job-card { 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    padding: 1.5rem; 
+    transition: all 0.2s ease; 
+    cursor: pointer; 
+    display: flex; 
+    flex-direction: column; 
+    background: var(--content-bg-color); 
+}
+.job-card:hover, .job-card.selected { 
+    border-color: var(--primary-color); 
+    box-shadow: 0 5px 15px rgba(var(--primary-color-rgb), 0.1); 
+}
+.job-card.selected { 
+    background: rgba(var(--primary-color-rgb), 0.05); 
+}
+.job-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    margin-bottom: 0.75rem; /* Was 1rem */
+}
+.job-meta { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 10px; 
+    font-size: 0.8rem; /* Was 0.75rem */
+    color: var(--text-muted); 
+    margin-bottom: 0.5rem; 
+}
+.job-meta span:not(:last-child)::after {
+    content: "•";
+    margin-left: 10px;
+    color: var(--text-muted);
+}
+.job-title { 
+    font-size: 1.2rem; /* Was 1.1rem */
+    font-weight: 600; 
+    color: var(--heading-color); 
+    margin-bottom: 0.25rem; 
+    text-decoration: none; /* Ensure links are not underlined by default */
+}
+.job-title:hover {
+    color: var(--primary-color); /* Hover effect for title */
+}
+.job-company { 
+    font-size: 0.95rem; /* Was 0.9rem */
+    color: var(--primary-color); 
+    font-weight: 500; 
+    margin-bottom: 0.5rem; /* Was 0.25rem */
+}
+.job-salary { 
+    font-size: 0.9rem; 
+    color: var(--text-muted); 
+    font-weight: 500; /* Make it a bit bolder */
+}
+.job-description-snippet {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    /* For showing only a few lines */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Show 2 lines */
+    -webkit-box-orient: vertical;
+}
+.job-tags { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+    margin-top: auto; 
+    padding-top: 1rem; 
+}
+.job-tag { 
+    padding: 5px 12px; /* Adjusted padding */
+    border-radius: 16px; 
+    font-size: 0.75rem; 
+    font-weight: 500; 
+    line-height: 1.2; /* Added for better vertical alignment */
+}
+.job-tag.location { background: var(--tag-location-bg); color: var(--tag-location-text); }
+.job-tag.category { background: var(--tag-category-bg); color: var(--tag-category-text); }
+.job-tag.english-level { background: var(--tag-english-bg); color: var(--tag-english-text); }
+
+.favorite-btn { 
+    background: none; 
+    border: none; 
+    font-size: 1.5rem; 
+    color: var(--text-muted); 
+    cursor: pointer; 
+    padding: 0; 
+    line-height: 1; /* Align icon better */
+}
+.favorite-btn.favorited { 
+    color: var(--danger-color); /* Use danger color for favorited */
+}
+.apply-btn { 
+    background: var(--primary-color); 
+    color: white; 
+    padding: 10px 20px; /* Increased padding */
+    border: none; /* Removed border as bg is primary */
+    border-radius: 8px; /* Was 6px */
+    font-size: 0.9rem; /* Was 0.85rem */
+    font-weight: 500; 
+    cursor: pointer; 
+    margin-top: 1rem; 
+    align-self: flex-start; 
+    text-decoration: none; 
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.apply-btn:hover { 
+    background: var(--primary-color-darker); 
+    transform: translateY(-1px); /* Slight lift */
+}
+html[data-theme="dark"] .apply-btn { 
+    color: var(--background-color); 
+}
+
+/* Company Grid (If used on job offer pages) */
+.company-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+    gap: 1.25rem; 
+}
+.company-card { 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    padding: 1.5rem; 
+    text-align: center; 
+    cursor: pointer; 
+    position: relative; 
+    background: var(--content-bg-color); 
+}
+.company-card:hover, .company-card.selected { 
+    border-color: var(--primary-color); 
+    box-shadow: var(--card-shadow); 
+}
+.company-logo-img { 
+    width: 60px; 
+    height: 60px; 
+    border-radius: 10px; 
+    margin: 0 auto 1rem; 
+    object-fit: contain; 
+}
+.company-logo-placeholder { 
+    width: 60px; height: 60px; border-radius: 10px; margin: 0 auto 1rem; 
+    display: flex; align-items: center; justify-content: center; 
+    font-size: 1.5rem; background: var(--bg-color); color: var(--primary-color); 
+}
+.company-name { font-size: 1rem; font-weight: 600; color: var(--text-color); }
+.company-location { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.company-rating { display: flex; justify-content: center; gap: 2px; margin-bottom: 0.5rem; color: #fbbf24; font-size: 0.8rem; }
+.company-tag { display: inline-block; padding: 3px 7px; background: var(--bg-color); color: var(--text-muted); border-radius: 4px; font-size: 0.7rem; }
+.favorite-company { 
+    background: none; border: none; font-size: 1.25rem; color: var(--text-muted); 
+    cursor: pointer; position: absolute; top: 1rem; right: 1rem; padding: 0; 
+}
+.favorite-company.favorited { 
+    color: var(--danger-color); 
+}
+
+/* Single Job Offer Detail Page specific styles */
+.job-offer-page-container { /* Use existing class from website_styles if it serves the purpose */
+    /* max-width: 800px; */ /* Already defined in website_styles */
+    /* padding: 2rem; */   /* Already defined */
+}
+.job-offer-header {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.job-offer-header h1 { /* Title of the job */
+    font-size: clamp(1.8rem, 4vw, 2.5rem); /* Larger for single page */
+    color: var(--heading-color);
+    margin-bottom: 0.5rem;
+    text-align: left; /* Align left for single page */
+}
+.job-offer-company-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.job-offer-company-info img.company-logo-img { /* Specific for detail page */
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+}
+.job-offer-company-info .company-name {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+.job-offer-meta-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem; /* row-gap column-gap */
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+.job-offer-meta-details div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.job-offer-meta-details svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+.job-offer-actions {
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 1rem;
+}
+.job-offer-actions .apply-now-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+.job-offer-actions .save-job-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+.job-offer-actions .save-job-btn:hover {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+html[data-theme="dark"] .job-offer-actions .save-job-btn {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.job-offer-section {
+    margin-bottom: 2rem;
+}
+.job-offer-section h2 { /* For sections like "Job Description", "Requirements" */
+    font-size: 1.3rem;
+    color: var(--heading-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.job-offer-section ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+}
+.job-offer-section ul li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+
+/* === RESPONSIVE ADJUSTMENTS for Job Offers === */
+@media (max-width: 1024px) {
+    .job-board-container { 
+        grid-template-columns: 1fr; 
+    }
+    aside.sidebar.job-filters { 
+        position: static; 
+        margin-bottom: 2rem; 
+        top: auto; 
+    }
+}
+@media (max-width: 768px) {
+    .job-search-hero { 
+        padding: 1.5rem; 
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    .job-search-hero h1 {
+        font-size: 1.5rem;
+    }
+    .search-row, .controls-row { 
+        flex-direction: column; 
+    }
+    aside.sidebar.job-filters { 
+        padding: 1.5rem; 
+    }
+    .main-content.job-listings {
+        gap: 1rem;
+    }
+    .job-list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    .job-list-header .section-title {
+        font-size: 1.1rem;
+    }
+    .job-card {
+        padding: 1rem;
+    }
+    .job-title {
+        font-size: 1.1rem;
+    }
+    .job-offer-page-container {
+        padding: 1.5rem;
+    }
+    .job-offer-header h1 {
+        font-size: 1.6rem;
+    }
+    .job-offer-actions {
+        flex-direction: column;
+    }
+    .job-offer-actions .apply-now-btn,
+    .job-offer-actions .save-job-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+.content-formatted p {
+    margin-bottom: 0.75rem;
+    line-height: 1.7;
+}
+.content-formatted ul, .content-formatted ol {
+    margin-bottom: 1rem;
+    padding-left: 25px; /* Indent list items */
+}
+.content-formatted li {
+    margin-bottom: 0.4rem;
+}
+.content-formatted strong {
+    font-weight: 600; /* Already in global, but can be specific */
+}

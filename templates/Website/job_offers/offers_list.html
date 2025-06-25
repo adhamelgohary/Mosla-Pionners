@@ -3,18 +3,8 @@
 {% block title %}{{ title }} - Mosla Pioneers{% endblock %}
 
 {% block head_extra %}
-    {# Styles specific to this page can be added here if not in website_styles.css #}
-    <style>
-        .job-filters .category-item.active-filter {
-            background-color: rgba(var(--primary-color-rgb), 0.1);
-            border-left: 3px solid var(--primary-color);
-            padding-left: calc(0.75rem - 3px); /* Adjust padding to account for border */
-        }
-        .job-filters .category-item.active-filter .category-name {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-    </style>
+    {{ super() }} {# Includes anything from base.html's head_extra if needed #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/offer_styles.css') }}">
 {% endblock %}
 
 {% block content %}

@@ -1,0 +1,5 @@
+ALTER TABLE JobApplications
+ADD COLUMN ReferringStaffID INT NULL DEFAULT NULL,
+ADD COLUMN ReferringStaffTeamLeadID INT NULL DEFAULT NULL,
+ADD CONSTRAINT fk_ja_referring_staff FOREIGN KEY (ReferringStaffID) REFERENCES Staff (StaffID) ON DELETE SET NULL,
+ADD CONSTRAINT fk_ja_referring_tl FOREIGN KEY (ReferringStaffTeamLeadID) REFERENCES Staff (StaffID) ON DELETE SET NULL;

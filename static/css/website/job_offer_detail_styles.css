@@ -1,0 +1,323 @@
+/* static/css/job_offer_detail_styles.css */
+
+/* --- CSS Variables for Theming (Blues instead of Reds) --- */
+:root {
+    --hsbc-background-color: #f7f8fa;
+    --hsbc-text-color: #2d3748;
+    --hsbc-panel-background: white;
+    --hsbc-panel-border: #e2e8f0;
+    /* --hsbc-header-bg: white; */ /* Header is from base.html */
+    
+    /* MODIFIED: Changed reds to blues */
+    --hsbc-primary-color: #2c5aa0; /* Main Mosla Blue (can be a different shade if needed) */
+    --hsbc-primary-color-rgb: 44, 90, 160; /* RGB for the new primary blue */
+    --hsbc-focus-ring-color: rgba(44, 90, 160, 0.25); /* Focus ring with new primary blue */
+    --hsbc-button-primary-bg: #2c5aa0; 
+    --hsbc-button-primary-hover-bg: #214070; /* Darker shade of primary blue */
+    
+    /* MODIFIED: Success buttons can be a distinct blue or a more neutral/positive color.
+       Let's use a slightly lighter/brighter blue for "success" or a distinct action.
+       Alternatively, you could use a green like #28a745 if you prefer standard success color. */
+    --hsbc-button-success-bg: #3498db; /* A brighter, distinct blue */
+    --hsbc-button-success-hover-bg: #2980b9; /* Darker shade of the success blue */
+
+    --hsbc-checkmark-color: var(--hsbc-primary-color); /* Checkmark with primary blue */
+
+    /* Unchanged from previous HSBC-based style */
+    --hsbc-text-muted: #4a5568;
+    --hsbc-heading-color: #1a2a4d;
+    --hsbc-subtle-text-color: #4a5568;
+    --hsbc-input-background: #ffffff;
+    --hsbc-input-border: #cbd5e0;
+    --hsbc-button-secondary-bg: #6c757d; /* Grey for secondary actions */
+    --hsbc-button-secondary-hover-bg: #5a6268;
+    --hsbc-panel-shadow: rgba(0, 0, 0, 0.07);
+    --hsbc-transition-speed: 0.3s;
+    --hsbc-bg-image-opacity: 0.05;
+}
+
+[data-theme="dark"] {
+    --hsbc-background-color: #111827;
+    --hsbc-text-color: #e2e8f0;
+    --hsbc-panel-background: #1e2945;
+    --hsbc-panel-border: #4a5568;
+    /* --hsbc-header-bg: #1e2945; */
+
+    /* MODIFIED: Changed reds to blues for dark mode */
+    --hsbc-primary-color: #6fc6d8; /* Lighter/brighter blue for dark mode primary */
+    --hsbc-primary-color-rgb: 111, 198, 216;
+    --hsbc-focus-ring-color: rgba(111, 198, 216, 0.3);
+    --hsbc-button-primary-bg: #6fc6d8;
+    --hsbc-button-primary-hover-bg: #53a7bd; /* Slightly darker shade */
+
+    --hsbc-button-success-bg: #5dade2; /* A distinct, slightly lighter blue for dark mode success */
+    --hsbc-button-success-hover-bg: #4a90c2;
+    
+    --hsbc-checkmark-color: var(--hsbc-primary-color); /* Checkmark with dark mode primary blue */
+
+    /* Unchanged from previous HSBC-based dark style */
+    --hsbc-text-muted: #a0aec0;
+    --hsbc-heading-color: #f7fafc;
+    --hsbc-subtle-text-color: #a0aec0;
+    --hsbc-input-background: #2d3748; 
+    --hsbc-input-border: #4a5568;
+    --hsbc-button-secondary-bg: #4a5568; /* Darker grey for secondary */
+    --hsbc-button-secondary-hover-bg: #5c6a7d;
+    --hsbc-panel-shadow: rgba(0, 0, 0, 0.2);
+    --hsbc-bg-image-opacity: 0.03;
+}
+
+/* Apply hsbc- specific variables to elements within this page's scope */
+.job-offer-detail-hsbc-style { /* Keep this wrapper name or change if you prefer a more generic one like .job-offer-detail-styled */
+    background-color: var(--hsbc-background-color);
+    color: var(--hsbc-text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Floating Background Images specific to this page style */
+.job-offer-detail-hsbc-style .background-images {
+    position: fixed; 
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1; 
+    pointer-events: none;
+    overflow: hidden;
+}
+.job-offer-detail-hsbc-style .bg-image {
+    position: absolute; display: block;
+    opacity: var(--hsbc-bg-image-opacity);
+    animation: floatHSBC 15s ease-in-out infinite; 
+    object-fit: contain;
+    transition: opacity var(--hsbc-transition-speed) ease;
+    filter: grayscale(0.2) contrast(1.1);
+}
+[data-theme="dark"] .job-offer-detail-hsbc-style .bg-image {
+    filter: grayscale(0.3) contrast(1.2) brightness(0.8); 
+}
+
+/* Define image positions - these can be generic if OfferID specific images are not used */
+.job-offer-detail-hsbc-style .image-1 { bottom: 10%; right: 5%; width: 70px; height: 70px; animation-duration: 17s; }
+.job-offer-detail-hsbc-style .image-2 { top: 65%; left: 8%; width: 60px; height: 60px; animation-duration: 14s; animation-delay: 2s; }
+.job-offer-detail-hsbc-style .image-3 { top: 15%; left: 15%; width: 75px; height: 75px; animation-duration: 16s; }
+.job-offer-detail-hsbc-style .image-4 { bottom: 15%; right: 20%; width: 65px; height: 65px; animation-duration: 13s; animation-delay: 1s; }
+.job-offer-detail-hsbc-style .image-5 { top: 30%; left: 5%; width:70px; height:70px; animation-duration: 18s; animation-delay: 3s; }
+
+@keyframes floatHSBC { 
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(3deg); } 
+    100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* Main Content Area */
+.job-offer-detail-hsbc-style main.hsbc-main-content { 
+    padding: 30px 15px; 
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 120px); 
+}
+
+.job-offer-detail-hsbc-style .page-container {
+    display: flex;
+    gap: 30px; 
+    width: 100%;
+    max-width: 1300px; 
+    animation: fadeInHSBC 0.6s ease-out; 
+    z-index: 1; 
+}
+@keyframes fadeInHSBC { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.job-offer-detail-hsbc-style .form-panel { 
+    flex: 1;
+    background: var(--hsbc-panel-background);
+    border-radius: 12px; 
+    padding: 30px; 
+    box-shadow: 0 6px 20px var(--hsbc-panel-shadow); 
+    border: 1px solid var(--hsbc-panel-border);
+    transition: background-color var(--hsbc-transition-speed), border-color var(--hsbc-transition-speed);
+}
+
+/* Panel Specific Styles */
+.job-offer-detail-hsbc-style h1, 
+.job-offer-detail-hsbc-style h3 { color: var(--hsbc-heading-color); }
+.job-offer-detail-hsbc-style p { color: var(--hsbc-subtle-text-color); line-height: 1.7; }
+
+.job-offer-detail-hsbc-style .offer-details h1 { 
+    font-size: 26px; font-weight: 700; margin-top: 0; margin-bottom: 10px; 
+    color: var(--hsbc-primary-color); /* Uses the new blue */
+}
+.job-offer-detail-hsbc-style .offer-details .company-name-display { 
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--hsbc-text-muted);
+    margin-bottom: 15px;
+    display: block;
+}
+.job-offer-detail-hsbc-style .offer-details .detail-item { 
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--hsbc-text-muted);
+    font-size: 15px;
+    margin-bottom: 8px;
+}
+.job-offer-detail-hsbc-style .offer-details .detail-item svg {
+    width: 16px; height: 16px; fill: currentColor;
+}
+
+.job-offer-detail-hsbc-style .offer-details h3 { 
+    border-bottom: 1px solid var(--hsbc-panel-border); 
+    margin-top: 25px; margin-bottom: 12px; padding-bottom: 8px; 
+    font-size: 18px; font-weight: 600; 
+}
+.job-offer-detail-hsbc-style .offer-details ul { 
+    padding-left: 0; margin: 0; list-style-type: none; 
+}
+.job-offer-detail-hsbc-style .offer-details ul li { 
+    margin-bottom: 10px; line-height: 1.6; padding-left: 22px; position: relative; 
+    font-size: 15px; 
+}
+.job-offer-detail-hsbc-style .offer-details ul li::before { 
+    content: '✔'; color: var(--hsbc-checkmark-color); /* Uses new blue for checkmark */
+    font-weight: bold; 
+    position: absolute; left: 0; top: 2px; 
+    font-size: 14px; 
+}
+
+.job-offer-detail-hsbc-style .application-form h3 { 
+    font-size: 22px; margin-top: 0; margin-bottom: 25px; 
+    color: var(--hsbc-heading-color);
+}
+.job-offer-detail-hsbc-style .form-group { margin-bottom: 20px; } 
+.job-offer-detail-hsbc-style .form-group label { 
+    color: var(--hsbc-subtle-text-color); font-weight: 600; 
+    margin-bottom: 6px; font-size: 14px; display: block; 
+}
+
+.job-offer-detail-hsbc-style .form-group input[type="text"],
+.job-offer-detail-hsbc-style .form-group textarea {
+    width: 100%; padding: 10px 12px; 
+    border: 1px solid var(--hsbc-input-border);
+    border-radius: 6px; 
+    font-size: 15px; box-sizing: border-box;
+    background-color: var(--hsbc-input-background);
+    color: var(--hsbc-text-color);
+    transition: border-color var(--hsbc-transition-speed), box-shadow var(--hsbc-transition-speed);
+}
+
+.job-offer-detail-hsbc-style .form-group input[type="text"]:focus,
+.job-offer-detail-hsbc-style .form-group textarea:focus {
+    outline: none;
+    border-color: var(--hsbc-primary-color); /* Uses new blue for focus */
+    box-shadow: 0 0 0 3px var(--hsbc-focus-ring-color); /* Uses new blue focus ring */
+}
+
+.job-offer-detail-hsbc-style .form-group textarea { min-height: 100px; resize: vertical; }
+
+.job-offer-detail-hsbc-style .form-group input[type="file"] { 
+    width: 100%; font-size: 14px; color: var(--hsbc-subtle-text-color); 
+    padding: 8px 0; 
+}
+.job-offer-detail-hsbc-style .form-group input[type="file"]::file-selector-button {
+    padding: 8px 15px; margin-right: 12px; 
+    border: 1px solid var(--hsbc-input-border);
+    border-radius: 6px; background-color: var(--hsbc-background-color); 
+    color: var(--hsbc-text-color);
+    font-weight: 500; cursor: pointer; 
+    transition: background-color var(--hsbc-transition-speed);
+}
+.job-offer-detail-hsbc-style .form-group input[type="file"]::file-selector-button:hover { 
+    background-color: var(--hsbc-panel-border); 
+}
+
+.job-offer-detail-hsbc-style .voice-recorder {
+    margin-top: 15px; padding: 20px; 
+    border: 1px dashed var(--hsbc-panel-border); 
+    border-radius: 8px; text-align: center; 
+    background: rgba(var(--hsbc-primary-color-rgb), 0.03); /* Subtle tint using new primary blue */
+}
+.job-offer-detail-hsbc-style .voice-recorder > label { 
+    font-size: 16px; color: var(--hsbc-heading-color); font-weight: 600; display: block; margin-bottom: 5px;
+}
+.job-offer-detail-hsbc-style .voice-recorder p { 
+    font-size: 13px; color: var(--hsbc-subtle-text-color); 
+    margin: 5px auto 15px auto; text-align: left; 
+    padding: 0; max-width: 90%; line-height: 1.5;
+}
+.job-offer-detail-hsbc-style .voice-recorder p b { color: var(--hsbc-text-color); }
+
+.job-offer-detail-hsbc-style button {
+    padding: 10px 20px; font-weight: 600; color: white; border: none;
+    border-radius: 6px; cursor: pointer; 
+    transition: all var(--hsbc-transition-speed) ease; 
+    font-size: 15px; margin: 5px;
+}
+.job-offer-detail-hsbc-style button:hover:not(:disabled) { 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+}
+
+.job-offer-detail-hsbc-style #startBtn { background-color: var(--hsbc-button-primary-bg); } /* Uses new blue */
+.job-offer-detail-hsbc-style #startBtn:hover:not(:disabled) { background-color: var(--hsbc-button-primary-hover-bg); } 
+.job-offer-detail-hsbc-style #stopBtn { background-color: var(--hsbc-button-secondary-bg); }
+.job-offer-detail-hsbc-style #stopBtn:hover:not(:disabled) { background-color: var(--hsbc-button-secondary-hover-bg); } 
+.job-offer-detail-hsbc-style button:disabled { 
+    background-color: #cbd5e0; color: #718096; 
+    cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7;
+}
+html[data-theme="dark"] .job-offer-detail-hsbc-style button:disabled {
+    background-color: #4a5568; color: #a0aec0;
+}
+
+.job-offer-detail-hsbc-style #sendBtn { /* This is the "Send Application" button */
+    width: 100%; margin-top: 25px; padding: 14px; font-size: 16px; 
+    background-color: var(--hsbc-button-success-bg); /* Uses new success blue */
+    letter-spacing: 0.5px;
+}
+.job-offer-detail-hsbc-style #sendBtn:hover { background-color: var(--hsbc-button-success-hover-bg); }
+
+.job-offer-detail-hsbc-style audio { margin-top: 15px; width: 100%; border-radius: 6px; }
+.job-offer-detail-hsbc-style audio:focus { outline: none; box-shadow: 0 0 0 3px var(--hsbc-focus-ring-color); }
+
+
+/* Responsive adjustments for this specific page style */
+@media (max-width: 1200px) {
+    .job-offer-detail-hsbc-style main.hsbc-main-content { 
+        align-items: stretch; 
+    }
+    .job-offer-detail-hsbc-style .page-container { 
+        flex-direction: column; gap: 25px; 
+    }
+    .job-offer-detail-hsbc-style .form-panel { 
+        padding: 25px; 
+    }
+}
+@media (max-width: 768px) {
+    .job-offer-detail-hsbc-style main.hsbc-main-content {
+        padding: 20px 10px; 
+    }
+    .job-offer-detail-hsbc-style .page-container {
+        gap: 20px;
+    }
+    .job-offer-detail-hsbc-style .form-panel {
+        padding: 20px;
+    }
+    .job-offer-detail-hsbc-style .offer-details h1 { font-size: 22px; }
+    .job-offer-detail-hsbc-style .offer-details h3 { font-size: 17px; }
+    .job-offer-detail-hsbc-style .application-form h3 { font-size: 20px; }
+    .job-offer-detail-hsbc-style .form-group label { font-size: 13px; }
+    .job-offer-detail-hsbc-style .form-group input[type="text"],
+    .job-offer-detail-hsbc-style .form-group textarea,
+    .job-offer-detail-hsbc-style .form-group input[type="file"]::file-selector-button {
+        font-size: 14px;
+        padding: 8px 10px;
+    }
+    .job-offer-detail-hsbc-style button {
+        font-size: 14px;
+        padding: 10px 18px;
+    }
+    .job-offer-detail-hsbc-style #sendBtn {
+        padding: 12px;
+        font-size: 15px;
+    }
+    .job-offer-detail-hsbc-style .voice-recorder p { font-size: 12px; }
+}

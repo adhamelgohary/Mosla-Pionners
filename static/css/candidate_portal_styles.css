@@ -1,0 +1,44 @@
+/* static/css/candidate_portal_styles.css */
+.profile-header-candidate { /* Example class for a specific header if needed */
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.profile-pic-candidate-large {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 1.5rem;
+    border: 3px solid var(--content-bg-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+/* Add more styles for .profile-card, .info-grid etc. if you remove them from inline in dashboard.html */
+.profile-pic-candidate-small {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 1rem;
+    border: 2px solid var(--content-bg-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+.info-grid div {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.info-grid div:last-child {
+    border-bottom: none;
+}
+
+#referralCodeFeedback.text-success { color: green; }
+#referralCodeFeedback.text-danger { color: red; }
+#referralCodeFeedback.text-warning { color: orange; }
+#referralCodeFeedback.text-muted { color: #6c757d; }

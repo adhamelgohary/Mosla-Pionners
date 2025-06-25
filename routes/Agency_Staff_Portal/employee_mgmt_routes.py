@@ -20,42 +20,37 @@ def _can_manager_view_profile(manager, profile_to_view_staff_data):
     `profile_to_view_staff_data` is a dictionary of the staff member being viewed,
     containing at least 'ReportsToStaffID' and their 'StaffID'.
     """
-    if not manager or not hasattr(manager, 'role_type'): return False # Should not happen for logged-in user
+    if not manager or not hasattr(manager, 'role_type'): return False
     if manager.role_type in EXECUTIVE_ROLES: return True
 
-    manager_staff_id = getattr(manager, 'specific_role_id', None) # This is the StaffID of the manager
+    manager_staff_id = getattr(manager, 'specific_role_id', None)
     
-    # If profile_to_view_staff_data doesn't have ReportsToStaffID, it means they are top-level (e.g. CEO)
-    # or their data is incomplete. Only executives can view top-level if not self.
     profile_reports_to_staff_id = profile_to_view_staff_data.get('ReportsToStaffID')
 
-    if not manager_staff_id: return False # Manager doesn't have a staff ID (shouldn't happen for leaders)
-    if profile_reports_to_staff_id is None: return False # Profile reports to no one (e.g. CEO), only execs can see
+    if not manager_staff_id: return False
+    if profile_reports_to_staff_id is None: return False 
 
-    # Check if the profile reports directly to the manager
     if manager_staff_id == profile_reports_to_staff_id:
         return True
 
-    # Hierarchical check: trace up from the profile's direct manager
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         current_leader_in_chain = profile_reports_to_staff_id
-        for _ in range(6): # Max hierarchy depth to check to prevent infinite loops
-            if not current_leader_in_chain: # Should not happen if profile_reports_to_staff_id was not None
+        for _ in range(6): 
+            if not current_leader_in_chain:
                 return False
-            # We need the StaffID of the manager of the current_leader_in_chain
             cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (current_leader_in_chain,))
             result = cursor.fetchone()
-            if not result or not result[0]: # Reached the top of this hierarchy branch
+            if not result or not result[0]: 
                 return False
             
             parent_of_current_leader = result[0]
             if parent_of_current_leader == manager_staff_id:
-                return True # The manager is a superior of the profile's direct manager
-            current_leader_in_chain = parent_of_current_leader # Move up the chain
-        return False # Not found in the hierarchy chain within depth
+                return True 
+            current_leader_in_chain = parent_of_current_leader 
+        return False 
     except Exception as e:
         current_app.logger.error(f"Error in _can_manager_view_profile: {e}", exc_info=True)
         return False
@@ -66,27 +61,26 @@ def _can_manager_view_profile(manager, profile_to_view_staff_data):
 
 def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
     """Prevents assigning a user to report to one of their own subordinates."""
-    if staff_to_change_id == new_leader_staff_id: return False # Cannot report to self
-    if not new_leader_staff_id: return True # Assigning to "no leader" is always valid in terms of loops
+    if staff_to_change_id == new_leader_staff_id: return False
+    if not new_leader_staff_id: return True 
 
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # Trace up from the proposed new_leader_staff_id. If we encounter staff_to_change_id, it's a loop.
         current_id_in_chain = new_leader_staff_id
-        for _ in range(10): # Max depth for safety
-            if not current_id_in_chain: return True # Reached top, no loop
+        for _ in range(10): 
+            if not current_id_in_chain: return True 
             cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (current_id_in_chain,))
             result = cursor.fetchone()
-            if not result or not result[0]: return True # Reached top, no loop
+            if not result or not result[0]: return True 
             
             parent_id = result[0]
-            if parent_id == staff_to_change_id: return False # Loop detected!
+            if parent_id == staff_to_change_id: return False 
             current_id_in_chain = parent_id
-        return True # Default to true if no loop found within depth limit
+        return True 
     except Exception as e:
         current_app.logger.error(f"Error in _is_valid_new_leader: {e}", exc_info=True)
-        return False # Fail safe
+        return False 
     finally:
         if cursor: cursor.close()
         if conn and conn.is_connected(): conn.close()
@@ -95,13 +89,12 @@ def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
 @employee_mgmt_bp.route('/')
 @login_required
 def staff_hub():
-    if current_user.role_type in LEADER_ROLES: # LEADER_ROLES from decorators.py
+    if current_user.role_type in LEADER_ROLES: 
         return redirect(url_for('.my_team'))
-    # Non-leaders (e.g. SourcingRecruiter) go to their own profile
     return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
 
-@employee_mgmt_bp.route('/dashboard') # Executive Staff Dashboard
-@login_required_with_role(EXECUTIVE_ROLES) # EXECUTIVE_ROLES from decorators.py
+@employee_mgmt_bp.route('/dashboard') 
+@login_required_with_role(EXECUTIVE_ROLES) 
 def staff_dashboard_view():
     conn, kpis = None, {}
     try:
@@ -120,7 +113,7 @@ def staff_dashboard_view():
     except Exception as e:
         current_app.logger.error(f"Error loading staff dashboard: {e}", exc_info=True)
         flash("Could not load staff dashboard.", "danger")
-        return redirect(url_for('staff_dashboard_bp.main_dashboard')) # Fallback to general dashboard
+        return redirect(url_for('staff_dashboard_bp.main_dashboard')) 
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
@@ -129,7 +122,7 @@ def staff_dashboard_view():
 @employee_mgmt_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES)
 def my_team():
-    leader_staff_id = getattr(current_user, 'specific_role_id', None) # This is StaffID for staff users
+    leader_staff_id = getattr(current_user, 'specific_role_id', None) 
     if not leader_staff_id and current_user.role_type not in EXECUTIVE_ROLES:
         flash("Your staff profile ID could not be found to display your team/group.", "warning")
         return redirect(url_for('staff_dashboard_bp.main_dashboard'))
@@ -158,14 +151,12 @@ def my_team():
         """
         params = []
         role = current_user.role_type
-        page_title = "My Team Performance" # Default
+        page_title = "My Team Performance" 
         where_clause = ""
 
         if role in EXECUTIVE_ROLES:
             page_title = "All Staff Performance" 
-            # No WHERE clause, selects all staff
         else: 
-            # For other leaders, use recursive CTE to find all staff under them
             where_clause = """
             WITH RECURSIVE Subordinates AS (
                 SELECT StaffID FROM Staff WHERE StaffID = %s 
@@ -175,13 +166,12 @@ def my_team():
             )
             WHERE s.StaffID IN (SELECT StaffID FROM Subordinates WHERE StaffID != %s) 
             """
-            params.extend([leader_staff_id, leader_staff_id]) # Param for anchor and to exclude self
+            params.extend([leader_staff_id, leader_staff_id]) 
             
             if role == 'UnitManager': page_title = "My Unit's Performance"
             elif role == 'HeadSourcingTeamLead': page_title = "My Division's Performance"
             elif role == 'HeadAccountManager': page_title = "My Account Management Group Performance"
             elif role == 'SeniorAccountManager': page_title = "My Account Managers' Performance"
-            # SourcingTeamLead uses default "My Team Performance"
 
         final_sql = f"{base_sql} {where_clause} {order_clause}"
         cursor.execute(final_sql, tuple(params))
@@ -192,7 +182,7 @@ def my_team():
             'total_points': sum(member.get('TotalPoints', 0) or 0 for member in team_members),
             'monthly_net_points': sum(member.get('NetMonthlyPoints', 0) for member in team_members)
         }
-        is_global_view = role in EXECUTIVE_ROLES # Flag for template rendering
+        is_global_view = role in EXECUTIVE_ROLES 
 
         return render_template('agency_staff_portal/staff/my_team.html', 
                                title=page_title, team_members=team_members, 
@@ -214,7 +204,6 @@ def list_all_staff():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Updated SQL to correctly join Staff and Users for leaders
         sql = """
             SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.IsActive, s.Role, s.TotalPoints, 
                    leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName
@@ -241,11 +230,10 @@ def list_all_staff():
 def view_staff_profile(user_id_viewing):
     conn, user_profile_data = None, None
     team_leaders, points_log, possible_roles, direct_reports = [], [], [], []
-    direct_reports_section_title = "Manages Directly" # Default
+    direct_reports_section_title = "Manages Directly" 
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Fetch staff profile data
         cursor.execute("""
             SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.ProfilePictureURL, u.IsActive, u.RegistrationDate, 
                    s.StaffID, s.Role, s.TotalPoints, s.ReferralCode, s.ReportsToStaffID,
@@ -260,13 +248,10 @@ def view_staff_profile(user_id_viewing):
             flash("Staff profile not found.", "danger")
             return redirect(url_for('.staff_hub'))
 
-        # Permission check
         if user_id_viewing != current_user.id and not _can_manager_view_profile(current_user, user_profile_data):
             flash("You do not have permission to view this profile.", "danger")
             return redirect(url_for('.staff_hub'))
         
-        # Fetch potential leaders for dropdown (all staff who are in LEADER_ROLES)
-        # LEADER_ROLES is a list of role strings
         leader_roles_tuple = tuple(LEADER_ROLES)
         placeholders = ', '.join(['%s'] * len(leader_roles_tuple))
         cursor.execute(f"""
@@ -277,17 +262,14 @@ def view_staff_profile(user_id_viewing):
         """, leader_roles_tuple)
         team_leaders = cursor.fetchall()
         
-        # Fetch possible roles from ENUM definition in Staff table
         cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
         enum_str = cursor.fetchone()['Type']
         possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
 
         if user_profile_data.get('StaffID'):
-            # Fetch points log
             cursor.execute("SELECT PointsAmount, ActivityType, AwardDate, Notes FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
             points_log = cursor.fetchall()
 
-            # Fetch direct reports for this staff member
             cursor.execute("""
                 SELECT s_report.StaffID, u_report.UserID, u_report.FirstName, u_report.LastName, s_report.Role 
                 FROM Staff s_report
@@ -297,7 +279,6 @@ def view_staff_profile(user_id_viewing):
             """, (user_profile_data['StaffID'],))
             direct_reports = cursor.fetchall()
 
-            # Customize direct reports section title
             viewed_role = user_profile_data.get('Role')
             if viewed_role == 'CEO': direct_reports_section_title = "Executive Leadership Team"
             elif viewed_role == 'OperationsManager': direct_reports_section_title = "Direct Managerial Reports"
@@ -305,10 +286,8 @@ def view_staff_profile(user_id_viewing):
             elif viewed_role == 'HeadSourcingTeamLead' or viewed_role == 'HeadAccountManager': direct_reports_section_title = "Team Leaders / Senior Staff"
             elif viewed_role == 'SourcingTeamLead' or viewed_role == 'SeniorAccountManager': direct_reports_section_title = "Team Members"
         
-        # Add CEO-specific KPIs if viewing CEO profile (example)
         ceo_kpis = {}
         if user_profile_data.get('Role') == 'CEO':
-            # Add any CEO-specific data fetching here
             pass
 
         return render_template('agency_staff_portal/staff/view_staff_profile.html', 
@@ -327,7 +306,6 @@ def view_staff_profile(user_id_viewing):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
-# --- Action Routes ---
 @employee_mgmt_bp.route('/generate-referral-code/<int:target_staff_id>', methods=['POST'])
 @login_required
 def generate_referral_code(target_staff_id):
@@ -335,7 +313,6 @@ def generate_referral_code(target_staff_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Fetch target staff profile using StaffID
         cursor.execute("SELECT s.StaffID, u.UserID, u.FirstName, s.ReferralCode, s.ReportsToStaffID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (target_staff_id,))
         target_staff_profile = cursor.fetchone()
 
@@ -343,7 +320,6 @@ def generate_referral_code(target_staff_id):
             flash("Target staff profile not found.", "warning")
             return redirect(request.referrer or url_for('.staff_hub'))
         
-        # Permission check: self or authorized manager
         can_generate = (current_user.specific_role_id == target_staff_id) or \
                        _can_manager_view_profile(current_user, target_staff_profile)
         
@@ -378,7 +354,18 @@ def generate_referral_code(target_staff_id):
 @login_required_with_role(EXECUTIVE_ROLES)
 def update_role(staff_id_to_edit):
     new_role = request.form.get('role')
-    user_id_of_edited_staff = request.form.get('user_id_redirect') # For redirecting back to the profile
+    # user_id_of_edited_staff = request.form.get('user_id_redirect') # OLD, form name is 'user_id'
+    user_id_of_edited_staff_str = request.form.get('user_id')
+    
+    if not user_id_of_edited_staff_str:
+        flash("Critical error: User ID for redirect not found.", "danger")
+        return redirect(url_for('.staff_hub'))
+    try:
+        user_id_of_edited_staff = int(user_id_of_edited_staff_str)
+    except ValueError:
+        flash("Critical error: Invalid User ID format for redirect.", "danger")
+        return redirect(url_for('.staff_hub'))
+
     conn = None
     try:
         conn = get_db_connection()
@@ -398,9 +385,19 @@ def update_role(staff_id_to_edit):
 @employee_mgmt_bp.route('/profile/<int:staff_id_to_edit>/update-leader', methods=['POST'])
 @login_required_with_role(EXECUTIVE_ROLES)
 def update_leader(staff_id_to_edit):
-    new_leader_staff_id_str = request.form.get('leader_id') # This is StaffID of the new leader
-    user_id_of_edited_staff = request.form.get('user_id_redirect')
+    new_leader_staff_id_str = request.form.get('leader_id') 
+    # user_id_of_edited_staff = request.form.get('user_id_redirect') # OLD, form name is 'user_id'
+    user_id_of_edited_staff_str = request.form.get('user_id')
     new_leader_staff_id_db = int(new_leader_staff_id_str) if new_leader_staff_id_str else None
+
+    if not user_id_of_edited_staff_str:
+        flash("Critical error: User ID for redirect not found.", "danger")
+        return redirect(url_for('.staff_hub'))
+    try:
+        user_id_of_edited_staff = int(user_id_of_edited_staff_str)
+    except ValueError:
+        flash("Critical error: Invalid User ID format for redirect.", "danger")
+        return redirect(url_for('.staff_hub'))
 
     if new_leader_staff_id_db and not _is_valid_new_leader(staff_id_to_edit, new_leader_staff_id_db):
         flash("Invalid manager assignment: this would create a reporting loop.", "danger")
@@ -423,20 +420,51 @@ def update_leader(staff_id_to_edit):
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_edited_staff))
 
 @employee_mgmt_bp.route('/profile/<int:staff_id_award_points>/add-points', methods=['POST'])
-@login_required_with_role(LEADER_ROLES) # LEADER_ROLES can manage points for their subordinates
+@login_required_with_role(LEADER_ROLES)
 def add_points(staff_id_award_points):
-    user_id_of_staff_getting_points = request.form.get('user_id_redirect')
+    # CORRECTED: Changed from 'user_id_redirect' to 'user_id' to match the form field name
+    user_id_of_staff_getting_points_str = request.form.get('user_id') 
+    
+    if not user_id_of_staff_getting_points_str:
+        flash("Critical error: User ID for redirect not found in form submission.", "danger")
+        # Try to get UserID from target_staff_profile if this fails, but it's a fallback.
+        # For now, redirecting to a general page if the form is broken.
+        conn_temp = get_db_connection()
+        if conn_temp:
+            cursor_temp = conn_temp.cursor(dictionary=True)
+            cursor_temp.execute("SELECT UserID FROM Staff WHERE StaffID = %s", (staff_id_award_points,))
+            res_temp = cursor_temp.fetchone()
+            if cursor_temp: cursor_temp.close()
+            if conn_temp.is_connected(): conn_temp.close()
+            if res_temp and res_temp.get('UserID'):
+                 current_app.logger.warning(f"Form did not send user_id for redirect. Using UserID {res_temp['UserID']} from StaffID {staff_id_award_points}.")
+                 user_id_of_staff_getting_points_str = str(res_temp['UserID']) # Convert to string for consistency
+            else:
+                current_app.logger.error(f"Form did not send user_id for redirect, and could not look up UserID for StaffID {staff_id_award_points}.")
+                return redirect(url_for('.staff_hub')) # Fallback redirect
+        else: # DB connection failed
+            current_app.logger.error(f"Form did not send user_id for redirect, and DB connection failed to look up UserID for StaffID {staff_id_award_points}.")
+            return redirect(url_for('.staff_hub'))
+
+
+    try:
+        user_id_of_staff_getting_points = int(user_id_of_staff_getting_points_str)
+    except ValueError:
+        flash("Critical error: Invalid User ID format for redirect.", "danger")
+        current_app.logger.error(f"Invalid UserID format received: '{user_id_of_staff_getting_points_str}'")
+        return redirect(url_for('.staff_hub')) # Fallback redirect
+
     conn = None
     try:
         action_type = request.form.get('action_type')
         points_str = request.form.get('points')
         reason = request.form.get('reason', 'Manual adjustment by manager').strip()
 
-        if not action_type or not points_str or not reason: # Reason is now mandatory
+        if not action_type or not points_str or not reason:
             flash("Action type, points value, and reason are required.", "warning")
             return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_staff_getting_points))
         
-        points = abs(int(points_str))
+        points = abs(int(points_str)) 
         if points == 0:
              flash("Points value cannot be zero.", "warning")
              return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_staff_getting_points))
@@ -444,35 +472,51 @@ def add_points(staff_id_award_points):
         points_to_apply = -points if action_type == 'deduct' else points
         
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True) # For fetching profile for permission check
+        cursor = conn.cursor(dictionary=True) 
         
         cursor.execute("SELECT StaffID, UserID, ReportsToStaffID FROM Staff WHERE StaffID = %s", (staff_id_award_points,))
         target_staff_for_check = cursor.fetchone()
+
         if not target_staff_for_check:
             flash("Target staff not found.", "danger")
             return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_staff_getting_points))
 
-        # Use the permission helper
-        if not _can_manager_view_profile(current_user, target_staff_for_check):
+        if target_staff_for_check['UserID'] != user_id_of_staff_getting_points:
+            flash("Data mismatch: The staff member being awarded points does not match the redirect ID. Please report this issue.", "danger")
+            current_app.logger.error(f"Data mismatch in add_points: target UserID {target_staff_for_check['UserID']} vs redirect UserID {user_id_of_staff_getting_points}")
+            # Redirect to the profile page based on the ID from the URL to be safe
+            return redirect(url_for('.view_staff_profile', user_id_viewing=target_staff_for_check['UserID']))
+
+        if not _can_manager_view_profile(current_user, target_staff_for_check): # _can_manager_view_profile also implies can manage points
              flash("You do not have permission to manage points for this staff member.", "danger")
              return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_staff_getting_points))
         
-        # Switch back to non-dictionary cursor for INSERT/UPDATE
-        cursor = conn.cursor() 
+        cursor = conn.cursor() # Switch back to non-dictionary cursor for INSERT/UPDATE
         cursor.execute("INSERT INTO StaffPointsLog (AwardedToStaffID, AwardedByStaffID, PointsAmount, ActivityType, Notes) VALUES (%s, %s, %s, %s, %s)",
                        (staff_id_award_points, current_user.specific_role_id, points_to_apply, 'ManualAdjustment', reason))
-        cursor.execute("UPDATE Staff SET TotalPoints = TotalPoints + %s WHERE StaffID = %s", (points_to_apply, staff_id_award_points))
+        cursor.execute("UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s", (points_to_apply, staff_id_award_points))
         conn.commit()
         
-        flash(f"{points} points {'deducted from' if action_type == 'deduct' else 'awarded to'} staff successfully.", "success")
+        flash(f"{abs(points_to_apply)} points {'deducted from' if action_type == 'deduct' else 'awarded to'} staff successfully.", "success")
     except ValueError:
         flash("Invalid points value. Please enter a whole number.", "danger")
+    except mysql.connector.Error as db_err: # More specific DB error handling
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Database error processing points for StaffID {staff_id_award_points}: {db_err}", exc_info=True)
+        flash(f"A database error occurred while processing points. Please try again.", "danger")
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
-        current_app.logger.error(f"Error processing points for StaffID {staff_id_award_points}: {e}", exc_info=True)
-        flash(f"An error occurred while processing points: {str(e)}", "danger")
+        current_app.logger.error(f"General error processing points for StaffID {staff_id_award_points}: {e}", exc_info=True)
+        flash(f"An unexpected error occurred while processing points: {str(e)}", "danger")
     finally:
         if conn and conn.is_connected():
              if 'cursor' in locals() and cursor: cursor.close()
              conn.close()
+    
+    # Ensure user_id_of_staff_getting_points is valid before final redirect
+    if not user_id_of_staff_getting_points or not isinstance(user_id_of_staff_getting_points, int):
+        current_app.logger.error(f"Final redirect attempt in add_points failed: user_id_of_staff_getting_points is invalid ({user_id_of_staff_getting_points}).")
+        flash("Error redirecting back to profile. Please navigate manually.", "warning")
+        return redirect(url_for('.staff_hub'))
+        
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_of_staff_getting_points))

@@ -1,0 +1,141 @@
+{% extends "Website/base.html" %}
+
+{% block title %}{{ title }} - Candidate Portal{% endblock %}
+
+{% block head_extra %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/candidate_portal_styles.css') }}">
+     <style>
+        /* Basic form styling to make it usable */
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 768px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: .5rem; font-weight: 500; }
+        .form-control, .form-select { display: block; width: 100%; padding: .375rem .75rem; font-size: 1rem; font-weight: 400; line-height: 1.5; color: var(--text-color); background-color: var(--input-bg-color, #fff); background-clip: padding-box; border: 1px solid var(--input-border-color, #ced4da); appearance: none; border-radius: .25rem; transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; }
+        .form-control:focus, .form-select:focus { border-color: var(--primary-color); outline: 0; box-shadow: 0 0 0 .25rem var(--focus-ring-color); }
+        textarea.form-control { min-height: calc(1.5em + .75rem + 2px); }
+        .btn-primary { color: #fff; background-color: var(--primary-color); border-color: var(--primary-color); }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <h2>{{ title }}</h2>
+    <hr class="mb-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('candidate_bp.edit_profile') }}" enctype="multipart/form-data">
+        {# CSRF token if using Flask-WTF: {{ form.hidden_tag() }} #}
+        
+        <h4>Personal Information</h4>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ form_data.FirstName or '' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ form_data.LastName or '' }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="email">Email (Cannot be changed)</label>
+            <input type="email" class="form-control" id="email" name="email_display" value="{{ form_data.Email or '' }}" readonly disabled>
+        </div>
+         <div class="form-group">
+            <label for="phone_number">Phone Number</label>
+            <input type="tel" class="form-control" id="phone_number" name="phone_number" value="{{ form_data.PhoneNumber or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="profile_picture">Profile Picture</label>
+            {% if form_data.ProfilePictureURL %}
+                <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) }}" alt="Current Profile Picture" style="max-width: 100px; max-height: 100px; border-radius: 50%; margin-bottom: 10px; display:block;">
+            {% endif %}
+            <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
+            <small class="form-text text-muted">Leave blank to keep current picture.</small>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="date_of_birth">Date of Birth</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="nationality">Nationality</label>
+                <input type="text" class="form-control" id="nationality" name="nationality" value="{{ form_data.Nationality or '' }}">
+            </div>
+        </div>
+         <div class="form-grid">
+            <div class="form-group">
+                <label for="educational_status">Educational Status</label>
+                <input type="text" class="form-control" id="educational_status" name="educational_status" value="{{ form_data.EducationalStatus or '' }}">
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender</label>
+                <select class="form-select" id="gender" name="gender">
+                    <option value="" {% if not form_data.Gender %}selected{% endif %}>Prefer not to say</option>
+                    <option value="Male" {% if form_data.Gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if form_data.Gender == 'Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if form_data.Gender == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h4>Professional Details</h4>
+        <div class="form-group">
+            <label for="portfolio_url">Portfolio URL</label>
+            <input type="url" class="form-control" id="portfolio_url" name="portfolio_url" value="{{ form_data.PortfolioURL or '' }}" placeholder="https://www.yourportfolio.com">
+        </div>
+        <div class="form-group">
+            <label for="linkedin_url">LinkedIn Profile URL</label>
+            <input type="url" class="form-control" id="linkedin_url" name="linkedin_url" value="{{ form_data.LinkedInProfileURL or '' }}" placeholder="https://www.linkedin.com/in/yourprofile">
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="years_of_experience">Years of Experience</label>
+                <input type="number" class="form-control" id="years_of_experience" name="years_of_experience" value="{{ form_data.YearsOfExperience if form_data.YearsOfExperience is not none else '' }}" min="0">
+            </div>
+             <div class="form-group">
+                <label for="availability_date">Available From Date</label>
+                <input type="date" class="form-control" id="availability_date" name="availability_date" value="{{ form_data.AvailabilityDate.strftime('%Y-%m-%d') if form_data.AvailabilityDate else '' }}">
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="current_salary">Current Salary (Optional)</label>
+                <input type="number" class="form-control" id="current_salary" name="current_salary" value="{{ form_data.CurrentSalary if form_data.CurrentSalary is not none else '' }}" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+                <label for="expected_salary">Expected Salary (Optional)</label>
+                <input type="number" class="form-control" id="expected_salary" name="expected_salary" value="{{ form_data.ExpectedSalary if form_data.ExpectedSalary is not none else '' }}" step="0.01" min="0">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="preferred_job_types">Preferred Job Types (e.g., Full-time, Remote, Customer Service)</label>
+            <input type="text" class="form-control" id="preferred_job_types" name="preferred_job_types" value="{{ form_data.PreferredJobTypes or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="preferred_locations">Preferred Work Locations (e.g., Cairo, Remote, Alexandria)</label>
+            <input type="text" class="form-control" id="preferred_locations" name="preferred_locations" value="{{ form_data.PreferredLocations or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="notes">Additional Notes / Bio</label>
+            <textarea class="form-control" id="notes" name="notes" rows="4">{{ form_data.Notes or '' }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Update Profile</button>
+        <a href="{{ url_for('candidate_bp.dashboard') }}" class="btn btn-secondary mt-3">Cancel</a>
+    </form>
+</div>
+{% endblock %}
