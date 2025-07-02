@@ -12,25 +12,25 @@ services:
       - uploads:/app/static/uploads
     environment:
       # --- Flask & App Settings ---
-      - FLASK_SECRET_KEY_FILE=/run/secrets/flask_secret_key # More secure way
+      - FLASK_SECRET_KEY_FILE=/run/secrets/flask_secret_key
       - FLASK_SESSION_LIFETIME=7200 # 2 hours
       # --- Database Connection Settings ---
       - DB_HOST=db # The service name of the database container
-      - DB_NAME=mosla_pioneers
+      - DB_NAME=mosla_db # <-- FIX: This must match MYSQL_DATABASE below
       - DB_USER=mosla_user
       - DB_PASSWORD_FILE=/run/secrets/db_password # Path to the secret file
-      # --- Mail Settings ---
+      # --- Mail Settings (ensure these are set in your GitHub secrets) ---
       - MAIL_SERVER=smtp.example.com
       - MAIL_PORT=587
       - MAIL_USE_TLS=True
       - MAIL_USERNAME=your-email@example.com
-      - MAIL_PASSWORD_FILE=/run/secrets/mail_password # Use a secret for mail pass
+      - MAIL_PASSWORD_FILE=/run/secrets/mail_password
     secrets:
       - db_password
       - flask_secret_key
       - mail_password
     depends_on:
-      - db # Wait for the db service to be ready before starting
+      - db
     deploy:
       replicas: 1
       restart_policy:
@@ -43,14 +43,13 @@ services:
       - db_data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
-      - MYSQL_DATABASE=mosla_db
+      - MYSQL_DATABASE=mosla_db # <-- This is the name created.
       - MYSQL_USER=mosla_user
       - MYSQL_PASSWORD_FILE=/run/secrets/db_password
     secrets:
       - db_password
       - db_root_password
 
-# Define the secrets. 'external: true' means we will create them manually or via script on the host.
 secrets:
   db_password:
     external: true
@@ -61,7 +60,6 @@ secrets:
   mail_password:
     external: true
 
-# Define the named volumes for persistent data
 volumes:
   db_data:
   uploads:
