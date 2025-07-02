@@ -43,7 +43,7 @@ services:
       - db_data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
-      - MYSQL_DATABASE=mosla_pioneers
+      - MYSQL_DATABASE=mosla_db
       - MYSQL_USER=mosla_user
       - MYSQL_PASSWORD_FILE=/run/secrets/db_password
     secrets:
