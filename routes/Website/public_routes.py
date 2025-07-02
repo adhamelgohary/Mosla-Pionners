@@ -1,6 +1,6 @@
 # routes/public_routes.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
-from db11 import get_db_connection
+from db import get_db_connection
 import datetime
 
 public_routes_bp = Blueprint('public_routes_bp', __name__,

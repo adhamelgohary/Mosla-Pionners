@@ -1,7 +1,7 @@
 # routes/Website/job_board_routes.py
 from flask import Blueprint, render_template, request, current_app, flash, url_for, redirect, jsonify
 from flask_login import login_required, current_user
-from db11 import get_db_connection
+from db import get_db_connection
 import datetime
 from utils.directory_configs import save_file_from_config
 from werkzeug.utils import secure_filename
