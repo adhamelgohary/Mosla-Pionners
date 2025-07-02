@@ -23,6 +23,7 @@ jobs:
         with:
           context: .
           push: true
+          # This tag is used in the deploy step
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/mosla-pioneers:${{ github.sha }}
 
       - name: Deploy to VPS
@@ -32,15 +33,33 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Create secrets on the server if they don't exist
-            # This is idempotent and safe to run on every deployment
+            # Set up secrets on the server (this is safe to run every time)
             echo "${{ secrets.DB_PASSWORD }}" | docker secret create db_password - || true
             echo "${{ secrets.DB_ROOT_PASSWORD }}" | docker secret create db_root_password - || true
             echo "${{ secrets.FLASK_SECRET_KEY }}" | docker secret create flask_secret_key - || true
             echo "${{ secrets.MAIL_PASSWORD }}" | docker secret create mail_password - || true
 
-            # Set the TAG environment variable to the Git commit SHA
+            # --- NEW AND IMPROVED DEPLOYMENT SCRIPT ---
+            # Define the app directory
+            APP_DIR=~/mosla-pioneers-app
+
+            # Clone the repo if the directory doesn't exist, otherwise pull the latest changes
+            if [ ! -d "$APP_DIR" ]; then
+              echo "Cloning repository..."
+              # IMPORTANT: Replace with your actual repository URL
+              git clone https://github.com/your-username/your-repo-name.git "$APP_DIR"
+            else
+              echo "Repository exists. Pulling latest changes..."
+              cd "$APP_DIR"
+              git pull origin main
+            fi
+
+            # Navigate into the app directory
+            cd "$APP_DIR"
+
+            # Set the TAG environment variable so docker-compose.yml can use it
             export TAG=${{ github.sha }}
 
-            # Deploy the stack. This command updates the service with the new image.
+            # Deploy the stack using the compose file that is now on the server
+            echo "Deploying stack with image tag: $TAG"
             docker stack deploy --compose-file docker-compose.yml --with-registry-auth mosla-stack
