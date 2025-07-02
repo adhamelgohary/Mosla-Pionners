@@ -1,7 +1,7 @@
 # app.py
 import os
 import logging
-from flask import Flask, jsonify, session, request, redirect, url_for, render_template
+from flask import Flask, current_app, jsonify, session, request, redirect, url_for, render_template
 from flask_mail import Mail # Message is used in send_email_utility
 from flask_login import login_required, current_user
 
@@ -20,10 +20,17 @@ from routes.Agency_Staff_Portal.announcement_mgmt_routes import announcement_bp
 from routes.Agency_Staff_Portal.job_offer_mgmt_routes import job_offer_mgmt_bp
 from routes.Agency_Staff_Portal.employee_mgmt_routes import employee_mgmt_bp
 from routes.Agency_Staff_Portal.leaderboard_routes import leaderboard_bp
+from routes.Agency_Staff_Portal.team_routes import team_bp
+from routes.Account_Manager_Portal.am_portal_routes import account_manager_bp
 
 from routes.Website.public_routes import public_routes_bp
 from routes.Website.job_board_routes import job_board_bp # NEW: For job listings and details
 from routes.Candidate_Portal.candidate_routes import candidate_bp # IMPORT IT
+from routes.Account_Manager_Portal.company_assignment_routes import company_assignment_bp # New: For company assignments
+from routes.Agency_Staff_Portal.candidate_details_routes import candidate_details_bp
+
+from routes.Client_Portal.dashboard_routes import client_dashboard_bp
+from routes.Client_Portal.offer_routes import client_offers_bp
 
 # --- Create Flask App ---
 app = Flask(__name__)
@@ -68,6 +75,13 @@ app.register_blueprint(announcement_bp, url_prefix='/staff-portal/announcements'
 app.register_blueprint(job_offer_mgmt_bp, url_prefix='/staff-portal/job-offers') # Will effectively be /staff-portal/job-offers/*
 app.register_blueprint(employee_mgmt_bp, url_prefix='/staff-portal/employees')
 app.register_blueprint(leaderboard_bp, url_prefix='/staff-portal/leaderboard')
+app.register_blueprint(company_assignment_bp, url_prefix='/staff-portal/company-assignments') # Will effectively be /staff-portal/company-assignments/*
+app.register_blueprint(candidate_details_bp, url_prefix='/staff/candidate') # url_prefix is defined in candidate_details_bp itself
+app.register_blueprint(team_bp, url_prefix='/staff-management/team') # New, more specific prefix
+app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
+app.register_blueprint(client_offers_bp, url_prefix='/client-portal') # Client Portal under /client-portal/*
+app.register_blueprint(account_manager_bp, url_prefix='/account-manager-portal')
+
 
 app.register_blueprint(admin_bp) # url_prefix is defined in admin_bp itself
 app.register_blueprint(public_routes_bp) # url_prefix is defined in public_routes_bp itself
@@ -137,6 +151,12 @@ def set_theme(): # <--- THIS IS THE FUNCTION NAME
 @app.route('/health')
 def health_check():
     return "OK", 200
+
+@app.context_processor
+def inject_current_app_utilities():
+    def blueprint_exists(blueprint_name):
+        return blueprint_name in current_app.blueprints
+    return dict(blueprint_exists=blueprint_exists)
 
 # --- Run the App ---
 if __name__ == '__main__':

@@ -25,7 +25,7 @@ LEADER_ROLES = ['SourcingTeamLead', 'UnitManager', 'SeniorAccountManager', 'Oper
 EXECUTIVE_ROLES = ['CEO', 'OperationsManager']
 
 # --- CORE DECORATOR ---
-def login_required_with_role(allowed_roles, insufficient_role_redirect='homepage_bp.home_page'):
+def login_required_with_role(allowed_roles, insufficient_role_redirect='public_routes_bp.home_page'):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -62,10 +62,10 @@ def agency_staff_required(f):
     return login_required_with_role(AGENCY_STAFF_ROLES)(f)
 
 def admin_portal_required(f):
-    return login_required_with_role(ADMIN_ROLES, insufficient_role_redirect='homepage_bp.home_page')(f)
+    return login_required_with_role(ADMIN_ROLES, insufficient_role_redirect='public_routes_bp.home_page')(f)
 
 def candidate_portal_required(f):
-    return login_required_with_role(CANDIDATE_ROLES, insufficient_role_redirect='homepage_bp.home_page')(f)
+    return login_required_with_role(CANDIDATE_ROLES, insufficient_role_redirect='public_routes_bp.home_page')(f)
 
 def course_management_access_required(f):
     return login_required_with_role(COURSE_MANAGEMENT_ROLES_DECORATOR, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')(f)

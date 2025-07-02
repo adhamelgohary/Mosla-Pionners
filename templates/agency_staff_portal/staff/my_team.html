@@ -1,76 +1,43 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{# The page title is already dynamic from the route: {{ title }} #}
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}{{ title }}{% endblock %}
 
-{% block head_scripts %}
-    {{ super() }}
-{% endblock %}
-
-
 {% block staff_content %}
-<!-- KPI Module - Titles are now more dynamic -->
-<div class="dashboard-module kpi-overview-module">
-    {% if is_global_view %}
-        <h3>Company-Wide Snapshot</h3>
-    {% elif current_user.role_type == 'UnitManager' %}
-        <h3>Unit Snapshot</h3>
-    {% elif current_user.role_type == 'HeadSourcingTeamLead' %}
-        <h3>Division Snapshot</h3>
-    {% elif current_user.role_type == 'HeadAccountManager' or current_user.role_type == 'SeniorAccountManager' %}
-        <h3>Account Management Team Snapshot</h3>
-    {% else %} {# Default for SourcingTeamLead etc. #}
-        <h3>Team Snapshot</h3>
-    {% endif %}
+{% macro kpi_card(title, value, footer_text='', value_class='') %}
+<div class="bg-white p-5 rounded-lg shadow-sm border text-center flex flex-col">
+    <dt class="text-sm font-medium text-gray-500 truncate">{{ title }}</dt>
+    <dd class="text-4xl font-semibold tracking-tight my-2 {{ value_class }}">{{ value }}</dd>
+    {% if footer_text %}<div class="mt-auto text-xs text-gray-400">{{ footer_text }}</div>{% endif %}
+</div>
+{% endmacro %}
 
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="card-header">
-                <h4>
-                    {% if is_global_view %}Total Staff (Active){% elif current_user.role_type == 'UnitManager' %}Staff in Unit{% elif current_user.role_type == 'HeadSourcingTeamLead' %}Staff in Division{% else %}Team Members{% endif %}
-                </h4>
-            </div>
-            <div class="card-body"><div class="kpi-value">{{ team_kpis.get('member_count', 0) }}</div></div>
-        </div>
-        <div class="kpi-card">
-            <div class="card-header">
-                <h4>
-                    {% if is_global_view %}Total Points (All Staff){% else %}Total Group Points{% endif %}
-                </h4>
-            </div>
-            <div class="card-body"><div class="kpi-value">{{ team_kpis.get('total_points', 0) }}</div></div>
-            <div class="kpi-label">All-Time</div>
-        </div>
-        <div class="kpi-card">
-            <div class="card-header"><h4>Net Points This Month (Group)</h4></div>
-            <div class="card-body">
-                <div class="kpi-value {% if team_kpis.get('monthly_net_points', 0) > 0 %}text-success{% elif team_kpis.get('monthly_net_points', 0) < 0 %}text-danger{% endif %}">
-                    {{ '%+d'|format(team_kpis.get('monthly_net_points', 0)) }}
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900">
+        {% if is_global_view %}Company-Wide Snapshot
+        {% elif current_user.role_type == 'UnitManager' %}Unit Snapshot
+        {% elif current_user.role_type == 'HeadSourcingTeamLead' %}Division Snapshot
+        {% elif current_user.role_type == 'HeadAccountManager' or current_user.role_type == 'SeniorAccountManager' %}Team Snapshot
+        {% else %}Team Snapshot
+        {% endif %}
+    </h3>
+    <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {{ kpi_card('Total Staff', team_kpis.get('member_count', 0), '', 'text-primary-600') }}
+        {{ kpi_card('Total Points', team_kpis.get('total_points', 0), 'All-Time', 'text-gray-800') }}
+        {% set monthly_points = team_kpis.get('monthly_net_points', 0) %}
+        {{ kpi_card('Net Points (Month)', '%+d'|format(monthly_points), '', 'text-success-600' if monthly_points > 0 else 'text-danger-600' if monthly_points < 0 else 'text-gray-800') }}
+    </dl>
 </div>
 
-<!-- Sorting and Grid of Members - Titles are now more dynamic -->
-<div class="dashboard-module">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>
-            {% if is_global_view %}
-                All Staff Performance
-            {% elif current_user.role_type == 'UnitManager' %}
-                Performance: Staff in My Unit
-            {% elif current_user.role_type == 'HeadSourcingTeamLead' %}
-                Performance: Staff in My Division
-            {% elif current_user.role_type == 'HeadAccountManager' or current_user.role_type == 'SeniorAccountManager' %}
-                Performance: My Account Managers
-            {% else %}
-                Team Member Performance
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 pb-4 border-b border-gray-200 gap-4">
+        <h3 class="text-lg font-semibold text-gray-900 m-0 p-0 border-none">
+            {% if is_global_view %}All Staff Performance
+            {% else %}Team Member Performance
             {% endif %}
         </h3>
         <form method="GET" action="{{ url_for('.my_team') }}">
-            <select name="sort" class="form-control" onchange="this.form.submit()">
+            <select name="sort" onchange="this.form.submit()" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                 <option value="monthly" {% if current_sort == 'monthly' %}selected{% endif %}>Sort by Monthly Performance</option>
                 <option value="total" {% if current_sort == 'total' %}selected{% endif %}>Sort by All-Time Points</option>
             </select>
@@ -78,44 +45,43 @@
     </div>
 
     {% if team_members %}
-    <div class="team-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for member in team_members %}
-        <div class="team-member-card">
-            <div class="card-header-flex">
-                <img src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ member.FirstName }}" class="profile-pic">
-                <div class="member-info">
-                    <h5>{{ member.FirstName }} {{ member.LastName }}</h5>
-                    <span class="badge bg-primary">{{ member.Role }}</span> {# Changed from RecruiterRole to Role #}
+        <div class="bg-white rounded-lg shadow-md border border-gray-200 flex flex-col overflow-hidden transition-all hover:shadow-lg">
+            <div class="flex items-center p-4">
+                <img src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="{{ member.FirstName }}" class="h-14 w-14 rounded-full object-cover">
+                <div class="ml-4">
+                    <h5 class="font-bold text-gray-800">{{ member.FirstName }} {{ member.LastName }}</h5>
+                    <span class="text-xs font-semibold inline-block py-1 px-2.5 rounded-full text-primary-600 bg-primary-100">{{ member.Role }}</span>
                 </div>
             </div>
-            <div class="card-stats">
-                <div class="stat-item">
-                    <div class="stat-label">Net (Month)</div>
-                    <div class="stat-value {% if member.NetMonthlyPoints > 0 %}text-success{% elif member.NetMonthlyPoints < 0 %}text-danger{% endif %}">
-                        {{ '%+d'|format(member.NetMonthlyPoints) }}
-                    </div>
+            <div class="flex divide-x divide-gray-200 border-y border-gray-200 bg-gray-50">
+                <div class="flex-1 px-4 py-3 text-center">
+                    <div class="text-xs text-gray-500">Net (Month)</div>
+                    <div class="text-2xl font-bold {% if member.NetMonthlyPoints > 0 %}text-success-600{% elif member.NetMonthlyPoints < 0 %}text-danger-600{% endif %}">{{ '%+d'|format(member.NetMonthlyPoints) }}</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Total Points</div>
-                    <div class="stat-value">{{ member.TotalPoints if member.TotalPoints is not none else 0 }}</div>
+                <div class="flex-1 px-4 py-3 text-center">
+                    <div class="text-xs text-gray-500">Total Points</div>
+                    <div class="text-2xl font-bold text-gray-700">{{ member.TotalPoints if member.TotalPoints is not none else 0 }}</div>
                 </div>
             </div>
-            <div class="card-footer-actions">
-                {# Link to view_staff_profile now uses user_id_viewing #}
-                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="btn btn-sm btn-outline-primary w-100">
-                    <i class="bi bi-person-gear"></i> Manage Profile
+            <div class="p-3 bg-gray-50/50 mt-auto">
+                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="w-full inline-flex justify-center items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="bi bi-person-gear mr-2"></i> Manage Profile
                 </a>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-        <div class="alert alert-info text-center">
-            {% if is_global_view %}
-                No staff members found in the system.
-            {% else %}
-                You currently do not have any direct reports or staff members assigned under your leadership in this view.
-            {% endif %}
+        <div class="text-center py-12 text-gray-500">
+            <i class="bi bi-people text-5xl text-gray-300"></i>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No Staff Members Found</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                {% if is_global_view %}No staff members found in the system.
+                {% else %}You do not have any direct reports in this view.
+                {% endif %}
+            </p>
         </div>
     {% endif %}
 </div>

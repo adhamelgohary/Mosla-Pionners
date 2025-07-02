@@ -1,0 +1,126 @@
+{# templates/client_portal/submission_details.html (New File) #}
+
+{% extends "client_portal/client_base.html" %}
+
+{% block content %}
+<div class="bg-white shadow-sm border rounded-lg">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+        <div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ submission.Title }}</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Full details of your job submission.</p>
+        </div>
+        <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="text-sm font-medium text-primary-600 hover:text-primary-500">
+            ← Back to Submissions
+        </a>
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+        <dl class="sm:divide-y sm:divide-gray-200">
+            <!-- Basic Information -->
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Submission Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% set status_classes = {
+                        'Pending': 'bg-yellow-100 text-yellow-800', 'UnderReview': 'bg-blue-100 text-blue-800',
+                        'Approved': 'bg-green-100 text-green-800', 'Rejected': 'bg-red-100 text-red-800',
+                        'NeedsClarification': 'bg-purple-100 text-purple-800'
+                    } %}
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(submission.ReviewStatus, 'bg-gray-100 text-gray-800') }}">
+                        {{ submission.ReviewStatus }}
+                    </span>
+                    {% if submission.ReviewStatus == 'NeedsClarification' and submission.ReviewerComments %}
+                        <p class="text-xs text-gray-500 mt-2 italic"><strong>Reviewer Note:</strong> {{ submission.ReviewerComments }}</p>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Job Location</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.Location or 'Not Specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Hiring Deadline</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.ClosingDate | datetime(format='%B %d, %Y') }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Max Age</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.MaxAge or 'Not Specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Contract Provided</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{% if submission.HasContract %}Yes{% else %}No{% endif %}</dd>
+            </div>
+
+            <!-- Candidate Requirements -->
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Required Language & Level</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.RequiredLanguage | capitalize }} ({{ submission.EnglishLevelRequirement | upper }})</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Graduation Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.GraduationStatusRequirement | capitalize or 'Not Specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Nationality Requirement</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.NationalityRequirement | capitalize or 'Not Specified' }}</dd>
+            </div>
+
+            <!-- Hiring Details -->
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Candidates Needed</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.CandidatesNeeded }} ({{ submission.HiringCadence | capitalize }})</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Hiring Plan</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.HiringPlan | capitalize or 'Not Specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Work Location Type</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.WorkLocationType | capitalize or 'Not Specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Shifts</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <span class="font-semibold">{{ submission.ShiftType | capitalize }} Shifts</span>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% for shift in submission.AvailableShifts_list %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">{{ shift | capitalize }}</span>
+                        {% else %}
+                            <span>No specific shifts listed.</span>
+                        {% endfor %}
+                    </div>
+                </dd>
+            </div>
+
+            <!-- Compensation & Benefits -->
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Salary & Payment</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ submission.NetSalary or 'Not Specified' }} (Payment Term: {{ submission.PaymentTerm or 'N/A' }})
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Benefits</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    <div class="flex flex-wrap gap-2">
+                        {% for benefit in submission.Benefits_list %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">{{ benefit.replace('_', ' ') | title }}</span>
+                        {% else %}
+                            <span>No benefits listed.</span>
+                        {% endfor %}
+                    </div>
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Transportation</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if submission.IsTransportationProvided %}
+                        Yes ({{ submission.TransportationType | replace('d2d', 'Door to Door') | replace('pickup', 'To Nearest Pickup Point') }})
+                    {% else %}
+                        No
+                    {% endif %}
+                </dd>
+            </div>
+
+        </dl>
+    </div>
+</div>
+{% endblock %}

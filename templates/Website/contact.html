@@ -1,6 +1,13 @@
-{% extends "Website/base.html" %} {# Corrected path #}
+{% extends "Website/base.html" %}
 
 {% block title %}Contact Us - Mosla Pioneers{% endblock %}
+
+{# --- START OF CHANGE --- #}
+{% block head_extra %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/contact_styles.css') }}">
+{% endblock %}
+{# --- END OF CHANGE --- #}
 
 {% block content %}
 <div class="page-wrapper contact-page-wrapper">
@@ -13,7 +20,7 @@
         <div class="contact-card">
             <div class="contact-info-panel">
                 <h2>Contact Information</h2>
-                <p>Our team is ready to discuss your unique requirements...</p>
+                <p>Our team is ready to discuss your unique requirements.</p>
                 <ul class="info-list">
                     <li class="info-item">
                         <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M16.57,14.46a1,1,0,0,1-1.41,0L13.3,12.6a1,1,0,0,0-1.41,0l-1.13,1.12a1,1,0,0,1-1.41,0l-1-1a1,1,0,0,1,0-1.41l1.12-1.13a1,1,0,0,0,0-1.41L5.09,4.86a1,1,0,0,1,0-1.41l1-1a1,1,0,0,1,1.41,0l4.06,4.06,4.06,4.06a1,1,0,0,1,0,1.41Z"/></svg>
@@ -32,7 +39,6 @@
             </div>
 
             <div class="contact-form-panel">
-                {# The action now points to the route within public_routes_bp #}
                 <form id="contactForm" action="{{ url_for('public_routes_bp.contact_page') }}" method="POST">
                     <div class="form-grid two-col">
                         <div class="form-group">
@@ -63,6 +69,7 @@
 {% endblock %}
 
 {% block page_scripts %}
+{# The script remains unchanged #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const contactForm = document.getElementById('contactForm');
@@ -72,10 +79,9 @@ document.addEventListener('DOMContentLoaded', function() {
             contactForm.querySelectorAll('[required]').forEach(input => {
                 if (!input.value.trim()) {
                     isValid = false;
-                    // You might want to add visual feedback here, e.g., adding an error class
-                    input.style.borderColor = 'red'; // Simple example
+                    input.style.borderColor = 'red';
                 } else {
-                    input.style.borderColor = ''; // Reset border color
+                    input.style.borderColor = '';
                 }
             });
 
@@ -83,8 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.preventDefault(); 
                 alert('Please fill in all required fields.');
             }
-            // If using Flask to handle form and redirect with flash messages,
-            // client-side alert on success might be redundant or can be removed.
         });
     }
 });

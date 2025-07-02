@@ -1,23 +1,27 @@
 # routes/Auth/login_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session # Added session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 import datetime
 import re
 from werkzeug.security import check_password_hash
-from db import get_db_connection
+from db11 import get_db_connection
 import mysql.connector
-from urllib.parse import urlparse, urljoin # For is_safe_url
+from urllib.parse import urlparse, urljoin
 
 login_bp = Blueprint('login_bp', __name__, template_folder='../../templates/auth')
 login_manager = LoginManager()
 
-# This list defines which roles are considered "Agency Staff" for redirection purposes
+# --- UPDATED ROLE CONSTANTS ---
+
+# This list defines general staff roles for redirection to the main staff dashboard.
 AGENCY_STAFF_ROLES = [
     'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager',
-    'AccountManager', 'SeniorAccountManager', 'HeadAccountManager',
-    'OperationsManager', 'CEO', 'SalesManager', 'Admin'
+    'OperationsManager', 'CEO', 'SalesManager', 'Admin', 'Founder'
 ]
-CLIENT_ROLES = ['ClientContact'] # External clients
+# Defines Account Manager roles for redirection to the dedicated AM portal.
+ACCOUNT_MANAGER_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
+# Defines Client roles for redirection to the client portal.
+CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
     def __init__(self, user_id, email, first_name, last_name, is_active_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
@@ -41,7 +45,6 @@ class LoginUser(UserMixin):
         return check_password_hash(self.password_hash, password_to_check)
 
 def determine_user_identity(user_id, db_connection):
-    """Determines user role from Staff, CompanyContacts, or Candidates."""
     cursor = db_connection.cursor(dictionary=True)
     identity = {'role': "Unknown", 'id': None, 'company_id': None, 'reports_to_id': None}
     try:
@@ -63,17 +66,14 @@ def determine_user_identity(user_id, db_connection):
                     identity['id'] = record['CandidateID']
     except Exception as e:
         current_app.logger.error(f"Error determining role for UserID {user_id}: {e}", exc_info=True)
-        identity = {'role': "ErrorDeterminingRole", 'id': None, 'company_id': None, 'reports_to_id': None}
+        identity['role'] = "ErrorDeterminingRole"
     finally:
         if cursor: cursor.close()
     return identity
 
 def get_user_by_id(user_id):
-    """Fetches a user and builds the complete LoginUser object."""
     conn = get_db_connection()
-    if not conn:
-        current_app.logger.error(f"get_user_by_id: DB connection failed for user_id {user_id}")
-        return None
+    if not conn: return None
     user_obj = None
     try:
         cursor = conn.cursor(dictionary=True)
@@ -94,11 +94,8 @@ def get_user_by_id(user_id):
     return user_obj
 
 def get_user_by_email(email):
-    """Fetches a user by email and builds the complete LoginUser object."""
     conn = get_db_connection()
-    if not conn:
-        current_app.logger.error(f"get_user_by_email: DB connection failed for email {email}")
-        return None
+    if not conn: return None
     user_obj = None
     try:
         cursor = conn.cursor(dictionary=True)
@@ -119,9 +116,7 @@ def get_user_by_email(email):
     return user_obj
 
 def is_valid_email_format(email):
-    if email:
-        return re.match(r"[^@]+@[^@]+\.[^@]+", email)
-    return False
+    return email and re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 def init_login_manager(app):
     login_manager.init_app(app)
@@ -139,63 +134,32 @@ def init_login_manager(app):
         return get_user_by_id(user_id)
 
 def is_safe_url(target):
-    """
-    Checks if a target URL is safe for redirection.
-    Ensures it's on the same host and uses http/https.
-    Allows relative paths or full paths on the same host.
-    """
-    if not target:
-        return False
+    if not target: return False
     ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target)) # Resolves relative URLs
-    
-    # Check scheme and netloc (hostname and port)
+    test_url = urlparse(urljoin(request.host_url, target))
     is_same_site = test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
-    
-    # Allow relative paths or full paths that match the host URL
-    is_valid_path_format = target.startswith('/') or target.startswith(request.host_url) or not urlparse(target).scheme # Allow simple relative paths like 'page'
-
+    is_valid_path_format = target.startswith('/') or (not urlparse(target).scheme and not urlparse(target).netloc) or target.startswith(request.host_url)
     return is_same_site and is_valid_path_format
 
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        next_page_from_url = request.args.get('next')
-        if next_page_from_url and is_safe_url(next_page_from_url):
-            current_app.logger.info(f"Authenticated user, redirecting to 'next': {next_page_from_url}")
-            return redirect(next_page_from_url)
-
+        next_page_from_url_auth = request.args.get('next')
+        if next_page_from_url_auth and is_safe_url(next_page_from_url_auth):
+            return redirect(next_page_from_url_auth)
+        
         # Default redirection for already authenticated users
-        if current_user.role_type in AGENCY_STAFF_ROLES:
+        if current_user.role_type in ACCOUNT_MANAGER_ROLES:
+            return redirect(url_for('account_manager_bp.portal_home'))
+        elif current_user.role_type in AGENCY_STAFF_ROLES:
             return redirect(url_for('staff_dashboard_bp.main_dashboard'))
         elif current_user.role_type in CLIENT_ROLES:
-            return redirect(url_for('client_portal_bp.dashboard')) # Assumed route
+            return redirect(url_for('client_dashboard_bp.dashboard'))
         elif current_user.role_type == 'Candidate':
-            return redirect(url_for('candidate_bp.dashboard')) # Assumed route
-        return redirect(url_for('homepage_bp.home_page'))
+            return redirect(url_for('candidate_bp.dashboard'))
+        return redirect(url_for('public_routes_bp.home_page'))
 
-    errors = {}
-    form_data = {}
-
-    if request.method == 'GET':
-        form_data = request.args.to_dict() # Pre-fill email if passed
-        # Store referrer if no 'next' param, for potential candidate redirection
-        if not request.args.get('next') and request.referrer:
-            referrer_path = urlparse(request.referrer).path
-            # Check if referrer is from the same site and not an auth path itself
-            auth_blueprint_prefix = url_for('login_bp.login').rsplit('/', 1)[0] # e.g., /auth
-            
-            if urlparse(request.referrer).netloc == request.host and \
-               not referrer_path.startswith(auth_blueprint_prefix) and \
-               referrer_path != url_for('login_bp.login'): # Avoid self-referencing
-                session['candidate_intended_destination'] = request.referrer
-                current_app.logger.info(f"Login GET: Stored potential candidate destination: {request.referrer}")
-            elif 'candidate_intended_destination' in session and \
-                 (referrer_path.startswith(auth_blueprint_prefix) or referrer_path == url_for('login_bp.login')):
-                 # Clear if now on an auth page to prevent loop or stale redirect
-                 session.pop('candidate_intended_destination', None)
-                 current_app.logger.info("Login GET: Cleared candidate_intended_destination due to auth page referrer.")
-
+    errors, form_data = {}, {}
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
@@ -203,8 +167,7 @@ def login():
         password = request.form.get('password', '')
         remember = request.form.get('remember') == 'on'
 
-        if not email: errors['email'] = 'Email address is required.'
-        elif not is_valid_email_format(email): errors['email'] = 'Invalid email format.'
+        if not email or not is_valid_email_format(email): errors['email'] = 'A valid email is required.'
         if not password: errors['password'] = 'Password is required.'
 
         if not errors:
@@ -212,62 +175,57 @@ def login():
             if user_obj and user_obj.check_password(password):
                 if user_obj.is_active:
                     login_user(user_obj, remember=remember)
-                    current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in. Remember: {remember}")
-                    flash('Logged in successfully!', 'success')
+                    current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in successfully.")
                     
-                    conn_update = None
                     try:
                         conn_update = get_db_connection()
-                        if conn_update:
-                            cursor_update = conn_update.cursor()
-                            cursor_update.execute("UPDATE Users SET LastLoginDate = %s WHERE UserID = %s", 
-                                           (datetime.datetime.now(), user_obj.id))
-                            conn_update.commit()
+                        cursor_update = conn_update.cursor()
+                        cursor_update.execute("UPDATE Users SET LastLoginDate = NOW() WHERE UserID = %s", (user_obj.id,))
+                        conn_update.commit()
                     except Exception as e_update:
                         current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
                     finally:
-                        if 'cursor_update' in locals() and cursor_update: cursor_update.close()
-                        if conn_update and conn_update.is_connected(): conn_update.close()
-
-                    next_page = request.args.get('next')
-                    if user_obj.role_type == 'Candidate':
-                        # Priority 1: 'next' from URL (e.g., from @login_required or registration)
-                        if next_page and is_safe_url(next_page): # is_safe_url is important!
-                            current_app.logger.info(f"Candidate redirecting to 'next' from URL: {next_page}")
-                            return redirect(next_page)
-                        
-                        intended_destination = session.pop('candidate_intended_destination', None)
-                        if intended_destination and is_safe_url(intended_destination):
-                            current_app.logger.info(f"Candidate redirecting to session stored 'intended_destination': {intended_destination}")
-                            return redirect(intended_destination)
-                        
-                        current_app.logger.info("Candidate redirecting to default candidate dashboard.")
-                        return redirect(url_for('candidate_bp.dashboard')) # Assumed route
+                        if 'conn_update' in locals() and conn_update.is_connected():
+                            cursor_update.close()
+                            conn_update.close()
                     
-                    # For non-candidates, their dashboards are default, but 'next' takes priority
-                    elif user_obj.role_type in AGENCY_STAFF_ROLES:
-                        if next_page_from_url and is_safe_url(next_page_from_url):
-                             current_app.logger.info(f"Agency Staff redirecting to 'next' from URL: {next_page_from_url}")
-                             return redirect(next_page_from_url)
-                        return redirect(url_for('staff_dashboard_bp.main_dashboard'))
-                    elif user_obj.role_type in CLIENT_ROLES:
-                        if next_page_from_url and is_safe_url(next_page_from_url):
-                             current_app.logger.info(f"Client redirecting to 'next' from URL: {next_page_from_url}")
-                             return redirect(next_page_from_url)
-                        return redirect(url_for('client_portal_bp.dashboard')) # Assumed route
-                    else: 
-                        current_app.logger.warning(f"User {user_obj.email} with unknown role '{user_obj.role_type}' after login.")
+                    next_page_from_url = request.args.get('next')
+
+                    # --- UPDATED REDIRECTION LOGIC ---
+                    if user_obj.role_type == 'Candidate':
+                        # Candidate logic remains the same
                         if next_page_from_url and is_safe_url(next_page_from_url):
                             return redirect(next_page_from_url)
-                        return redirect(url_for('homepage_bp.home_page'))
+                        intended_destination = session.pop('candidate_intended_destination', None)
+                        if intended_destination and is_safe_url(intended_destination):
+                            return redirect(intended_destination)
+                        return redirect(url_for('candidate_bp.dashboard'))
+                    
+                    elif user_obj.role_type in ACCOUNT_MANAGER_ROLES:
+                        # NEW: Redirect Account Managers to their dedicated portal
+                        current_app.logger.info(f"Account Manager {user_obj.email} redirecting to AM Portal.")
+                        return redirect(url_for('account_manager_bp.portal_home'))
+
+                    elif user_obj.role_type in AGENCY_STAFF_ROLES:
+                        # This now handles all other staff roles
+                        if next_page_from_url and is_safe_url(next_page_from_url):
+                             return redirect(next_page_from_url)
+                        return redirect(url_for('staff_dashboard_bp.main_dashboard'))
+                        
+                    elif user_obj.role_type in CLIENT_ROLES:
+                        if next_page_from_url and is_safe_url(next_page_from_url):
+                             return redirect(next_page_from_url)
+                        return redirect(url_for('client_dashboard_bp.dashboard'))
+                        
+                    else: 
+                        current_app.logger.warning(f"User {user_obj.email} with unknown role '{user_obj.role_type}' logged in.")
+                        if next_page_from_url and is_safe_url(next_page_from_url):
+                            return redirect(next_page_from_url)
+                        return redirect(url_for('public_routes_bp.home_page'))
                 else:
-                    current_app.logger.warning(f"Login attempt for inactive user: {email}")
                     flash('Your account is inactive. Please contact support.', 'warning')
-                    errors['form'] = 'Account inactive.'
             else:
-                current_app.logger.warning(f"Failed login attempt for: {email}")
                 flash('Invalid email or password. Please try again.', 'danger')
-                errors['form'] = 'Invalid credentials.'
         else:
             flash('Please correct the errors below.', 'danger')
             
@@ -277,7 +235,6 @@ def login():
 @login_required
 def logout():
     user_email = current_user.email if hasattr(current_user, 'email') else f"UserID: {current_user.id}"
-    # Clear any candidate-specific session data on logout
     session.pop('candidate_intended_destination', None)
     logout_user()
     flash('You have been logged out.', 'success')

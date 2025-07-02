@@ -3,157 +3,139 @@
 {% block staff_title %}Staff Dashboard{% endblock %}
 {% block staff_page_title %}Agency Staff Dashboard{% endblock %}
 
-{% block head_scripts %}
-    {{ super() }}
-    {# Assuming dashboard_specific_styles.css or portal_styles.css is linked #}
-{% endblock %}
-
 {% block staff_content %}
-<div class="dashboard-greeting">
-    <p>Welcome back to the Agency Staff Portal, <strong>{{ current_user.first_name }}</strong>!</p>
-    <p>Your role: <strong>{{ current_user.role_type }}</strong></p>
+
+<div class="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+    <h2 class="text-2xl font-bold text-gray-800">Welcome back, {{ current_user.first_name }}!</h2>
+    <p class="mt-1 text-gray-600">Your current role is: <span class="font-semibold">{{ current_user.role_type }}</span></p>
 </div>
 
-{# System Announcements (Manual) Section - Assuming ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE is passed #}
-{% if manual_announcements or (current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE) %}
-<div class="dashboard-module announcements-module">
-    <h3>System Announcements</h3>
-    {% if manual_announcements %}
-        {% for announcement in manual_announcements %}
-        <div class="announcement-item priority-{{ announcement.Priority }}">
-            <div class="announcement-title">{{ announcement.Title }}</div>
-            <div class="announcement-meta">
-                Posted {{ announcement.CreatedAt | timeago }}
-                {% if announcement.PosterFirstName %}
-                    by {{ announcement.PosterFirstName }} {{ announcement.PosterLastName }}
+{# Reusable KPI Card Macro #}
+{% macro kpi_card(title, value, color='primary') %}
+<div class="bg-gray-50/70 p-4 rounded-lg text-center border border-gray-200 hover:shadow-md transition-shadow">
+    <dt class="text-sm font-medium text-gray-500 truncate">{{ title }}</dt>
+    <dd class="mt-1 text-3xl font-semibold tracking-tight text-{{color}}-600">{{ value }}</dd>
+</div>
+{% endmacro %}
+
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Announcements & Activity -->
+    <div class="lg:col-span-2 space-y-8">
+        {# Manual Announcements #}
+        {% if manual_announcements or (current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE) %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-center pb-4 mb-4 border-b border-gray-200">
+                 <h3 class="text-lg font-semibold text-gray-900">System Announcements</h3>
+                 {% if current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE %}
+                    <a href="{{ url_for('announcement_bp.list_announcements') }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">Manage</a>
                 {% endif %}
             </div>
-            <div class="announcement-content">{{ announcement.Content | nl2br }}</div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p>No active manual announcements for your audience at the moment.</p>
-    {% endif %}
-
-    {% if current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE %}
-        <p style="margin-top: 1rem; text-align: right;">
-            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="btn btn-sm btn-outline-secondary">Manage Announcements</a>
-        </p>
-    {% endif %}
-</div>
-{% endif %}
-
-{# Activity Feed (Automated Announcements) Section #}
-{% if activity_feed_items %}
-<div class="dashboard-module activity-feed-module">
-    <h3>Recent Agency Activity</h3>
-    {% for item in activity_feed_items %}
-    <div class="announcement-item activity-item source-{{ item.Source }}">
-        <div class="announcement-title">
-            {% if item.Source == 'Automated_Course' %}<span class="activity-icon">🎓</span>{% endif %}
-            {% if item.Source == 'Automated_Offer' %}<span class="activity-icon">💼</span>{% endif %}
-            {{ item.Title }}
-        </div>
-        <div class="announcement-meta">
-            Occurred {{ item.CreatedAt | timeago }}
-        </div>
-        {% if item.Content %}
-        <div class="announcement-content">{{ item.Content | nl2br | truncate(150) }}</div>
-        {% endif %}
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-
-{# General Stats Section - Agency Overview #}
-<div class="dashboard-module general-stats-module">
-    <h3>Agency Overview</h3>
-    <div class="kpi-grid">
-
-        {# Open Job Offers - Visible to all staff #}
-        <div class="kpi-card">
-            <div class="card-header"><h4>Open Job Offers</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('open_job_offers', '0') }}</p></div>
-        </div>
-
-        {# Total System Candidates - Only for CEO #}
-        {% if current_user.role_type == 'CEO' %}
-        <div class="kpi-card">
-            <div class="card-header"><h4>Total System Candidates</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('total_candidates_system', '0') }}</p></div>
+            {% if manual_announcements %}
+                <div class="space-y-6">
+                {% for announcement in manual_announcements %}
+                    {% set priority_class = {
+                        'Urgent': 'border-red-500 bg-red-50', 
+                        'High': 'border-yellow-400 bg-yellow-50',
+                        'Normal': 'border-gray-300 bg-white'
+                    }[announcement.Priority] %}
+                    <div class="p-4 rounded-md border-l-4 {{ priority_class }}">
+                        <h4 class="font-semibold text-gray-800">{{ announcement.Title }}</h4>
+                        <p class="text-xs text-gray-500 mt-1">Posted {{ announcement.CreatedAt | timeago }} by {{ announcement.PosterFirstName }}</p>
+                        <div class="mt-2 text-sm text-gray-700 prose max-w-none">{{ announcement.Content | nl2br }}</div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm text-center text-gray-500 py-8">No active announcements.</p>
+            {% endif %}
         </div>
         {% endif %}
 
-        {# Active Companies - Visible to CEO, OpsMan, SalesMan, AMs #}
-        {% if current_user.role_type in ['CEO', 'OperationsManager', 'SalesManager', 'AccountManager', 'SeniorAccountManager'] %}
-        <div class="kpi-card">
-            <div class="card-header"><h4>Active Companies</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('total_companies', '0') }}</p></div>
-        </div>
-        {% endif %}
-        
-        {# Active Recruiters - Visible to CEO, OpsMan, SourcingTeamLead, SalesMan #}
-        {% if current_user.role_type in ['CEO', 'OperationsManager', 'SourcingTeamLead', 'SalesManager'] %}
-        <div class="kpi-card">
-            <div class="card-header"><h4>Active Recruiters</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('active_recruiters', '0') }}</p></div>
+        {# Automated Activity Feed #}
+        {% if activity_feed_items %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+             <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Recent Agency Activity</h3>
+             <div class="flow-root">
+                <ul role="list" class="-mb-8">
+                {% for item in activity_feed_items %}
+                    <li>
+                        <div class="relative pb-8">
+                            {% if not loop.last %}<span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>{% endif %}
+                            <div class="relative flex space-x-3">
+                                <div>
+                                    {% set icon_class = {'Automated_Course': 'bi-book-half bg-blue-500', 'Automated_Offer': 'bi-briefcase-fill bg-green-500'}[item.Source] %}
+                                    <span class="h-8 w-8 rounded-full flex items-center justify-center text-white {{ icon_class }}"><i class="bi {{ icon_class.split(' ')[0] }}"></i></span>
+                                </div>
+                                <div class="min-w-0 flex-1 pt-1.5">
+                                    <p class="text-sm text-gray-800">{{ item.Title | safe }}</p>
+                                    <p class="text-xs text-gray-500">{{ item.CreatedAt | timeago }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
         </div>
         {% endif %}
     </div>
-</div>
 
-{# Course Management Link Section #}
-{% if can_manage_courses %}
-    <div class="dashboard-module course-management-module">
-        <h3>Course Overview & Management</h3>
-        <p style="display: flex; gap: 10px;">
-            <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="btn btn-info">View Courses Dashboard</a>
-            <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="btn btn-primary">Manage All Courses</a>
-        </p>
-    </div>
-{% endif %}
+    <!-- Right Column: Stats & Quick Actions -->
+    <div class="lg:col-span-1 space-y-8">
+        {# General Stats #}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Agency Overview</h3>
+            <dl class="space-y-4">
+                {{ kpi_card('Open Job Offers', dashboard_stats.get('open_job_offers', '0'), 'yellow') }}
 
-{# Role-Specific Section for Sourcing #}
-{% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'CEO', 'SalesManager', 'OperationsManager'] %}
-<div class="dashboard-module sourcing-module">
-    <h3>My Sourcing Activity</h3>
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="card-header"><h4>My Sourced Candidates (Last 30d)</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('my_sourced_candidates_month', '0') }}</p></div>
+                {% if current_user.role_type == 'CEO' %}
+                    {{ kpi_card('Total System Candidates', dashboard_stats.get('total_candidates_system', '0'), 'info') }}
+                {% endif %}
+                
+                {% if current_user.role_type in ['CEO', 'OperationsManager', 'SalesManager', 'AccountManager', 'SeniorAccountManager'] %}
+                    {{ kpi_card('Active Companies', dashboard_stats.get('total_companies', '0'), 'green') }}
+                {% endif %}
+            </dl>
         </div>
-    </div>
-</div>
-{% endif %}
 
-{# Role-Specific Section for Account/Sales Management (UPDATED) #}
-{% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'SalesManager', 'CEO'] %}
-<div class="dashboard-module sales-am-module">
-    <h3>Client & Sales Overview</h3>
-    <div class="kpi-grid">
-        {# KPI for Account Manager #}
-        {% if current_user.role_type == 'AccountManager' %}
-        <div class="kpi-card">
-            <div class="card-header"><h4>My Managed Clients</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('my_managed_clients', '0') }}</p></div>
-        </div>
-        {% endif %}
-        
-        {# KPI for Senior Account Manager #}
-        {% if current_user.role_type == 'SeniorAccountManager' %}
-        <div class="kpi-card">
-            <div class="card-header"><h4>Clients Managed by My Team</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('team_managed_clients', '0') }}</p></div>
+        {# Sourcing Activity #}
+        {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'CEO', 'SalesManager', 'OperationsManager'] %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">My Sourcing</h3>
+            <dl class="space-y-4">
+                 {{ kpi_card('Sourced Candidates (30d)', dashboard_stats.get('my_sourced_candidates_month', '0'), 'primary') }}
+            </dl>
         </div>
         {% endif %}
 
-        <div class="kpi-card">
-            <div class="card-header"><h4>New Clients (Agency, Last 30d)</h4></div>
-            <div class="card-body"><p class="kpi-value">{{ dashboard_stats.get('new_clients_agency_month', '0') }}</p></div>
+        {# Sales/AM Activity #}
+        {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'SalesManager', 'CEO'] %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Client Overview</h3>
+            <dl class="space-y-4">
+                {% if current_user.role_type == 'AccountManager' %}
+                    {{ kpi_card('My Managed Clients', dashboard_stats.get('my_managed_clients', '0')) }}
+                {% endif %}
+                {% if current_user.role_type == 'SeniorAccountManager' %}
+                    {{ kpi_card('Team Managed Clients', dashboard_stats.get('team_managed_clients', '0')) }}
+                {% endif %}
+                {{ kpi_card('New Clients (30d)', dashboard_stats.get('new_clients_agency_month', '0'), 'success') }}
+            </dl>
         </div>
+        {% endif %}
+
+        {# Quick Actions for Course Managers #}
+        {% if can_manage_courses %}
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+             <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Quick Actions</h3>
+             <div class="flex flex-col space-y-3">
+                <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-info-600 hover:bg-info-700">View Courses Dashboard</a>
+                <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">Manage All Courses</a>
+             </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 
 {% endblock %}

@@ -1,0 +1,6 @@
+# requirements.txt
+Flask
+Flask-Login
+Flask-Mail
+mysql-connector-python
+gunicorn  # Production WSGI server

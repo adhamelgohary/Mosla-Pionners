@@ -3,99 +3,36 @@
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}{{ title }}{% endblock %}
 
-
 {% block staff_content %}
-<div class="dashboard-page-actions">
-    {# The .btn class is already defined in portal_styles.css #}
-    <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="btn">Manage All Courses</a>
-    <a href="{{ url_for('course_mgmt_bp.add_course') }}" class="btn">Add New Course</a>
+<div class="flex flex-col sm:flex-row justify-end items-center mb-6 pb-6 border-b border-gray-200 gap-4">
+    <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+        <i class="bi bi-list-task -ml-1 mr-2"></i> Manage All Courses
+    </a>
+    <a href="{{ url_for('course_mgmt_bp.add_course') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Add New Course
+    </a>
 </div>
 
-<div class="dashboard-cards-grid">
-    
-    <div class="dashboard-card sales-card">
-        <div class="card-header">
-            <h4>Total Sales Revenue</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">
-                {# Ensure dashboard_data.total_sales_revenue is a Decimal or float #}
-                {{ "{:,.2f}".format(dashboard_data.total_sales_revenue if dashboard_data.total_sales_revenue is not none else 0) }}
-            </p>
-            <p class="card-label">{{ dashboard_data.default_currency }} (from confirmed enrollments)</p>
-        </div>
-        <div class="card-footer">
-            {# <a href="#" class="card-link">View Sales Report</a> #}
-        </div>
+{# --- Reusable KPI Card Macro for this page --- #}
+{% macro stat_card(title, value, label, color='primary', link_text=None, link_url=None) %}
+<div class="bg-white p-5 rounded-lg shadow-sm border flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+    <div class="text-sm font-medium text-gray-500 truncate">{{ title }}</div>
+    <div class="mt-1 text-4xl font-semibold text-{{ color }}-600">{{ value }}</div>
+    <div class="text-xs text-gray-400 mt-1">{{ label }}</div>
+    {% if link_url and link_text %}
+    <div class="mt-auto pt-4 border-t border-gray-100 text-right">
+        <a href="{{ link_url }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">{{ link_text }} →</a>
     </div>
-
-    <div class="dashboard-card courses-card">
-        <div class="card-header">
-            <h4>Active Courses</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">{{ dashboard_data.active_courses|default(0) }}</p>
-            <p class="card-label">Currently listed & available</p>
-        </div>
-        <div class="card-footer">
-            <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="card-link">View All Courses</a>
-        </div>
-    </div>
-    
-    <div class="dashboard-card enrollments-card">
-        <div class="card-header">
-            <h4>Total Enrollments</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">{{ dashboard_data.total_enrollments|default(0) }}</p>
-            <p class="card-label">Engaged candidates (active/completed)</p>
-        </div>
-        <div class="card-footer">
-            {# <a href="{{ url_for('enrollment_bp.list_enrollments') }}" class="card-link">Manage Enrollments</a> #}
-        </div>
-    </div>
-
-    <div class="dashboard-card students-card">
-        <div class="card-header">
-            <h4>Ongoing Students</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">{{ dashboard_data.ongoing_students|default(0) }}</p>
-            <p class="card-label">Currently in progress</p>
-        </div>
-        <div class="card-footer">
-            {# <a href="{{ url_for('enrollment_bp.list_ongoing_students') }}" class="card-link">View Active Students</a> #}
-        </div>
-    </div>
-
-    <div class="dashboard-card graduates-card">
-        <div class="card-header">
-            <h4>Graduated Students</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">{{ dashboard_data.graduated_students|default(0) }}</p>
-            <p class="card-label">Successfully completed courses</p>
-        </div>
-        <div class="card-footer">
-            {# <a href="{{ url_for('enrollment_bp.list_graduates') }}" class="card-link">View Alumni List</a> #}
-        </div>
-    </div>
-    
-    <div class="dashboard-card"> {# Generic card for potential value #}
-        <div class="card-header">
-            <h4>Potential Course Value</h4>
-        </div>
-        <div class="card-body">
-            <p class="card-value">
-                {{ "{:,.2f}".format(dashboard_data.potential_course_value if dashboard_data.potential_course_value is not none else 0) }}
-            </p>
-            <p class="card-label">{{ dashboard_data.default_currency }} (from all active courses)</p>
-        </div>
-        <div class="card-footer">
-            {# No specific link needed here, or link back to course list #}
-        </div>
-    </div>
-
+    {% endif %}
 </div>
+{% endmacro %}
 
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {{ stat_card('Total Sales Revenue', "{:,.2f}".format(dashboard_data.total_sales_revenue if dashboard_data.total_sales_revenue is not none else 0), dashboard_data.default_currency ~ ' (from confirmed enrollments)', 'green') }}
+    {{ stat_card('Active Courses', dashboard_data.active_courses|default(0), 'Currently listed & available', 'info', 'View All Courses', url_for('course_mgmt_bp.list_courses')) }}
+    {{ stat_card('Total Enrollments', dashboard_data.total_enrollments|default(0), 'Engaged candidates (active/completed)', 'indigo') }}
+    {{ stat_card('Ongoing Students', dashboard_data.ongoing_students|default(0), 'Currently in progress', 'amber') }}
+    {{ stat_card('Graduated Students', dashboard_data.graduated_students|default(0), 'Successfully completed courses', 'primary') }}
+    {{ stat_card('Potential Course Value', "{:,.2f}".format(dashboard_data.potential_course_value if dashboard_data.potential_course_value is not none else 0), dashboard_data.default_currency ~ ' (from all active courses)', 'gray') }}
+</div>
 {% endblock %}

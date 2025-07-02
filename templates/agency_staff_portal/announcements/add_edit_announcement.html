@@ -4,31 +4,34 @@
 {% block staff_page_title %}{{ title }}{% endblock %}
 
 {% block staff_content %}
-<div class="form-container">
-    <form method="POST" action="{{ url_for(request.endpoint, announcement_id=announcement_id if announcement_id else None) }}">
-        {# Hidden field for edit form to preserve original title on POST validation fail #}
+<div class="max-w-3xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+    <form method="POST" action="{{ url_for(request.endpoint, announcement_id=announcement_id if announcement_id else None) }}" class="space-y-6">
         {% if action_verb == 'Update' %}
             <input type="hidden" name="original_title_hidden" value="{{ original_title_hidden or form_data.get('Title', '') }}">
         {% endif %}
 
-        <div class="form-group">
-            <label for="title">Title <span style="color:red;">*</span></label>
-            <input type="text" id="title" name="title" class="{{ 'is-invalid' if errors.get('title') }}" 
-                   value="{{ form_data.get('title', form_data.get('Title', '')) }}" required>
-            {% if errors.get('title') %}<div class="invalid-feedback">{{ errors.get('title') }}</div>{% endif %}
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span></label>
+            <div class="mt-1">
+                <input type="text" id="title" name="title" value="{{ form_data.get('title', form_data.get('Title', '')) }}" required
+                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('title') }}">
+            </div>
+            {% if errors.get('title') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('title') }}</p>{% endif %}
         </div>
 
-        <div class="form-group">
-            <label for="content">Content <span style="color:red;">*</span></label>
-            <textarea id="content" name="content" class="{{ 'is-invalid' if errors.get('content') }}" 
-                      rows="6" required>{{ form_data.get('content', form_data.get('Content', '')) }}</textarea>
-            {% if errors.get('content') %}<div class="invalid-feedback">{{ errors.get('content') }}</div>{% endif %}
+        <div>
+            <label for="content" class="block text-sm font-medium text-gray-700">Content <span class="text-red-500">*</span></label>
+            <div class="mt-1">
+                <textarea id="content" name="content" rows="6" required
+                          class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('content') }}">{{ form_data.get('content', form_data.get('Content', '')) }}</textarea>
+            </div>
+            {% if errors.get('content') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('content') }}</p>{% endif %}
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.25rem;">
-            <div class="form-group" style="flex: 1; min-width: 200px;">
-                <label for="audience">Audience</label>
-                <select id="audience" name="audience" class="{{ 'is-invalid' if errors.get('audience') }}">
+        <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+            <div>
+                <label for="audience" class="block text-sm font-medium text-gray-700">Audience</label>
+                <select id="audience" name="audience" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('audience') }}">
                     {% set current_audience = form_data.get('audience', form_data.get('Audience', 'AllStaff')) %}
                     <option value="AllStaff" {% if current_audience == 'AllStaff' %}selected{% endif %}>All Staff</option>
                     <option value="Recruiters" {% if current_audience == 'Recruiters' %}selected{% endif %}>Recruiters Only</option>
@@ -36,42 +39,52 @@
                     <option value="Sales" {% if current_audience == 'Sales' %}selected{% endif %}>Sales Team Only</option>
                     <option value="AllUsers" {% if current_audience == 'AllUsers' %}selected{% endif %}>All Portal Users</option>
                 </select>
-                {% if errors.get('audience') %}<div class="invalid-feedback">{{ errors.get('audience') }}</div>{% endif %}
+                {% if errors.get('audience') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('audience') }}</p>{% endif %}
             </div>
-
-            <div class="form-group" style="flex: 1; min-width: 200px;">
-                <label for="priority">Priority</label>
-                <select id="priority" name="priority" class="{{ 'is-invalid' if errors.get('priority') }}">
+            <div>
+                <label for="priority" class="block text-sm font-medium text-gray-700">Priority</label>
+                <select id="priority" name="priority" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('priority') }}">
                     {% set current_priority = form_data.get('priority', form_data.get('Priority', 'Normal')) %}
                     <option value="Normal" {% if current_priority == 'Normal' %}selected{% endif %}>Normal</option>
                     <option value="High" {% if current_priority == 'High' %}selected{% endif %}>High</option>
                     <option value="Urgent" {% if current_priority == 'Urgent' %}selected{% endif %}>Urgent</option>
                 </select>
-                {% if errors.get('priority') %}<div class="invalid-feedback">{{ errors.get('priority') }}</div>{% endif %}
+                {% if errors.get('priority') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('priority') }}</p>{% endif %}
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="display_until">Display Until (Optional)</label>
-            <input type="datetime-local" id="display_until" name="display_until" class="{{ 'is-invalid' if errors.get('display_until') }}"
-                   value="{{ form_data.get('display_until', form_data.get('DisplayUntil', '')) }}">
-            <small class="form-text text-muted">Leave blank if the announcement should not expire.</small>
-            {% if errors.get('display_until') %}<div class="invalid-feedback">{{ errors.get('display_until') }}</div>{% endif %}
+        <div>
+            <label for="display_until" class="block text-sm font-medium text-gray-700">Display Until (Optional)</label>
+            <div class="mt-1">
+                <input type="datetime-local" id="display_until" name="display_until" value="{{ form_data.get('display_until', form_data.get('DisplayUntil', '')) }}"
+                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('display_until') }}">
+            </div>
+            <p class="mt-2 text-sm text-gray-500">Leave blank if the announcement should not expire.</p>
+            {% if errors.get('display_until') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('display_until') }}</p>{% endif %}
         </div>
 
-        <div class="form-group">
-            <input type="checkbox" id="is_active" name="is_active" value="on"
-                   {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
-            <label for="is_active" style="display: inline; font-weight: normal; margin-left: 0.25rem;">Is Active (Visible)</label>
+        <div class="relative flex items-start">
+            <div class="flex h-5 items-center">
+                <input id="is_active" name="is_active" type="checkbox" value="on" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                       {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
+            </div>
+            <div class="ml-3 text-sm">
+                <label for="is_active" class="font-medium text-gray-700">Is Active</label>
+                <p class="text-gray-500">Make this announcement visible to the selected audience.</p>
+            </div>
         </div>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{{ action_verb }} Announcement</button>
-            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="btn btn-secondary">Cancel</a>
+        
+        <div class="pt-5 mt-5 border-t border-gray-200">
+            <div class="flex justify-end gap-3">
+                <a href="{{ url_for('announcement_bp.list_announcements') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700">
+                    {{ action_verb }} Announcement
+                </button>
+            </div>
+             {% if errors.get('form') %} 
+                <p class="mt-4 text-sm text-red-600 text-right">{{ errors.get('form') }}</p>
+            {% endif %}
         </div>
-         {% if errors.get('form') %} 
-            <div class="alert alert-danger" style="margin-top: 1rem;">{{ errors.get('form') }}</div>
-        {% endif %}
     </form>
 </div>
 {% endblock %}

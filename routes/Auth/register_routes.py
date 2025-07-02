@@ -6,7 +6,7 @@ import os
 import datetime
 import re
 import mysql.connector
-from db import get_db_connection
+from db11 import get_db_connection
 from .login_routes import is_safe_url # Import the helper
 
 register_bp = Blueprint('register_bp', __name__, template_folder='../templates/auth') # Adjusted template_folder if needed
@@ -83,78 +83,68 @@ def register_options():
 
 @register_bp.route('/register/candidate', methods=['GET', 'POST'])
 def register_candidate():
+    """Handles the two-step registration for a new Candidate."""
     errors = {}
-    form_data = {} 
-    if request.method == 'POST':
-        form_data = request.form.to_dict()
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
-        confirm_password = request.form.get('confirm_password', '')
-        first_name = request.form.get('first_name', '').strip()
-        last_name = request.form.get('last_name', '').strip()
-        phone_number = request.form.get('phone_number', '').strip()
-        cv_file = request.files.get('cv_file')
+    form_data = request.form if request.method == 'POST' else {}
 
-        if not first_name: errors['first_name'] = 'First name is required.'
-        if not last_name: errors['last_name'] = 'Last name is required.'
+    if request.method == 'POST':
+        email = form_data.get('email', '').strip()
+        password = form_data.get('password', '')
+        # --- Validation ---
+        if not form_data.get('first_name'): errors['first_name'] = 'First name is required.'
+        if not form_data.get('last_name'): errors['last_name'] = 'Last name is required.'
         if not email: errors['email'] = 'Email is required.'
         elif not re.match(r"[^@]+@[^@]+\.[^@]+", email): errors['email'] = 'Invalid email format.'
-        elif check_email_exists_in_db(email):
-            errors['email'] = 'This email is already registered. Please try logging in.'
+        elif check_email_exists_in_db(email): errors['email'] = 'This email is already registered.'
         if len(password) < 6: errors['password'] = 'Password must be at least 6 characters long.'
-        if password != confirm_password: errors['confirm_password'] = 'Passwords do not match.'
-        if not cv_file or not cv_file.filename:
-            errors['cv_file'] = "CV upload is required for candidate registration."
+        if password != form_data.get('confirm_password'): errors['confirm_password'] = 'Passwords do not match.'
 
         if not errors:
-            user_id = create_user_in_db(email, password, first_name, last_name, phone_number)
-            if not user_id:
-                flash('An error occurred during account creation. Please try again later.', 'danger')
-            else:
-                conn_candidate = None
+            profile_pic_path = save_file(request.files.get('profile_picture'), 'profile_pictures')
+            user_id = create_user_in_db(
+                email=email, password=password, first_name=form_data.get('first_name'), 
+                last_name=form_data.get('last_name'), phone_number=form_data.get('phone_number'), 
+                profile_picture_url=profile_pic_path
+            )
+            
+            if user_id:
+                conn = get_db_connection()
+                cursor = conn.cursor()
                 try:
-                    conn_candidate = get_db_connection()
-                    cursor_candidate = conn_candidate.cursor()
+                    age_str = form_data.get('age', '')
+                    age = int(age_str) if age_str.isdigit() else None
+                    date_of_birth = (datetime.date.today() - datetime.timedelta(days=int(age * 365.25))) if age else None
                     
-                    cv_db_path = save_file(cv_file, 'candidate_cvs')
-                    if not cv_db_path:
-                        flash('CV upload failed. Your account was created, but please upload your CV from your profile.', 'warning')
+                    cursor.execute("""
+                        INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, EnglishLevel, DateOfBirth, SourceChannel, SourceDate)
+                        VALUES (%s, %s, %s, %s, %s, 'Web Registration', CURDATE())
+                    """, (user_id, form_data.get('linkedin_profile_url'), form_data.get('educational_status'), 
+                          form_data.get('english_level'), date_of_birth))
+                    candidate_id = cursor.lastrowid
 
-                    cursor_candidate.execute(
-                        "INSERT INTO Candidates (UserID, SourceChannel, SourceDate) VALUES (%s, %s, %s)",
-                        (user_id, "Web Registration", datetime.date.today())
-                    )
-                    candidate_id = cursor_candidate.lastrowid
-
-                    if cv_db_path:
-                        cursor_candidate.execute(
-                            "INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, IsPrimary) VALUES (%s, %s, %s, %s)",
-                            (candidate_id, cv_db_path, cv_file.filename, True)
-                        )
-                    conn_candidate.commit()
+                    cv_file = request.files.get('cv_file')
+                    if cv_file and cv_file.filename:
+                        cv_db_path = save_file(cv_file, f'candidate_cvs/{candidate_id}')
+                        if cv_db_path:
+                            cursor.execute("INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, IsPrimary) VALUES (%s, %s, %s, 1)", 
+                                           (candidate_id, cv_db_path, cv_file.filename))
+                    
+                    conn.commit()
                     flash('Candidate account created successfully! You can now log in.', 'success')
-                    current_app.logger.info(f"New candidate registered: {email}, UserID: {user_id}, CandidateID: {candidate_id}")
-                    
-                    login_url_params = {'email': email}
-                    next_param_from_registration = request.args.get('next')
-                    if next_param_from_registration and is_safe_url(next_param_from_registration):
-                        login_url_params['next'] = next_param_from_registration
-                        current_app.logger.info(f"Candidate registration: Propagating 'next' parameter to login: {next_param_from_registration}")
-                    
-                    return redirect(url_for('login_bp.login', **login_url_params))
+                    return redirect(url_for('login_bp.login', email=email))
                 except Exception as e:
-                    if conn_candidate: conn_candidate.rollback()
-                    current_app.logger.error(f"Error creating candidate profile for {email} (UserID: {user_id}): {e}", exc_info=True)
-                    flash('An error occurred while creating your candidate profile. Please try again or contact support.', 'danger')
+                    conn.rollback()
+                    current_app.logger.error(f"DB Error creating Candidate profile for {email}: {e}")
+                    flash('A database error occurred creating your profile details.', 'danger')
                 finally:
-                    if conn_candidate and conn_candidate.is_connected():
-                        if 'cursor_candidate' in locals() and cursor_candidate: cursor_candidate.close()
-                        conn_candidate.close()
+                    cursor.close()
+                    conn.close()
+            else:
+                flash('An error occurred creating your user account.', 'danger')
         else:
-            flash('Please correct the errors in the form and try again.', 'warning')
+            flash('Please correct the errors in the form.', 'warning')
             
     return render_template('auth/register_candidate.html', title='Register as Candidate', errors=errors, form_data=form_data)
-
 
 @register_bp.route('/register/client', methods=['GET', 'POST'])
 def register_client():

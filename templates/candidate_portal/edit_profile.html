@@ -2,140 +2,76 @@
 
 {% block title %}{{ title }} - Candidate Portal{% endblock %}
 
-{% block head_extra %}
-    {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/candidate_portal_styles.css') }}">
-     <style>
-        /* Basic form styling to make it usable */
-        .form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-        @media (min-width: 768px) { .form-grid { grid-template-columns: 1fr 1fr; } }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: .5rem; font-weight: 500; }
-        .form-control, .form-select { display: block; width: 100%; padding: .375rem .75rem; font-size: 1rem; font-weight: 400; line-height: 1.5; color: var(--text-color); background-color: var(--input-bg-color, #fff); background-clip: padding-box; border: 1px solid var(--input-border-color, #ced4da); appearance: none; border-radius: .25rem; transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out; }
-        .form-control:focus, .form-select:focus { border-color: var(--primary-color); outline: 0; box-shadow: 0 0 0 .25rem var(--focus-ring-color); }
-        textarea.form-control { min-height: calc(1.5em + .75rem + 2px); }
-        .btn-primary { color: #fff; background-color: var(--primary-color); border-color: var(--primary-color); }
-    </style>
-{% endblock %}
+{% macro form_field(label, name, value, type='text', placeholder='', extra_attrs='') %}
+<div class="sm:col-span-3">
+    <!-- ADDED DARK MODE CLASSES -->
+    <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
+    <div class="mt-2">
+        <!-- ADDED DARK MODE CLASSES -->
+        <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value or '' }}" placeholder="{{ placeholder }}" {{ extra_attrs }} 
+               class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:focus:ring-primary-500">
+    </div>
+</div>
+{% endmacro %}
+
+{% macro select_field(label, name, options, selected_value) %}
+<div class="sm:col-span-3">
+    <!-- ADDED DARK MODE CLASSES -->
+    <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
+    <div class="mt-2">
+        <!-- ADDED DARK MODE CLASSES -->
+        <select name="{{ name }}" id="{{ name }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:focus:ring-primary-500">
+            {% for option in options %}<option {% if option == selected_value %}selected{% endif %}>{{ option }}</option>{% endfor %}
+        </select>
+    </div>
+</div>
+{% endmacro %}
 
 {% block content %}
-<div class="container mt-4 mb-5">
-    <h2>{{ title }}</h2>
-    <hr class="mb-4">
+<!-- ADDED DARK MODE CLASSES -->
+<div class="bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- ADDED DARK MODE CLASSES -->
+        <form method="POST" action="{{ url_for('candidate_bp.edit_profile') }}" enctype="multipart/form-data" class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+            <div class="space-y-12">
+                <!-- Section 1: Personal Information -->
+                <div class="border-b border-gray-900/10 pb-12 dark:border-gray-200/10">
+                    <h2 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Personal Information</h2>
+                    <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">This information will be used to contact you about job opportunities.</p>
+                    <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                        {{ form_field('First Name', 'first_name', form_data.FirstName) }}
+                        {{ form_field('Last Name', 'last_name', form_data.LastName) }}
+                        <div class="sm:col-span-4"><label class="block text-sm font-medium text-gray-900 dark:text-gray-200">Email</label><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ form_data.Email }} (cannot be changed)</p></div>
+                        {{ form_field('Phone Number', 'phone_number', form_data.PhoneNumber) }}
+                        {{ form_field('Date of Birth', 'date_of_birth', form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth, type='date') }}
+                        {{ form_field('Nationality', 'nationality', form_data.Nationality) }}
+                        <div class="sm:col-span-full">
+                            <label for="profile_picture" class="block text-sm font-medium text-gray-900 dark:text-gray-200">Profile Picture</label>
+                            <div class="mt-2 flex items-center gap-x-3">
+                                <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) if form_data.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" class="h-12 w-12 rounded-full object-cover bg-gray-50 dark:bg-gray-700">
+                                <input type="file" name="profile_picture" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/50 dark:file:text-primary-300 dark:hover:file:bg-primary-900">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <!-- Section 2: Professional Details -->
+                <div class="border-b border-gray-900/10 pb-12 dark:border-gray-200/10">
+                    <h2 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Professional Details</h2>
+                    <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                        {{ form_field('LinkedIn Profile URL', 'linkedin_url', form_data.LinkedInProfileURL, placeholder='https://linkedin.com/in/...') }}
+                        {{ form_field('Years of Experience', 'years_of_experience', form_data.YearsOfExperience, type='number', extra_attrs='min="0"') }}
+                        {{ select_field('Educational Status', 'educational_status', ['Graduate', 'Student', 'Dropout', 'Gap Year'], form_data.EducationalStatus) }}
+                        {{ select_field('English Level', 'english_level', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], form_data.EnglishLevel) }}
+                    </div>
+                </div>
             </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
 
-    <form method="POST" action="{{ url_for('candidate_bp.edit_profile') }}" enctype="multipart/form-data">
-        {# CSRF token if using Flask-WTF: {{ form.hidden_tag() }} #}
-        
-        <h4>Personal Information</h4>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="first_name">First Name</label>
-                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ form_data.FirstName or '' }}" required>
+            <div class="mt-6 flex items-center justify-end gap-x-6">
+                <a href="{{ url_for('.dashboard') }}" class="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-200">Cancel</a>
+                <button type="submit" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">Save Profile</button>
             </div>
-            <div class="form-group">
-                <label for="last_name">Last Name</label>
-                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ form_data.LastName or '' }}" required>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="email">Email (Cannot be changed)</label>
-            <input type="email" class="form-control" id="email" name="email_display" value="{{ form_data.Email or '' }}" readonly disabled>
-        </div>
-         <div class="form-group">
-            <label for="phone_number">Phone Number</label>
-            <input type="tel" class="form-control" id="phone_number" name="phone_number" value="{{ form_data.PhoneNumber or '' }}">
-        </div>
-        <div class="form-group">
-            <label for="profile_picture">Profile Picture</label>
-            {% if form_data.ProfilePictureURL %}
-                <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) }}" alt="Current Profile Picture" style="max-width: 100px; max-height: 100px; border-radius: 50%; margin-bottom: 10px; display:block;">
-            {% endif %}
-            <input type="file" class="form-control" id="profile_picture" name="profile_picture" accept="image/*">
-            <small class="form-text text-muted">Leave blank to keep current picture.</small>
-        </div>
-
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="date_of_birth">Date of Birth</label>
-                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth else '' }}">
-            </div>
-            <div class="form-group">
-                <label for="nationality">Nationality</label>
-                <input type="text" class="form-control" id="nationality" name="nationality" value="{{ form_data.Nationality or '' }}">
-            </div>
-        </div>
-         <div class="form-grid">
-            <div class="form-group">
-                <label for="educational_status">Educational Status</label>
-                <input type="text" class="form-control" id="educational_status" name="educational_status" value="{{ form_data.EducationalStatus or '' }}">
-            </div>
-            <div class="form-group">
-                <label for="gender">Gender</label>
-                <select class="form-select" id="gender" name="gender">
-                    <option value="" {% if not form_data.Gender %}selected{% endif %}>Prefer not to say</option>
-                    <option value="Male" {% if form_data.Gender == 'Male' %}selected{% endif %}>Male</option>
-                    <option value="Female" {% if form_data.Gender == 'Female' %}selected{% endif %}>Female</option>
-                    <option value="Other" {% if form_data.Gender == 'Other' %}selected{% endif %}>Other</option>
-                </select>
-            </div>
-        </div>
-
-        <hr class="my-4">
-        <h4>Professional Details</h4>
-        <div class="form-group">
-            <label for="portfolio_url">Portfolio URL</label>
-            <input type="url" class="form-control" id="portfolio_url" name="portfolio_url" value="{{ form_data.PortfolioURL or '' }}" placeholder="https://www.yourportfolio.com">
-        </div>
-        <div class="form-group">
-            <label for="linkedin_url">LinkedIn Profile URL</label>
-            <input type="url" class="form-control" id="linkedin_url" name="linkedin_url" value="{{ form_data.LinkedInProfileURL or '' }}" placeholder="https://www.linkedin.com/in/yourprofile">
-        </div>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="years_of_experience">Years of Experience</label>
-                <input type="number" class="form-control" id="years_of_experience" name="years_of_experience" value="{{ form_data.YearsOfExperience if form_data.YearsOfExperience is not none else '' }}" min="0">
-            </div>
-             <div class="form-group">
-                <label for="availability_date">Available From Date</label>
-                <input type="date" class="form-control" id="availability_date" name="availability_date" value="{{ form_data.AvailabilityDate.strftime('%Y-%m-%d') if form_data.AvailabilityDate else '' }}">
-            </div>
-        </div>
-        <div class="form-grid">
-            <div class="form-group">
-                <label for="current_salary">Current Salary (Optional)</label>
-                <input type="number" class="form-control" id="current_salary" name="current_salary" value="{{ form_data.CurrentSalary if form_data.CurrentSalary is not none else '' }}" step="0.01" min="0">
-            </div>
-            <div class="form-group">
-                <label for="expected_salary">Expected Salary (Optional)</label>
-                <input type="number" class="form-control" id="expected_salary" name="expected_salary" value="{{ form_data.ExpectedSalary if form_data.ExpectedSalary is not none else '' }}" step="0.01" min="0">
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="preferred_job_types">Preferred Job Types (e.g., Full-time, Remote, Customer Service)</label>
-            <input type="text" class="form-control" id="preferred_job_types" name="preferred_job_types" value="{{ form_data.PreferredJobTypes or '' }}">
-        </div>
-        <div class="form-group">
-            <label for="preferred_locations">Preferred Work Locations (e.g., Cairo, Remote, Alexandria)</label>
-            <input type="text" class="form-control" id="preferred_locations" name="preferred_locations" value="{{ form_data.PreferredLocations or '' }}">
-        </div>
-        <div class="form-group">
-            <label for="notes">Additional Notes / Bio</label>
-            <textarea class="form-control" id="notes" name="notes" rows="4">{{ form_data.Notes or '' }}</textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary mt-3">Update Profile</button>
-        <a href="{{ url_for('candidate_bp.dashboard') }}" class="btn btn-secondary mt-3">Cancel</a>
-    </form>
+        </form>
+    </div>
 </div>
 {% endblock %}

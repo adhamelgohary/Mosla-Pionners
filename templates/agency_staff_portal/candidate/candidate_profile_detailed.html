@@ -1,0 +1,312 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <div class="d-flex align-items-center">
+        <img src="{{ candidate.info.ProfilePictureURL if candidate.info.ProfilePictureURL else url_for('static', filename='images/default_avatar.png') }}" 
+             alt="{{ candidate.info.FirstName }}" 
+             class="rounded-circle me-3 border" style="width: 70px; height: 70px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,.15);">
+        <div>
+            <h1 class="h3 mb-0">Candidate: <span class="fw-bold" style="color: var(--primary-color);">{{ candidate.info.FirstName }} {{ candidate.info.LastName }}</span></h1>
+            <small class="text-muted fw-normal d-block">
+                <a href="mailto:{{ candidate.info.Email }}">{{ candidate.info.Email }}</a>
+                {% if candidate.info.PhoneNumber %}| {{ candidate.info.PhoneNumber }}{% endif %}
+            </small>
+        </div>
+    </div>
+{% endblock %}
+
+{% block head_scripts %}
+    {{ super() }}
+    <style>
+        /* Scoped styles for candidate profile - move to portal_styles.css for consistency */
+        .profile-section {
+            background-color: var(--content-background);
+            border-radius: var(--bs-border-radius-lg, .5rem);
+            box-shadow: var(--bs-box-shadow-sm);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        .profile-section-header {
+            padding: 0.9rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bs-gray-100, #f8f9fa);
+            border-top-left-radius: calc(var(--bs-border-radius-lg, .5rem) - 1px);
+            border-top-right-radius: calc(var(--bs-border-radius-lg, .5rem) - 1px);
+        }
+         body[data-theme="dark"] .profile-section-header { background-color: var(--bs-gray-800, #343a40); }
+
+        .profile-section-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--heading-color);
+            display: flex; align-items: center;
+        }
+        .profile-section-header h4 i { margin-right: 0.5rem; color: var(--primary-color); }
+        .profile-section-body { padding: 1.25rem; }
+
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem 1.5rem; }
+        .info-item strong { color: var(--subtle-text-color); font-weight: 500; display: block; font-size: 0.85em;}
+        .info-item span { font-size: 0.95em; }
+        .info-item a { color: var(--primary-color); text-decoration: none; }
+        .info-item a:hover { text-decoration: underline; }
+        
+        .media-list .list-group-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .media-list .list-group-item:last-child { border-bottom: none; }
+        .media-list .media-title { font-weight: 500; }
+        .media-list .media-meta { font-size: 0.8em; color: var(--subtle-text-color); }
+        .media-list audio { width: 100%; max-width: 300px; margin-top: 0.5rem; }
+
+        .feedback-item { border-left: 3px solid var(--info-color); padding-left: 1rem; margin-bottom: 1rem; }
+        .feedback-item .feedback-meta { font-size: 0.85em; color: var(--subtle-text-color); margin-bottom: 0.25rem; }
+        .feedback-item blockquote { margin: 0.5rem 0; padding: 0.75rem; background-color: var(--bs-gray-100); border-radius: var(--bs-border-radius-sm); font-style: italic; }
+        body[data-theme="dark"] .feedback-item blockquote { background-color: var(--bs-gray-800); }
+    </style>
+{% endblock %}
+
+{% block staff_content %}
+<div class="container-fluid mt-4">
+    <div class="page-actions mb-4">
+        <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left-circle"></i> Back
+        </a>
+        {# Add other actions like "Edit Profile", "Add Feedback" if applicable for certain roles #}
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Basic Info, Contact, Professional Details -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-person-badge-fill"></i>Basic Information</h4></div>
+                <div class="profile-section-body">
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Full Name:</strong> <span>{{ candidate.info.FirstName }} {{ candidate.info.LastName }}</span></div>
+                        <div class="info-item"><strong>Email:</strong> <span><a href="mailto:{{ candidate.info.Email }}">{{ candidate.info.Email }}</a></span></div>
+                        <div class="info-item"><strong>Phone:</strong> <span>{{ candidate.info.PhoneNumber if candidate.info.PhoneNumber else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Date of Birth:</strong> <span>{{ candidate.info.DateOfBirth.strftime('%d %b, %Y') if candidate.info.DateOfBirth else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Gender:</strong> <span>{{ candidate.info.Gender if candidate.info.Gender else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Nationality:</strong> <span>{{ candidate.info.Nationality if candidate.info.Nationality else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Educational Status:</strong> <span>{{ candidate.info.EducationalStatus if candidate.info.EducationalStatus else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Registration Date:</strong> <span>{{ candidate.info.RegistrationDate.strftime('%d %b, %Y') if candidate.info.RegistrationDate else 'N/A' }}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-briefcase-fill"></i>Professional Details</h4></div>
+                <div class="profile-section-body">
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Years of Experience:</strong> <span>{{ candidate.info.YearsOfExperience if candidate.info.YearsOfExperience is not none else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Current Salary:</strong> <span>{{ "{:,.2f}".format(candidate.info.CurrentSalary) if candidate.info.CurrentSalary else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Expected Salary:</strong> <span>{{ "{:,.2f}".format(candidate.info.ExpectedSalary) if candidate.info.ExpectedSalary else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Availability Date:</strong> <span>{{ candidate.info.AvailabilityDate.strftime('%d %b, %Y') if candidate.info.AvailabilityDate else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Preferred Job Types:</strong> <span>{{ candidate.info.PreferredJobTypes if candidate.info.PreferredJobTypes else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Preferred Locations:</strong> <span>{{ candidate.info.PreferredLocations if candidate.info.PreferredLocations else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>LinkedIn Profile:</strong> 
+                            <span>{% if candidate.info.LinkedInProfileURL %}<a href="{{ candidate.info.LinkedInProfileURL }}" target="_blank" rel="noopener noreferrer">{{ candidate.info.LinkedInProfileURL }} <i class="bi bi-box-arrow-up-right small"></i></a>{% else %}N/A{% endif %}</span>
+                        </div>
+                        <div class="info-item"><strong>Portfolio URL:</strong> 
+                            <span>{% if candidate.info.PortfolioURL %}<a href="{{ candidate.info.PortfolioURL }}" target="_blank" rel="noopener noreferrer">{{ candidate.info.PortfolioURL }} <i class="bi bi-box-arrow-up-right small"></i></a>{% else %}N/A{% endif %}</span>
+                        </div>
+                         <div class="info-item"><strong>Sourced By:</strong> 
+                            <span>
+                                {% if candidate.info.SourcedByStaffID %}
+                                    {{ candidate.info.SourcedByFirstName }} {{ candidate.info.SourcedByLastName }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="info-item"><strong>Source Channel:</strong> <span>{{ candidate.info.SourceChannel if candidate.info.SourceChannel else 'N/A' }}</span></div>
+                        <div class="info-item"><strong>Source Date:</strong> <span>{{ candidate.info.SourceDate.strftime('%d %b, %Y') if candidate.info.SourceDate else 'N/A' }}</span></div>
+                    </div>
+                    {% if candidate.info.Notes %}
+                    <hr class="my-3">
+                    <strong>Internal Notes:</strong>
+                    <p class="text-muted small" style="white-space: pre-wrap;">{{ candidate.info.Notes }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+             <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-card-list"></i>Job Applications ({{ candidate.applications|length }})</h4></div>
+                <div class="profile-section-body p-0"> {# No padding for list group flush #}
+                    {% if candidate.applications %}
+                        <ul class="list-group list-group-flush media-list">
+                        {% for app in candidate.applications %}
+                            <li class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 media-title">
+                                        {% if job_offer_bp_exists %}
+                                            <a href="{{ url_for('job_offer_bp.view_offer_details', offer_id=app.OfferID) }}">{{ app.OfferTitle }}</a>
+                                        {% else %}
+                                            {{ app.OfferTitle }}
+                                        {% endif %}
+                                        <small class="text-muted">- {{ app.CompanyName }}</small>
+                                    </h6>
+                                    <small class="text-muted">{{ app.ApplicationDate.strftime('%d %b %Y') }}</small>
+                                </div>
+                                <p class="mb-1">Status: <span class="badge status-badge status-{{ app.Status|lower|replace(' ', '') }}">{{ app.Status }}</span></p>
+                                {% if app.NotesByCandidate %}<small class="d-block text-muted fst-italic">Candidate Notes: {{ app.NotesByCandidate|truncate(100) }}</small>{% endif %}
+                                {% if app.NotesByStaff %}<small class="d-block text-muted">Staff Notes: {{ app.NotesByStaff|truncate(100) }}</small>{% endif %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center p-3">No job applications found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Right Column: CVs, Voice Notes, Feedback, etc. -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-file-earmark-text-fill"></i>CVs ({{ candidate.cvs|length }})</h4></div>
+                <div class="profile-section-body p-0">
+                    {% if candidate.cvs %}
+                        <ul class="list-group list-group-flush media-list">
+                        {% for cv in candidate.cvs %}
+                            <li class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 media-title">
+                                        <a href="{{ cv.CVFileUrl }}" target="_blank" rel="noopener noreferrer">
+                                            {{ cv.CVTitle if cv.CVTitle else cv.OriginalFileName if cv.OriginalFileName else 'View CV' }} <i class="bi bi-box-arrow-up-right small"></i>
+                                        </a>
+                                        {% if cv.IsPrimary %}<span class="badge bg-success ms-2">Primary</span>{% endif %}
+                                    </h6>
+                                    <small class="text-muted">{{ cv.UploadedAt.strftime('%d %b %Y') }}</small>
+                                </div>
+                                {% if cv.Notes %}<p class="mb-1 text-muted small">{{ cv.Notes }}</p>{% endif %}
+                                <small class="media-meta">{{ cv.FileType if cv.FileType else 'Unknown type' }}{% if cv.FileSizeKB %} - {{ cv.FileSizeKB }}KB{% endif %}</small>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center p-3">No CVs uploaded.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-mic-fill"></i>Voice Notes ({{ candidate.voice_notes|length }})</h4></div>
+                <div class="profile-section-body p-0">
+                    {% if candidate.voice_notes %}
+                        <ul class="list-group list-group-flush media-list">
+                        {% for vn in candidate.voice_notes %}
+                            <li class="list-group-item">
+                                <h6 class="mb-1 media-title">{{ vn.Title if vn.Title else 'Voice Note' }} {% if vn.Purpose %}<small class="text-muted fw-normal">({{ vn.Purpose }})</small>{% endif %}</h6>
+                                <small class="media-meta">Uploaded: {{ vn.UploadedAt.strftime('%d %b %Y') }} {% if vn.DurationSeconds %}| Duration: {{ vn.DurationSeconds }}s{% endif %}</small>
+                                <audio controls src="{{ vn.VoiceNoteURL }}" class="mt-2">Your browser does not support the audio element.</audio>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center p-3">No voice notes recorded.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-chat-left-text-fill"></i>Staff Feedbacks ({{ candidate.feedbacks|length }})</h4></div>
+                <div class="profile-section-body">
+                    {% if candidate.feedbacks %}
+                        {% for fb in candidate.feedbacks %}
+                        <div class="feedback-item mb-3">
+                            <p class="feedback-meta">
+                                By: <strong>{{ fb.FeedbackByFirstName }} {{ fb.FeedbackByLastName }}</strong> ({{ fb.FeedbackByRole }})
+                                on {{ fb.FeedbackDate.strftime('%d %b %Y, %H:%M') }}
+                            </p>
+                            {% if fb.OverallAssessment %}<strong>Assessment:</strong> {{ fb.OverallAssessment }}<br>{% endif %}
+                            <blockquote>{{ fb.FeedbackText|nl2br }}</blockquote>
+                            {% if fb.Strengths %}<strong>Strengths:</strong> <p class="small">{{ fb.Strengths|nl2br }}</p>{% endif %}
+                            {% if fb.AreasForImprovement %}<strong>Areas for Improvement:</strong> <p class="small">{{ fb.AreasForImprovement|nl2br }}</p>{% endif %}
+                        </div>
+                        {% if not loop.last %}<hr class="my-3">{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center">No feedback provided by staff yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-calendar-check-fill"></i>Orientations ({{ candidate.orientations|length }})</h4></div>
+                <div class="profile-section-body p-0">
+                     {% if candidate.orientations %}
+                        <ul class="list-group list-group-flush media-list">
+                        {% for ori in candidate.orientations %}
+                            <li class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 media-title">Orientation on {{ ori.OrientationDateTime.strftime('%d %b %Y, %H:%M') }}</h6>
+                                    <span class="badge bg-info text-dark">{{ ori.Status }}</span>
+                                </div>
+                                <p class="mb-1 small">Format: {{ ori.Format }}
+                                {% if ori.LocationOrLink %}| Location/Link: 
+                                    {% if ori.LocationOrLink.startswith('http') %}
+                                        <a href="{{ ori.LocationOrLink }}" target="_blank">{{ ori.LocationOrLink|truncate(30) }} <i class="bi bi-box-arrow-up-right small"></i></a>
+                                    {% else %}
+                                        {{ ori.LocationOrLink|truncate(30) }}
+                                    {% endif %}
+                                {% endif %}
+                                </p>
+                                {% if ori.ConductedByFirstName %}<small class="text-muted d-block">Conducted by: {{ ori.ConductedByFirstName }} {{ ori.ConductedByLastName }}</small>{% endif %}
+                                {% if ori.Notes %}<small class="text-muted d-block fst-italic">Notes: {{ ori.Notes|truncate(100) }}</small>{% endif %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center p-3">No orientation sessions scheduled or recorded.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header"><h4><i class="bi bi-mortarboard-fill"></i>Course Enrollments ({{ candidate.enrollments|length }})</h4></div>
+                 <div class="profile-section-body p-0">
+                     {% if candidate.enrollments %}
+                        <ul class="list-group list-group-flush media-list">
+                        {% for enr in candidate.enrollments %}
+                            <li class="list-group-item">
+                                 <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 media-title">
+                                        {% if course_mgmt_bp_exists %} {# Assuming a blueprint for courses #}
+                                            <a href="{{ url_for('course_mgmt_bp.view_course_detail', course_id=enr.CourseID) }}">{{ enr.CourseName }}</a>
+                                        {% else %}
+                                            {{ enr.CourseName }}
+                                        {% endif %}
+                                        {% if enr.CourseCategory %}<small class="text-muted fw-normal"> ({{ enr.CourseCategory }})</small>{% endif %}
+                                    </h6>
+                                    <span class="badge bg-primary">{{ enr.Status }}</span>
+                                </div>
+                                <p class="mb-1 small">Enrolled: {{ enr.EnrollmentDate.strftime('%d %b %Y') }}
+                                {% if enr.CompletionDate %}| Completed: {{ enr.CompletionDate.strftime('%d %b %Y') }}{% endif %}
+                                {% if enr.GradeOrScore %}| Grade: {{ enr.GradeOrScore }}{% endif %}
+                                </p>
+                                {% if enr.CertificateURL %}<a href="{{ enr.CertificateURL }}" target="_blank" class="btn btn-xs btn-outline-success"><i class="bi bi-patch-check-fill"></i> View Certificate</a>{% endif %}
+                                {% if enr.Notes %}<small class="text-muted d-block fst-italic">Notes: {{ enr.Notes|truncate(100) }}</small>{% endif %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center p-3">No course enrollments found.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block staff_scripts %}
+{{ super() }}
+{# Add any JS needed for this page, e.g., for media players or interactions #}
+{% endblock %}

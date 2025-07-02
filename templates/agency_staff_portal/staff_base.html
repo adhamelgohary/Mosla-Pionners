@@ -1,133 +1,146 @@
 {# templates/agency_staff_portal/staff_base.html #}
 <!DOCTYPE html>
-<html lang="en" {% if session.get('theme') == 'dark' %}data-theme="dark"{% endif %}>
+<html lang="en" class="h-full bg-gray-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/portal_styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_specific_styles.css') }}">
-    {# Bootstrap Icons #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <title>{% block staff_title %}Agency Staff Portal{% endblock %} - Mosla Pioneers</title>
+    
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
     {% block head_scripts %}{% endblock %}
 </head>
-<body>
-    <aside class="sm-sidebar">
-        <h3>Staff Portal</h3>
-        <nav>
-            <ul>
-                {# --- Standard Navigation --- #}
-                <li><a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="{{ 'active' if request.endpoint == 'staff_dashboard_bp.main_dashboard' else '' }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a></li>
-                
-                {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}
-                    <li><a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="{{ 'active' if request.blueprint == 'course_mgmt_bp' else '' }}"><i class="bi bi-book-half"></i> Course Dashboard</a></li>
-                {% endif %}
-                
-                {# Placeholders for future sections - replace # with actual url_for when routes exist #}
-                {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'OperationsManager'] %}
-                     <li><a href="#"><i class="bi bi-building"></i> Company Management</a></li> 
-                {% endif %}
-                {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager','CEO', 'OperationsManager'] %}
-                     <li><a href="#"><i class="bi bi-person-lines-fill"></i> Candidate Sourcing</a></li> 
-                {% endif %}
+<body class="h-full">
+    <div class="min-h-full">
+        <!-- ===== Top Navigation Bar ===== -->
+        <nav class="bg-slate-800" x-data="{ open: false, profileMenuOpen: false, managementMenuOpen: false }">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="text-white font-bold text-lg">Staff Portal</a>
+                        </div>
+                        <div class="hidden md:block">
+                            <div class="ml-10 flex items-baseline space-x-4">
+                                <!-- Main Links -->
+                                <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Dashboard</a>
+                                
+                                <!-- Management Dropdown -->
+                                <div class="relative" x-on:click.away="managementMenuOpen = false">
+                                    <button @click="managementMenuOpen = !managementMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-slate-900 text-white' if request.blueprint in ['course_mgmt_bp', 'job_offer_mgmt_bp', 'company_assignment_bp'] else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}" aria-expanded="false">
+                                        <span>Management</span>
+                                        <i class="bi bi-chevron-down -mr-1 h-5 w-5" aria-hidden="true"></i>
+                                    </button>
+                                    <div x-show="managementMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
+                                        <div class="py-1">
+                                            {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses</a>{% endif %}
+                                            {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Job Offers</a>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Leadership Dropdown -->
+                                {% set template_leader_roles = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'SeniorAccountManager', 'HeadAccountManager', 'OperationsManager', 'CEO'] %}
+                                {% if current_user.role_type in template_leader_roles or current_user.role_type in ['AccountManager', 'SeniorAccountManager'] %}
+                                <div class="relative" x-on:click.away="leadershipMenuOpen = false" x-data="{ leadershipMenuOpen: false }">
+                                    <button @click="leadershipMenuOpen = !leadershipMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-slate-900 text-white' if request.blueprint in ['team_bp', 'leaderboard_bp'] or request.endpoint == 'company_assignment_bp.my_detailed_portfolio' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}" aria-expanded="false">
+                                        <span>Leadership</span><i class="bi bi-chevron-down -mr-1 h-5 w-5"></i>
+                                    </button>
+                                    <div x-show="leadershipMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
+                                        <div class="py-1">
+                                            {% if current_user.role_type in template_leader_roles %}<a href="{{ url_for('team_bp.my_team') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">My Team/Group</a>{% endif %}
+                                            <a href="{{ url_for('leaderboard_bp.performance_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Performance Ranks</a>
+                                            {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('leaderboard_bp.company_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Top Companies</a>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Profile Dropdown (Desktop) -->
+                    <div class="hidden md:block">
+                        <div class="ml-4 flex items-center md:ml-6">
+                            <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
+                                <div>
+                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                                        <span class="sr-only">Open user menu</span>
+                                        <img class="h-8 w-8 rounded-full object-cover" src="{{ current_user.profile_picture_url or url_for('static', filename='images/default-profile.png') }}" alt="">
+                                    </button>
+                                </div>
+                                <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                    <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</a>
+                                    <a href="{{ url_for('public_routes_bp.home_page') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Main Site</a>
+                                    <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Mobile menu button -->
+                    <div class="-mr-2 flex md:hidden">
+                        <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-slate-800 p-2 text-gray-400 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-800" aria-controls="mobile-menu" aria-expanded="false">
+                            <i class="bi" :class="{ 'bi-x-lg': open, 'bi-list': !open }"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-                {% if current_user.role_type in ['Admin', 'CEO', 'OperationsManager'] %}
-                <li><a href="{{ url_for('announcement_bp.list_announcements') }}" class="{{ 'active' if request.blueprint == 'announcement_bp' else '' }}"><i class="bi bi-megaphone-fill"></i> Announcements</a></li>
-                {% endif %}
-                
-                {# --- Role-Specific Management Links --- #}
-                
-                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.blueprint == 'job_offer_mgmt_bp' else '' }}" href="{{ url_for('job_offer_mgmt_bp.dashboard') }}">
-                        <i class="bi bi-briefcase-fill"></i> Job Offer Mgmt
-                    </a>
-                </li>
-                {% endif %}
-                
-                <!-- "Staff Management Dashboard" - ONLY FOR EXECUTIVES -->
-                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.staff_dashboard_view' else '' }}" href="{{ url_for('employee_mgmt_bp.staff_dashboard_view') }}">
-                        <i class="bi bi-person-gear"></i> Staff Admin
-                    </a>
-                </li>
-                <li class="nav-item"> {# Link to list all staff for executives #}
-                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.list_all_staff' else '' }}" href="{{ url_for('employee_mgmt_bp.list_all_staff') }}">
-                        <i class="bi bi-list-stars"></i> All Staff List
-                    </a>
-                </li>
-                {% endif %}
-
-                <!-- "My Team/Group/Unit/All Staff" - FOR ALL LEADERS -->
-                {# Ensure LEADER_ROLES is available; if not, define a similar list here or pass from context #}
-                {% set template_leader_roles = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'SeniorAccountManager', 'HeadAccountManager', 'OperationsManager', 'CEO'] %}
-                {% if current_user.role_type in template_leader_roles %}
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'employee_mgmt_bp.my_team' else '' }}" href="{{ url_for('employee_mgmt_bp.my_team') }}">
-                        <i class="bi bi-people-fill"></i> 
-                        {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
-                            All Staff View
-                        {% elif current_user.role_type == 'UnitManager' %}
-                            My Unit
-                        {% elif current_user.role_type == 'HeadSourcingTeamLead' or current_user.role_type == 'HeadAccountManager' %}
-                            My Division/Group
-                        {% elif current_user.role_type == 'SeniorAccountManager' %}
-                            My AM Team
-                        {% else %}
-                            My Team
-                        {% endif %}
-                    </a>
-                </li>
-                {% endif %}
-
-                {# Performance Leaderboard - Accessible to all staff #}
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'leaderboard_bp.performance_leaderboard' else '' }}" href="{{ url_for('leaderboard_bp.performance_leaderboard') }}">
-                        <i class="bi bi-trophy-fill"></i> Performance Ranks
-                    </a>
-                </li>
-                 {# Company Leaderboard - Example for executives #}
-                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'leaderboard_bp.company_leaderboard' else '' }}" href="{{ url_for('leaderboard_bp.company_leaderboard') }}">
-                        <i class="bi bi-building-check"></i> Top Companies
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
+            <!-- Mobile menu, show/hide based on menu state. -->
+            <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
+                <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
+                    <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-slate-900 text-white' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Dashboard</a>
+                    {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Courses</a>{% endif %}
+                    {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager'] %}<a href="{{ url_for('company_assignment_bp.my_detailed_portfolio') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">My Portfolio</a>{% endif %}
+                    {% if current_user.role_type in template_leader_roles %}<a href="{{ url_for('team_bp.my_team') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">My Team/Group</a>{% endif %}
+                </div>
+                <div class="border-t border-gray-700 pb-3 pt-4">
+                    <div class="flex items-center px-5">
+                        <div class="flex-shrink-0">
+                            <img class="h-10 w-10 rounded-full object-cover" src="{{ current_user.profile_picture_url or url_for('static', filename='images/default-profile.png') }}" alt="">
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-medium leading-none text-white">{{ current_user.first_name }} {{ current_user.last_name }}</div>
+                            <div class="text-sm font-medium leading-none text-gray-400">{{ current_user.role_type }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1 px-2">
+                        <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-slate-700 hover:text-white">My Profile</a>
+                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-400 hover:bg-slate-700 hover:text-white">Logout</a>
+                    </div>
+                </div>
+            </div>
         </nav>
-        <hr style="border-color: #4f5962; margin-top:auto; margin-bottom: 1rem;">
-        <nav>
-            <ul>
-                <li><a href="{{ url_for('public_routes_bp.home_page') }}"><i class="bi bi-house-door-fill"></i> Main Site</a></li>
-                <li><a href="{{ url_for('login_bp.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-            </ul>
-        </nav>
-    </aside>
-    <div class="sm-main-content">
-        <header class="sm-header">
-             <h1>{% block staff_page_title %}{% endblock %}</h1>
-            <div>
-                {# Corrected link to view own profile #}
-                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="user-profile-link">
-                    Welcome, {{ current_user.first_name }} ({{ current_user.role_type }})!
-                </a>
+        
+        <!-- ===== Page Header ===== -->
+        <header class="bg-white shadow-sm">
+            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <h1 class="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-2">{% block staff_page_title %}{% endblock %}</h1>
             </div>
         </header>
-
-        <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        </div>
-
+        
+        <!-- ===== Main Content ===== -->
         <main>
-            {% block staff_content %}{% endblock %}
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                <!-- Flash Messages -->
+                <div class="space-y-4 mb-6">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            {% set color_classes = {'success': 'bg-green-50 border-green-400 text-green-700','danger': 'bg-red-50 border-red-400 text-red-700','warning': 'bg-yellow-50 border-yellow-400 text-yellow-700','info': 'bg-blue-50 border-blue-400 text-blue-700'} %}
+                            <div class="border-l-4 p-4 {{ color_classes.get(category, 'bg-gray-50 border-gray-400 text-gray-700') }}">
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                </div>
+
+                <!-- Page Content -->
+                {% block staff_content %}{% endblock %}
+            </div>
         </main>
     </div>
     {% block staff_scripts %}{% endblock %}

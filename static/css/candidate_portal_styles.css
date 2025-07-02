@@ -1,44 +1,283 @@
-/* static/css/candidate_portal_styles.css */
-.profile-header-candidate { /* Example class for a specific header if needed */
+/* =================================================================== */
+/* ==       Mosla Pioneers - Candidate Portal Stylesheet            == */
+/* =================================================================== */
+/* This file styles the candidate dashboard and edit profile pages,    */
+/* inheriting variables from website_styles.css for theme consistency. */
+/* =================================================================== */
+
+.portal-container {
+    max-width: 1200px;
+    margin: 2.5rem auto;
+    padding: 0 20px;
+}
+
+.portal-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
 }
-.profile-pic-candidate-large {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 1.5rem;
-    border: 3px solid var(--content-bg-color);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+.portal-header h2 {
+    font-size: 2rem;
+    color: var(--heading-color);
+    margin: 0;
 }
-/* Add more styles for .profile-card, .info-grid etc. if you remove them from inline in dashboard.html */
-.profile-pic-candidate-small {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 1rem;
-    border: 2px solid var(--content-bg-color);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+.portal-header .action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
+.portal-header .action-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* --- Main Card Styles --- */
+.profile-card {
+    background-color: var(--content-bg-color);
+    padding: 1.75rem;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+    height: 100%; /* Important for grid layout */
+}
+
+.profile-card h4 {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    margin: 0 0 1.25rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* --- Dashboard Specific Styles --- */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
 .info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem 1rem;
+    font-size: 0.9rem;
+    align-items: center;
 }
-.info-grid div {
-    padding: 0.5rem 0;
+
+.info-grid strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.info-grid span {
+    color: var(--text-muted);
+    word-break: break-word;
+}
+
+.info-grid a {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+.info-grid a:hover {
+    text-decoration: underline;
+}
+
+.list-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.list-card li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0;
     border-bottom: 1px solid var(--border-color);
+    gap: 1rem;
 }
-.info-grid div:last-child {
+
+.list-card li:last-child {
     border-bottom: none;
 }
 
-#referralCodeFeedback.text-success { color: green; }
-#referralCodeFeedback.text-danger { color: red; }
-#referralCodeFeedback.text-warning { color: orange; }
-#referralCodeFeedback.text-muted { color: #6c757d; }
+.list-card .item-details {
+    flex-grow: 1;
+}
+.list-card .item-details a {
+    color: var(--heading-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+.list-card .item-details a:hover {
+    color: var(--primary-color);
+}
+.list-card .item-details small {
+    display: block;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.cv-actions, .app-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.primary-cv-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 10px;
+    background-color: var(--tag-category-bg);
+    color: var(--tag-category-text);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: .3em .65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .35rem;
+    color: #fff;
+}
+
+/* --- Edit Profile Form Specific Styles --- */
+.edit-profile-form {
+    background-color: var(--content-bg-color);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+}
+.edit-profile-form h4 {
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    margin: 1.5rem 0 1.25rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.edit-profile-form h4:first-of-type {
+    margin-top: 0;
+}
+
+.edit-profile-form .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+.edit-profile-form .form-group {
+    margin-bottom: 0;
+}
+
+/* --- START OF CHANGE --- */
+/* Button styling for the portal */
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: filter 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.btn-sm:hover {
+    filter: brightness(90%);
+    transform: translateY(-1px);
+}
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+.btn-outline-secondary:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+.btn-outline-success {
+    background-color: #28a745;
+    color: #fff;
+}
+.btn-outline-danger {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* Secondary button styling (e.g., Cancel button) */
+.btn-secondary {
+    /* Shape and size properties to match .submit-btn from main stylesheet */
+    display: inline-block;
+    padding: 12px 28px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    
+    /* Color properties */
+    color: var(--text-color);
+    background-color: #e2e8f0; /* Lighter grey for secondary actions */
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+}
+
+html[data-theme="dark"] .btn-secondary {
+    background-color: #4a5568;
+    border-color: #4a5568;
+    color: #e2e8f0;
+}
+/* --- END OF CHANGE --- */
+
+
+/* --- Status Badge Colors --- */
+.status-Submitted { background-color: #6c757d; }
+.status-Reviewed { background-color: #17a2b8; }
+.status-Interviewing { background-color: #007bff; }
+.status-Offered { background-color: #28a745; }
+.status-Hired { background-color: #20c997; }
+.status-Rejected, .status-Withdrawn { background-color: #dc3545; }
+
+
+/* --- RESPONSIVE ADJUSTMENTS --- */
+@media (max-width: 768px) {
+    .portal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .portal-header h2 {
+        font-size: 1.75rem;
+    }
+
+    .edit-profile-form .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .list-card li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}

@@ -1,152 +1,95 @@
-{# templates/agency_staff_portal/add_edit_course.html #}
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}
+    <i class="bi bi-journal-plus text-primary-600"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="form-container"> {# Styled in portal_styles.css #}
-    <form method="POST" action="{{ url_for(request.endpoint, course_id=course_id if course_id else None) }}">
-        {# CSRF token would go here if implemented manually #}
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+    <form method="POST" action="{{ url_for(request.endpoint, course_id=course_id if course_id else None) }}" class="space-y-8 divide-y divide-gray-200">
         
-        {# Hidden field for edit form to preserve original name for title on POST validation fail #}
         {% if action_verb == 'Update' %}
-            <input type="hidden" name="original_course_name_for_title_hidden" value="{{ original_course_name_for_title_hidden or form_data.get('CourseName', form_data.get('course_name', '')) }}">
+            <input type="hidden" name="original_course_name_for_title_hidden" value="{{ original_course_name_for_title_hidden or form_data.get('CourseName', '') }}">
         {% endif %}
 
-        <div class="form-group">
-            <label for="course_name">Course Name <span style="color:red;">*</span></label>
-            <input type="text" id="course_name" name="course_name" class="{{ 'is-invalid' if errors.get('course_name') }}" 
-                   value="{{ form_data.get('course_name', form_data.get('CourseName', '')) }}" required>
-            {% if errors.get('course_name') %}
-                <div class="invalid-feedback">{{ errors.get('course_name') }}</div>
-            {% endif %}
+        {# --- Reusable Form Row Macro --- #}
+        {% macro form_row(label, name, type='text', placeholder='', value='', required=False, error=None, extra_attrs='') %}
+        <div class="sm:col-span-3">
+            <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }} {% if required %}<span class="text-red-500">*</span>{% endif %}</label>
+            <div class="mt-1">
+                <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value }}" placeholder="{{ placeholder }}" {{ 'required' if required }}
+                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if error }}" {{ extra_attrs }}>
+            </div>
+            {% if error %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endif %}
         </div>
+        {% endmacro %}
 
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" class="{{ 'is-invalid' if errors.get('description') }}" 
-                      rows="4">{{ form_data.get('description', form_data.get('Description', '')) }}</textarea>
-            {% if errors.get('description') %}
-                <div class="invalid-feedback">{{ errors.get('description') }}</div>
-            {% endif %}
+        {% macro textarea_row(label, name, value='', rows=3, error=None) %}
+        <div class="sm:col-span-6">
+            <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }}</label>
+            <div class="mt-1">
+                <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if error }}">{{ value }}</textarea>
+            </div>
+            {% if error %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endif %}
         </div>
-        
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.25rem;">
-            <div class="form-group" style="flex: 2; min-width: 200px;">
-                <label for="price">Price</label>
-                <input type="number" step="0.01" min="0" id="price" name="price" class="{{ 'is-invalid' if errors.get('price') }}" 
-                       value="{{ form_data.get('price', form_data.get('Price', '')) }}">
-                {% if errors.get('price') %}
-                    <div class="invalid-feedback">{{ errors.get('price') }}</div>
-                {% endif %}
+        {% endmacro %}
+        {# --- End Macros --- #}
+
+        <div class="space-y-8">
+            <div>
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Course Information</h3>
+                <p class="mt-1 text-sm text-gray-500">Basic details about the course.</p>
+                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-6">{{ form_row('Course Name', 'course_name', value=form_data.get('course_name', form_data.get('CourseName', '')), required=True, error=errors.get('course_name')) }}</div>
+                    {{ textarea_row('Description', 'description', value=form_data.get('description', form_data.get('Description', '')), error=errors.get('description')) }}
+                </div>
             </div>
 
-            <div class="form-group" style="flex: 1; min-width: 120px;">
-                <label for="currency">Currency</label>
-                <input type="text" id="currency" name="currency" class="{{ 'is-invalid' if errors.get('currency') }}" 
-                       value="{{ form_data.get('currency', form_data.get('Currency', 'EGP')) }}" maxlength="10" placeholder="EGP">
-                {% if errors.get('currency') %}
-                    <div class="invalid-feedback">{{ errors.get('currency') }}</div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label for="duration">Duration <small>(e.g., 4 weeks, 20 hours)</small></label>
-            <input type="text" id="duration" name="duration" class="{{ 'is-invalid' if errors.get('duration') }}"
-                   value="{{ form_data.get('duration', form_data.get('Duration', '')) }}">
-            {% if errors.get('duration') %}
-                <div class="invalid-feedback">{{ errors.get('duration') }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <label for="instructor_name">Instructor Name</label>
-            <input type="text" id="instructor_name" name="instructor_name" class="{{ 'is-invalid' if errors.get('instructor_name') }}" 
-                   value="{{ form_data.get('instructor_name', form_data.get('InstructorName', '')) }}">
-            {% if errors.get('instructor_name') %}
-                <div class="invalid-feedback">{{ errors.get('instructor_name') }}</div>
-            {% endif %}
-        </div>
-
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.25rem;">
-            <div class="form-group" style="flex: 1; min-width: 200px;">
-                <label for="start_date">Start Date</label>
-                <input type="date" id="start_date" name="start_date" class="{{ 'is-invalid' if errors.get('start_date') }}" 
-                       value="{{ form_data.get('start_date', form_data.get('StartDate', '')) }}">
-                {% if errors.get('start_date') %}
-                    {% set start_date_errors = errors.get('start_date') if errors.get('start_date') is iterable and not errors.get('start_date') is string else [errors.get('start_date')] %}
-                    {% for error_msg in start_date_errors %}
-                        {% if error_msg %}<div class="invalid-feedback">{{ error_msg }}</div>{% endif %}
-                    {% endfor %}
-                {% endif %}
+            <div class="pt-8">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Pricing & Logistics</h3>
+                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    {{ form_row('Price', 'price', type='number', value=form_data.get('price', form_data.get('Price', '')), error=errors.get('price'), extra_attrs='step="0.01" min="0"') }}
+                    {{ form_row('Currency', 'currency', value=form_data.get('currency', form_data.get('Currency', 'EGP')), placeholder='EGP', error=errors.get('currency')) }}
+                    {{ form_row('Duration', 'duration', value=form_data.get('duration', form_data.get('Duration', '')), placeholder='e.g., 4 weeks, 20 hours', error=errors.get('duration')) }}
+                    {{ form_row('Instructor Name', 'instructor_name', value=form_data.get('instructor_name', form_data.get('InstructorName', '')), error=errors.get('instructor_name')) }}
+                    {{ form_row('Start Date', 'start_date', type='date', value=form_data.get('start_date', form_data.get('StartDate', '')), error=errors.get('start_date')) }}
+                    {{ form_row('End Date', 'end_date', type='date', value=form_data.get('end_date', form_data.get('EndDate', '')), error=errors.get('end_date')) }}
+                </div>
             </div>
 
-            <div class="form-group" style="flex: 1; min-width: 200px;">
-                <label for="end_date">End Date</label>
-                <input type="date" id="end_date" name="end_date" class="{{ 'is-invalid' if errors.get('end_date') }}" 
-                       value="{{ form_data.get('end_date', form_data.get('EndDate', '')) }}">
-                {% if errors.get('end_date') %}
-                    {% set end_date_errors = errors.get('end_date') if errors.get('end_date') is iterable and not errors.get('end_date') is string else [errors.get('end_date')] %}
-                    {% for error_msg in end_date_errors %}
-                         {% if error_msg %}<div class="invalid-feedback">{{ error_msg }}</div>{% endif %}
-                    {% endfor %}
-                {% endif %}
+            <div class="pt-8">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Details & Content</h3>
+                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-6">{{ form_row('Category', 'category', value=form_data.get('category', form_data.get('Category', '')), error=errors.get('category')) }}</div>
+                    {{ textarea_row('Prerequisites', 'prerequisites', value=form_data.get('prerequisites', form_data.get('Prerequisites', '')), error=errors.get('prerequisites')) }}
+                    <div class="sm:col-span-6">{{ form_row('Syllabus Link (URL)', 'syllabus_link', type='url', value=form_data.get('syllabus_link', form_data.get('SyllabusLink', '')), placeholder='https://example.com/syllabus.pdf', error=errors.get('syllabus_link')) }}</div>
+                </div>
+            </div>
+
+            <div class="pt-8">
+                <div class="relative flex items-start">
+                    <div class="flex h-5 items-center">
+                        <input id="is_active" name="is_active" type="checkbox" value="on" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                               {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="is_active" class="font-medium text-gray-700">Is Active</label>
+                        <p class="text-gray-500">Make this course visible and available for enrollment.</p>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="form-group">
-            <label for="category">Category</label>
-            <input type="text" id="category" name="category" class="{{ 'is-invalid' if errors.get('category') }}"
-                   value="{{ form_data.get('category', form_data.get('Category', '')) }}">
-            {% if errors.get('category') %}
-                <div class="invalid-feedback">{{ errors.get('category') }}</div>
-            {% endif %}
-        </div>
 
-        <div class="form-group">
-            <label for="prerequisites">Prerequisites</label>
-            <textarea id="prerequisites" name="prerequisites" class="{{ 'is-invalid' if errors.get('prerequisites') }}" 
-                      rows="3">{{ form_data.get('prerequisites', form_data.get('Prerequisites', '')) }}</textarea>
-            {% if errors.get('prerequisites') %}
-                <div class="invalid-feedback">{{ errors.get('prerequisites') }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <label for="syllabus_link">Syllabus Link (URL)</label>
-            <input type="url" id="syllabus_link" name="syllabus_link" class="{{ 'is-invalid' if errors.get('syllabus_link') }}" 
-                   value="{{ form_data.get('syllabus_link', form_data.get('SyllabusLink', '')) }}" placeholder="https://example.com/syllabus.pdf">
-            {% if errors.get('syllabus_link') %}
-                <div class="invalid-feedback">{{ errors.get('syllabus_link') }}</div>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <input type="checkbox" id="is_active" name="is_active" value="on"
-                   {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
-            <label for="is_active" style="display: inline; font-weight: normal; margin-left: 0.25rem;">Is Active</label>
-        </div>
-        
-        {% if action_verb == 'Update' and (form_data.get('CreatedAt') or form_data.get('UpdatedAt')) %}
-            <div class="readonly-info form-group"> {# Added form-group for consistent margin #}
-                {% if form_data.get('CreatedAt') %}
-                <p><strong>Created:</strong> {{ form_data.get('CreatedAt') | timeago }} ({{ form_data.get('CreatedAt') | datetime }})</p>
-                {% endif %}
-                {% if form_data.get('UpdatedAt') and form_data.get('UpdatedAt') != form_data.get('CreatedAt') %}
-                <p><strong>Last Updated:</strong> {{ form_data.get('UpdatedAt') | timeago }} ({{ form_data.get('UpdatedAt') | datetime }})</p>
-                {% endif %}
+        <div class="pt-5 mt-5">
+            <div class="flex justify-end gap-3">
+                <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700">
+                    <i class="bi bi-check-lg -ml-1 mr-2"></i> {{ action_verb }} Course
+                </button>
             </div>
-        {% endif %}
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">{{ action_verb }} Course</button>
-            <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="btn btn-secondary">Cancel</a>
+            {% if errors.get('form') %}<div class="mt-4 text-sm text-red-600 text-right">{{ errors.get('form') }}</div>{% endif %}
         </div>
-         {% if errors.get('form') %} 
-            <div class="alert alert-danger" style="margin-top: 1rem;">{{ errors.get('form') }}</div>
-        {% endif %}
     </form>
 </div>
 {% endblock %}

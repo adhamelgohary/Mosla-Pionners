@@ -3,68 +3,67 @@
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}{{ title }}{% endblock %}
 
-{% block head_scripts %}
-    {{ super() }}
-{% endblock %}
-
 {% block staff_content %}
-<div class="dashboard-module">
-    <div class="leaderboard-header">
-        <div>
-            <h3>{{ title }}</h3>
-            <p class="text-muted mb-0">{{ subtitle }}</p>
+
+{# --- Reusable Macros for this template --- #}
+{% macro podium_place(company, rank, icon) %}
+    <div class="relative text-center p-4 rounded-lg border bg-white shadow-sm w-full max-w-xs transition-transform hover:-translate-y-2
+        {% if rank == 1 %} order-1 md:order-2 h-64 bg-primary-50/50 border-primary-200 {% endif %}
+        {% if rank == 2 %} order-2 md:order-1 h-56 {% endif %}
+        {% if rank == 3 %} order-3 md:order-3 h-52 {% endif %}">
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white px-2 rounded-full">
+            <i class="text-4xl {{ icon }} 
+                {% if rank == 1 %} text-yellow-400 {% endif %}
+                {% if rank == 2 %} text-gray-400 {% endif %}
+                {% if rank == 3 %} text-amber-600 {% endif %}">
+            </i>
         </div>
-        {# Placeholder for any future filters #}
+        <div class="flex flex-col items-center justify-end h-full pt-4">
+            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" 
+                 class="rounded-full object-cover shadow-md 
+                        {% if rank == 1 %} w-24 h-24 border-4 border-white {% else %} w-20 h-20 border-2 border-white {% endif %}">
+            <div class="mt-3 font-semibold text-gray-800 truncate w-full">{{ company.CompanyName }}</div>
+            <div class="text-2xl font-bold text-primary-600">{{ company.FilledJobsCount }} <small class="text-sm font-medium text-gray-500">hires</small></div>
+        </div>
+    </div>
+{% endmacro %}
+
+<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+    <div class="pb-4 mb-4 border-b border-gray-200">
+        <h3 class="text-xl font-semibold text-gray-900">{{ title }}</h3>
+        <p class="text-sm text-gray-500 mt-1">{{ subtitle }}</p>
     </div>
 
     <!-- Podium Section for Top 3 -->
-    <div class="podium-container">
+    <div class="flex flex-col md:flex-row justify-center items-end gap-4 md:gap-2 my-8">
         {% if top_companies|length >= 2 %}
-        <div class="podium-place podium-2">
-            <i class="bi bi-award-fill rank-icon"></i>
-            <img src="{{ top_companies[1].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[1].CompanyName }}" class="profile-pic">
-            <div class="name">{{ top_companies[1].CompanyName }}</div>
-            <div class="points">{{ top_companies[1].FilledJobsCount }} <small>hires</small></div>
-        </div>
+            {{ podium_place(top_companies[1], 2, 'bi bi-award-fill') }}
         {% endif %}
-        
         {% if top_companies|length >= 1 %}
-        <div class="podium-place podium-1">
-            <i class="bi bi-trophy-fill rank-icon"></i>
-            <img src="{{ top_companies[0].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[0].CompanyName }}" class="profile-pic">
-            <div class="name">{{ top_companies[0].CompanyName }}</div>
-            <div class="points">{{ top_companies[0].FilledJobsCount }} <small>hires</small></div>
-        </div>
+            {{ podium_place(top_companies[0], 1, 'bi bi-trophy-fill') }}
         {% endif %}
-
         {% if top_companies|length >= 3 %}
-        <div class="podium-place podium-3">
-            <i class="bi bi-award-fill rank-icon"></i>
-            <img src="{{ top_companies[2].CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ top_companies[2].CompanyName }}" class="profile-pic">
-            <div class="name">{{ top_companies[2].CompanyName }}</div>
-            <div class="points">{{ top_companies[2].FilledJobsCount }} <small>hires</small></div>
-        </div>
+            {{ podium_place(top_companies[2], 3, 'bi bi-award-fill') }}
         {% endif %}
     </div>
 
     {% if not top_companies %}
-        <p class="text-center text-muted mt-4">No company performance data found.</p>
+        <p class="text-center text-gray-500 py-8">No company performance data found.</p>
     {% endif %}
 
     <!-- Rest of the Leaderboard -->
     {% if top_companies|length > 3 %}
-    <h4 class="mt-5 mb-3 text-center">Top Company Rankings</h4>
-    <ul class="leaderboard-list">
+    <h4 class="mt-12 mb-6 text-center text-lg font-semibold text-gray-800">Top Company Rankings</h4>
+    <ul class="max-w-3xl mx-auto space-y-3">
         {% for company in top_companies[3:] %}
-        <li class="leaderboard-list-item">
-            <div class="list-rank">{{ loop.index + 3 }}</div>
-            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" class="list-pic">
-            <div class="list-name">{{ company.CompanyName }}</div>
-            <div class="list-points">{{ company.FilledJobsCount }} <small>hires</small></div>
+        <li class="flex items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+            <div class="text-lg font-bold text-gray-400 w-12 text-center">{{ loop.index + 3 }}</div>
+            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" class="h-12 w-12 rounded-full object-cover">
+            <div class="flex-grow font-semibold text-gray-800 ml-4">{{ company.CompanyName }}</div>
+            <div class="font-bold text-primary-600">{{ company.FilledJobsCount }} <span class="text-sm font-medium text-gray-500">hires</span></div>
         </li>
         {% endfor %}
     </ul>
     {% endif %}
-
 </div>
 {% endblock %}

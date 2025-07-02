@@ -1,0 +1,289 @@
+{% extends "Website/base.html" %}
+
+{% block title %}Apply for {{ offer.Title }} - Mosla Pioneers{% endblock %}
+
+{% block head_extra %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/job_offer_detail_styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
+    <style>
+        .invalid-feedback { color: var(--danger-color, #dc3545); font-size: 0.875em; margin-top: .25rem; display: block; }
+        .form-group input.is-invalid, 
+        .form-group textarea.is-invalid,
+        .form-group .voice-recorder.is-invalid {
+            border: 1px solid var(--danger-color, #dc3545) !important; 
+            border-radius: 8px;
+        }
+        #referralCodeFeedback.text-success { color: var(--bs-success, green); } 
+        #referralCodeFeedback.text-danger { color: var(--danger-color, red); }
+        #referralCodeFeedback.text-warning { color: var(--bs-warning, orange); }
+        #referralCodeFeedback.text-muted { color: var(--text-muted, #6c757d); }
+        span.invalid-feedback { display: none; }
+        input.is-invalid ~ span.invalid-feedback,
+        textarea.is-invalid ~ span.invalid-feedback,
+        .voice-recorder.is-invalid ~ span.invalid-feedback,
+        input[type="file"].is-invalid ~ span.invalid-feedback {
+            display: block;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="job-offer-detail-hsbc-style"> 
+    <div class="background-images">
+        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
+        <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-4">
+    </div>
+
+    <main class="hsbc-main-content"> 
+        <div class="page-container" style="grid-template-columns: 1fr; max-width: 800px; margin: auto;">
+        
+            {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+                <form class="form-panel application-form" id="applicationForm" method="POST" enctype="multipart/form-data">
+                    <h3>Your Application for {{ offer.Title }}</h3>
+                    <p>Please complete the form below. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}">View job details again</a>.</p>
+                    <hr style="margin: 1.5rem 0;">
+
+                    <div id="formErrorMessages" class="alert alert-danger" style="display:none; background-color: var(--hsbc-panel-background); border-color: var(--danger-color); color: var(--danger-color);"></div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required>
+                        <span class="invalid-feedback" id="error_full_name"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required>
+                        <span class="invalid-feedback" id="error_email"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">Phone Number</label>
+                        <input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required>
+                        <span class="invalid-feedback" id="error_phone_number"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="referralCode">Referral Code (If you have one)</label>
+                        <input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123">
+                        <div id="referralCodeFeedback" style="font-size: 0.875em; margin-top: .25rem;"></div>
+                        <span class="invalid-feedback" id="error_referral_code"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="candidateQuestions">Why are you interested in this role?</label>
+                        <textarea id="candidateQuestions" name="candidateQuestions" required>{{ form_data.get('candidateQuestions', '') }}</textarea>
+                        <span class="invalid-feedback" id="error_candidateQuestions"></span>
+                    </div>
+                    <div class="voice-recorder form-group">
+                        <label><strong>Record a Voice Introduction</strong></label>
+                        <p>In your voice note (60-90 seconds), please introduce yourself and briefly answer:<br>
+                           <b>1. Why are you interested in a call center role?</b><br>
+                           <b>2. What makes you a great fit for this position?</b></p>
+                        <button type="button" id="startBtn">Start Record</button>
+                        <button type="button" id="stopBtn" disabled>Stop Record</button>
+                        <audio id="audioPlayback" controls style="display:none"></audio>
+                        <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
+                        <span class="invalid-feedback" id="error_voice_note"></span>
+                    </div>
+                    <div class="form-group" style="margin-top: 25px;">
+                        <label for="cvUpload">Upload Your CV (PDF, DOC, DOCX)</label>
+                        <input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required>
+                        <span class="invalid-feedback" id="error_cv_file"></span>
+                    </div>
+                    <button type="submit" id="sendBtn">Send Application</button>
+                </form>
+            {% else %}
+                 <div class="form-panel">
+                    <h3>Application Error</h3>
+                    <div class="alert alert-danger">
+                        <p>There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
+                        <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="btn-secondary">Return to Job Details</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+    {{ super() }}
+    <script>
+    // --- THIS SCRIPT IS THE SAME AS THE ORIGINAL job_detail.html SCRIPT ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const applicationForm = document.getElementById('applicationForm');
+        if (!applicationForm) return; // Exit if form is not on the page
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const audioPlayback = document.getElementById('audioPlayback');
+        const voiceNoteFilenameInput = document.getElementById('voiceNoteFilename');
+        const referralCodeInput = document.getElementById('referralCode');
+        const referralCodeFeedbackDiv = document.getElementById('referralCodeFeedback');
+        const formErrorMessagesDiv = document.getElementById('formErrorMessages');
+        
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedAudioBlob = null;
+        let debounceTimer;
+
+        // Referral code validation logic (unchanged)
+        if (referralCodeInput) {
+             referralCodeInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                const code = referralCodeInput.value.trim().toUpperCase();
+                referralCodeFeedbackDiv.textContent = ''; 
+                referralCodeFeedbackDiv.className = ''; 
+                referralCodeInput.classList.remove('is-invalid'); 
+                const errorSpan = document.getElementById('error_referral_code');
+                if(errorSpan) errorSpan.textContent = '';
+
+                if (code.length === 0) { return; }
+
+                debounceTimer = setTimeout(() => {
+                    if (code) {
+                        referralCodeFeedbackDiv.textContent = 'Verifying...';
+                        referralCodeFeedbackDiv.className = 'text-muted';
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+                        fetch("{{ url_for('job_board_bp.validate_referral_code_api') }}", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken || '' },
+                            body: JSON.stringify({ referral_code: code })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                referralCodeFeedbackDiv.textContent = `Referred by: ${data.recruiter_name}`;
+                                referralCodeFeedbackDiv.className = 'text-success';
+                            } else {
+                                referralCodeFeedbackDiv.textContent = data.message || 'Invalid code.';
+                                referralCodeFeedbackDiv.className = 'text-danger';
+                            }
+                        })
+                        .catch(error => {
+                            referralCodeFeedbackDiv.textContent = 'Could not verify. Check connection.';
+                            referralCodeFeedbackDiv.className = 'text-warning';
+                        });
+                    }
+                }, 750);
+            });
+        }
+        
+        // Voice recording logic (unchanged)
+        if (startBtn) {
+            startBtn.addEventListener('click', async () => {
+                audioChunks = []; recordedAudioBlob = null;
+                audioPlayback.style.display = 'none'; audioPlayback.src = '';
+                if (voiceNoteFilenameInput) voiceNoteFilenameInput.value = '';
+                document.querySelector('.voice-recorder')?.classList.remove('is-invalid');
+                document.getElementById('error_voice_note').textContent = '';
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+                    mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                    mediaRecorder.onstop = () => {
+                        recordedAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType }); 
+                        audioPlayback.src = URL.createObjectURL(recordedAudioBlob);
+                        audioPlayback.style.display = 'block';
+                        const offerId = "{{ offer.OfferID if offer else 'unknown' }}";
+                        const userId = "{{ current_user.id if current_user.is_authenticated else 'anon' }}";
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        const fileExtension = 'webm';
+                        const autoVoiceFilename = `voice_intro_offer_${offerId}_user_${userId}_${timestamp}.${fileExtension}`;
+                        if (voiceNoteFilenameInput) voiceNoteFilenameInput.value = autoVoiceFilename;
+                    };
+                    mediaRecorder.start();
+                    startBtn.disabled = true; stopBtn.disabled = false; startBtn.textContent = 'Recording...';
+                } catch (err) {
+                    document.getElementById('error_voice_note').textContent = 'Microphone error. Please grant permission.';
+                    document.querySelector('.voice-recorder')?.classList.add('is-invalid');
+                }
+            });
+        }
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                    mediaRecorder.stop();
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    startBtn.disabled = false; stopBtn.disabled = true; startBtn.textContent = 'Start Record';
+                }
+            });
+        }
+        
+        // Form submission logic (URL updated)
+        const offerIdFormAction = "{{ offer.OfferID if offer else '' }}";
+        if (offerIdFormAction) {
+            // --- UPDATED URL ---
+            applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=0) }}".replace('0', offerIdFormAction);
+        }
+
+        applicationForm.addEventListener('submit', async (event) => {
+            event.preventDefault(); 
+            // Client-side validation logic (unchanged)
+            formErrorMessagesDiv.innerHTML = ''; formErrorMessagesDiv.style.display = 'none';
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+            const formData = new FormData(applicationForm);
+            let hasClientSideErrors = false;
+            
+            if (!formData.get('full_name')?.trim()) { hasClientSideErrors=true; document.getElementById('fullName').classList.add('is-invalid'); document.getElementById('error_full_name').textContent='Full name is required.';}
+            if (!formData.get('email')?.trim()) { hasClientSideErrors=true; document.getElementById('email').classList.add('is-invalid'); document.getElementById('error_email').textContent='Email is required.';}
+            if (!formData.get('phone_number')?.trim()) { hasClientSideErrors=true; document.getElementById('phoneNumber').classList.add('is-invalid'); document.getElementById('error_phone_number').textContent='Phone number is required.';}
+            if (!formData.get('candidateQuestions')?.trim()) { hasClientSideErrors=true; document.getElementById('candidateQuestions').classList.add('is-invalid'); document.getElementById('error_candidateQuestions').textContent='This field is required.';}
+            if (!document.getElementById('cvUpload')?.files?.length > 0) { hasClientSideErrors=true; document.getElementById('cvUpload').classList.add('is-invalid'); document.getElementById('error_cv_file').textContent='CV upload is required.';}
+            if (!recordedAudioBlob) { hasClientSideErrors=true; document.querySelector('.voice-recorder').classList.add('is-invalid'); document.getElementById('error_voice_note').textContent='Voice introduction is required.';}
+
+            if (hasClientSideErrors) {
+                formErrorMessagesDiv.innerHTML = 'Please correct the errors highlighted below.';
+                formErrorMessagesDiv.style.display = 'block';
+                return;
+            }
+
+            if (recordedAudioBlob) {
+                formData.append('voice_note', recordedAudioBlob, voiceNoteFilenameInput.value);
+            }
+            
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true; sendBtn.textContent = 'Submitting...';
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            try {
+                const response = await fetch(applicationForm.action, { 
+                    method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
+                });
+                const result = await response.json();
+                if (response.ok && result.status === 'success') {
+                    alert(result.message || "Application submitted!");
+                    window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
+                } else {
+                    let errorHtml = result.message || "Submission failed.";
+                    if (result.errors) {
+                        errorHtml = "Please correct the following errors:<ul>";
+                        for (const field in result.errors) {
+                            errorHtml += `<li>${result.errors[field]}</li>`;
+                            const fieldId = field === 'cv_file' ? 'cvUpload' : (field === 'voice_note' ? 'startBtn' : field);
+                            const elementToMark = field === 'voice_note' ? document.querySelector('.voice-recorder') : document.getElementById(fieldId);
+                            if(elementToMark) elementToMark.classList.add('is-invalid');
+                            const errorSpan = document.getElementById(`error_${field}`);
+                            if(errorSpan) errorSpan.textContent = result.errors[field];
+                        }
+                        errorHtml += "</ul>";
+                    }
+                    formErrorMessagesDiv.innerHTML = errorHtml;
+                    formErrorMessagesDiv.style.display = 'block';
+                }
+            } catch (error) {
+                formErrorMessagesDiv.textContent = "An error occurred. Check connection.";
+                formErrorMessagesDiv.style.display = 'block';
+            } finally {
+                 sendBtn.disabled = false; sendBtn.textContent = 'Send Application';
+            }
+        });
+    });
+    </script>
+{% endblock %}
+
+
+{% block footer %}
+{# This block is intentionally left empty to hide the footer on this page. #}
+{% endblock footer %}

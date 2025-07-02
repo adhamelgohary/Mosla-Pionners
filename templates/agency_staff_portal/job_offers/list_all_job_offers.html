@@ -3,64 +3,61 @@
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}{{ title }}{% endblock %}
 
-{% block head_scripts %}
-{{ super() }}
-{% endblock %}
-
-
 {% block staff_content %}
-<!-- NEW: Header with back button -->
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Back to Dashboard
+<div class="flex justify-between items-center mb-6">
+    <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+        <i class="bi bi-arrow-left -ml-1 mr-2"></i> Back to Dashboard
     </a>
-    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Create New Offer
+    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700">
+        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Create New Offer
     </a>
 </div>
 
-{% if offers %}
-    <div class="table-container">
-        <table class="table">
-            <thead>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Company</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Date Posted</th>
-                    <th>Featured</th>
-                    <th>Actions</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white divide-y divide-gray-200">
                 {% for offer in offers %}
-                <tr>
-                    <td>{{ offer.OfferID }}</td>
-                    <td>
-                        <a href="{{ url_for('job_offer_mgmt_bp.view_live_job_offer_detail', offer_id=offer.OfferID) }}">{{ offer.Title }}</a>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        <a href="{{ url_for('job_offer_mgmt_bp.view_live_job_offer_detail', offer_id=offer.OfferID) }}" class="text-primary-600 hover:text-primary-800">{{ offer.Title }}</a>
                     </td>
-                    <td>{{ offer.CompanyName }}</td>
-                    <td>{{ offer.CategoryName or 'N/A' }}</td>
-                    <td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ offer.CompanyName }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <span class="status-badge status-{{ offer.Status | lower | replace(' ', '-') }}">{{ offer.Status }}</span>
                     </td>
-                    <td>{{ offer.DatePosted | datetime }}</td>
-                    <td>{{ 'Yes' if offer.IsFeatured else 'No' }}</td>
-                    <td>
-                        <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="btn btn-sm btn-info" title="Edit"><i class="fas fa-edit"></i> Edit</a> {# Example using Font Awesome #}
-                        <form action="{{ url_for('job_offer_mgmt_bp.delete_live_job_offer', offer_id=offer.OfferID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this live job offer: \'{{ offer.Title|e }}\'? This action cannot be undone.');">
-                            <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fas fa-trash"></i> Delete</button>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ offer.DatePosted | datetime }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        {% if offer.IsFeatured %}<i class="bi bi-star-fill text-yellow-400"></i>{% else %}<i class="bi bi-star text-gray-300"></i>{% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-medium flex items-center justify-end gap-4">
+                         <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="text-info-600 hover:text-info-900" title="Edit"><i class="bi bi-pencil-square text-lg"></i></a>
+                        <form action="{{ url_for('job_offer_mgmt_bp.delete_live_job_offer', offer_id=offer.OfferID) }}" method="POST" onsubmit="return confirm('Delete \'{{ offer.Title|e }}\'? This cannot be undone.');">
+                            <button type="submit" class="text-danger-600 hover:text-danger-900" title="Delete"><i class="bi bi-trash text-lg"></i></button>
                         </form>
-                        {# <a href="#" class="btn btn-sm btn-outline-secondary">Applicants</a> #}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-16 text-gray-500">
+                        <i class="bi bi-folder-x text-5xl text-gray-300"></i>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No job offers found</h3>
+                        <p class="mt-1 text-sm text-gray-500">Get started by creating a new job offer.</p>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-{% else %}
-    <div class="alert alert-info">No live job offers found. <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}">Create one now!</a></div>
-{% endif %}
+</div>
 {% endblock %}

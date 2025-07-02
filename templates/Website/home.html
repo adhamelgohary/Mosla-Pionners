@@ -26,11 +26,11 @@
                         <span class="stat-number">2k+</span>
                         <span class="stat-label">Happy Clients</span>
                     </div>
-                    {# Removed "95% Retention Rate" as it wasn't in the Flask version, add if needed #}
                 </div>
             </div>
             <div class="hero-image">
-                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Team" >
+                {# UPDATED ALT TEXT FOR BETTER ACCESSIBILITY #}
+                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Recruitment professionals in a meeting" >
             </div>
         </div>
     </section>
@@ -38,7 +38,7 @@
     <section id="services" class="services">
         <div class="section-header">
              <h2>Our <span class="highlight-text">Services</span></h2>
-            <p>A streamlined, four-step approach to connect you with top-tier call center talent.</p> {# Or your original "A streamlined approach..." #}
+            <p>A streamlined, four-step approach to connect you with top-tier call center talent.</p>
         </div>
 
         <div class="services-grid">
@@ -66,7 +66,7 @@
                     <h3>Join Our Team</h3>
                 </div>
                 <p>Ready to connect top talent with great opportunities? Start your journey as a recruiter with Mosla Pioneers and help shape the future of call center staffing.</p>
-                <a href="{{ url_for('register_bp.apply_to_be_staff') }}" class="service-link">Apply Now →</a> {# Was "Apply as Staff" #}
+                <a href="{{ url_for('register_bp.apply_to_be_staff') }}" class="service-link">Apply Now →</a>
             </div>
             
             <div class="service-card fade-in">
@@ -75,13 +75,13 @@
                     <h3>Post a New Job</h3>
                 </div>
                 <p>Looking to fill your vacancies with the best talent? Post your job requirements through our simple form, and let us connect you with our pool of pre-screened, top-tier call center agents.</p>
-                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a> {# Was "Clients Post Here" #}
+                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
             </div>
         </div>
     </section>
 
     <section id="about" class="about">
-        <div class="about-content"> {# Keep .container if your CSS needs it, new home.css doesn't explicitly use it here #}
+        <div class="about-content">
             <div class="about-text">
                 <h2>Why Choose <span class="highlight-text">Mosla Pioneers</span>?</h2>
                 <p>We're more than just a recruitment agency; we are your strategic growth partner. We understand that finding the right talent is only the beginning. Our commitment extends from initial sourcing to post-hire success, ensuring a seamless and effective partnership that builds lasting value for your team.</p>
@@ -120,7 +120,7 @@
                     </div>
                 </div>
             </div>
-            {# Add <div class="about-image"> here if you have one from the new design and want to include it #}
+            {# The .about-content is a grid. The .about-text child is now styled to span the full width. #}
         </div>
     </section>
 
@@ -130,7 +130,6 @@
             <p>Hear from call center companies who've transformed their operations with our talent</p>
         </div>
         <div class="testimonial-grid">
-            {# Example Testimonials - these should ideally be dynamic from your backend #}
             <div class="testimonial-card">
                 <div class="testimonial-text">
                     Mosla Pioneers helped us scale our customer service team from 20 to 100 agents in just 3 months. Their candidates are pre-screened and ready to perform from day one.

@@ -1,0 +1,124 @@
+{% extends "client_portal/client_base.html" %}
+
+{% block title %}Submit New Job Position{% endblock %}
+
+{# --- MACRO DEFINITIONS --- #}
+{% macro form_field(label, name, value='', type='text', required=False, placeholder='', extra_attrs='') %}
+<div class="sm:col-span-1">
+    <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }} {% if required %}<span class="text-red-500">*</span>{% endif %}</label>
+    <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value or '' }}" placeholder="{{ placeholder }}" {{ 'required' if required }} {{ extra_attrs|safe }}
+           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-600 focus:border-primary-600">
+</div>
+{% endmacro %}
+
+{% macro select_field(label, name, options, selected_value='') %}
+<div class="sm:col-span-1">
+    <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }}</label>
+    <select id="{{ name }}" name="{{ name }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-600 focus:border-primary-600">
+        {% for key, display in options.items() %}
+            <option value="{{ key }}" {% if key|string == selected_value|string %}selected{% endif %}>{{ display }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+{# --- END MACRO DEFINITIONS --- #}
+
+
+{% block content %}
+<div class="max-w-4xl mx-auto" x-data="{ transportation: '{{ form_data.get('transportation', 'no') }}' }">
+    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Submit New Job Position</h2>
+            <p class="mt-1 text-sm text-gray-500">Provide as much detail as possible for our team to find the best candidates.</p>
+        </div>
+
+        <!-- UPDATED FORM ACTION -->
+        <form method="POST" action="{{ url_for('client_offers_bp.submit_offer') }}">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6">
+                
+                <div class="sm:col-span-2">
+                    <label for="title" class="block text-sm font-medium text-gray-700">Position / Job Title <span class="text-red-500">*</span></label>
+                    <input type="text" name="title" id="title" value="{{ form_data.get('title', '') }}" placeholder="e.g., Senior Customer Service Agent" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-600 focus:border-primary-600">
+                </div>
+                
+                {{ form_field('Job Location', 'location', form_data.get('location'), placeholder='e.g., Nasr City, Cairo') }}
+                {{ form_field('Max Age', 'max_age', form_data.get('max_age'), type='number', extra_attrs='min="18"') }}
+                {{ form_field('Hiring Deadline', 'closing_date', form_data.get('closing_date'), type='date', required=True) }}
+
+                <div class="sm:col-span-1">
+                    <label class="block text-sm font-medium text-gray-700">Contract?</label>
+                    <div class="mt-2 flex gap-x-6 p-2 rounded-md border border-gray-300 bg-white">
+                        <div class="flex items-center gap-x-2"><input type="radio" id="contract-yes" name="has_contract" value="1" {% if form_data.get('has_contract', '1') == '1' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="contract-yes" class="text-sm">Yes</label></div>
+                        <div class="flex items-center gap-x-2"><input type="radio" id="contract-no" name="has_contract" value="0" {% if form_data.get('has_contract') == '0' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="contract-no" class="text-sm">No</label></div>
+                    </div>
+                </div>
+
+                {{ select_field('Required Language', 'required_language', {'english': 'English', 'german': 'German', 'arabic': 'Arabic', 'french': 'French', 'spanish': 'Spanish', 'other': 'Other'}, form_data.get('required_language')) }}
+                {{ select_field('Required Level', 'english_level_requirement', {'b1': 'B1', 'b2': 'B2', 'c1': 'C1', 'c2': 'C2'}, form_data.get('english_level_requirement')) }}
+                {{ form_field('Candidates Needed', 'candidates_needed', form_data.get('candidates_needed', '1'), type='number', extra_attrs='min="1"') }}
+                {{ select_field('Hiring Cadence', 'hiring_cadence', {'month': 'Per Month', 'batch': 'Per Batch'}, form_data.get('hiring_cadence')) }}
+                {{ select_field('Work Location', 'work_location_type', {'site': 'On-site', 'wfh': 'Work from Home'}, form_data.get('work_location_type')) }}
+                {{ select_field('Hiring Plan', 'hiring_plan', {'long-term': 'Long-term', 'short-term': 'Short-term'}, form_data.get('hiring_plan')) }}
+
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Shift Type & Available Shifts</label>
+                    <div class="mt-2 flex flex-col gap-2 p-2 rounded-md border border-gray-300 bg-white">
+                        <div class="flex gap-x-6">
+                            <div class="flex items-center gap-x-2"><input type="radio" id="shift-fixed" name="shift_type" value="fixed" {% if form_data.get('shift_type', 'fixed') == 'fixed' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="shift-fixed">Fixed</label></div>
+                            <div class="flex items-center gap-x-2"><input type="radio" id="shift-rotational" name="shift_type" value="rotational" {% if form_data.get('shift_type') == 'rotational' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="shift-rotational">Rotational</label></div>
+                        </div>
+                        <div class="border-t my-2"></div>
+                        <div class="flex gap-x-4">
+                            {% set shifts = form_data.getlist('available_shifts') if form_data.getlist else form_data.get('available_shifts', []) %}
+                            <div class="flex items-center gap-x-2"><input type="checkbox" id="shift-morning" name="available_shifts" value="morning" {% if 'morning' in shifts %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="shift-morning">Morning</label></div>
+                            <div class="flex items-center gap-x-2"><input type="checkbox" id="shift-night" name="available_shifts" value="night" {% if 'night' in shifts %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="shift-night">Night</label></div>
+                            <div class="flex items-center gap-x-2"><input type="checkbox" id="shift-overnight" name="available_shifts" value="overnight" {% if 'overnight' in shifts %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="shift-overnight">Overnight</label></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{ form_field('Salary (Net)', 'net_salary', form_data.get('net_salary'), placeholder='e.g., 8000 EGP') }}
+                {{ form_field('Payment Term', 'payment_term', form_data.get('payment_term'), placeholder='e.g., Net 30 days') }}
+                {{ select_field('Graduation Status', 'graduation_status_requirement', {'grad': 'Graduate', 'ungrad': 'Undergraduate', 'dropout': 'Drop out', 'gap_year': 'Gap Year'}, form_data.get('graduation_status_requirement')) }}
+                {{ select_field('Nationality', 'nationality_requirement', {'any': 'Any', 'egyptian': 'Egyptian', 'foreigner': 'Foreigner'}, form_data.get('nationality_requirement')) }}
+                
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700">Benefits & Transportation</label>
+                    <div class="mt-2 space-y-4 p-3 rounded-md border border-gray-300 bg-white">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600">Benefits</p>
+                            <div class="mt-1 space-y-1">
+                                {% set benefits = form_data.getlist('benefits') if form_data.getlist else form_data.get('benefits', []) %}
+                                <div class="flex items-center gap-x-2"><input type="checkbox" id="benefit-training" name="benefits" value="paid_training" {% if 'paid_training' in benefits %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="benefit-training">Paid Training</label></div>
+                                <div class="flex items-center gap-x-2"><input type="checkbox" id="benefit-social" name="benefits" value="social_insurance" {% if 'social_insurance' in benefits %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="benefit-social">Social Insurance</label></div>
+                                <div class="flex items-center gap-x-2"><input type="checkbox" id="benefit-medical" name="benefits" value="medical_insurance" {% if 'medical_insurance' in benefits %}checked{% endif %} class="h-4 w-4 rounded text-primary-600 border-gray-300 focus:ring-primary-600"><label for="benefit-medical">Medical Insurance</label></div>
+                            </div>
+                        </div>
+                        <div class="border-t my-2"></div>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600">Transportation</p>
+                            <div class="mt-1 flex gap-x-6">
+                                <div class="flex items-center gap-x-2"><input type="radio" id="transport-no" name="transportation" value="no" x-model="transportation" class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="transport-no">No</label></div>
+                                <div class="flex items-center gap-x-2"><input type="radio" id="transport-yes" name="transportation" value="yes" x-model="transportation" class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600"><label for="transport-yes">Yes</label></div>
+                            </div>
+                            <div x-show="transportation === 'yes'" x-collapse class="mt-2">
+                                <div class="sm:col-span-1">
+                                    <label for="transportation_type" class="block text-sm font-medium text-gray-700">Type</label>
+                                    <select id="transportation_type" name="transportation_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-600 focus:border-primary-600">
+                                        <option value="d2d" {% if form_data.get('transportation_type') == 'd2d' %}selected{% endif %}>Door to Door</option>
+                                        <option value="pickup" {% if form_data.get('transportation_type') == 'pickup' %}selected{% endif %}>To Nearest Pickup Point</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-2 flex items-end">
+                    <button type="submit" class="w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">Submit Job</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

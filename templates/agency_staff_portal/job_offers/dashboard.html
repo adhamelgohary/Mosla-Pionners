@@ -3,92 +3,62 @@
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}{{ title }}{% endblock %}
 
-{% block head_scripts %}
-    {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_specific_styles.css') }}">
-{% endblock %}
-
 {% block staff_content %}
-<!-- Header with navigation buttons -->
-<div class="dashboard-page-actions">
-    <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="btn btn-primary">
-        <i class="bi bi-list-ul"></i> View & Manage All Offers
+<div class="flex flex-col sm:flex-row justify-between items-center mb-6 pb-6 border-b border-gray-200 gap-4">
+    <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <i class="bi bi-list-ul -ml-1 mr-2"></i> View & Manage All Offers
     </a>
-    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Create New Offer
+    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
+        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Create New Offer
     </a>
 </div>
 
 {% if error %}
-    <div class="alert alert-danger">
-        There was an error loading the dashboard data. Please try again later or contact support.
+    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+        <p class="text-sm text-red-700">There was an error loading the dashboard data. Please try again or contact support.</p>
     </div>
 {% else %}
-    <!-- KPI Overview Module -->
-    <div class="dashboard-module kpi-overview-module">
-        <h3>Key Performance Indicators</h3>
-        <div class="kpi-grid">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6 pb-4 border-b border-gray-200">Key Performance Indicators</h3>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
-            <!-- Row 1: Core Activity -->
-            <div class="kpi-card open-jobs-kpi">
-                <div class="card-header"><h4>Open Offers</h4></div>
-                <div class="card-body"><div class="kpi-value">{{ kpis.get('total_open_offers', '0') }}</div></div>
-                <div class="card-footer"><a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="kpi-card-link">View All</a></div>
-            </div>
-
-            <div class="kpi-card new-clients-kpi">
-                <div class="card-header"><h4>Candidates Needed</h4></div>
-                <div class="card-body"><div class="kpi-value">{{ kpis.get('total_candidates_needed', '0') }}</div></div>
-                <div class="card-footer"><span class="kpi-card-link" style="background:none; cursor:default;">For Open Jobs</span></div>
-            </div>
-
-            <div class="kpi-card sales-card">
-                <div class="card-header"><h4>New Offers This Month</h4></div>
-                <div class="card-body"><div class="kpi-value">{{ kpis.get('new_offers_this_month', '0') }}</div></div>
-                <div class="card-footer"><span class="kpi-card-link" style="background:none; cursor:default;">Pipeline Growth</span></div>
-            </div>
-
-            <div class="kpi-card enrollments-card">
-                <div class="card-header"><h4>Pending Submissions</h4></div>
-                <div class="card-body"><div class="kpi-value">{{ kpis.get('pending_submissions', '0') }}</div></div>
-                <div class="card-footer"><a href="{{ url_for('job_offer_mgmt_bp.list_review_client_submissions') }}" class="kpi-card-link">Review Now</a></div>
-            </div>
-
-            <!-- Row 2: Efficiency and Risk -->
-            <div class="kpi-card">
-                 <div class="card-header"><h4>Avg. Time to Fill</h4></div>
-                <div class="card-body">
-                    <div class="kpi-value">{{ kpis.get('avg_time_to_fill', 'N/A') }}</div>
-                    <div class="kpi-label">Days</div>
+            {% macro kpi_card(title, value, footer_text, footer_link=None, color='primary') %}
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-{{ color }}-500 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+                <div class="text-sm font-medium text-gray-500 truncate">{{ title }}</div>
+                <div class="mt-1 text-4xl font-semibold text-{{ color }}-600">{{ value }}</div>
+                <div class="mt-auto pt-3 border-t border-gray-100">
+                    {% if footer_link %}
+                    <a href="{{ footer_link }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">{{ footer_text }} →</a>
+                    {% else %}
+                    <p class="text-sm text-gray-400">{{ footer_text }}</p>
+                    {% endif %}
                 </div>
             </div>
+            {% endmacro %}
 
-            <div class="kpi-card active-candidates-kpi">
-                <div class="card-header"><h4>Client Approval Rate</h4></div>
-                <div class="card-body">
-                    <div class="kpi-value">{{ kpis.get('approval_rate', 'N/A') }}</div>
-                    <div class="kpi-label">Last 90 Days</div>
+            {{ kpi_card('Open Offers', kpis.get('total_open_offers', '0'), 'View All', url_for('job_offer_mgmt_bp.list_all_job_offers'), 'yellow') }}
+            {{ kpi_card('Candidates Needed', kpis.get('total_candidates_needed', '0'), 'For Open Jobs', None, 'green') }}
+            {{ kpi_card('New Offers This Month', kpis.get('new_offers_this_month', '0'), 'Pipeline Growth', None, 'primary') }}
+            {{ kpi_card('Pending Submissions', kpis.get('pending_submissions', '0'), 'Review Now', url_for('job_offer_mgmt_bp.list_review_client_submissions'), 'amber') }}
+            
+            <div class="bg-white p-5 rounded-lg shadow flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+                <div class="text-sm font-medium text-gray-500 truncate">Avg. Time to Fill</div>
+                <div class="mt-1 text-4xl font-semibold text-gray-700">{{ kpis.get('avg_time_to_fill', 'N/A') }}</div>
+                <div class="mt-auto pt-3 border-t border-gray-100">
+                     <p class="text-sm text-gray-400">Days</p>
                 </div>
             </div>
+            
+            {{ kpi_card('Client Approval Rate', kpis.get('approval_rate', 'N/A'), 'Last 90 Days', None, 'info') }}
 
-            <!-- THIS IS THE MODIFIED CARD -->
-            <div class="kpi-card" style="border-left-color: #dc3545;">
-                <div class="card-header"><h4>Oldest Open Offer</h4></div>
-                <div class="card-body">
-                    <div class="kpi-value">{{ kpis.get('age_of_oldest_offer', 'N/A') }}</div>
-                    <div class="kpi-label">Days Old</div>
-                </div>
-                <!-- The footer now displays the dynamic offer and company name -->
-                <div class="card-footer">
-                    <div class="kpi-context-title" title="{{ kpis.get('oldest_offer_title', '') }}">
-                        {{ kpis.get('oldest_offer_title', '') }}
-                    </div>
-                    <div class="kpi-context-company">
-                        @ {{ kpis.get('oldest_offer_company', '') }}
-                    </div>
+            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-danger-500 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
+                <div class="text-sm font-medium text-gray-500 truncate">Oldest Open Offer</div>
+                <div class="mt-1 text-4xl font-semibold text-danger-600">{{ kpis.get('age_of_oldest_offer', 'N/A') }} <span class="text-lg font-medium text-gray-500">Days</span></div>
+                <div class="mt-auto pt-3 border-t border-gray-100 text-left">
+                    <p class="text-sm font-semibold text-gray-800 truncate" title="{{ kpis.get('oldest_offer_title', '') }}">{{ kpis.get('oldest_offer_title', 'N/A') }}</p>
+                    <p class="text-xs text-gray-500 truncate">@ {{ kpis.get('oldest_offer_company', 'N/A') }}</p>
                 </div>
             </div>
-
         </div>
     </div>
 {% endif %}

@@ -1,0 +1,95 @@
+{# templates/account_manager_portal/dashboard.html (UPDATED) #}
+
+{% extends "account_manager_portal/account_manager_base.html" %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Stat Cards Section -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100">At a Glance</h3>
+        <dl class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Managed Companies KPI -->
+            <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Managed Companies</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ dashboard_data.get('managed_companies_count', 0) }}</dd>
+            </div>
+            <!-- Open Offers KPI -->
+            <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Open Job Offers</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ dashboard_data.get('open_offers_count', 0) }}</dd>
+            </div>
+            <!-- Pending Applicants KPI -->
+            <div class="overflow-hidden rounded-lg bg-white dark:bg-gray-800 px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">New Applicants to Review</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600 dark:text-red-400">{{ dashboard_data.get('pending_applicants_count', 0) }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column: My Companies -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">My Company Portfolio</h3>
+                </div>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for company in dashboard_data.managed_companies_list %}
+                    
+                    <!-- =================== THIS IS THE UPDATED BLOCK =================== -->
+                    <li class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <div class="flex items-center gap-4">
+                            <img class="h-10 w-10 rounded-full object-contain bg-white" src="{{ url_for('static', filename=company.CompanyLogoURL) if company.CompanyLogoURL else url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }} Logo">
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-gray-100">{{ company.CompanyName }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ company.OpenJobs }} open job(s)</p>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" 
+                           class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-primary rounded-lg shadow-md
+                                  dark:bg-dark-primary dark:text-gray-900
+                                  transition-all duration-200 ease-in-out
+                                  hover:bg-primary-darker hover:-translate-y-0.5 hover:shadow-lg
+                                  dark:hover:brightness-110
+                                  active:scale-95 active:shadow-sm">
+                            Manage →
+                        </a>
+                    </li>
+                    <!-- ================= END OF THE UPDATED BLOCK ================= -->
+
+                    {% else %}
+                    <li class="p-6 text-center text-gray-500 dark:text-gray-400">You do not have any companies assigned to your portfolio.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Activity (no changes here) -->
+        <div class="lg:col-span-1">
+            <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Applicants</h3>
+                </div>
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for applicant in dashboard_data.recent_applicants %}
+                    <li class="p-4">
+                        <p class="font-medium text-gray-800 dark:text-gray-200">
+                            <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="hover:underline" target="_blank">{{ applicant.FirstName }} {{ applicant.LastName }}</a>
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Applied for <span class="font-semibold">{{ applicant.JobTitle }}</span>
+                        </p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            {{ applicant.ApplicationDate.strftime('%b %d, %Y at %I:%M %p') }}
+                        </p>
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-gray-500 dark:text-gray-400">No recent applicants to review.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
