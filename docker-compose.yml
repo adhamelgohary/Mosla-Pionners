@@ -19,16 +19,10 @@ services:
       - DB_NAME=mosla_db # <-- FIX: This must match MYSQL_DATABASE below
       - DB_USER=mosla_user
       - DB_PASSWORD_FILE=/run/secrets/db_password # Path to the secret file
-      # --- Mail Settings (ensure these are set in your GitHub secrets) ---
-      - MAIL_SERVER=smtp.example.com
-      - MAIL_PORT=587
-      - MAIL_USE_TLS=True
-      - MAIL_USERNAME=your-email@example.com
-      - MAIL_PASSWORD_FILE=/run/secrets/mail_password
+
     secrets:
       - db_password
       - flask_secret_key
-      - mail_password
     depends_on:
       - db
     deploy:
