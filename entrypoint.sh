@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This line is important. It makes the script exit if a command fails.
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
 # Helper function to read a secret from a file and export it as an env var.
@@ -11,7 +11,7 @@ export_secret() {
   
   if [ -f "$secret_file" ]; then
     echo "Exporting secret from file: $secret_file"
-    # Reads the file, removes trailing newline, and exports it.
+    # Reads the file and exports it.
     export "$secret_name"="$(cat "$secret_file")"
   else
     echo "INFO: Secret file not found, skipping export for: $secret_file"
