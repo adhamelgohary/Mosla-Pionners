@@ -37,15 +37,15 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+      # THE FIX IS HERE: This tells compose to use the env var we just exported
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD_SECRET} 
       - MYSQL_DATABASE=mosla_db
       - MYSQL_USER=mosla_user
       - MYSQL_PASSWORD_FILE=/run/secrets/db_password
     secrets:
       - db_password
-      - db_root_password
+      - db_root_password # Keep this for the healthcheck
     healthcheck:
-      # This command correctly reads the password from the secret file
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=`cat /run/secrets/db_root_password`"]
       interval: 10s
       timeout: 5s
