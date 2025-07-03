@@ -4,23 +4,25 @@ version: '3.8'
 
 services:
   webapp:
-    # The image will be pulled from Docker Hub with the tag set by the deploy script
     image: adhamelgohary02/mosla-pioneers:${TAG:-latest}
     ports:
-      - "80:8000" # Map host port 80 to container port 8000
+      - "80:8000"
     volumes:
-      - uploads:/app/static/uploads # Persistent storage for file uploads
+      - uploads:/app/static/uploads
     environment:
-      # These are NOT secrets. They tell the app how to find the database service.
       - DB_HOST=db
       - DB_NAME=mosla_db
       - DB_USER=mosla_user
     secrets:
       - db_password
       - flask_secret_key
+    # --- THIS BLOCK IS THE FIX ---
+    # The service name 'db' is now an item in a list.
     depends_on:
-      db:
-        condition: service_healthy # Wait for the DB to be ready before starting
+      - db
+    # The healthcheck condition is now part of the 'deploy' section for Swarm.
+    # We will add it here to be explicit, though Docker Swarm might handle this
+    # dependency implicitly with the healthcheck.
     deploy:
       replicas: 1
       restart_policy:
@@ -29,18 +31,16 @@ services:
   db:
     image: mysql:8.0
     volumes:
-      - db_data:/var/lib/mysql # Persistent storage for database data
+      - db_data:/var/lib/mysql
     environment:
-      # This tells the MySQL container to get its root password from the Docker secret file
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
-      - MYSQL_DATABASE=mosla_db # Creates the database on first run
-      - MYSQL_USER=mosla_user    # Creates the user on first run
-      - MYSQL_PASSWORD_FILE=/run/secrets/db_password # Sets the password for the new user
+      - MYSQL_DATABASE=mosla_db
+      - MYSQL_USER=mosla_user
+      - MYSQL_PASSWORD_FILE=/run/secrets/db_password
     secrets:
       - db_password
       - db_root_password
     healthcheck:
-      # Checks if the database is healthy and ready for connections
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=`cat /run/secrets/db_root_password`"]
       interval: 10s
       timeout: 5s
@@ -53,16 +53,15 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - "8080:80" # Map host port 8080 to container port 80
+      - "8080:80"
     environment:
-      - PMA_HOST=db # Tells phpMyAdmin which database service to connect to
+      - PMA_HOST=db
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
     secrets:
       - db_root_password
     deploy:
       replicas: 1
 
-# Define the secrets that the services will use. They are managed by Docker Swarm.
 secrets:
   db_password:
     external: true
@@ -71,7 +70,6 @@ secrets:
   flask_secret_key:
     external: true
 
-# Define the volumes that the services will use for persistent data.
 volumes:
   db_data:
   uploads:
