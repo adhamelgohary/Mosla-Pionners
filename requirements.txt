@@ -60,7 +60,6 @@ platformdirs
 prompt_toolkit
 proxy_tools
 psutil
-psycopg2
 ptyprocess
 pure_eval
 pycparser
