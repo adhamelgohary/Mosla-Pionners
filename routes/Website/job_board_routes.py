@@ -11,7 +11,7 @@ job_board_bp = Blueprint('job_board_bp', __name__,
                          template_folder='../../../templates')
 
 
-@job_board_bp.route('/')
+
 @job_board_bp.route('/jobs')
 def job_offers_list():
     """
