@@ -14,18 +14,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # --- THE FIX IS HERE ---
+      # 1. Set up the Docker builder environment first.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2 # <--- ADD THIS STEP
+
+      # 2. Now, log in to Docker Hub. This login will be used by Buildx.
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3. The build and push action will now use the authenticated session.
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: adhamelgohary02/mosla-pioneers:${{ github.sha }} # Tags image with your username and a unique ID
+          tags: adhamelgohary02/mosla-pioneers:${{ github.sha }}
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@master
@@ -51,7 +58,6 @@ jobs:
             git pull origin main
 
             # Export the unique image tag as an environment variable
-            # This is how the docker-compose.yml file knows which new image to use
             export TAG=${{ github.sha }}
 
             # Deploy the application stack using the docker-compose file
