@@ -1,9 +1,11 @@
+# .github/workflows/deploy.yml
+
 name: Deploy Mosla Pioneers App
 
 on:
   push:
     branches:
-      - main
+      - main # This workflow runs every time you push to the 'main' branch
 
 jobs:
   deploy:
@@ -23,46 +25,35 @@ jobs:
         with:
           context: .
           push: true
-          tags: adhamelgohary02/mosla-pioneers:${{ github.sha }} # Hardcoded your username for safety
+          tags: adhamelgohary02/mosla-pioneers:${{ github.sha }} # Tags image with your username and a unique ID
 
-      - name: Deploy to VPS
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            # Set up secrets on the server (this is safe to run every time)
+            # Create Docker secrets on the server. The "|| true" part prevents errors if they already exist.
             echo "${{ secrets.DB_PASSWORD }}" | docker secret create db_password - || true
             echo "${{ secrets.DB_ROOT_PASSWORD }}" | docker secret create db_root_password - || true
             echo "${{ secrets.FLASK_SECRET_KEY }}" | docker secret create flask_secret_key - || true
-            # Note: mail_password secret is created but may not be used if you removed mail from app.py
-            echo "${{ secrets.MAIL_PASSWORD }}" | docker secret create mail_password - || true
 
-            # --- DEPLOYMENT SCRIPT ---
+            # Clone the repository if it doesn't exist
             APP_DIR=~/mosla-pioneers-app
             GIT_REPO_URL="https://AdhamElgohary:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git"
-
             if [ ! -d "$APP_DIR" ]; then
-              echo "Cloning repository..."
               git clone "$GIT_REPO_URL" "$APP_DIR"
-            else
-              echo "Repository exists. Pulling latest changes..."
-              cd "$APP_DIR"
-              # git config --unset-all http.extraheader # Clean previous config
-              # git config http.extraheader "AUTHORIZATION: basic $(echo -n x-access-token:${{ secrets.GH_PAT }} | base64)"
-              git pull origin main
             fi
 
-            # Navigate into the app directory
+            # Navigate into the app directory and pull the latest changes
             cd "$APP_DIR"
+            git pull origin main
 
-            # --- THE CRITICAL FIX IS HERE ---
-            # Set the TAG for the image
+            # Export the unique image tag as an environment variable
+            # This is how the docker-compose.yml file knows which new image to use
             export TAG=${{ github.sha }}
-            # Export the root password as an environment variable for docker-compose to use
-            export MYSQL_ROOT_PASSWORD_SECRET="${{ secrets.DB_ROOT_PASSWORD }}"
 
-            # Deploy the stack
+            # Deploy the application stack using the docker-compose file
             echo "Deploying stack with image tag: $TAG"
             docker stack deploy --compose-file docker-compose.yml --with-registry-auth mosla-stack

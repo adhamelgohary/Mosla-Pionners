@@ -1,22 +1,26 @@
+# docker-compose.yml
+
 version: '3.8'
 
 services:
   webapp:
+    # The image will be pulled from Docker Hub with the tag set by the deploy script
     image: adhamelgohary02/mosla-pioneers:${TAG:-latest}
     ports:
-      - "80:8000"
+      - "80:8000" # Map host port 80 to container port 8000
     volumes:
-      - uploads:/app/static/uploads
+      - uploads:/app/static/uploads # Persistent storage for file uploads
     environment:
-      # These are set by the entrypoint.sh script now
-      # - FLASK_SECRET_KEY_FILE=/run/secrets/flask_secret_key
-      # - DB_PASSWORD_FILE=/run/secrets/db_password
+      # These are NOT secrets. They tell the app how to find the database service.
       - DB_HOST=db
       - DB_NAME=mosla_db
       - DB_USER=mosla_user
     secrets:
       - db_password
       - flask_secret_key
+    depends_on:
+      db:
+        condition: service_healthy # Wait for the DB to be ready before starting
     deploy:
       replicas: 1
       restart_policy:
@@ -25,20 +29,18 @@ services:
   db:
     image: mysql:8.0
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql # Persistent storage for database data
     environment:
-      # THIS IS THE CRITICAL FIX:
-      # It tells the container to use the env var passed by the deploy script.
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD_SECRET} 
-      - MYSQL_DATABASE=mosla_db
-      - MYSQL_USER=mosla_user
-      - MYSQL_PASSWORD_FILE=/run/secrets/db_password # This is for creating the user
+      # This tells the MySQL container to get its root password from the Docker secret file
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+      - MYSQL_DATABASE=mosla_db # Creates the database on first run
+      - MYSQL_USER=mosla_user    # Creates the user on first run
+      - MYSQL_PASSWORD_FILE=/run/secrets/db_password # Sets the password for the new user
     secrets:
       - db_password
-      # We still mount the root password for the healthcheck
       - db_root_password
     healthcheck:
-      # This healthcheck is also robust
+      # Checks if the database is healthy and ready for connections
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=`cat /run/secrets/db_root_password`"]
       interval: 10s
       timeout: 5s
@@ -48,19 +50,19 @@ services:
       restart_policy:
         condition: on-failure
 
-  # (Optional but recommended) phpMyAdmin service
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - "8080:80"
+      - "8080:80" # Map host port 8080 to container port 80
     environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      - PMA_HOST=db # Tells phpMyAdmin which database service to connect to
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
     secrets:
       - db_root_password
     deploy:
       replicas: 1
 
+# Define the secrets that the services will use. They are managed by Docker Swarm.
 secrets:
   db_password:
     external: true
@@ -69,6 +71,7 @@ secrets:
   flask_secret_key:
     external: true
 
+# Define the volumes that the services will use for persistent data.
 volumes:
   db_data:
   uploads:

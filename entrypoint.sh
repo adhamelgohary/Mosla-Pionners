@@ -1,28 +1,24 @@
 #!/bin/sh
+# entrypoint.sh
 
-# Exit immediately if a command exits with a non-zero status.
+# Exit immediately if a command fails
 set -e
 
-# Helper function to read a secret from a file and export it as an env var.
-# It checks if the file exists first.
+# This function reads a secret from a file and makes it available as an environment variable
 export_secret() {
   local secret_name="$1"
   local secret_file="/run/secrets/$2"
   
   if [ -f "$secret_file" ]; then
-    echo "Exporting secret from file: $secret_file"
     export "$secret_name"="$(cat "$secret_file")"
-  else
-    echo "INFO: Secret file not found, skipping export for: $secret_file"
   fi
 }
 
-# --- Use the helper function for all secrets ---
+# Use the function to export secrets needed by app.py and db.py
 export_secret "FLASK_SECRET_KEY" "flask_secret_key"
 export_secret "DB_PASSWORD" "db_password"
-# The mail password secret is optional, the script will not fail if it's missing.
-export_secret "MAIL_PASSWORD" "mail_password"
 
-echo "--- Entrypoint script finished. Executing main command. ---"
+echo "--- Secrets exported. Starting Gunicorn server. ---"
 
+# Run the command that was passed to the container (the CMD from the Dockerfile)
 exec "$@"
