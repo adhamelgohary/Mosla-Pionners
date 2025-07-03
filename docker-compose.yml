@@ -3,7 +3,7 @@ version: '3.8'
 services:
   webapp:
     # This image name must match what you build in your GitHub Actions workflow
-    image: your_dockerhub_username/mosla-pioneers:${TAG:-latest}
+    image: adhamelgohary02/mosla-pioneers:${TAG:-latest}
     ports:
       # Map port 80 on the VPS to port 8000 in the container (where Gunicorn listens)
       - "80:8000"
