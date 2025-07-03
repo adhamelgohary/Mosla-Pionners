@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, jsonify
 from flask_login import login_required, current_user
-from db11 import get_db_connection
+from db import get_db_connection
 from utils.directory_configs import save_file_from_config # For CV uploads
 import datetime
 import mysql.connector

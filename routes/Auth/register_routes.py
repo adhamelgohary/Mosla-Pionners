@@ -6,7 +6,7 @@ import os
 import datetime
 import re
 import mysql.connector
-from db11 import get_db_connection
+from db import get_db_connection
 from .login_routes import is_safe_url # Import the helper
 
 register_bp = Blueprint('register_bp', __name__, template_folder='../templates/auth') # Adjusted template_folder if needed

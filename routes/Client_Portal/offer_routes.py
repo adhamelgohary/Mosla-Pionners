@@ -3,7 +3,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, session, abort
 from flask_login import login_required, current_user
 from functools import wraps
-from db11 import get_db_connection
+from db import get_db_connection
 import mysql.connector
 
 # Define a specific blueprint for offers

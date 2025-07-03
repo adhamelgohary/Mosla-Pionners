@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, abort, current_app
 from flask_login import login_required # Or your specific role decorator
-from db11 import get_db_connection
+from db import get_db_connection
 import mysql.connector
 
 candidate_details_bp = Blueprint('candidate_details_bp', __name__,
