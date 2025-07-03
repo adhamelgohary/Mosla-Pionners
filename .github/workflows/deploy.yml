@@ -15,8 +15,9 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.adhamelgohary02 }}
-          password: ${{ secrets.dckr_pat_u44pZbebyqHt4RfnFtHsUJfUsbQ }}
+          # CORRECT: Use the NAME of the secret
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -29,9 +30,10 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.168.231.80.143 }}
-          username: ${{ secrets.root }}
-          password: ${{ secrets.Moslla@20@25 }}
+          # CORRECT: Use the NAME of the secret
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
             # Set up secrets on the server (this is safe to run every time)
             echo "${{ secrets.DB_PASSWORD }}" | docker secret create db_password - || true
@@ -39,27 +41,29 @@ jobs:
             echo "${{ secrets.FLASK_SECRET_KEY }}" | docker secret create flask_secret_key - || true
             echo "${{ secrets.MAIL_PASSWORD }}" | docker secret create mail_password - || true
 
-            # --- NEW AND IMPROVED DEPLOYMENT SCRIPT ---
-            # Define the app directory
+            # --- DEPLOYMENT SCRIPT ---
             APP_DIR=~/mosla-pioneers-app
+            # IMPORTANT: Replace with your repo's HTTPS URL using your GH_PAT secret
+            GIT_REPO_URL="https://your_github_username:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git"
 
-            # Clone the repo if the directory doesn't exist, otherwise pull the latest changes
+
             if [ ! -d "$APP_DIR" ]; then
               echo "Cloning repository..."
-              # IMPORTANT: Replace with your actual repository URL
-              git clone https://github.com/your-username/your-repo-name.git "$APP_DIR"
+              git clone "$GIT_REPO_URL" "$APP_DIR"
             else
               echo "Repository exists. Pulling latest changes..."
               cd "$APP_DIR"
+              # Configure git to use the PAT for this pull
+              git config http.extraheader "AUTHORIZATION: basic $(echo -n x-access-token:${{ secrets.GH_PAT }} | base64)"
               git pull origin main
             fi
 
             # Navigate into the app directory
             cd "$APP_DIR"
 
-            # Set the TAG environment variable so docker-compose.yml can use it
+            # Set the TAG environment variable
             export TAG=${{ github.sha }}
 
-            # Deploy the stack using the compose file that is now on the server
+            # Deploy the stack
             echo "Deploying stack with image tag: $TAG"
             docker stack deploy --compose-file docker-compose.yml --with-registry-auth mosla-stack
