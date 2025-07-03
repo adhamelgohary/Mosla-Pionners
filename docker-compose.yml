@@ -8,44 +8,37 @@ services:
     volumes:
       - uploads:/app/static/uploads
     environment:
-      # --- Flask & App Settings ---
-      - FLASK_SECRET_KEY_FILE=/run/secrets/flask_secret_key
-      - FLASK_SESSION_LIFETIME=7200
-      # --- Database Connection Settings ---
+      # These are set by the entrypoint.sh script now
+      # - FLASK_SECRET_KEY_FILE=/run/secrets/flask_secret_key
+      # - DB_PASSWORD_FILE=/run/secrets/db_password
       - DB_HOST=db
       - DB_NAME=mosla_db
       - DB_USER=mosla_user
-      - DB_PASSWORD_FILE=/run/secrets/db_password
-      # --- Mail Settings (optional, but good to have) ---
-      # Ensure you have these secrets if your app needs to send email
-      - MAIL_PASSWORD_FILE=/run/secrets/mail_password
-      # You might need other MAIL_* vars here depending on your app.py setup
     secrets:
       - db_password
       - flask_secret_key
-      - mail_password # Add mail_password secret here
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
 
   db:
     image: mysql:8.0
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      # THE FIX IS HERE: This tells compose to use the env var we just exported
+      # THIS IS THE CRITICAL FIX:
+      # It tells the container to use the env var passed by the deploy script.
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD_SECRET} 
       - MYSQL_DATABASE=mosla_db
       - MYSQL_USER=mosla_user
-      - MYSQL_PASSWORD_FILE=/run/secrets/db_password
+      - MYSQL_PASSWORD_FILE=/run/secrets/db_password # This is for creating the user
     secrets:
       - db_password
-      - db_root_password # Keep this for the healthcheck
+      # We still mount the root password for the healthcheck
+      - db_root_password
     healthcheck:
+      # This healthcheck is also robust
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=`cat /run/secrets/db_root_password`"]
       interval: 10s
       timeout: 5s
@@ -55,8 +48,19 @@ services:
       restart_policy:
         condition: on-failure
 
-# Define all the secrets your services will use.
-# 'external: true' means they are created on the VPS by your GitHub Actions script.
+  # (Optional but recommended) phpMyAdmin service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets:
+      - db_root_password
+    deploy:
+      replicas: 1
+
 secrets:
   db_password:
     external: true
@@ -64,10 +68,7 @@ secrets:
     external: true
   flask_secret_key:
     external: true
-  mail_password:
-    external: true
 
-# Define the named volumes for persistent data.
 volumes:
   db_data:
   uploads:
