@@ -1,25 +1,28 @@
 #!/bin/sh
+
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
-echo "--- Running entrypoint.sh ---"
+# Helper function to read a secret from a file and export it as an env var.
+# It checks if the file exists first.
+export_secret() {
+  local secret_name="$1"
+  local secret_file="/run/secrets/$2"
+  
+  if [ -f "$secret_file" ]; then
+    echo "Exporting secret from file: $secret_file"
+    export "$secret_name"="$(cat "$secret_file")"
+  else
+    echo "INFO: Secret file not found, skipping export for: $secret_file"
+  fi
+}
 
-# Check for flask_secret_key and export it
-if [ -f /run/secrets/flask_secret_key ]; then
-    echo "Exporting FLASK_SECRET_KEY..."
-    export FLASK_SECRET_KEY=$(cat /run/secrets/flask_secret_key)
-fi
+# --- Use the helper function for all secrets ---
+export_secret "FLASK_SECRET_KEY" "flask_secret_key"
+export_secret "DB_PASSWORD" "db_password"
+# The mail password secret is optional, the script will not fail if it's missing.
+export_secret "MAIL_PASSWORD" "mail_password"
 
-# Check for db_password and export it
-if [ -f /run/secrets/db_password ]; then
-    echo "Exporting DB_PASSWORD..."
-    export DB_PASSWORD=$(cat /run/secrets/db_password)
-fi
+echo "--- Entrypoint script finished. Executing main command. ---"
 
-# Check for mail_password and export it (optional)
-if [ -f /run/secrets/mail_password ]; then
-    echo "Exporting MAIL_PASSWORD..."
-    export MAIL_PASSWORD=$(cat /run/secrets/mail_password)
-fi
-
-echo "--- Entrypoint script finished. Executing main command: $@ ---"
 exec "$@"
