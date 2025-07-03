@@ -1,7 +1,8 @@
 # Dockerfile
 
 # Use an official Python runtime as a parent image
-FROM python:3.9-slim
+# --- THIS IS THE FIX ---
+FROM python:3.11-slim
 
 # Set the working directory inside the container
 WORKDIR /app
