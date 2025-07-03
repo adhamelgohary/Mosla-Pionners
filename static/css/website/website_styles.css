@@ -143,6 +143,11 @@ body {
     transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
+/* NEW: Prevents scrolling when mobile nav is open */
+body.mobile-nav-active {
+    overflow: hidden;
+}
+
 html[data-theme="dark"] img:not(.logo-image):not(.company-logo-img) {
     filter: brightness(.8) contrast(1.2);
 }
@@ -243,6 +248,13 @@ header nav {
     font-weight: 600;
 }
 
+/* NEW: Wrapper for header control buttons */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* This is the superior, animated version of the theme toggle button styles */
 .theme-toggle-button {
     position: relative;
@@ -259,7 +271,6 @@ header nav {
     overflow: hidden;
     transform: rotate(0deg) scale(1);
     transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease, transform 0.4s ease-out;
-    margin-left: 1.5rem;
 }
 
 .theme-toggle-button:hover { 
@@ -345,8 +356,8 @@ p {
 
 .hero-content {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.5rem; /* Adjusted */
+    grid-template-columns: 1.1fr 0.9fr; /* Give text slightly more space */
+    gap: 3.5rem; /* Increased gap */
     align-items: center;
     position: relative;
     z-index: 1;
@@ -424,14 +435,19 @@ html[data-theme="dark"] .btn-secondary:hover {
     color: var(--background-color);
 }
 
+/* MODIFIED: Center the hero image properly */
 .hero-image {
     position: relative;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .hero-image img {
-    max-width: 60%;
+    max-width: 90%; /* Let it fill the flex container */
     height: auto;
+    border-radius: 16px; /* Add rounded corners */
+    box-shadow: var(--card-shadow); /* Add a subtle shadow */
 }
 
 /* --- Services Section --- */
@@ -466,7 +482,7 @@ html[data-theme="dark"] .btn-secondary:hover {
 
 .services-grid {
     display: flex;
-    gap: 1.75rem; /* Adjusted */
+    gap: 2rem; /* MODIFIED: Increased gap */
     position: relative;
     z-index: 1;
     margin: 0;
@@ -485,15 +501,16 @@ html[data-theme="dark"] .btn-secondary:hover {
     z-index: 0;
 }
 
+/* MODIFIED: Increased card size and padding */
 .service-card {
     background: var(--card-bg);
-    padding: 1.75rem; /* Adjusted */
+    padding: 2rem;
     border-radius: 15px;
     box-shadow: var(--card-shadow);
     transition: all 0.3s ease;
     position: relative;
     z-index: 2;
-    flex: 1 0 280px;
+    flex: 1 0 300px;
     border-top: 4px solid;
     display: flex;
     flex-direction: column;
@@ -623,17 +640,19 @@ html[data-theme="dark"] .about-text p {
     transition: background var(--transition-speed) ease;
 }
 
+/* MODIFIED: Increased card size and gap */
 .testimonial-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 2.5rem;
     margin: 3rem auto 0;
     padding: 0 35px;
 }
 
+/* MODIFIED: Increased padding */
 .testimonial-card {
     background: var(--card-bg);
-    padding: 2rem; /* Adjusted */
+    padding: 2.2rem;
     border-radius: 15px;
     box-shadow: var(--card-shadow);
     position: relative;
@@ -829,6 +848,53 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
 
 
 /* ============================================= */
+/* ==     MOBILE NAVIGATION STYLES            == */
+/* ============================================= */
+
+/* NEW: Hamburger menu button */
+.mobile-menu-toggle {
+    display: none; /* Hidden on desktop */
+    position: relative;
+    z-index: 1001; /* Sits above the slide-in nav */
+    width: 35px;
+    height: 35px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.mobile-menu-toggle .bar {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 3px;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* NEW: Animate hamburger to an 'X' when active */
+body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(1) {
+    transform: translateY(9px) rotate(45deg);
+}
+body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(2) {
+    opacity: 0;
+}
+body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(3) {
+    transform: translateY(-9px) rotate(-45deg);
+}
+
+/* NEW: Slide in nav when active */
+body.mobile-nav-active .nav-links {
+    transform: translateX(0);
+}
+
+
+/* ============================================= */
 /* ==     RESPONSIVE DESIGN                   == */
 /* ============================================= */
 @media (max-width: 1024px) {
@@ -849,12 +915,42 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
     .logo span {
         font-size: 1.4rem;
     }
-    .nav-links {
-        display: none;
-    } 
+
+    /* NEW: Show hamburger menu button */
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    /* NEW: Hide theme toggle on small screens to reduce clutter */
     .theme-toggle-button {
-        margin-left: auto;
-    } 
+        display: none;
+    }
+
+    /* NEW: Define mobile navigation style (hidden by default) */
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 80%;
+        max-width: 320px;
+        height: 100vh;
+        background: var(--background-color);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+        
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 6rem;
+        gap: 2.5rem;
+        
+        transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        z-index: 1000;
+    }
+
+    .nav-links a {
+        font-size: 1.2rem;
+    }
     
     .hero-content, .about-content {
         grid-template-columns: 1fr;
@@ -898,6 +994,7 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
     }
     .hero-image {
         margin-top: 2rem;
+        order: -1; /* Move image above text on mobile */
     }
     .hero-image img {
         max-width: 80%;
