@@ -12,6 +12,7 @@ job_board_bp = Blueprint('job_board_bp', __name__,
 
 
 
+
 @job_board_bp.route('/jobs')
 def job_offers_list():
     """
