@@ -29,9 +29,9 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ secrets.168.231.80.143 }}
+          username: ${{ secrets.root }}
+          password: ${{ secrets.Moslla@20@25 }}
           script: |
             # Set up secrets on the server (this is safe to run every time)
             echo "${{ secrets.DB_PASSWORD }}" | docker secret create db_password - || true
