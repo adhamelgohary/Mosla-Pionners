@@ -44,7 +44,7 @@ jobs:
             # --- DEPLOYMENT SCRIPT ---
             APP_DIR=~/mosla-pioneers-app
             # IMPORTANT: Replace with your repo's HTTPS URL using your GH_PAT secret
-            GIT_REPO_URL="https://your_github_username:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git"
+            GIT_REPO_URL="https://AdhamElgohary:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git"
 
 
             if [ ! -d "$APP_DIR" ]; then
