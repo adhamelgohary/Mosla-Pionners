@@ -1,30 +1,85 @@
 /* static/css/login.css */
 
-    :root {
-        /* Light Mode Variables */
-        --background-color: #f6f8fa;
-        --form-background-color: #ffffff;
-        --text-color: #333;
-        --subtle-text-color: #666;
-        --input-background: #fff;
-        --input-border: #ddd;
-        --icon-color: #aaa;
-        --primary-accent: #2c5aa0;
-        --logo-text-color: rgb(39, 92, 173);
-    }
+    /* ============================================= */
+/* ==     THEME & COLOR VARIABLES (UPDATED)   == */
+/* ============================================= */
+:root {
+    /* Color Palette */
+    --primary-color: #2c5aa0; 
+    --primary-color-rgb: 44, 90, 160; 
+    --primary-color-darker: #214070;
+    --secondary-color: #62bfe6;
+    --secondary-color-rgb: 98, 191, 230; 
+    
+    /* Text */
+    --text-color: #403e3e; 
+    --text-muted: #666; 
+    --dark-section-text: #ffffff; 
+    --footer-text: #ccc; 
+    
+    /* Backgrounds & Surfaces */
+    --background-color: #f6f8fa; /* Updated for auth pages consistency */
+    --header-bg: linear-gradient(135deg, #f6ebe6 0%, #e2e9f1 100%); 
+    --card-bg: #ffffff; 
+    --dark-section-bg: linear-gradient(135deg, #2c5aa0, #1e3f73); 
+    --footer-bg: #1a1a1a; 
+    
+    /* Misc */
+    --card-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    --highlight-gradient: linear-gradient(135deg, var(--secondary-color), #4a9eff); 
+    --footer-link-hover: var(--secondary-color); 
+    --transition-speed: 0.3s; 
+    --bg-image-opacity: 0.08;
 
-    body.dark-mode {
-        /* Dark Mode Variables */
-        --background-color: #121212;
-        --form-background-color: #1e1e1e;
-        --text-color: #e0e0e0;
-        --subtle-text-color: #a0a0a0;
-        --input-background: #2a2a2a;
-        --input-border: #444;
-        --icon-color: #777;
-        --primary-accent: #62bfe6;
-        --logo-text-color: #62bfe6;
-    }
+    /* Forms & Other Pages */
+    --content-bg-color: var(--card-bg);
+    --input-bg-color: #ffffff; 
+    --heading-color: #1a2a4d;
+    --logo-text-color: var(--primary-color);
+    --link-color: var(--primary-color);
+    --border-color: #D1D5DB;
+    --input-border-color: #cbd5e0;
+    --focus-ring-color: rgba(var(--primary-color-rgb), 0.25);
+    --danger-color: #dc3545; 
+    --font-family: 'Poppins', 'Arial', sans-serif;
+}
+
+html[data-theme="dark"] {
+    /* --- Dark Mode Color Palette --- */
+    --primary-color:  #62bfe6; 
+    --primary-color-rgb: 98, 191, 230; 
+    --primary-color-darker: #4aadd9; /* Adjusted darker shade */
+    --secondary-color: #87CEEB; 
+    --secondary-color-rgb: 135, 206, 235;
+
+    /* --- Dark Mode Text --- */
+    --text-color: #e0e0e0;
+    --text-muted: #a0a0a0; 
+    --footer-text: #a0a0a0;
+    
+    /* --- Dark Mode Backgrounds & Surfaces --- */
+    --background-color: #111827; 
+    --header-bg: #1e2945; 
+    --card-bg:#1e2945; 
+    --dark-section-bg: linear-gradient(135deg, #1e2945, #162138); 
+    --footer-bg: #161d30; 
+
+    /* --- Dark Mode Misc --- */
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    --highlight-gradient: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    --footer-link-hover: var(--primary-color); 
+    --bg-image-opacity: 0.05;
+
+    /* --- Dark Mode Forms & Other --- */
+    --content-bg-color: var(--card-bg);
+    --input-bg-color: #314156; 
+    --heading-color: #F9FAFB;
+    --logo-text-color: var(--primary-color);
+    --link-color: var(--primary-color);
+    --border-color: #374151;
+    --input-border-color: #4A5568;
+    --danger-color: #f1aeb5;
+}
 
 * {
     margin: 0;
@@ -58,7 +113,7 @@ body {
     width: 100%;
     max-width: 480px;
     padding: 2.5rem 3rem;
-    background-color: var(--form-background-color);
+    background-color: var(--card-bg);
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.05);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -66,7 +121,7 @@ body {
     z-index: 2;
 }
 
-body.dark-mode .form-wrapper {
+html[data-theme="dark"] .form-wrapper {
      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
 
@@ -93,12 +148,12 @@ body.dark-mode .form-wrapper {
     font-weight: 600;
     text-align: center;
     margin-bottom: 0.5rem;
-    color: var(--primary-accent);
+    color: var(--heading-color);
 }
 
 .form-wrapper .subtitle {
     text-align: center;
-    color: var(--subtle-text-color);
+    color: var(--text-muted);
     margin-bottom: 2rem;
 }
 
@@ -114,7 +169,7 @@ body.dark-mode .form-wrapper {
     transform: translateY(-50%);
     width: 20px;
     height: 20px;
-    fill: var(--icon-color);
+    fill: var(--text-muted);
     transition: fill 0.3s ease;
     z-index: 2;
 }
@@ -124,8 +179,8 @@ body.dark-mode .form-wrapper {
 .input-group textarea {
     width: 100%;
     padding: 14px 14px 14px 50px;
-    border: 1px solid var(--input-border);
-    background-color: var(--input-background);
+    border: 1px solid var(--input-border-color);
+    background-color: var(--input-bg-color);
     color: var(--text-color);
     border-radius: 8px;
     font-size: 1rem;
@@ -137,8 +192,8 @@ body.dark-mode .form-wrapper {
 .input-group select:focus,
 .input-group textarea:focus {
     outline: none;
-    border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem var(--focus-ring-color);
 }
 
 
@@ -162,11 +217,11 @@ body.dark-mode .form-wrapper {
     padding: 0;
     outline: none;
     z-index: 3; /* Above input field's focus outline */
-    color: var(--icon-color);
+    color: var(--text-muted);
 }
 
 .password-toggle-icon:hover svg.eye-icon {
-    fill: var(--primary-accent);
+    fill: var(--primary-color);
 }
 
 .password-toggle-icon svg.eye-icon {
@@ -180,7 +235,7 @@ body.dark-mode .form-wrapper {
 .password-toggle-icon svg.eye-open circle {
     animation: advanced-eye-movement 12s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
     transform-origin: center;
-    /* fill: var(--primary-accent); /* Optional: make pupil distinct or inherit from icon-color */
+    /* fill: var(--primary-color); /* Optional: make pupil distinct or inherit from icon-color */
     transition: transform 0.2s ease-out;
 }
 
@@ -222,18 +277,18 @@ body.dark-mode .form-wrapper {
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    color: var(--subtle-text-color);
+    color: var(--text-muted);
 }
 .remember-me input[type="checkbox"] {
     width: auto;
     padding: 0;
     margin-right: 0.3rem;
     vertical-align: middle;
-    accent-color: var(--primary-accent); /* Modern way to color checkbox */
+    accent-color: var(--primary-color); /* Modern way to color checkbox */
 }
 
 .forgot-password, .signup-link a {
-    color: var(--primary-accent);
+    color: var(--link-color);
     text-decoration: none;
     font-weight: 500;
 }
@@ -246,7 +301,7 @@ body.dark-mode .form-wrapper {
     padding: 14px;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--primary-accent), color-mix(in srgb, var(--primary-accent) 70%, black));
+    background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 70%, black));
     color: white;
     font-size: 1rem;
     font-weight: 600;
@@ -255,14 +310,14 @@ body.dark-mode .form-wrapper {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-body.dark-mode .login-button {
-    background: linear-gradient(135deg, var(--primary-accent), color-mix(in srgb, var(--primary-accent) 80%, #000));
+html[data-theme="dark"] .login-button {
+    background: linear-gradient(135deg, var(--primary-color), color-mix(in srgb, var(--primary-color) 80%, #000));
 }
 .login-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.2);
 }
-body.dark-mode .login-button:hover {
+html[data-theme="dark"] .login-button:hover {
     box-shadow: 0 8px 25px rgba(var(--primary-color-rgb), 0.15);
 }
 
@@ -270,7 +325,7 @@ body.dark-mode .login-button:hover {
     text-align: center;
     margin-top: 2rem;
     font-size: 0.9rem;
-    color: var(--subtle-text-color);
+    color: var(--text-muted);
 }
 
 /* --- Theme Toggle Button (in Nav) --- */
@@ -285,8 +340,8 @@ nav {
     z-index: 1001;
 }
 .theme-toggle-button {
-    background: var(--form-background-color);
-    border: 1px solid var(--input-border);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -299,16 +354,16 @@ nav {
     transform: rotate(0deg) scale(1);
     transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.4s ease-out;
 }
-body.dark-mode .theme-toggle-button {
+html[data-theme="dark"] .theme-toggle-button {
     transform: rotate(360deg) scale(1);
 }
 .theme-toggle-button:active { transform: rotate(0deg) scale(0.92); }
-body.dark-mode .theme-toggle-button:active { transform: rotate(360deg) scale(0.92); }
+html[data-theme="dark"] .theme-toggle-button:active { transform: rotate(360deg) scale(0.92); }
 
 .theme-toggle-button svg {
     width: 20px;
     height: 20px;
-    fill: var(--subtle-text-color);
+    fill: var(--text-muted);
     position: absolute;
     top: 50%;
     left: 50%;
@@ -316,8 +371,8 @@ body.dark-mode .theme-toggle-button:active { transform: rotate(360deg) scale(0.9
 }
 .theme-toggle-button .sun-icon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 .theme-toggle-button .moon-icon { opacity: 0; transform: translate(-50%, -50%) rotate(-90deg) scale(0); }
-body.dark-mode .theme-toggle-button .sun-icon { opacity: 0; transform: translate(-50%, -50%) rotate(90deg) scale(0); }
-body.dark-mode .theme-toggle-button .moon-icon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+html[data-theme="dark"] .theme-toggle-button .sun-icon { opacity: 0; transform: translate(-50%, -50%) rotate(90deg) scale(0); }
+html[data-theme="dark"] .theme-toggle-button .moon-icon { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
 
 /* Background Images */
 .background-images {
@@ -338,7 +393,7 @@ body.dark-mode .theme-toggle-button .moon-icon { opacity: 1; transform: translat
     transition: opacity 0.3s ease;
     filter: grayscale(0.1) contrast(1.05) brightness(0.95); /* Adjusted filter for subtlety */
 }
-body.dark-mode .bg-image {
+html[data-theme="dark"] .bg-image {
     filter: grayscale(0.2) contrast(1.1) brightness(0.85);
 }
 .image-1 { bottom: 10%; right: 5%; width: 70px; height: 70px; animation-duration: 17s; animation-timing-function: cubic-bezier(0.42, 0, 0.58, 1);}
@@ -401,28 +456,28 @@ body.dark-mode .bg-image {
     display: flex;
     align-items: center;
     width: 100%;
-    border: 1px solid var(--input-border);
+    border: 1px solid var(--input-border-color);
     border-radius: 8px;
     padding-left: 12px;
     transition: border-color 0.3s;
 }
 .file-upload-group:has(input[type="file"]:focus-visible),
 .file-upload-group:hover {
-     border-color: var(--primary-accent);
+     border-color: var(--primary-color);
 }
 .file-upload-label {
     flex-grow: 1;
     padding: 14px 14px 14px 0px;
     cursor: pointer;
-    color: var(--subtle-text-color);
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 1rem;
     line-height: 1.5;
 }
-body.dark-mode .file-upload-label {
-    color: var(--subtle-text-color);
+html[data-theme="dark"] .file-upload-label {
+    color: var(--text-muted);
 }
 .file-upload-label.has-file {
     color: var(--text-color);

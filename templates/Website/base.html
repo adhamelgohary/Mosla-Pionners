@@ -1,29 +1,23 @@
-{# templates/Website/base.html #}
+{# templates/Website/base.html (UPDATED FOR DARK MODE & MOBILE MENU) #}
 <!DOCTYPE html>
-<html lang="en"> <!-- The 'data-theme' attribute will be set here by JS -->
+<html lang="en"> <!-- data-theme attribute will be set here by JS -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Unified Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/website/website_styles.css') }}">
-    
-    <!-- Page-Specific Styles (if any) -->
-    {% block page_specific_styles %}{% endblock %}
-
-    <!-- Tailwind CSS (if you are using it) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
-    
-    <!-- Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
+    
+    <!-- HERE IS THE FIX: ADD THIS LINE FOR THE ICONS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Arial&display=swap" rel="stylesheet">
     <title>{% block title %}Mosla Pioneers{% endblock %}</title>
     {% block head_extra %}{% endblock %}
 </head>
-<body>
+<!-- ADDED DARK MODE CLASSES -->
+<body class="dark:bg-slate-900">
     <header>
         <nav>
             <a href="{{ url_for('public_routes_bp.home_page') }}" class="logo">
@@ -31,130 +25,165 @@
                 <span>Mosla Pioneers</span>
             </a>
             <ul class="nav-links" id="main-nav-links">
+                <!-- ... Nav links are okay, they are styled in CSS ... -->
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}" class="{{ 'active' if request.endpoint == 'public_routes_bp.home_page' else '' }}">Home</a></li>
                 <li><a href="{{ url_for('job_board_bp.job_offers_list') }}" class="{{ 'active' if request.blueprint == 'job_board_bp' else '' }}">Jobs</a></li>
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}#services">Services</a></li>
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}#about">About</a></li>
+                <li><a href="{{ url_for('public_routes_bp.home_page') }}#testimonials">Testimonials</a></li>
                 <li><a href="{{ url_for('public_routes_bp.contact_page') }}" class="{{ 'active' if request.endpoint == 'public_routes_bp.contact_page' else '' }}">Contact</a></li>
-                
-                <!-- Authentication Links -->
                 {% if current_user.is_authenticated %}
-                    {% if current_user.role_type in ['CEO', 'Admin', 'SourcingRecruiter', 'SourcingTeamLead'] %}
+                    {% if current_user.role_type in AGENCY_STAFF_ROLES %}
                         <li><a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}">Dashboard</a></li>
-                    {% elif current_user.role_type == 'ClientContact' %}
-                         <li><a href="{{ url_for('client_portal_bp.dashboard') }}">Dashboard</a></li>
+                    {% elif current_user.role_type in CLIENT_ROLES %}
+                        <li><a href="{{ url_for('client_dashboard_bp.dashboard') }}">Dashboard</a></li>
                     {% elif current_user.role_type == 'Candidate' %}
-                        <li><a href="{{ url_for('candidate_dashboard_bp.dashboard') }}">My Profile</a></li>
+                        <li><a href="{{ url_for('candidate_bp.dashboard') }}">My Profile</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('login_bp.logout') }}">Logout</a></li>
                 {% else %}
                     <li><a href="{{ url_for('login_bp.login', next=request.url) }}">Login</a></li>
+                    <li><a href="{{ url_for('register_bp.register_options', next=request.url) }}">Register</a></li>
                 {% endif %}
-                
-                <!-- NEW: Mobile Theme Toggle Button -->
-                <button id="mobile-theme-toggle" class="mobile-theme-toggle" aria-label="Toggle theme">
-                    <span class="icon"></span>
-                    <span class="theme-text">Switch Theme</span>
-                </button>
             </ul>
             
+            <!-- NEW: Wrapper for header controls -->
             <div class="header-controls">
                 <button id="theme-toggle" class="theme-toggle-button" aria-label="Toggle theme">
-                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
-                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/></svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/></svg>
                 </button>
+                <!-- NEW: Mobile Menu Toggle Button -->
                 <button id="mobile-menu-toggle" class="mobile-menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="main-nav-links">
-                    <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
                 </button>
             </div>
         </nav>
     </header>
 
     <div class="page-wrapper-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container flash-messages-container" style="padding-top: 1rem; max-width: 1200px; margin:1rem auto 0;">
+                {% for category, message in messages %}
+                    <!-- ADDED DARK MODE CLASSES FOR FLASH MESSAGES -->
+                    <div class="alert alert-{{ category }} dark:text-slate-900">{{ message }}</div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </div>
 
     {% block footer %}
-    <footer id="contact">
-        <div class="footer-content">
-            <!-- Footer content is fine -->
+    <footer id="contact" class="dark:bg-slate-800 dark:border-t dark:border-slate-700">
+        <!-- ADDED DARK MODE CLASSES FOR FOOTER TEXT -->
+        <div class="footer-content dark:text-slate-400">
+            <div class="footer-section">
+                <h3 class="dark:text-white">Mosla Pioneers</h3>
+                <p>Your specialized call center recruitment partner, helping businesses find top talent for customer service, telesales, and technical support roles.</p>
+            </div>
+            <div class="footer-section">
+                <h3 class="dark:text-white">Services</h3>
+                <p><a href="{{ url_for('public_routes_bp.home_page') }}#services">Our Offers</a></p>
+                <p><a href="#">Train To Hire Course</a></p>
+                <p><a href="{{ url_for('register_bp.apply_to_be_staff') }}">Join Our Team</a></p>
+                <p><a href="{{ url_for('register_bp.register_client') }}">Post a New Job</a></p>
+            </div>
+            <div class="footer-section">
+                <h3 class="dark:text-white">Contact Info</h3>
+                <p>Email: info@moslapioneers.com</p>
+                <p>Phone: +1 (555) 123-4567</p>
+                <p>Address: 123 Business Ave, City, State 12345</p>
+            </div>
+           <div class="social-links dark:text-slate-300">
+                <a href="#" aria-label="LinkedIn"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20.47,2H3.53A1.45,1.45,0,0,0,2.06,3.43V20.57A1.45,1.45,0,0,0,3.53,22H20.47a1.45,1.45,0,0,0,1.47-1.43V3.43A1.45,1.45,0,0,0,20.47,2ZM8.09,18.94H5.1V9H8.09ZM6.59,7.67a1.48,1.48,0,1,1,1.48-1.48A1.48,1.48,0,0,1,6.59,7.67ZM18.94,18.94H16V13.1c0-1.41-.5-2.38-1.76-2.38a1.91,1.91,0,0,0-1.79,1.29,2,2,0,0,0-.12.85v6.08H9.41s.05-9,0-9.94H12.3v1.3A3,3,0,0,1,15,9.21c2,0,3.94,1.29,3.94,5Z"/></svg></a>
+                <a href="#" aria-label="Facebook"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.12,5.32H17V2.14A26.11,26.11,0,0,0,14.26,2C11.54,2,9.68,3.66,9.68,6.7V9.32H6.61v3.56H9.68V22h3.68V12.88h3.06l.46-3.56H13.36V7.05C13.37,6,13.64,5.32,15.12,5.32Z"/></svg></a>
+                <a href="#" aria-label="Twitter"><svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22,5.21a7.07,7.07,0,0,1-2,.55,3.43,3.43,0,0,0,1.55-1.94,7,7,0,0,1-2.22.85,3.5,3.5,0,0,0-6,3.2,10.05,10.05,0,0,1-7.23-3.67,3.5,3.5,0,0,0,1.08,4.67,3.43,3.43,0,0,1-1.58-.43v.05A3.5,3.5,0,0,0,8,12.16a3.4,3.4,0,0,1-.92.12,3.52,3.52,0,0,1-.66-.06,3.5,3.5,0,0,0,3.26,2.43,7,7,0,0,1-4.33,1.5,6.81,6.81,0,0,1-.83,0,9.88,9.88,0,0,0,5.35,1.56c6.42,0,9.93-5.32,9.93-9.93,0-.15,0-.3,0-.45A7.1,7.1,0,0,0,22,5.21Z"/></svg></a>
+            </div>
         </div>
-        <div class="footer-bottom">
-            <p>© {% block year %}{{ '2024' }}{% endblock %} Mosla Pioneers. All rights reserved.</p>
+        <div class="footer-bottom dark:text-slate-500">
+            <p>© {% block year %}{{ current_year if current_year else '2024' }}{% endblock %} Mosla Pioneers. All rights reserved.</p>
         </div>
     </footer>
     {% endblock %}
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- THEME TOGGLER LOGIC ---
             const themeToggleButton = document.getElementById('theme-toggle');
-            const mobileThemeToggleButton = document.getElementById('mobile-theme-toggle');
             const htmlElement = document.documentElement;
-
+        
             const applyTheme = (theme) => {
-                const icon = mobileThemeToggleButton.querySelector('.icon');
-                const text = mobileThemeToggleButton.querySelector('.theme-text');
-                
                 if (theme === 'dark') {
                     htmlElement.setAttribute('data-theme', 'dark');
-                    themeToggleButton.setAttribute('aria-label', 'Switch to light theme');
-                    if (icon) icon.className = 'icon bi bi-brightness-high-fill';
-                    if (text) text.textContent = 'Light Mode';
+                    if (themeToggleButton) themeToggleButton.setAttribute('aria-label', 'Switch to light theme');
                 } else {
                     htmlElement.removeAttribute('data-theme');
-                    themeToggleButton.setAttribute('aria-label', 'Switch to dark theme');
-                    if (icon) icon.className = 'icon bi bi-moon-stars-fill';
-                    if (text) text.textContent = 'Dark Mode';
+                    if (themeToggleButton) themeToggleButton.setAttribute('aria-label', 'Switch to dark theme');
                 }
-            };
-            
-            const setThemeAndPersist = (theme) => {
-                applyTheme(theme);
-                localStorage.setItem('theme', theme);
                 fetch("{{ url_for('set_theme') }}", { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({theme: theme})
                 }).catch(error => console.error("Error sending theme preference:", error));
             };
-
-            let currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        
+            let currentTheme = localStorage.getItem('theme');
+            if (!currentTheme) {
+                currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
             applyTheme(currentTheme);
+        
+            if (themeToggleButton) {
+                themeToggleButton.addEventListener('click', () => {
+                    const newTheme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('theme', newTheme);
+                    applyTheme(newTheme);
+                });
+            }
 
-            const toggleAction = () => {
-                const newTheme = htmlElement.hasAttribute('data-theme') ? 'light' : 'dark';
-                setThemeAndPersist(newTheme);
-            };
-
-            if (themeToggleButton) themeToggleButton.addEventListener('click', toggleAction);
-            if (mobileThemeToggleButton) mobileThemeToggleButton.addEventListener('click', toggleAction);
-            
-            // --- MOBILE MENU LOGIC ---
+            // --- NEW: MOBILE MENU LOGIC ---
             const mobileMenuButton = document.getElementById('mobile-menu-toggle');
-            mobileMenuButton.addEventListener('click', (e) => {
-                // Prevent toggling the theme when opening/closing menu
-                if (e.target.closest('.mobile-menu-toggle')) {
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
                     const isExpanded = document.body.classList.contains('mobile-nav-active');
                     document.body.classList.toggle('mobile-nav-active');
                     mobileMenuButton.setAttribute('aria-expanded', !isExpanded);
-                }
-            });
-
-            // NEW: Animation on Scroll Logic
-            const animatedElements = document.querySelectorAll('.fade-in-up');
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                    }
+                    mobileMenuButton.setAttribute('aria-label', isExpanded ? 'Open menu' : 'Close menu');
                 });
-            }, {
-                threshold: 0.1 // Trigger when 10% of the element is visible
-            });
-
-            animatedElements.forEach(el => observer.observe(el));
+            }
+        
+            // --- PROXIMITY NAVIGATION LOGIC ---
+            const navLinks = document.querySelectorAll('.nav-links a');
+            const proximityThreshold = 100; // Adjust as needed
+        
+            if (navLinks.length > 0) {
+                const navElement = document.querySelector('header nav'); 
+                if (navElement) {
+                    document.addEventListener('mousemove', (e) => {
+                        if (e.target.closest('header nav')) { 
+                            navLinks.forEach(link => {
+                                const rect = link.getBoundingClientRect();
+                                const linkX = rect.left + rect.width / 2;
+                                const linkY = rect.top + rect.height / 2;
+                                const distance = Math.sqrt(Math.pow(e.clientX - linkX, 2) + Math.pow(e.clientY - linkY, 2));
+                                if (distance < proximityThreshold) { link.classList.add('is-near'); } 
+                                else { link.classList.remove('is-near'); }
+                            });
+                        } else {
+                            navLinks.forEach(link => link.classList.remove('is-near'));
+                        }
+                    });
+                    navElement.addEventListener('mouseleave', () => {
+                        navLinks.forEach(link => link.classList.remove('is-near'));
+                    });
+                }
+            }
         });
-    </script>
+        </script>
     {% block page_scripts %}{% endblock %}
 </body>
 </html>
