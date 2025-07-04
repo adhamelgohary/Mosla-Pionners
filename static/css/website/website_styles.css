@@ -444,10 +444,8 @@ html[data-theme="dark"] .btn-secondary:hover {
 }
 
 .hero-image img {
-    max-width: 90%; /* Let it fill the flex container */
+    max-width: 60%; /* Let it fill the flex container */
     height: auto;
-    border-radius: 16px; /* Add rounded corners */
-    box-shadow: var(--card-shadow); /* Add a subtle shadow */
 }
 
 /* --- Services Section --- */
