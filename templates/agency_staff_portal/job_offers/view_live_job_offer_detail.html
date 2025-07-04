@@ -1,15 +1,20 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ offer.Title or 'Job Offer Details' }}{% endblock %}
 
 {% block staff_content %}
 <div class="max-w-4xl mx-auto">
     {% if offer %}
         <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
             <div class="px-6 py-5 bg-gray-50 border-b border-gray-200">
-                <h4 class="text-xl font-semibold text-gray-900">{{ offer.Title }}</h4>
-                <p class="mt-1 text-sm text-gray-600">at <span class="font-medium">{{ offer.CompanyName }}</span></p>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="text-xl font-semibold text-gray-900">{{ offer.Title }}</h4>
+                        <p class="mt-1 text-sm text-gray-600">at <span class="font-medium">{{ offer.CompanyName }}</span></p>
+                    </div>
+                    <span class="status-badge status-{{ offer.Status|lower }}">{{ offer.Status }}</span>
+                </div>
             </div>
 
             <div class="p-6 space-y-8">
@@ -22,45 +27,56 @@
                     </div>
                 {% endmacro %}
 
-                {% macro detail_item(label, value) %}
-                    <div class="sm:col-span-1">
+                {% macro detail_item(label, value, colspan='sm:col-span-1') %}
+                    <div class="{{ colspan }}">
                         <dt class="font-medium text-gray-500">{{ label }}</dt>
                         <dd class="mt-1 text-gray-900">{{ value | safe or 'N/A' }}</dd>
                     </div>
                 {% endmacro %}
                 
-                {# CORRECTED CALL SYNTAX #}
                 {% call detail_section('Core Details') %}
-                    {{ detail_item('Status', '<span class="status-badge status-' ~ offer.Status|lower ~ '">' ~ offer.Status ~ '</span>') }}
                     {{ detail_item('Category', offer.CategoryName) }}
-                    {{ detail_item('Candidates Needed', offer.CandidatesNeeded ~ ' (' ~ offer.HiringCadence|replace('month', 'Per Month') ~ ')') }}
-                    {{ detail_item('Hiring Plan', offer.HiringPlan|replace('long-term', 'Long-term')) }}
+                    {{ detail_item('Posted By', offer.PosterFirstName ~ ' ' ~ offer.PosterLastName) }}
+                    {{ detail_item('Date Posted', offer.DatePosted | datetime) }}
+                    {{ detail_item('Closing Date', offer.ClosingDate | date) }}
+                    {{ detail_item('Location', offer.Location, colspan='sm:col-span-2') }}
+                {% endcall %}
+                
+                {% call detail_section('Hiring Details') %}
+                    {{ detail_item('Candidates Needed', offer.CandidatesNeeded) }}
+                    {{ detail_item('Hiring Cadence', offer.HiringCadence|replace('month', 'Per Month')|title) }}
+                    {{ detail_item('Hiring Plan', offer.HiringPlan|replace('_', '-')|title) }}
+                    {{ detail_item('Has Contract', 'Yes' if offer.HasContract else 'No') }}
                 {% endcall %}
 
                 {% call detail_section('Candidate Requirements') %}
-                    {{ detail_item('Language', offer.RequiredLanguage|capitalize ~ ' (' ~ offer.EnglishLevelRequirement|upper ~ ')') }}
-                    {{ detail_item('Graduation Status', offer.GraduationStatusRequirement|replace('grad', 'Graduate')) }}
+                    {{ detail_item('Language Required', offer.RequiredLanguage|capitalize ~ ' (Level: ' ~ offer.EnglishLevelRequirement|upper ~ ')' if offer.EnglishLevelRequirement else offer.RequiredLanguage|capitalize) }}
+                    {{ detail_item('Graduation Status', offer.GraduationStatusRequirement|replace('_', ' ')|title) }}
                     {{ detail_item('Nationality', offer.NationalityRequirement|capitalize) }}
-                    {{ detail_item('Max Age', offer.MaxAge) }}
+                    {{ detail_item('Maximum Age', offer.MaxAge) }}
                 {% endcall %}
 
                 {% call detail_section('Work Conditions & Package') %}
+                    {{ detail_item('Net Salary', offer.NetSalary|currency if offer.NetSalary else 'N/A') }}
+                    {{ detail_item('Payment Term', offer.PaymentTerm) }}
                     {{ detail_item('Work Location', offer.WorkLocationType|replace('wfh', 'Work From Home')|replace('site', 'On-site')) }}
                     {{ detail_item('Shift Type', offer.ShiftType|capitalize) }}
-                    {{ detail_item('Net Salary', offer.NetSalary|currency if offer.NetSalary else 'N/A') }}
-                    {{ detail_item('Transportation', 'Yes (' ~ offer.TransportationType|replace('d2d', 'Door to Door') ~ ')' if offer.IsTransportationProvided else 'No') }}
-                    <div class="sm:col-span-2">{{ detail_item('Benefits', offer.Benefits_list|join(', ')|replace('_', ' ')|title) }}</div>
+                    {{ detail_item('Available Shifts', offer.AvailableShifts_list|join(', ')|title, colspan='sm:col-span-2') }}
+                    {{ detail_item('Benefits', offer.Benefits_list|join(', ')|replace('_', ' ')|title, colspan='sm:col-span-2') }}
+                    {{ detail_item('Transportation', 'Yes (' ~ offer.TransportationType|replace('d2d', 'Door to Door')|title ~ ')' if offer.IsTransportationProvided else 'No', colspan='sm:col-span-2') }}
                 {% endcall %}
             </div>
             
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-3">
                 <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Back to List</a>
-                <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">Edit Offer</a>
+                <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                    <i class="bi bi-pencil-square mr-2"></i> Edit Offer
+                </a>
             </div>
         </div>
     {% else %}
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <p class="text-sm text-yellow-700">Job offer details could not be loaded.</p>
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
+            <p class="text-sm text-yellow-700">The requested job offer details could not be loaded or the offer does not exist.</p>
         </div>
     {% endif %}
 </div>

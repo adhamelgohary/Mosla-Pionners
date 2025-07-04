@@ -41,7 +41,8 @@ def job_offers_list():
                                    selected_location=selected_location)
 
         cursor = conn.cursor(dictionary=True)
-        sql = """
+        # Base SQL query
+        base_sql = """
             SELECT 
                 jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, 
                 jo.NetSalary, jo.DatePosted, jo.EnglishLevelRequirement,
@@ -56,16 +57,23 @@ def job_offers_list():
         conditions = []
 
         if search_term:
-            conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jo.Description LIKE %s OR jc.CategoryName LIKE %s OR jo.Location LIKE %s)")
+            # Updated search condition: jo.Description is removed as it's not in the new schema
+            conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jc.CategoryName LIKE %s OR jo.Location LIKE %s)")
             search_like = f"%{search_term}%"
-            params.extend([search_like, search_like, search_like, search_like, search_like])
+            params.extend([search_like, search_like, search_like, search_like])
         if selected_category_id:
             conditions.append("jo.CategoryID = %s")
             params.append(selected_category_id)
         if selected_location:
             conditions.append("jo.Location LIKE %s")
             params.append(f"%{selected_location}%")
+        
+        # Dynamically build the final SQL query
+        sql = base_sql
+        if conditions:
+            sql += " AND " + " AND ".join(conditions)
 
+        sql += " ORDER BY jo.DatePosted DESC" # Add consistent ordering
         
         cursor.execute(sql, tuple(params))
         job_offers_list = cursor.fetchall()
@@ -125,11 +133,8 @@ def job_detail(offer_id, job_title_slug=None):
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
 
-        # Handle Requirements (this is a TEXT field, so split is correct)
-        if offer.get('Requirements') and isinstance(offer.get('Requirements'), str):
-            offer['Requirements_list'] = [req.strip() for req in offer['Requirements'].split(';') if req.strip()]
-        else:
-            offer['Requirements_list'] = []
+        # UPDATED: Removed processing for 'Requirements' as the column is no longer in the JobOffers table.
+        # The frontend template (job_detail.html) should be updated to not expect 'Requirements_list'.
 
         # Handle Benefits (this is a SET field in MySQL which the driver converts to a Python set)
         if offer.get('Benefits'):

@@ -20,6 +20,7 @@
                             <option value="">Select Company...</option>
                             {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.get('company_id')|string == company.CompanyID|string %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
                         </select>
+                        {% if errors.get('company_id') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('company_id') }}</p>{% endif %}
                     </div>
                     <div class="sm:col-span-3">
                         <label for="category_id" class="block text-sm font-medium text-gray-700">Job Category <span class="text-red-500">*</span></label>
@@ -27,10 +28,20 @@
                             <option value="">Select Category...</option>
                              {% for category in categories %}<option value="{{ category.CategoryID }}" {% if form_data.get('category_id')|string == category.CategoryID|string %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
                         </select>
+                        {% if errors.get('category_id') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('category_id') }}</p>{% endif %}
                     </div>
-                    <div class="sm:col-span-6">
+                    <div class="sm:col-span-4">
                         <label for="position-title" class="block text-sm font-medium text-gray-700">Position / Job Title <span class="text-red-500">*</span></label>
                         <input type="text" id="position-title" name="position-title" value="{{ form_data.get('position-title', '') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Senior Customer Service Agent">
+                        {% if errors.get('position-title') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('position-title') }}</p>{% endif %}
+                    </div>
+                     <div class="sm:col-span-2">
+                        <label for="closing_date" class="block text-sm font-medium text-gray-700">Closing Date</label>
+                        <input type="date" id="closing_date" name="closing_date" value="{{ form_data.get('closing_date', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    </div>
+                    <div class="sm:col-span-6">
+                        <label for="location" class="block text-sm font-medium text-gray-700">Work Location Address</label>
+                        <input type="text" id="location" name="location" value="{{ form_data.get('location', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Maadi, Cairo">
                     </div>
                 </div>
             </div>
@@ -44,28 +55,127 @@
                         <select id="required_language" name="required_language" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                             <option value="english" {% if form_data.get('required_language') == 'english' %}selected{% endif %}>English</option>
                             <option value="german" {% if form_data.get('required_language') == 'german' %}selected{% endif %}>German</option>
+                            <option value="arabic" {% if form_data.get('required_language') == 'arabic' %}selected{% endif %}>Arabic</option>
+                            <option value="french" {% if form_data.get('required_language') == 'french' %}selected{% endif %}>French</option>
+                            <option value="spanish" {% if form_data.get('required_language') == 'spanish' %}selected{% endif %}>Spanish</option>
+                            <option value="other" {% if form_data.get('required_language') == 'other' %}selected{% endif %}>Other</option>
                         </select>
                     </div>
                     <div class="sm:col-span-2">
                         <label for="english-level" class="block text-sm font-medium text-gray-700">Level</label>
                         <select id="english-level" name="english-level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <option value="">N/A</option>
+                            <option value="b1" {% if form_data.get('english-level') == 'b1' %}selected{% endif %}>B1</option>
+                            <option value="b1+" {% if form_data.get('english-level') == 'b1+' %}selected{% endif %}>B1+</option>
                             <option value="b2" {% if form_data.get('english-level') == 'b2' %}selected{% endif %}>B2</option>
+                            <option value="b2+" {% if form_data.get('english-level') == 'b2+' %}selected{% endif %}>B2+</option>
                             <option value="c1" {% if form_data.get('english-level') == 'c1' %}selected{% endif %}>C1</option>
+                            <option value="c2" {% if form_data.get('english-level') == 'c2' %}selected{% endif %}>C2</option>
                         </select>
                     </div>
-                     <div class="sm:col-span-2">
-                        <label for="candidate-count" class="block text-sm font-medium text-gray-700">Candidates Needed</label>
-                        <input type="number" id="candidate-count" name="candidate-count" value="{{ form_data.get('candidate-count', '1') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    <div class="sm:col-span-2">
+                        <label for="grad-status" class="block text-sm font-medium text-gray-700">Graduation Status</label>
+                        <select id="grad-status" name="grad-status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <option value="grad" {% if form_data.get('grad-status') == 'grad' %}selected{% endif %}>Graduate</option>
+                            <option value="ungrad" {% if form_data.get('grad-status') == 'ungrad' %}selected{% endif %}>Undergraduate</option>
+                            <option value="dropout" {% if form_data.get('grad-status') == 'dropout' %}selected{% endif %}>Dropout</option>
+                            <option value="gap_year" {% if form_data.get('grad-status') == 'gap_year' %}selected{% endif %}>Gap Year</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="max_age" class="block text-sm font-medium text-gray-700">Max Age</label>
+                        <input type="number" id="max_age" name="max_age" value="{{ form_data.get('max_age', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        {% if errors.get('max_age') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('max_age') }}</p>{% endif %}
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="nationality" class="block text-sm font-medium text-gray-700">Nationality</label>
+                        <select id="nationality" name="nationality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <option value="any" {% if form_data.get('nationality') == 'any' %}selected{% endif %}>Any</option>
+                            <option value="egyptian" {% if form_data.get('nationality') == 'egyptian' %}selected{% endif %}>Egyptian Only</option>
+                            <option value="foreigner" {% if form_data.get('nationality') == 'foreigner' %}selected{% endif %}>Foreigner</option>
+                        </select>
                     </div>
                  </div>
             </div>
             
              <!-- Section 3: Offer Details -->
             <div class="border-t border-gray-200 pt-8">
-                 <h3 class="text-lg font-medium text-gray-900">Offer Details</h3>
+                 <h3 class="text-lg font-medium text-gray-900">Hiring & Offer Details</h3>
+                 <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                    <div class="sm:col-span-2">
+                        <label for="candidate-count" class="block text-sm font-medium text-gray-700">Candidates Needed <span class="text-red-500">*</span></label>
+                        <input type="number" id="candidate-count" name="candidate-count" value="{{ form_data.get('candidate-count', '1') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        {% if errors.get('candidates_needed') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('candidates_needed') }}</p>{% endif %}
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="hiring_cadence" class="block text-sm font-medium text-gray-700">Hiring Cadence</label>
+                        <select id="hiring_cadence" name="hiring_cadence" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <option value="month" {% if form_data.get('hiring_cadence') == 'month' %}selected{% endif %}>Per Month</option>
+                            <option value="batch" {% if form_data.get('hiring_cadence') == 'batch' %}selected{% endif %}>In a Batch</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="hiring_plan" class="block text-sm font-medium text-gray-700">Hiring Plan</label>
+                        <select id="hiring_plan" name="hiring_plan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <option value="long-term" {% if form_data.get('hiring_plan') == 'long-term' %}selected{% endif %}>Long-term</option>
+                            <option value="short-term" {% if form_data.get('hiring_plan') == 'short-term' %}selected{% endif %}>Short-term</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="salary" class="block text-sm font-medium text-gray-700">Salary (Net)</label>
+                        <input type="number" step="0.01" id="salary" name="salary" value="{{ form_data.get('salary', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('salary') }}" placeholder="e.g., 8500.00">
+                         {% if errors.get('salary') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('salary') }}</p>{% endif %}
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label for="payment_term" class="block text-sm font-medium text-gray-700">Payment Term</label>
+                        <input type="text" id="payment_term" name="payment_term" value="{{ form_data.get('payment_term', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Monthly, Net 30">
+                    </div>
+                    <div class="sm:col-span-6">
+                        <label for="has_contract" class="block text-sm font-medium text-gray-700">Contract Offered?</label>
+                        <div class="mt-2 flex items-center gap-x-4">
+                            <label class="inline-flex items-center"><input type="radio" name="has_contract" value="yes" {% if form_data.get('has_contract') == 'yes' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Yes</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="has_contract" value="no" {% if form_data.get('has_contract') == 'no' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">No</span></label>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+            
+            <!-- Section 4: Work Environment -->
+            <div class="border-t border-gray-200 pt-8">
+                 <h3 class="text-lg font-medium text-gray-900">Work Environment</h3>
+                 <div class="mt-6 space-y-6">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Work Location Type</label>
+                        <div class="mt-2 flex items-center gap-x-4">
+                            <label class="inline-flex items-center"><input type="radio" name="work_location" value="site" {% if form_data.get('work_location') == 'site' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">On-site</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="work_location" value="wfh" {% if form_data.get('work_location') == 'wfh' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Work From Home</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Shift Type</label>
+                        <div class="mt-2 flex items-center gap-x-4">
+                            <label class="inline-flex items-center"><input type="radio" name="shift_type" value="fixed" {% if form_data.get('shift_type') == 'fixed' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Fixed</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="shift_type" value="rotational" {% if form_data.get('shift_type') == 'rotational' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Rotational</span></label>
+                        </div>
+                    </div>
+                    <fieldset>
+                        <legend class="text-sm font-medium text-gray-700">Available Shifts</legend>
+                        <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
+                            {% set shifts = form_data.get('available_shifts', []) %}
+                            <div class="flex items-center"><input id="shift-morning" name="available_shifts" type="checkbox" value="morning" {% if 'morning' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-morning" class="ml-3 block text-sm text-gray-900">Morning</label></div>
+                            <div class="flex items-center"><input id="shift-night" name="available_shifts" type="checkbox" value="night" {% if 'night' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-night" class="ml-3 block text-sm text-gray-900">Night</label></div>
+                            <div class="flex items-center"><input id="shift-overnight" name="available_shifts" type="checkbox" value="overnight" {% if 'overnight' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-overnight" class="ml-3 block text-sm text-gray-900">Overnight</label></div>
+                        </div>
+                    </fieldset>
+                 </div>
+            </div>
+
+            <!-- Section 5: Benefits & Perks -->
+            <div class="border-t border-gray-200 pt-8">
+                 <h3 class="text-lg font-medium text-gray-900">Benefits & Perks</h3>
                  <div class="mt-6 space-y-6">
                     <fieldset>
-                        <legend class="text-sm font-medium text-gray-700">Benefits</legend>
+                        <legend class="text-sm font-medium text-gray-700">Benefits Package</legend>
                         <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
                             {% set benefits = form_data.get('benefits', []) %}
                             <div class="flex items-center"><input id="benefit-training" name="benefits" type="checkbox" value="paid_training" {% if 'paid_training' in benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="benefit-training" class="ml-3 block text-sm text-gray-900">Paid Training</label></div>
@@ -73,13 +183,38 @@
                             <div class="flex items-center"><input id="benefit-medical" name="benefits" type="checkbox" value="medical_insurance" {% if 'medical_insurance' in benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="benefit-medical" class="ml-3 block text-sm text-gray-900">Medical Insurance</label></div>
                         </div>
                     </fieldset>
-                    <div class="sm:col-span-2">
-                        <label for="salary" class="block text-sm font-medium text-gray-700">Salary (Net)</label>
-                        <input type="number" step="0.01" id="salary" name="salary" value="{{ form_data.get('salary', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('salary') }}">
-                         {% if errors.get('salary') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('salary') }}</p>{% endif %}
+                    <div>
+                        <label class="text-sm font-medium text-gray-700">Transportation</label>
+                        <div class="mt-2 flex items-center gap-x-4">
+                            <label class="inline-flex items-center"><input type="radio" name="transportation" value="yes" {% if form_data.get('transportation') == 'yes' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Provided</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="transportation" value="no" {% if form_data.get('transportation') == 'no' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Not Provided</span></label>
+                        </div>
+                        <div class="mt-4 pl-8">
+                            <label for="transport_type" class="text-sm font-medium text-gray-700">Transportation Type</label>
+                            <select id="transport_type" name="transport_type" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                                <option value="">Select if provided...</option>
+                                <option value="d2d" {% if form_data.get('transport_type') == 'd2d' %}selected{% endif %}>Door to Door</option>
+                                <option value="pickup" {% if form_data.get('transport_type') == 'pickup' %}selected{% endif %}>Pickup Points</option>
+                            </select>
+                        </div>
                     </div>
                  </div>
             </div>
+
+            {% if is_editing_live %}
+            <div class="border-t border-gray-200 pt-8">
+                <h3 class="text-lg font-medium text-gray-900">Offer Status</h3>
+                <div class="mt-4">
+                    <select name="status" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        <option value="Open" {% if form_data.get('Status') == 'Open' %}selected{% endif %}>Open</option>
+                        <option value="Closed" {% if form_data.get('Status') == 'Closed' %}selected{% endif %}>Closed</option>
+                        <option value="Filled" {% if form_data.get('Status') == 'Filled' %}selected{% endif %}>Filled</option>
+                        <option value="OnHold" {% if form_data.get('Status') == 'OnHold' %}selected{% endif %}>On Hold</option>
+                    </select>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
         <div class="pt-8 border-t border-gray-200 mt-8 flex justify-end gap-3">
