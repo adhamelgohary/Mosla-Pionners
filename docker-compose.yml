@@ -9,20 +9,9 @@ services:
       - "80:8000"
     volumes:
       - uploads:/app/static/uploads
-    environment:
-      - DB_HOST=db
-      - DB_NAME=mosla_db
-      - DB_USER=mosla_user
-    secrets:
-      - db_password
-      - flask_secret_key
-    # --- THIS BLOCK IS THE FIX ---
-    # The service name 'db' is now an item in a list.
+    # The .env file is now INSIDE the image, so no 'environment' block is needed here
     depends_on:
       - db
-    # The healthcheck condition is now part of the 'deploy' section for Swarm.
-    # We will add it here to be explicit, though Docker Swarm might handle this
-    # dependency implicitly with the healthcheck.
     deploy:
       replicas: 1
       restart_policy:
@@ -33,18 +22,11 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     environment:
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+      # These now read variables from the shell where 'docker stack deploy' is run
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=mosla_db
       - MYSQL_USER=mosla_user
-      - MYSQL_PASSWORD_FILE=/run/secrets/db_password
-    secrets:
-      - db_password
-      - db_root_password
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=`cat /run/secrets/db_root_password`"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - MYSQL_PASSWORD=${DB_PASSWORD}
     deploy:
       replicas: 1
       restart_policy:
@@ -55,21 +37,13 @@ services:
     ports:
       - "8080:80"
     environment:
-      - PMA_HOST=db
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
-    secrets:
-      - db_root_password
+      PMA_HOST: db
+      # This also reads the variable from the shell
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     deploy:
       replicas: 1
 
-secrets:
-  db_password:
-    external: true
-  db_root_password:
-    external: true
-  flask_secret_key:
-    external: true
-
+# No more 'secrets' block at the bottom
 volumes:
   db_data:
   uploads:

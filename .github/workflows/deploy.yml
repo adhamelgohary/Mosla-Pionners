@@ -1,11 +1,11 @@
 # .github/workflows/deploy.yml
 
-name: Deploy Mosla Pioneers App
+name: Deploy Mosla Pioneers App with .env
 
 on:
   push:
     branches:
-      - main # This workflow runs every time you push to the 'main' branch
+      - main
 
 jobs:
   deploy:
@@ -14,19 +14,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # --- THE FIX IS HERE ---
-      # 1. Set up the Docker builder environment first.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2 # <--- ADD THIS STEP
+        uses: docker/setup-buildx-action@v2
 
-      # 2. Now, log in to Docker Hub. This login will be used by Buildx.
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 3. The build and push action will now use the authenticated session.
+      # --- THIS IS THE KEY CHANGE ---
+      - name: Create .env file
+        run: |
+          echo "FLASK_SECRET_KEY=${{ secrets.FLASK_SECRET_KEY }}" >> .env
+          echo "DB_HOST=db" >> .env
+          echo "DB_NAME=mosla_db" >> .env
+          echo "DB_USER=mosla_user" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "FLASK_SESSION_LIFETIME=86400" >> .env
+          echo "--- Created .env file from secrets ---"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -34,32 +41,27 @@ jobs:
           push: true
           tags: adhamelgohary02/mosla-pioneers:${{ github.sha }}
 
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            # Create Docker secrets on the server. The "|| true" part prevents errors if they already exist.
-            echo "${{ secrets.DB_PASSWORD }}" | docker secret create db_password - || true
-            echo "${{ secrets.DB_ROOT_PASSWORD }}" | docker secret create db_root_password - || true
-            echo "${{ secrets.FLASK_SECRET_KEY }}" | docker secret create flask_secret_key - || true
+            # Set environment variables for docker-compose on the server
+            export TAG=${{ github.sha }}
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_ROOT_PASSWORD="${{ secrets.DB_ROOT_PASSWORD }}"
 
-            # Clone the repository if it doesn't exist
+            # Navigate to the app directory and pull latest compose file
             APP_DIR=~/mosla-pioneers-app
-            GIT_REPO_URL="https://AdhamElgohary:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git"
             if [ ! -d "$APP_DIR" ]; then
-              git clone "$GIT_REPO_URL" "$APP_DIR"
+              git clone "https://AdhamElgohary:${{ secrets.GH_PAT }}@github.com/AdhamElgohary/Mosla-Pionners.git" "$APP_DIR"
             fi
-
-            # Navigate into the app directory and pull the latest changes
             cd "$APP_DIR"
             git pull origin main
 
-            # Export the unique image tag as an environment variable
-            export TAG=${{ github.sha }}
-
-            # Deploy the application stack using the docker-compose file
+            # Deploy the stack
+            # Docker Compose will use the exported variables for the db service
             echo "Deploying stack with image tag: $TAG"
             docker stack deploy --compose-file docker-compose.yml --with-registry-auth mosla-stack

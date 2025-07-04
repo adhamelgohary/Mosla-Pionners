@@ -1,29 +1,23 @@
 # Dockerfile
 
-# Use an official Python runtime as a parent image
-# --- THIS IS THE FIX ---
+# Use a modern, compatible Python version
 FROM python:3.11-slim
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Install system dependencies needed for mysqlclient
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends gcc default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file and install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your application code into the container
+# --- THIS IS THE KEY CHANGE ---
+# Copy the .env file created by the GitHub Action
+COPY .env .
+# Copy the rest of the application
 COPY . .
 
-# Copy and make the entrypoint script executable
-COPY entrypoint.sh .
-RUN chmod +x ./entrypoint.sh
-ENTRYPOINT ["./entrypoint.sh"]
-
-# The port the container will listen on
 EXPOSE 8000
 
-# The command that will be run by the entrypoint script to start the app
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
+# The command to run the app. It now uses wsgi.py
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "wsgi:app"]
