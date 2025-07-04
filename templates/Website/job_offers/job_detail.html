@@ -2,15 +2,17 @@
 
 {% block title %}{{ offer.Title if offer else 'Job Offer Details' }} - Mosla Pioneers{% endblock %}
 
-{% block head_extra %}
-    {{ super() }}
-    {# No extra stylesheet needed, Tailwind handles it all #}
-{% endblock %}
-
 {% block content %}
-<main class="bg-background">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div class="bg-card p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl">
+{# The main wrapper to contain the background images and position the content #}
+<div class="job-detail-page-wrapper">
+    <div class="background-images">
+        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
+        <img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-2">
+    </div>
+
+    {# The z-10 class ensures content stays above the background images #}
+    <main class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl border border-border/50">
             {% if offer %}
                 <!-- Job Header -->
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-6 mb-6 border-b border-border">
@@ -31,11 +33,28 @@
                     {% if offer.CategoryName %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.25 3h15.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0V4.5H3V12h5.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12.75V3.75A.75.75 0 012.25 3z" /></svg> <span>{{ offer.CategoryName }}</span></div>{% endif %}
                 </div>
 
-                <!-- Content Sections -->
-                <div class="prose prose-lg max-w-none text-text-muted">
+                <!-- Content Sections with corrected rendering logic -->
+                <div class="prose prose-lg max-w-none">
                     {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
-                    {% if offer.Requirements %}<h3>Requirements</h3>{{ offer.Requirements|safe }}{% endif %}
-                    {% if offer.Benefits %}<h3>Benefits</h3>{{ offer.Benefits|safe }}{% endif %}
+                    
+                    {# === FIX FOR REQUIREMENTS === #}
+                    {% if offer.Requirements_list %}
+                        <h3>Requirements</h3>
+                        <ul>{% for req in offer.Requirements_list %}<li>{{ req }}</li>{% endfor %}</ul>
+                    {% elif offer.Requirements %}
+                        <h3>Requirements</h3>
+                        {{ offer.Requirements|safe }}
+                    {% endif %}
+
+                    {# === FIX FOR BENEFITS === #}
+                    {% if offer.Benefits_list %}
+                        <h3>Benefits</h3>
+                        <ul>{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>
+                    {% elif offer.Benefits %}
+                        <h3>Benefits</h3>
+                        {{ offer.Benefits|safe }}
+                    {% endif %}
+
                     {% if offer.CompanyDescription %}<h3>About {{ offer.CompanyName }}</h3>{{ offer.CompanyDescription|safe }}{% endif %}
                 </div>
                 
@@ -50,11 +69,10 @@
                 </div>
             {% endif %}
         </div>
-    </div>
-</main>
+    </main>
+</div>
 
 <!-- Sticky Apply Bar -->
-{% if offer %}
 <div class="sticky-apply-bar fixed bottom-0 left-0 w-full bg-card/80 backdrop-blur-sm border-t border-border shadow-2xl z-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
@@ -72,18 +90,15 @@
         </div>
     </div>
 </div>
-{% endif %}
 {% endblock %}
+
 
 {% block page_scripts %}
 {{ super() }}
 <script>
-    // This script adds padding to the bottom of the page to prevent the
-    // sticky bar from overlapping the content.
     document.addEventListener('DOMContentLoaded', function() {
         const stickyBar = document.querySelector('.sticky-apply-bar');
         const mainContent = document.querySelector('main');
-
         function updateContentPadding() {
             if (stickyBar && mainContent) {
                 const barHeight = stickyBar.offsetHeight;
@@ -96,6 +111,4 @@
 </script>
 {% endblock %}
 
-{% block footer %}
-{# This block is intentionally left empty to hide the footer on job detail pages. #}
-{% endblock footer %}
+{% block footer %}{% endblock footer %}

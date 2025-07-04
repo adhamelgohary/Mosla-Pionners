@@ -6,98 +6,105 @@
     {{ super() }}
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
     <style>
-      /* Helper style to show/hide invalid feedback */
       .invalid-feedback { display: none; }
-      .is-invalid + .invalid-feedback { display: block; }
+      .is-invalid + .invalid-feedback, 
+      .is-invalid ~ .invalid-feedback { display: block; }
     </style>
 {% endblock %}
 
 {% block content %}
-<main class="bg-background py-8 sm:py-12">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
-            <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8">
-                <div>
-                    <h2 class="text-2xl sm:text-3xl font-bold text-heading">Apply for {{ offer.Title }}</h2>
-                    <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary hover:text-primary-darker">View job details again</a>.</p>
-                </div>
-
-                <div id="formErrorMessages" class="hidden rounded-md bg-danger-50 p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0"><svg class="h-5 w-5 text-danger-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg></div>
-                        <div class="ml-3"><div id="formErrorContent" class="text-sm text-danger-700"></div></div>
-                    </div>
-                </div>
-
-                <div class="border-t border-border pt-8 space-y-6">
-                    <div>
-                        <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
-                        <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_full_name"></p>
-                    </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium leading-6 text-text">Email <span class="text-danger-500">*</span></label>
-                        <div class="mt-2"><input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_email"></p>
-                    </div>
-                    <div>
-                        <label for="phoneNumber" class="block text-sm font-medium leading-6 text-text">Phone Number <span class="text-danger-500">*</span></label>
-                        <div class="mt-2"><input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_phone_number"></p>
-                    </div>
-                    <div>
-                        <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code (Optional)</label>
-                        <div class="mt-2"><input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
-                        <div id="referralCodeFeedback" class="text-sm mt-2"></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_referral_code"></p>
-                    </div>
-                    <div>
-                        <label for="candidateQuestions" class="block text-sm font-medium leading-6 text-text">Why are you interested in this role? <span class="text-danger-500">*</span></label>
-                        <div class="mt-2"><textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input">{{ form_data.get('candidateQuestions', '') }}</textarea></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_candidateQuestions"></p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium leading-6 text-text">Record a Voice Introduction <span class="text-danger-500">*</span></label>
-                        <p class="mt-1 text-sm text-text-muted">In 60-90 seconds, introduce yourself and briefly answer: 1. Why a call center role? 2. What makes you a great fit?</p>
-                        <div id="voice-recorder-wrapper" class="mt-4 p-4 rounded-lg ring-1 ring-inset ring-input-border">
-                            <div class="flex flex-wrap items-center gap-4">
-                                <button type="button" id="startBtn" class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Start Record</button>
-                                <button type="button" id="stopBtn" disabled class="rounded-md bg-danger-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger-500 disabled:opacity-50">Stop Record</button>
-                            </div>
-                            <audio id="audioPlayback" controls class="hidden mt-4 w-full"></audio>
-                            <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
-                        </div>
-                         <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note"></p>
-                    </div>
-                    <div>
-                        <label for="cvUpload" class="block text-sm font-medium leading-6 text-text">Upload Your CV <span class="text-danger-500">*</span></label>
-                        <div class="mt-2"><input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"></div>
-                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_cv_file"></p>
-                    </div>
-                </div>
-
-                <div class="border-t border-border pt-8">
-                    <button type="submit" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button>
-                </div>
-            </form>
-        {% else %}
-             <div class="bg-card p-10 rounded-2xl shadow-xl text-center">
-                <h3 class="text-xl font-bold text-heading">Application Error</h3>
-                <div class="mt-4 rounded-md bg-danger-50 p-4">
-                    <p class="text-sm text-danger-700">There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
-                </div>
-                <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Return to Job Details</a>
-            </div>
-        {% endif %}
+<div class="job-detail-page-wrapper">
+    <div class="background-images">
+        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
+        <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-4">
     </div>
-</main>
+
+    <main class="relative z-10 bg-transparent py-8 sm:py-12">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+                <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8 border border-border/50">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-heading">Apply for {{ offer.Title }}</h2>
+                        <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary hover:text-primary-darker">View job details again</a>.</p>
+                    </div>
+
+                    <div id="formErrorMessages" class="hidden rounded-md bg-danger-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0"><svg class="h-5 w-5 text-danger-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg></div>
+                            <div class="ml-3"><div id="formErrorContent" class="text-sm text-danger-700"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-border pt-8 space-y-6">
+                        <div>
+                            <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
+                            <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_full_name"></p>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium leading-6 text-text">Email <span class="text-danger-500">*</span></label>
+                            <div class="mt-2"><input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_email"></p>
+                        </div>
+                        <div>
+                            <label for="phoneNumber" class="block text-sm font-medium leading-6 text-text">Phone Number <span class="text-danger-500">*</span></label>
+                            <div class="mt-2"><input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_phone_number"></p>
+                        </div>
+                        <div>
+                            <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code (Optional)</label>
+                            <div class="mt-2"><input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                            <div id="referralCodeFeedback" class="text-sm mt-2"></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_referral_code"></p>
+                        </div>
+                        <div>
+                            <label for="candidateQuestions" class="block text-sm font-medium leading-6 text-text">Why are you interested in this role? <span class="text-danger-500">*</span></label>
+                            <div class="mt-2"><textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input">{{ form_data.get('candidateQuestions', '') }}</textarea></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_candidateQuestions"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-text">Record a Voice Introduction <span class="text-danger-500">*</span></label>
+                            <p class="mt-1 text-sm text-text-muted">In 60-90 seconds, introduce yourself and briefly answer: 1. Why a call center role? 2. What makes you a great fit?</p>
+                            <div id="voice-recorder-wrapper" class="mt-4 p-4 rounded-lg ring-1 ring-inset ring-input-border">
+                                <div class="flex flex-wrap items-center gap-4">
+                                    <button type="button" id="startBtn" class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Start Record</button>
+                                    <button type="button" id="stopBtn" disabled class="rounded-md bg-danger-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger-500 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger-600">Stop Record</button>
+                                </div>
+                                <audio id="audioPlayback" controls class="hidden mt-4 w-full"></audio>
+                                <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
+                            </div>
+                             <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note"></p>
+                        </div>
+                        <div>
+                            <label for="cvUpload" class="block text-sm font-medium leading-6 text-text">Upload Your CV <span class="text-danger-500">*</span></label>
+                            <div class="mt-2"><input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"></div>
+                            <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_cv_file"></p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-border pt-8">
+                        <button type="submit" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button>
+                    </div>
+                </form>
+            {% else %}
+                 <div class="bg-card/90 backdrop-blur-sm p-10 rounded-2xl shadow-xl text-center border border-border/50">
+                    <h3 class="text-xl font-bold text-heading">Application Error</h3>
+                    <div class="mt-4 rounded-md bg-danger-50 p-4">
+                        <p class="text-sm text-danger-700">There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
+                    </div>
+                    <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Return to Job Details</a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
 {% endblock %}
 
 {% block page_scripts %}
     {{ super() }}
+    {# The JavaScript logic remains the same. It will now interact with the Tailwind-styled elements. #}
     <script>
-    // This JS is mostly unchanged but interacts with new Tailwind classes
-    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', () => {
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return;
 
@@ -119,11 +126,16 @@
         const markFieldValid = (field) => {
             field.classList.remove('ring-danger-500', 'is-invalid');
             field.classList.add('ring-input-border');
+            const errorEl = field.closest('div').querySelector('.invalid-feedback');
+            if(errorEl) errorEl.textContent = '';
         };
         const markFieldInvalid = (field, message) => {
             field.classList.add('ring-danger-500', 'is-invalid');
             field.classList.remove('ring-input-border');
-            const errorEl = document.getElementById(`error_${field.name || 'voice_note'}`);
+            let errorEl = field.closest('div').querySelector('.invalid-feedback');
+            if (field.id === 'voice-recorder-wrapper') {
+                 errorEl = document.getElementById('error_voice_note');
+            }
             if (errorEl) errorEl.textContent = message;
         };
 
@@ -145,7 +157,7 @@
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
                         body: JSON.stringify({ referral_code: code })
                     }).then(res => res.json()).then(data => {
-                        referralCodeFeedbackDiv.className = 'text-sm mt-2'; // reset
+                        referralCodeFeedbackDiv.className = 'text-sm mt-2';
                         if (data.status === 'success') {
                             referralCodeFeedbackDiv.textContent = `Referred by: ${data.recruiter_name}`;
                             referralCodeFeedbackDiv.classList.add('text-success-600');
@@ -258,4 +270,4 @@
     </script>
 {% endblock %}
 
-{% block footer %}{# Intentionally empty #}{% endblock footer %}
+{% block footer %}{% endblock footer %}

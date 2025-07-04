@@ -2103,6 +2103,10 @@ html[data-theme="dark"] {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
 .resize {
   resize: both;
 }
@@ -2492,10 +2496,6 @@ html[data-theme="dark"] {
   border-color: rgb(234 179 8 / var(--tw-border-opacity, 1));
 }
 
-.bg-background {
-  background-color: var(--background-color);
-}
-
 .bg-blue-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(219 234 254 / var(--tw-bg-opacity, 1));
@@ -2641,6 +2641,10 @@ html[data-theme="dark"] {
 
 .bg-tag-location-bg {
   background-color: var(--tag-location-bg);
+}
+
+.bg-transparent {
+  background-color: transparent;
 }
 
 .bg-white {
@@ -3665,6 +3669,10 @@ body {
 
 .focus-visible\:outline-offset-2:focus-visible {
   outline-offset: 2px;
+}
+
+.focus-visible\:outline-danger-600:focus-visible {
+  outline-color: #dc2626;
 }
 
 .focus-visible\:outline-primary:focus-visible {
