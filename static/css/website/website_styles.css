@@ -1,15 +1,3 @@
-/* =================================================================== */
-/* ==         Mosla Pioneers - Main Website Stylesheet              == */
-/* =================================================================== */
-/* This file merges styles from the original design and the new       */
-/* homepage design, applies UI scaling adjustments, and fixes layout  */
-/* issues for a cohesive and professional appearance.                 */
-/* =================================================================== */
-
-
-/* ============================================= */
-/* ==     THEME & COLOR VARIABLES             == */
-/* ============================================= */
 :root {
     /* Color Palette */
     --primary-color: #2c5aa0; 
