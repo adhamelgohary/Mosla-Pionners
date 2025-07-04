@@ -14,11 +14,6 @@
 
 {% block content %}
 <div class="job-detail-page-wrapper">
-    <div class="background-images">
-        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
-        <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-4">
-    </div>
-
     <main class="relative z-10 bg-transparent py-8 sm:py-12">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
