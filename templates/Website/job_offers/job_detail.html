@@ -4,101 +4,72 @@
 
 {% block head_extra %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/offer_styles.css') }}">
+    {# No extra stylesheet needed, Tailwind handles it all #}
 {% endblock %}
 
 {% block content %}
-<div class="job-offer-page-container">
-    
-    <main class="main-content">
-        <div class="offer-details">
+<main class="bg-background">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="bg-card p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl">
             {% if offer %}
-                <!-- Full Job Details Display -->
-                <div class="job-card-header">
+                <!-- Job Header -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-6 mb-6 border-b border-border">
                     {% if offer.CompanyLogoURL %}
-                        <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="company-logo">
+                        <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl bg-white p-1 flex-shrink-0">
                     {% endif %}
-                    <div class="header-text">
-                        <h1>{{ offer.Title }}</h1>
-                        <span class="company-name-display">{{ offer.CompanyName }}</span>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-heading">{{ offer.Title }}</h1>
+                        <p class="mt-1 text-lg font-medium text-primary">{{ offer.CompanyName }}</p>
                     </div>
+                </div>
+
+                <!-- Job Meta Details Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 mb-8">
+                    {% if offer.Location %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1-.368.1-.9.1-1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125c.75 0 1.5.25 2.125.625A2.982 2.982 0 0115 10.5v2.639c0 .57.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 16.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" /></svg> <span>{{ offer.Location }}</span></div>{% endif %}
+                    {% if offer.JobType %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5zM8.5 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5zM12 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5z" /></svg> <span>{{ offer.JobType }}</span></div>{% endif %}
+                    {% if offer.NetSalary %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100 6 3 3 0 000-6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg> <span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>{% endif %}
+                    {% if offer.CategoryName %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.25 3h15.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0V4.5H3V12h5.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12.75V3.75A.75.75 0 012.25 3z" /></svg> <span>{{ offer.CategoryName }}</span></div>{% endif %}
+                </div>
+
+                <!-- Content Sections -->
+                <div class="prose prose-lg max-w-none text-text-muted">
+                    {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
+                    {% if offer.Requirements %}<h3>Requirements</h3>{{ offer.Requirements|safe }}{% endif %}
+                    {% if offer.Benefits %}<h3>Benefits</h3>{{ offer.Benefits|safe }}{% endif %}
+                    {% if offer.CompanyDescription %}<h3>About {{ offer.CompanyName }}</h3>{{ offer.CompanyDescription|safe }}{% endif %}
                 </div>
                 
-                <div class="details-grid">
-                    {% if offer.Location %}
-                    <div class="detail-item">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 11.5C10.62 11.5 9.5 10.38 9.5 9S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z"/></svg>
-                        <div><strong>Location</strong><span>{{ offer.Location }}</span></div>
-                    </div>
-                    {% endif %}
-                    {% if offer.JobType %}
-                    <div class="detail-item">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2Zm-6 0h-4V4h4v2Z"/></svg>
-                        <div><strong>Job Type</strong><span>{{ offer.JobType }}</span></div>
-                    </div>
-                    {% endif %}
-                     {% if offer.NetSalary %}
-                    <div class="detail-item">
-                       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15s.63-1.62 2.15-1.62c1.48 0 2 .9 2.05 1.75H16c-.05-1.5-1.25-2.75-3.5-2.75-2.35 0-3.5 1.25-3.5 2.75s1.15 2.2 3.5 2.75c2.1.5 2.5 1.25 2.5 2.15s-.65 1.6-2.5 1.6c-1.65 0-2.2-.8-2.25-1.6H8c.05 1.55 1.3 2.8 3.8 2.8 2.4 0 3.7-1.2 3.7-2.75s-1.2-2.15-3.7-2.65Z"/></svg>
-                       <div><strong>Salary</strong><span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>
-                    </div>
-                    {% endif %}
-                    {% if offer.CategoryName %}
-                    <div class="detail-item">
-                       <svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 15.4-3.76-3.76 1.41-1.41 2.35 2.35 2.35-2.35 1.41 1.41L12 15.4ZM21 5H3v2l8 6v6l-2 2v2h6v-2l-2-2v-6l8-6V5Z"/></svg>
-                       <div><strong>Category</strong><span>{{ offer.CategoryName }}</span></div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                {% if offer.Description %}
-                <h3>Job Description</h3>
-                <div class="content-formatted">{{ offer.Description|safe }}</div>
-                {% endif %}
-
-                {% if offer.Requirements_list %}
-                <h3>Requirements</h3>
-                <ul class="styled-list">{% for req in offer.Requirements_list %}<li>{{ req }}</li>{% endfor %}</ul>
-                {% elif offer.Requirements %}
-                <div class="content-formatted">{{ offer.Requirements|safe }}</div>
-                {% endif %}
-        
-                {% if offer.Benefits_list %}
-                <h3>Benefits</h3>
-                <ul class="styled-list">{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>
-                {% elif offer.Benefits %}
-                <div class="content-formatted">{{ offer.Benefits|safe }}</div>
-                {% endif %}
-
-                {% if offer.CompanyDescription %}
-                <h3>About {{ offer.CompanyName }}</h3>
-                <div class="content-formatted">{{ offer.CompanyDescription|safe }}</div>
-                {% endif %}
-
-                <div style="margin-top: 2.5rem; text-align:center;">
-                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-secondary" style="display:inline-block; padding: 10px 20px; text-decoration: none;">← Back to All Job Offers</a>
+                <div class="mt-10 text-center">
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="text-sm font-semibold text-primary hover:text-primary-darker">← Back to All Job Offers</a>
                 </div>
             {% else %}
-                <div class="alert alert-warning" role="alert">Job offer not found or is no longer available.</div>
-                <p style="text-align:center;"><a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-secondary">← View Other Job Offers</a></p>
+                <div class="text-center py-10">
+                    <h2 class="text-xl font-bold text-heading">Job Offer Not Found</h2>
+                    <p class="mt-2 text-text-muted">This offer may no longer be available.</p>
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">← View Other Job Offers</a>
+                </div>
             {% endif %}
         </div>
-    </main>
-</div>
+    </div>
+</main>
 
 <!-- Sticky Apply Bar -->
 {% if offer %}
-<div class="sticky-apply-bar">
-    <div class="sticky-apply-bar-content">
-        <div class="job-info">
-            <h4>{{ offer.Title }}</h4>
-            <p>{{ offer.CompanyName }} • {{ offer.Location }}</p>
+<div class="sticky-apply-bar fixed bottom-0 left-0 w-full bg-card/80 backdrop-blur-sm border-t border-border shadow-2xl z-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
+            <div class="text-center sm:text-left">
+                <h4 class="font-bold text-heading text-base sm:text-lg">{{ offer.Title }}</h4>
+                <p class="text-sm text-text-muted">{{ offer.CompanyName }} • {{ offer.Location }}</p>
+            </div>
+            <div class="flex-shrink-0 w-full sm:w-auto">
+                {% if current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+                    <a href="{{ url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID) }}" class="block w-full text-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Apply Now</a>
+                {% else %}
+                    <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID)) }}" class="block w-full text-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Login to Apply</a>
+                {% endif %}
+            </div>
         </div>
-        {% if current_user.is_authenticated and current_user.role_type == 'Candidate' %}
-            <a href="{{ url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID) }}" class="apply-button">Apply Now</a>
-        {% else %}
-             <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID)) }}" class="apply-button">Login to Apply</a>
-        {% endif %}
     </div>
 </div>
 {% endif %}
@@ -107,18 +78,18 @@
 {% block page_scripts %}
 {{ super() }}
 <script>
+    // This script adds padding to the bottom of the page to prevent the
+    // sticky bar from overlapping the content.
     document.addEventListener('DOMContentLoaded', function() {
         const stickyBar = document.querySelector('.sticky-apply-bar');
-        const mainContent = document.querySelector('.main-content'); // Updated selector
+        const mainContent = document.querySelector('main');
 
         function updateContentPadding() {
             if (stickyBar && mainContent) {
                 const barHeight = stickyBar.offsetHeight;
-                // Add extra spacing (e.g., 20px) for a better look
                 mainContent.style.paddingBottom = (barHeight + 40) + 'px';
             }
         }
-
         updateContentPadding();
         window.addEventListener('resize', updateContentPadding);
     });
@@ -126,4 +97,5 @@
 {% endblock %}
 
 {% block footer %}
+{# This block is intentionally left empty to hide the footer on job detail pages. #}
 {% endblock footer %}

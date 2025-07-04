@@ -4,122 +4,102 @@
 
 {% block head_extra %}
     {{ super() }}
-    {# === FIXED: Point to the consolidated offer stylesheet === #}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/offer_styles.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
     <style>
-        /* This page now uses .form-panel which gets styles from website_styles.css */
-        /* and .offer-details which gets styles from offer_styles.css. */
-        /* The specific layout classes like job-offer-detail-hsbc-style are removed for simplicity */
-        /* but you can add them back if needed. */
-        .invalid-feedback { color: var(--danger-color, #dc3545); font-size: 0.875em; margin-top: .25rem; display: block; }
-        .form-group input.is-invalid, 
-        .form-group textarea.is-invalid,
-        .form-group .voice-recorder.is-invalid {
-            border: 1px solid var(--danger-color, #dc3545) !important; 
-            border-radius: 8px;
-        }
-        #referralCodeFeedback.text-success { color: var(--bs-success, green); } 
-        #referralCodeFeedback.text-danger { color: var(--danger-color, red); }
-        #referralCodeFeedback.text-warning { color: var(--bs-warning, orange); }
-        #referralCodeFeedback.text-muted { color: var(--text-muted, #6c757d); }
-        span.invalid-feedback { display: none; }
-        input.is-invalid ~ span.invalid-feedback,
-        textarea.is-invalid ~ span.invalid-feedback,
-        .voice-recorder.is-invalid ~ span.invalid-feedback,
-        input[type="file"].is-invalid ~ span.invalid-feedback {
-            display: block;
-        }
-        .application-form .form-group {
-             margin-bottom: 1.25rem;
-        }
-        .application-form button[type="submit"] {
-            width: 100%;
-            padding: 14px;
-            font-size: 1rem;
-        }
+      /* Helper style to show/hide invalid feedback */
+      .invalid-feedback { display: none; }
+      .is-invalid + .invalid-feedback { display: block; }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="job-offer-page-container">
-    <main class="main-content">
-        <div class="offer-details">
-        
-            {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
-                <form class="form-panel application-form" id="applicationForm" method="POST" enctype="multipart/form-data" style="background:transparent; box-shadow:none; padding:0;">
-                    <h3>Your Application for {{ offer.Title }}</h3>
-                    <p>Please complete the form below. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}">View job details again</a>.</p>
-                    <hr style="margin: 1.5rem 0; border-color: var(--border-color);">
+<main class="bg-background py-8 sm:py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+            <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-heading">Apply for {{ offer.Title }}</h2>
+                    <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary hover:text-primary-darker">View job details again</a>.</p>
+                </div>
 
-                    <div id="formErrorMessages" class="alert alert-danger" style="display:none;"></div>
-
-                    <div class="form-group">
-                        <label for="fullName">Full Name</label>
-                        <input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required>
-                        <span class="invalid-feedback" id="error_full_name"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required>
-                        <span class="invalid-feedback" id="error_email"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="phoneNumber">Phone Number</label>
-                        <input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required>
-                        <span class="invalid-feedback" id="error_phone_number"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="referralCode">Referral Code (If you have one)</label>
-                        <input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123">
-                        <div id="referralCodeFeedback" style="font-size: 0.875em; margin-top: .25rem;"></div>
-                        <span class="invalid-feedback" id="error_referral_code"></span>
-                    </div>
-                    <div class="form-group">
-                        <label for="candidateQuestions">Why are you interested in this role?</label>
-                        <textarea id="candidateQuestions" name="candidateQuestions" required>{{ form_data.get('candidateQuestions', '') }}</textarea>
-                        <span class="invalid-feedback" id="error_candidateQuestions"></span>
-                    </div>
-                    <div class="voice-recorder form-group">
-                        <label><strong>Record a Voice Introduction</strong></label>
-                        <p style="font-size: 0.9rem; color: var(--text-muted);">In your voice note (60-90 seconds), please introduce yourself and briefly answer:<br>
-                           <b>1. Why are you interested in a call center role?</b><br>
-                           <b>2. What makes you a great fit for this position?</b></p>
-                        <button type="button" id="startBtn" class="action-button" style="margin-right: 0.5rem;">Start Record</button>
-                        <button type="button" id="stopBtn" class="action-button" disabled>Stop Record</button>
-                        <audio id="audioPlayback" controls style="display:none; margin-top: 1rem; width:100%;"></audio>
-                        <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
-                        <span class="invalid-feedback" id="error_voice_note"></span>
-                    </div>
-                    <div class="form-group" style="margin-top: 25px;">
-                        <label for="cvUpload">Upload Your CV (PDF, DOC, DOCX)</label>
-                        <input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required>
-                        <span class="invalid-feedback" id="error_cv_file"></span>
-                    </div>
-                    <button type="submit" id="sendBtn" class="submit-btn">Send Application</button>
-                </form>
-            {% else %}
-                 <div class="form-panel" style="background:transparent; box-shadow:none; padding:0;">
-                    <h3>Application Error</h3>
-                    <div class="alert alert-danger">
-                        <p>There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
-                        <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="btn-secondary">Return to Job Details</a>
+                <div id="formErrorMessages" class="hidden rounded-md bg-danger-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0"><svg class="h-5 w-5 text-danger-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg></div>
+                        <div class="ml-3"><div id="formErrorContent" class="text-sm text-danger-700"></div></div>
                     </div>
                 </div>
-            {% endif %}
-        </div>
-    </main>
-</div>
-{% endblock %}
 
+                <div class="border-t border-border pt-8 space-y-6">
+                    <div>
+                        <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
+                        <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_full_name"></p>
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium leading-6 text-text">Email <span class="text-danger-500">*</span></label>
+                        <div class="mt-2"><input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_email"></p>
+                    </div>
+                    <div>
+                        <label for="phoneNumber" class="block text-sm font-medium leading-6 text-text">Phone Number <span class="text-danger-500">*</span></label>
+                        <div class="mt-2"><input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_phone_number"></p>
+                    </div>
+                    <div>
+                        <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code (Optional)</label>
+                        <div class="mt-2"><input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                        <div id="referralCodeFeedback" class="text-sm mt-2"></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_referral_code"></p>
+                    </div>
+                    <div>
+                        <label for="candidateQuestions" class="block text-sm font-medium leading-6 text-text">Why are you interested in this role? <span class="text-danger-500">*</span></label>
+                        <div class="mt-2"><textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input">{{ form_data.get('candidateQuestions', '') }}</textarea></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_candidateQuestions"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium leading-6 text-text">Record a Voice Introduction <span class="text-danger-500">*</span></label>
+                        <p class="mt-1 text-sm text-text-muted">In 60-90 seconds, introduce yourself and briefly answer: 1. Why a call center role? 2. What makes you a great fit?</p>
+                        <div id="voice-recorder-wrapper" class="mt-4 p-4 rounded-lg ring-1 ring-inset ring-input-border">
+                            <div class="flex flex-wrap items-center gap-4">
+                                <button type="button" id="startBtn" class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Start Record</button>
+                                <button type="button" id="stopBtn" disabled class="rounded-md bg-danger-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-danger-500 disabled:opacity-50">Stop Record</button>
+                            </div>
+                            <audio id="audioPlayback" controls class="hidden mt-4 w-full"></audio>
+                            <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
+                        </div>
+                         <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note"></p>
+                    </div>
+                    <div>
+                        <label for="cvUpload" class="block text-sm font-medium leading-6 text-text">Upload Your CV <span class="text-danger-500">*</span></label>
+                        <div class="mt-2"><input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"></div>
+                        <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_cv_file"></p>
+                    </div>
+                </div>
+
+                <div class="border-t border-border pt-8">
+                    <button type="submit" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button>
+                </div>
+            </form>
+        {% else %}
+             <div class="bg-card p-10 rounded-2xl shadow-xl text-center">
+                <h3 class="text-xl font-bold text-heading">Application Error</h3>
+                <div class="mt-4 rounded-md bg-danger-50 p-4">
+                    <p class="text-sm text-danger-700">There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
+                </div>
+                <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Return to Job Details</a>
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
 
 {% block page_scripts %}
     {{ super() }}
     <script>
-    // This script remains the same as it correctly handles form logic.
+    // This JS is mostly unchanged but interacts with new Tailwind classes
     document.addEventListener('DOMContentLoaded', () => {
         const applicationForm = document.getElementById('applicationForm');
-        if (!applicationForm) return; // Exit if form is not on the page
+        if (!applicationForm) return;
 
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -128,50 +108,55 @@
         const referralCodeInput = document.getElementById('referralCode');
         const referralCodeFeedbackDiv = document.getElementById('referralCodeFeedback');
         const formErrorMessagesDiv = document.getElementById('formErrorMessages');
-        
+        const formErrorContent = document.getElementById('formErrorContent');
+        const voiceRecorderWrapper = document.getElementById('voice-recorder-wrapper');
+
         let mediaRecorder;
         let audioChunks = [];
         let recordedAudioBlob = null;
         let debounceTimer;
+        
+        const markFieldValid = (field) => {
+            field.classList.remove('ring-danger-500', 'is-invalid');
+            field.classList.add('ring-input-border');
+        };
+        const markFieldInvalid = (field, message) => {
+            field.classList.add('ring-danger-500', 'is-invalid');
+            field.classList.remove('ring-input-border');
+            const errorEl = document.getElementById(`error_${field.name || 'voice_note'}`);
+            if (errorEl) errorEl.textContent = message;
+        };
 
         if (referralCodeInput) {
              referralCodeInput.addEventListener('input', () => {
                 clearTimeout(debounceTimer);
                 const code = referralCodeInput.value.trim().toUpperCase();
                 referralCodeFeedbackDiv.textContent = ''; 
-                referralCodeFeedbackDiv.className = ''; 
-                referralCodeInput.classList.remove('is-invalid'); 
-                const errorSpan = document.getElementById('error_referral_code');
-                if(errorSpan) errorSpan.textContent = '';
-
-                if (code.length === 0) { return; }
+                referralCodeFeedbackDiv.className = 'text-sm mt-2';
+                markFieldValid(referralCodeInput);
+                
+                if (code.length === 0) return;
 
                 debounceTimer = setTimeout(() => {
-                    if (code) {
-                        referralCodeFeedbackDiv.textContent = 'Verifying...';
-                        referralCodeFeedbackDiv.className = 'text-muted';
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-                        fetch("{{ url_for('job_board_bp.validate_referral_code_api') }}", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken || '' },
-                            body: JSON.stringify({ referral_code: code })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.status === 'success') {
-                                referralCodeFeedbackDiv.textContent = `Referred by: ${data.recruiter_name}`;
-                                referralCodeFeedbackDiv.className = 'text-success';
-                            } else {
-                                referralCodeFeedbackDiv.textContent = data.message || 'Invalid code.';
-                                referralCodeFeedbackDiv.className = 'text-danger';
-                            }
-                        })
-                        .catch(error => {
-                            referralCodeFeedbackDiv.textContent = 'Could not verify. Check connection.';
-                            referralCodeFeedbackDiv.className = 'text-warning';
-                        });
-                    }
+                    referralCodeFeedbackDiv.textContent = 'Verifying...';
+                    referralCodeFeedbackDiv.classList.add('text-text-muted');
+                    fetch("{{ url_for('job_board_bp.validate_referral_code_api') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' },
+                        body: JSON.stringify({ referral_code: code })
+                    }).then(res => res.json()).then(data => {
+                        referralCodeFeedbackDiv.className = 'text-sm mt-2'; // reset
+                        if (data.status === 'success') {
+                            referralCodeFeedbackDiv.textContent = `Referred by: ${data.recruiter_name}`;
+                            referralCodeFeedbackDiv.classList.add('text-success-600');
+                        } else {
+                            referralCodeFeedbackDiv.textContent = data.message || 'Invalid code.';
+                            referralCodeFeedbackDiv.classList.add('text-danger-600');
+                        }
+                    }).catch(err => {
+                        referralCodeFeedbackDiv.textContent = 'Could not verify. Check connection.';
+                        referralCodeFeedbackDiv.classList.add('text-warning-600');
+                    });
                 }, 750);
             });
         }
@@ -179,11 +164,13 @@
         if (startBtn) {
             startBtn.addEventListener('click', async () => {
                 audioChunks = []; recordedAudioBlob = null;
-                audioPlayback.style.display = 'none'; audioPlayback.src = '';
-                if (voiceNoteFilenameInput) voiceNoteFilenameInput.value = '';
-                document.querySelector('.voice-recorder')?.classList.remove('is-invalid');
-                document.getElementById('error_voice_note').textContent = '';
-
+                audioPlayback.classList.add('hidden'); audioPlayback.src = '';
+                voiceNoteFilenameInput.value = '';
+                voiceRecorderWrapper.classList.remove('ring-danger-500', 'is-invalid');
+                voiceRecorderWrapper.classList.add('ring-input-border');
+                const errorEl = document.getElementById('error_voice_note');
+                if (errorEl) errorEl.textContent = '';
+                
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
@@ -191,94 +178,78 @@
                     mediaRecorder.onstop = () => {
                         recordedAudioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType }); 
                         audioPlayback.src = URL.createObjectURL(recordedAudioBlob);
-                        audioPlayback.style.display = 'block';
-                        const offerId = "{{ offer.OfferID if offer else 'unknown' }}";
-                        const userId = "{{ current_user.id if current_user.is_authenticated else 'anon' }}";
-                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                        const fileExtension = 'webm';
-                        const autoVoiceFilename = `voice_intro_offer_${offerId}_user_${userId}_${timestamp}.${fileExtension}`;
-                        if (voiceNoteFilenameInput) voiceNoteFilenameInput.value = autoVoiceFilename;
+                        audioPlayback.classList.remove('hidden');
+                        const autoVoiceFilename = `voice_intro_offer_{{ offer.OfferID }}_user_{{ current_user.id }}_${new Date().toISOString().replace(/[:.]/g, '-')}.webm`;
+                        voiceNoteFilenameInput.value = autoVoiceFilename;
                     };
                     mediaRecorder.start();
-                    startBtn.disabled = true; stopBtn.disabled = false; startBtn.textContent = 'Recording...';
+                    startBtn.disabled = true; stopBtn.disabled = false; startBtn.innerHTML = 'Recording...';
                 } catch (err) {
-                    document.getElementById('error_voice_note').textContent = 'Microphone error. Please grant permission.';
-                    document.querySelector('.voice-recorder')?.classList.add('is-invalid');
+                    markFieldInvalid(voiceRecorderWrapper, 'Microphone error. Please grant permission and try again.');
                 }
             });
         }
         if (stopBtn) {
             stopBtn.addEventListener('click', () => {
-                if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                if (mediaRecorder?.state !== "inactive") {
                     mediaRecorder.stop();
                     mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                    startBtn.disabled = false; stopBtn.disabled = true; startBtn.textContent = 'Start Record';
+                    startBtn.disabled = false; stopBtn.disabled = true; startBtn.innerHTML = 'Start Record';
                 }
             });
         }
         
-        const offerIdFormAction = "{{ offer.OfferID if offer else '' }}";
-        if (offerIdFormAction) {
-            applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=0) }}".replace('0', offerIdFormAction);
-        }
+        applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
 
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault(); 
-            formErrorMessagesDiv.innerHTML = ''; formErrorMessagesDiv.style.display = 'none';
-            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-            document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+            formErrorMessagesDiv.classList.add('hidden');
+            formErrorContent.innerHTML = '';
+            document.querySelectorAll('.is-invalid').forEach(el => markFieldValid(el));
+            
             const formData = new FormData(applicationForm);
             let hasClientSideErrors = false;
             
-            if (!formData.get('full_name')?.trim()) { hasClientSideErrors=true; document.getElementById('fullName').classList.add('is-invalid'); document.getElementById('error_full_name').textContent='Full name is required.';}
-            if (!formData.get('email')?.trim()) { hasClientSideErrors=true; document.getElementById('email').classList.add('is-invalid'); document.getElementById('error_email').textContent='Email is required.';}
-            if (!formData.get('phone_number')?.trim()) { hasClientSideErrors=true; document.getElementById('phoneNumber').classList.add('is-invalid'); document.getElementById('error_phone_number').textContent='Phone number is required.';}
-            if (!formData.get('candidateQuestions')?.trim()) { hasClientSideErrors=true; document.getElementById('candidateQuestions').classList.add('is-invalid'); document.getElementById('error_candidateQuestions').textContent='This field is required.';}
-            if (!document.getElementById('cvUpload')?.files?.length > 0) { hasClientSideErrors=true; document.getElementById('cvUpload').classList.add('is-invalid'); document.getElementById('error_cv_file').textContent='CV upload is required.';}
-            if (!recordedAudioBlob) { hasClientSideErrors=true; document.querySelector('.voice-recorder').classList.add('is-invalid'); document.getElementById('error_voice_note').textContent='Voice introduction is required.';}
+            if (!formData.get('full_name')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('fullName'),'Full name is required.');}
+            if (!formData.get('email')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('email'), 'Email is required.');}
+            if (!formData.get('phone_number')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('phoneNumber'), 'Phone number is required.');}
+            if (!formData.get('candidateQuestions')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('candidateQuestions'), 'This field is required.');}
+            if (!document.getElementById('cvUpload')?.files?.length > 0) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('cvUpload'), 'CV upload is required.');}
+            if (!recordedAudioBlob) { hasClientSideErrors=true; markFieldInvalid(voiceRecorderWrapper, 'Voice introduction is required.');}
 
             if (hasClientSideErrors) {
-                formErrorMessagesDiv.innerHTML = 'Please correct the errors highlighted below.';
-                formErrorMessagesDiv.style.display = 'block';
+                formErrorContent.innerHTML = 'Please correct the errors highlighted below.';
+                formErrorMessagesDiv.classList.remove('hidden');
                 return;
             }
 
-            if (recordedAudioBlob) {
-                formData.append('voice_note', recordedAudioBlob, voiceNoteFilenameInput.value);
-            }
+            formData.append('voice_note', recordedAudioBlob, voiceNoteFilenameInput.value);
             
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true; sendBtn.textContent = 'Submitting...';
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
             try {
                 const response = await fetch(applicationForm.action, { 
-                    method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
+                    method: 'POST', 
+                    body: formData, 
+                    headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
                 });
                 const result = await response.json();
                 if (response.ok && result.status === 'success') {
-                    alert(result.message || "Application submitted!");
+                    alert(result.message || "Application submitted successfully!");
                     window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
                 } else {
-                    let errorHtml = result.message || "Submission failed.";
-                    if (result.errors) {
-                        errorHtml = "Please correct the following errors:<ul>";
-                        for (const field in result.errors) {
-                            errorHtml += `<li>${result.errors[field]}</li>`;
-                            const fieldId = field === 'cv_file' ? 'cvUpload' : (field === 'voice_note' ? 'startBtn' : field);
-                            const elementToMark = field === 'voice_note' ? document.querySelector('.voice-recorder') : document.getElementById(fieldId);
-                            if(elementToMark) elementToMark.classList.add('is-invalid');
-                            const errorSpan = document.getElementById(`error_${field}`);
-                            if(errorSpan) errorSpan.textContent = result.errors[field];
-                        }
-                        errorHtml += "</ul>";
-                    }
-                    formErrorMessagesDiv.innerHTML = errorHtml;
-                    formErrorMessagesDiv.style.display = 'block';
+                    let errorHtml = `Please correct the following errors:<ul>${Object.values(result.errors || {}).map(e => `<li>${e}</li>`).join('')}</ul>`;
+                    formErrorContent.innerHTML = errorHtml;
+                    formErrorMessagesDiv.classList.remove('hidden');
+                    Object.keys(result.errors || {}).forEach(field => {
+                        const el = document.getElementById(field) || (field === 'voice_note' ? voiceRecorderWrapper : null);
+                        if (el) markFieldInvalid(el, result.errors[field]);
+                    });
                 }
             } catch (error) {
-                formErrorMessagesDiv.textContent = "An error occurred. Check connection.";
-                formErrorMessagesDiv.style.display = 'block';
+                formErrorContent.innerHTML = "An unexpected network error occurred. Please check your connection and try again.";
+                formErrorMessagesDiv.classList.remove('hidden');
             } finally {
                  sendBtn.disabled = false; sendBtn.textContent = 'Send Application';
             }
@@ -287,7 +258,4 @@
     </script>
 {% endblock %}
 
-
-{% block footer %}
-{# This block is intentionally left empty to hide the footer on this page. #}
-{% endblock footer %}
+{% block footer %}{# Intentionally empty #}{% endblock footer %}
