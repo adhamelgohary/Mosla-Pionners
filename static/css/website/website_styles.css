@@ -143,7 +143,7 @@ body {
     transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
-/* NEW: Prevents scrolling when mobile nav is open */
+/* Prevents scrolling when mobile nav is open */
 body.mobile-nav-active {
     overflow: hidden;
 }
@@ -248,14 +248,14 @@ header nav {
     font-weight: 600;
 }
 
-/* NEW: Wrapper for header control buttons */
+/* Wrapper for header control buttons */
 .header-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* This is the superior, animated version of the theme toggle button styles */
+/* Animated theme toggle button */
 .theme-toggle-button {
     position: relative;
     background: var(--card-bg);
@@ -311,6 +311,27 @@ html[data-theme="dark"] .theme-toggle-button .moon-icon {
     transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
+/* Hamburger menu button - hidden by default on desktop */
+.mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 25px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001; /* Above the nav links overlay */
+}
+
+.mobile-menu-toggle .bar {
+    width: 100%;
+    height: 3px;
+    background-color: var(--text-color);
+    border-radius: 2px;
+    transition: all 0.3s ease-in-out;
+}
 
 /* ============================================= */
 /* ==     HOMEPAGE SECTION STYLES             == */
@@ -435,7 +456,6 @@ html[data-theme="dark"] .btn-secondary:hover {
     color: var(--background-color);
 }
 
-/* MODIFIED: Center the hero image properly */
 .hero-image {
     position: relative;
     display: flex;
@@ -444,7 +464,7 @@ html[data-theme="dark"] .btn-secondary:hover {
 }
 
 .hero-image img {
-    max-width: 60%; /* Let it fill the flex container */
+    max-width: 60%; 
     height: auto;
 }
 
@@ -499,7 +519,6 @@ html[data-theme="dark"] .btn-secondary:hover {
     z-index: 0;
 }
 
-/* MODIFIED: Increased card size and padding */
 .service-card {
     background: var(--card-bg);
     padding: 2rem;
@@ -574,7 +593,6 @@ a.service-link {
 
 .about-content {
     display: grid;
-    /* FIX: Changed to 1fr to allow the single child to take full width */
     grid-template-columns: 1fr; 
     gap: 3rem;
     align-items: center;
@@ -638,7 +656,6 @@ html[data-theme="dark"] .about-text p {
     transition: background var(--transition-speed) ease;
 }
 
-/* MODIFIED: Increased card size and gap */
 .testimonial-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -647,7 +664,6 @@ html[data-theme="dark"] .about-text p {
     padding: 0 35px;
 }
 
-/* MODIFIED: Increased padding */
 .testimonial-card {
     background: var(--card-bg);
     padding: 2.2rem;
@@ -758,10 +774,6 @@ html[data-theme="dark"] .footer-bottom {
 /* ============================================= */
 /* ==     FORMS, JOB BOARD, & OTHER PAGES     == */
 /* ============================================= */
-/* This section contains styles for other pages like login, job board, etc. */
-/* They are kept consistent with the new theme variables. */
-
-/* --- General Form Styles --- */
 .form-panel { padding: 2rem; } 
 .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
 .form-group label { font-weight: 500; font-size: 0.9rem; color: var(--text-color); }
@@ -807,8 +819,6 @@ html[data-theme="dark"] .action-button,
 html[data-theme="dark"] .login-button {
     color: var(--background-color);
 }
-
-/* --- Alerts --- */
 .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
 .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
 .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
@@ -818,9 +828,6 @@ html[data-theme="dark"] .alert-danger { color: var(--danger-color); background-c
 html[data-theme="dark"] .alert-success { color: #a3cfbb; background-color: #1a3c23; border-color: #3b714a; }
 html[data-theme="dark"] .alert-warning { color: #ffe8a1; background-color: #544214; border-color: #8e6f20; }
 html[data-theme="dark"] .alert-info { color: #9eeaf9; background-color: #1c3e44; border-color: #3da0b3; }
-
-
-/* --- Job Board Styles --- */
 .job-search-hero { background: var(--content-bg-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 2rem; margin-top: 2rem; }
 .job-search-hero h1 { font-size: 1.75rem; font-weight: 700; color: var(--heading-color); margin-bottom: 1.5rem; text-align: left; }
 .search-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
@@ -846,53 +853,6 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
 
 
 /* ============================================= */
-/* ==     MOBILE NAVIGATION STYLES            == */
-/* ============================================= */
-
-/* NEW: Hamburger menu button */
-.mobile-menu-toggle {
-    display: none; /* Hidden on desktop */
-    position: relative;
-    z-index: 1001; /* Sits above the slide-in nav */
-    width: 35px;
-    height: 35px;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 5px;
-}
-
-.mobile-menu-toggle .bar {
-    display: block;
-    width: 100%;
-    height: 3px;
-    background-color: var(--primary-color);
-    border-radius: 3px;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-}
-
-/* NEW: Animate hamburger to an 'X' when active */
-body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(1) {
-    transform: translateY(9px) rotate(45deg);
-}
-body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(2) {
-    opacity: 0;
-}
-body.mobile-nav-active .mobile-menu-toggle .bar:nth-of-type(3) {
-    transform: translateY(-9px) rotate(-45deg);
-}
-
-/* NEW: Slide in nav when active */
-body.mobile-nav-active .nav-links {
-    transform: translateX(0);
-}
-
-
-/* ============================================= */
 /* ==     RESPONSIVE DESIGN                   == */
 /* ============================================= */
 @media (max-width: 1024px) {
@@ -907,65 +867,103 @@ body.mobile-nav-active .nav-links {
 }
 
 @media (max-width: 768px) {
+    /* === HEADER & NAVIGATION (MOBILE) === */
     header nav {
         padding: 0 20px;
     }
     .logo span {
         font-size: 1.4rem;
     }
-
-    /* NEW: Show hamburger menu button */
+    
+    /* Show the mobile menu toggle button */
     .mobile-menu-toggle {
         display: flex;
     }
 
-    /* NEW: Hide theme toggle on small screens to reduce clutter */
-    .theme-toggle-button {
-        display: none;
+    /* Animate hamburger to an 'X' */
+    body.mobile-nav-active .mobile-menu-toggle .bar:nth-child(1) {
+        transform: translateY(9px) rotate(45deg);
     }
-
-    /* NEW: Define mobile navigation style (hidden by default) */
+    body.mobile-nav-active .mobile-menu-toggle .bar:nth-child(2) {
+        opacity: 0;
+    }
+    body.mobile-nav-active .mobile-menu-toggle .bar:nth-child(3) {
+        transform: translateY(-9px) rotate(-45deg);
+    }
+    
+    /* Hide the desktop navigation and show the full-screen mobile version */
     .nav-links {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 80%;
-        max-width: 320px;
-        height: 100vh;
-        background: var(--background-color);
-        box-shadow: -10px 0 30px rgba(0,0,0,0.1);
-        
+        display: none;
         flex-direction: column;
+        justify-content: center;
         align-items: center;
-        justify-content: flex-start;
-        padding-top: 6rem;
-        gap: 2.5rem;
-        
-        transform: translateX(100%);
-        transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        gap: 2rem;
+        position: fixed; /* Take over the screen */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--background-color);
         z-index: 1000;
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    /* Style for when the mobile menu is active */
+    body.mobile-nav-active .nav-links {
+        display: flex; /* Show the navigation */
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .nav-links a {
         font-size: 1.2rem;
     }
-    
-    .hero-content, .about-content {
+
+    /* === HERO SECTION (MOBILE) === */
+    .hero-content {
         grid-template-columns: 1fr;
         text-align: center;
         gap: 2rem;
     }
     
-    .hero-text h1, .hero-text p, .about-text p {
+    .hero-text h1, .hero-text p {
         text-align: center;
     }
     .hero-text h1 {
         font-size: 2rem;
     }
-    .about-text {
-        order: 1; /* Keep text first on mobile */
+    
+    /* Hide the hero image on mobile */
+    .hero-image {
+        display: none;
+    }
+
+    .hero-stats {
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: center;
+        justify-content: center;
+    }
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        justify-content: center;
     }
     
+    /* === ABOUT SECTION (MOBILE) === */
+    .about-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 2rem;
+    }
+    .about-text p {
+        text-align: center;
+    }
+    
+    /* === SERVICES SECTION (MOBILE) === */
     .services-grid {
         flex-direction: column;
         align-items: stretch;
@@ -979,25 +977,8 @@ body.mobile-nav-active .nav-links {
         width: 100%;
         max-width: none;
     } 
-
-    .hero-stats {
-        flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
-    }
-    .hero-buttons {
-        flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-    .hero-image {
-        margin-top: 2rem;
-        order: -1; /* Move image above text on mobile */
-    }
-    .hero-image img {
-        max-width: 80%;
-    }
-
+    
+    /* === FOOTER (MOBILE) === */
     .footer-content {
         text-align: center;
         gap: 2rem;
@@ -1011,6 +992,7 @@ body.mobile-nav-active .nav-links {
         justify-content: center;
     } 
 
+    /* === GENERAL SECTION & JOB BOARD (MOBILE) === */
     section {
         padding-top: 60px;
         padding-bottom: 60px;

@@ -4,9 +4,14 @@
 
 {% block head_extra %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/job_offer_detail_styles.css') }}">
+    {# === FIXED: Point to the consolidated offer stylesheet === #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/offer_styles.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
     <style>
+        /* This page now uses .form-panel which gets styles from website_styles.css */
+        /* and .offer-details which gets styles from offer_styles.css. */
+        /* The specific layout classes like job-offer-detail-hsbc-style are removed for simplicity */
+        /* but you can add them back if needed. */
         .invalid-feedback { color: var(--danger-color, #dc3545); font-size: 0.875em; margin-top: .25rem; display: block; }
         .form-group input.is-invalid, 
         .form-group textarea.is-invalid,
@@ -25,26 +30,29 @@
         input[type="file"].is-invalid ~ span.invalid-feedback {
             display: block;
         }
+        .application-form .form-group {
+             margin-bottom: 1.25rem;
+        }
+        .application-form button[type="submit"] {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+        }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="job-offer-detail-hsbc-style"> 
-    <div class="background-images">
-        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
-        <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-4">
-    </div>
-
-    <main class="hsbc-main-content"> 
-        <div class="page-container" style="grid-template-columns: 1fr; max-width: 800px; margin: auto;">
+<div class="job-offer-page-container">
+    <main class="main-content">
+        <div class="offer-details">
         
             {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
-                <form class="form-panel application-form" id="applicationForm" method="POST" enctype="multipart/form-data">
+                <form class="form-panel application-form" id="applicationForm" method="POST" enctype="multipart/form-data" style="background:transparent; box-shadow:none; padding:0;">
                     <h3>Your Application for {{ offer.Title }}</h3>
                     <p>Please complete the form below. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}">View job details again</a>.</p>
-                    <hr style="margin: 1.5rem 0;">
+                    <hr style="margin: 1.5rem 0; border-color: var(--border-color);">
 
-                    <div id="formErrorMessages" class="alert alert-danger" style="display:none; background-color: var(--hsbc-panel-background); border-color: var(--danger-color); color: var(--danger-color);"></div>
+                    <div id="formErrorMessages" class="alert alert-danger" style="display:none;"></div>
 
                     <div class="form-group">
                         <label for="fullName">Full Name</label>
@@ -74,12 +82,12 @@
                     </div>
                     <div class="voice-recorder form-group">
                         <label><strong>Record a Voice Introduction</strong></label>
-                        <p>In your voice note (60-90 seconds), please introduce yourself and briefly answer:<br>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">In your voice note (60-90 seconds), please introduce yourself and briefly answer:<br>
                            <b>1. Why are you interested in a call center role?</b><br>
                            <b>2. What makes you a great fit for this position?</b></p>
-                        <button type="button" id="startBtn">Start Record</button>
-                        <button type="button" id="stopBtn" disabled>Stop Record</button>
-                        <audio id="audioPlayback" controls style="display:none"></audio>
+                        <button type="button" id="startBtn" class="action-button" style="margin-right: 0.5rem;">Start Record</button>
+                        <button type="button" id="stopBtn" class="action-button" disabled>Stop Record</button>
+                        <audio id="audioPlayback" controls style="display:none; margin-top: 1rem; width:100%;"></audio>
                         <input type="hidden" name="voice_note_filename" id="voiceNoteFilename">
                         <span class="invalid-feedback" id="error_voice_note"></span>
                     </div>
@@ -88,10 +96,10 @@
                         <input type="file" id="cvUpload" name="cv_file" accept=".pdf,.doc,.docx" required>
                         <span class="invalid-feedback" id="error_cv_file"></span>
                     </div>
-                    <button type="submit" id="sendBtn">Send Application</button>
+                    <button type="submit" id="sendBtn" class="submit-btn">Send Application</button>
                 </form>
             {% else %}
-                 <div class="form-panel">
+                 <div class="form-panel" style="background:transparent; box-shadow:none; padding:0;">
                     <h3>Application Error</h3>
                     <div class="alert alert-danger">
                         <p>There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
@@ -104,10 +112,11 @@
 </div>
 {% endblock %}
 
+
 {% block page_scripts %}
     {{ super() }}
     <script>
-    // --- THIS SCRIPT IS THE SAME AS THE ORIGINAL job_detail.html SCRIPT ---
+    // This script remains the same as it correctly handles form logic.
     document.addEventListener('DOMContentLoaded', () => {
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return; // Exit if form is not on the page
@@ -125,7 +134,6 @@
         let recordedAudioBlob = null;
         let debounceTimer;
 
-        // Referral code validation logic (unchanged)
         if (referralCodeInput) {
              referralCodeInput.addEventListener('input', () => {
                 clearTimeout(debounceTimer);
@@ -168,7 +176,6 @@
             });
         }
         
-        // Voice recording logic (unchanged)
         if (startBtn) {
             startBtn.addEventListener('click', async () => {
                 audioChunks = []; recordedAudioBlob = null;
@@ -210,16 +217,13 @@
             });
         }
         
-        // Form submission logic (URL updated)
         const offerIdFormAction = "{{ offer.OfferID if offer else '' }}";
         if (offerIdFormAction) {
-            // --- UPDATED URL ---
             applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=0) }}".replace('0', offerIdFormAction);
         }
 
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault(); 
-            // Client-side validation logic (unchanged)
             formErrorMessagesDiv.innerHTML = ''; formErrorMessagesDiv.style.display = 'none';
             document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
             document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
