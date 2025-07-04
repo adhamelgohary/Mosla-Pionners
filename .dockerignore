@@ -1,9 +1,18 @@
 # .dockerignore
+
+# Exclude git repository files
 .git
 .gitignore
-__pycache__/
+
+# Exclude the Python virtual environment
+venv
+*/venv
+
+# Exclude Python cache files
+__pycache__
 *.pyc
 *.pyo
-*.pyd
-venv/
-.env
+
+# Exclude local development files
+# You might have other specific files to add here
+*.local
