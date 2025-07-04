@@ -1,20 +1,47 @@
-/* static/src/css/main.css */
+/* static/css/main.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Optional: Create custom reusable components */
-@layer components {
-  .status-badge {
-    @apply inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
+@layer base {
+  /* Light Mode (Default) */
+  :root {
+    /* HSL format: hue saturation lightness */
+    --primary: 219 57% 37%;     /* #2c5aa0 */
+    --primary-darker: 219 55% 28%; /* #214070 */
+    --secondary: 198 75% 64%;   /* #62bfe6 */
+    
+    --background: 0 0% 100%;    /* #ffffff */
+    --card: 0 0% 100%;          /* #ffffff */
+    --input: 0 0% 100%;         /* #ffffff */
+    
+    --text-main: 20 1% 24%;     /* #403e3e */
+    --text-muted: 0 0% 40%;     /* #666666 */
+    --heading: 224 50% 20%;     /* #1a2a4d */
+
+    --border: 220 13% 85%;      /* A light gray for borders */
   }
-  .status-open, .status-active {
-    @apply bg-green-100 text-green-800;
+
+  /* Dark Mode */
+  html[data-theme="dark"] {
+    --primary: 191 55% 64%;     /* #6fc6d8 */
+    --primary-darker: 191 50% 54%;
+    --secondary: 200 70% 73%;   /* #87CEEB */
+
+    --background: 222 47% 11%;  /* #111827 */
+    --card: 221 44% 19%;        /* #1e2945 */
+    --input: 220 25% 23%;       /* #2d3748 */
+
+    --text-main: 0 0% 88%;      /* #e0e0e0 */
+    --text-muted: 0 0% 63%;     /* #a0a0a0 */
+    --heading: 210 40% 98%;     /* #F9FAFB */
+
+    --border: 215 14% 34%;      /* #374151 */
   }
-  .status-filled, .status-closed, .status-inactive {
-    @apply bg-gray-100 text-gray-800;
-  }
-  .status-rejected, .status-cancelled {
-    @apply bg-red-100 text-red-800;
-  }
+}
+
+/* Optional: Add a smooth transition for color changes */
+body {
+  @apply bg-background text-text-main transition-colors duration-300 ease-in-out;
 }

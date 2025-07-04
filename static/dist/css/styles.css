@@ -1,4 +1,4 @@
-/* static/src/css/main.css */
+/* static/css/main.css */
 
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
@@ -749,6 +749,56 @@ select {
   outline: 1px auto -webkit-focus-ring-color;
 }
 
+/* Light Mode (Default) */
+
+:root {
+  /* HSL format: hue saturation lightness */
+  --primary: 219 57% 37%;
+  /* #2c5aa0 */
+  --primary-darker: 219 55% 28%;
+  /* #214070 */
+  --secondary: 198 75% 64%;
+  /* #62bfe6 */
+  --background: 0 0% 100%;
+  /* #ffffff */
+  --card: 0 0% 100%;
+  /* #ffffff */
+  --input: 0 0% 100%;
+  /* #ffffff */
+  --text-main: 20 1% 24%;
+  /* #403e3e */
+  --text-muted: 0 0% 40%;
+  /* #666666 */
+  --heading: 224 50% 20%;
+  /* #1a2a4d */
+  --border: 220 13% 85%;
+  /* A light gray for borders */
+}
+
+/* Dark Mode */
+
+html[data-theme="dark"] {
+  --primary: 191 55% 64%;
+  /* #6fc6d8 */
+  --primary-darker: 191 50% 54%;
+  --secondary: 200 70% 73%;
+  /* #87CEEB */
+  --background: 222 47% 11%;
+  /* #111827 */
+  --card: 221 44% 19%;
+  /* #1e2945 */
+  --input: 220 25% 23%;
+  /* #2d3748 */
+  --text-main: 0 0% 88%;
+  /* #e0e0e0 */
+  --text-muted: 0 0% 63%;
+  /* #a0a0a0 */
+  --heading: 210 40% 98%;
+  /* #F9FAFB */
+  --border: 215 14% 34%;
+  /* #374151 */
+}
+
 .container {
   width: 100%;
 }
@@ -1286,19 +1336,6 @@ select {
 
 .prose :where(.prose > :last-child):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
   margin-bottom: 0;
-}
-
-.status-badge {
-  display: inline-block;
-  border-radius: 9999px;
-  padding-left: 0.625rem;
-  padding-right: 0.625rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
 }
 
 .sr-only {
@@ -2247,7 +2284,7 @@ select {
 
 .bg-primary {
   --tw-bg-opacity: 1;
-  background-color: rgb(44 90 160 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--primary-color-rgb) / var(--tw-bg-opacity, 1));
 }
 
 .bg-purple-100 {
@@ -2634,6 +2671,10 @@ select {
   color: rgb(30 64 175 / var(--tw-text-opacity, 1));
 }
 
+.text-danger {
+  color: var(--danger-color);
+}
+
 .text-danger-600 {
   --tw-text-opacity: 1;
   color: rgb(220 38 38 / var(--tw-text-opacity, 1));
@@ -2759,8 +2800,8 @@ select {
 }
 
 .shadow {
-  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+  --tw-shadow: var(--card-shadow);
+  --tw-shadow-colored: var(--card-shadow);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
@@ -2850,7 +2891,43 @@ select {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Optional: Create custom reusable components */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+.fade-in {
+  --tw-enter-opacity: 0;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}
+
+.ease-in-out {
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Optional: Add a smooth transition for color changes */
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .file\:mr-4::file-selector-button {
   margin-right: 1rem;
@@ -2959,8 +3036,7 @@ select {
 }
 
 .hover\:bg-primary-darker:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(33 64 112 / var(--tw-bg-opacity, 1));
+  background-color: var(--primary-color-darker);
 }
 
 .hover\:bg-red-200:hover {
@@ -3402,11 +3478,6 @@ select {
 
 .dark\:bg-blue-900\/50:where([data-theme="dark"], [data-theme="dark"] *) {
   background-color: rgb(30 58 138 / 0.5);
-}
-
-.dark\:bg-dark-primary:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-bg-opacity: 1;
-  background-color: rgb(111 198 216 / var(--tw-bg-opacity, 1));
 }
 
 .dark\:bg-gray-600:where([data-theme="dark"], [data-theme="dark"] *) {
