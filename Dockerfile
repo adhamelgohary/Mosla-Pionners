@@ -20,4 +20,4 @@ COPY . .
 EXPOSE 8000
 
 # The command to run the app. It now uses wsgi.py
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "wsgi:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]

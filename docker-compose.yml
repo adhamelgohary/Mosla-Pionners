@@ -6,7 +6,7 @@ services:
   webapp:
     image: adhamelgohary02/mosla-pioneers:${TAG:-latest}
     ports:
-      - "80:8000"
+      - "85:8000"
     volumes:
       - uploads:/app/static/uploads
     # The .env file is now INSIDE the image, so no 'environment' block is needed here
