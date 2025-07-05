@@ -1,20 +1,19 @@
-# The CORRECT docker-compose.yml
+# docker-compose.yml for manual deployment
+
 version: '3.8'
 
 services:
   webapp:
-    # This is the correct image name
-    image: ghcr.io/adhamelgohary/mosla-pionners:latest
+    # This is just a name. It refers to the image we will load manually.
+    image: adhamelgohary/mosla-pionners:latest
     container_name: mosla_webapp
     restart: always
     ports:
-      - "12345:12345" # Using the port from our original Dockerfile
+      - "12345:12345"
     volumes:
       - uploads_data:/app/static/uploads
     env_file:
-      - .env # This line tells the container to use your .env file
-    depends_on:
-      - db
+      - .env
 
   db:
     image: mysql:8.0
@@ -23,26 +22,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     env_file:
-      - .env # This line tells the container to use your .env file
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: mosla_phpmyadmin
-    restart: always
-    ports:
-      - "8081:80"
-    environment:
-      - PMA_HOST=db
-    env_file:
-      - .env # This line tells phpmyadmin to use your .env file for the root password
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: mosla_watchtower
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300
+      - .env
 
 volumes:
   db_data:
