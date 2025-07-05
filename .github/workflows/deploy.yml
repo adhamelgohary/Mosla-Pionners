@@ -1,32 +1,28 @@
-# .github/workflows/deploy.yml
-name: Build and Push Docker Image
+# Name of the workflow
+name: Deploy to VPS
 
+# Trigger this workflow on every push to the 'main' branch
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
+# Define the jobs to run
 jobs:
-  build-and-push:
+  deploy:
+    # Run this job on a fresh Ubuntu virtual machine provided by GitHub
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write # This permission is required to push to the registry
 
     steps:
+      # Step 1: Check out your code from the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      # Step 2: SSH into the VPS and run the deployment script
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }} # Your GitHub username
-          password: ${{ secrets.GITHUB_TOKEN }} # This is a special, auto-generated secret
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/adhamelgohary/mosla-pionners:latest # Must match the image name in docker-compose.yml
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            sh ~/deploy.sh
