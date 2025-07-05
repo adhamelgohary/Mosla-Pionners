@@ -1,20 +1,18 @@
-# docker-compose.yml
+# The CORRECT docker-compose.yml
 version: '3.8'
 
 services:
   webapp:
-    # IMPORTANT: We now specify the image to pull, we don't build it here.
-    # Replace 'adhamelgohary' with your GitHub username (it's case-sensitive).
-    # Replace 'mosla-pionners' with your repository name.
+    # This is the correct image name
     image: ghcr.io/adhamelgohary/mosla-pionners:latest
     container_name: mosla_webapp
     restart: always
     ports:
-      - "12345:12345"
+      - "12345:12345" # Using the port from our original Dockerfile
     volumes:
       - uploads_data:/app/static/uploads
     env_file:
-      - .env
+      - .env # This line tells the container to use your .env file
     depends_on:
       - db
 
@@ -25,16 +23,26 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     env_file:
-      - .env
+      - .env # This line tells the container to use your .env file
 
-  # NEW: Add the watchtower service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: mosla_phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=db
+    env_file:
+      - .env # This line tells phpmyadmin to use your .env file for the root password
+
   watchtower:
     image: containrrr/watchtower
     container_name: mosla_watchtower
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 # Check for new images every 300 seconds (5 minutes)
+    command: --interval 300
 
 volumes:
   db_data:
