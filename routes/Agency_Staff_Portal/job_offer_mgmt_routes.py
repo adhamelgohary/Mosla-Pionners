@@ -494,6 +494,14 @@ def review_client_submission_action(submission_id):
             params_live = sub.copy()
             params_live.update({"PostedByStaffID": current_user.specific_role_id, "SelectedCategoryID": category_id_on_approval})
             
+            # --- FIX STARTS HERE: Convert sets to strings for the database ---
+            if 'Benefits' in params_live and isinstance(params_live['Benefits'], set):
+                params_live['Benefits'] = ",".join(params_live['Benefits'])
+                
+            if 'AvailableShifts' in params_live and isinstance(params_live['AvailableShifts'], set):
+                params_live['AvailableShifts'] = ",".join(params_live['AvailableShifts'])
+            # --- FIX ENDS HERE ---
+
             cursor.execute(sql_live, params_live)
             live_offer_id = cursor.lastrowid
             
