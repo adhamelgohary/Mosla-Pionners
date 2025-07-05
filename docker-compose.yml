@@ -1,49 +1,41 @@
 # docker-compose.yml
-
 version: '3.8'
 
 services:
   webapp:
-    image: adhamelgohary02/mosla-pioneers:${TAG:-latest}
+    # IMPORTANT: We now specify the image to pull, we don't build it here.
+    # Replace 'adhamelgohary' with your GitHub username (it's case-sensitive).
+    # Replace 'mosla-pionners' with your repository name.
+    image: ghcr.io/adhamelgohary/mosla-pionners:latest
+    container_name: mosla_webapp
+    restart: always
     ports:
-      - "85:8000"
+      - "12345:12345"
     volumes:
-      - uploads:/app/static/uploads
-    # The .env file is now INSIDE the image, so no 'environment' block is needed here
+      - uploads_data:/app/static/uploads
+    env_file:
+      - .env
     depends_on:
       - db
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
 
   db:
     image: mysql:8.0
+    container_name: mosla_db
+    restart: always
     volumes:
       - db_data:/var/lib/mysql
-    environment:
-      # These now read variables from the shell where 'docker stack deploy' is run
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=mosla_db
-      - MYSQL_USER=mosla_user
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+    env_file:
+      - .env
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST: db
-      # This also reads the variable from the shell
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-    deploy:
-      replicas: 1
+  # NEW: Add the watchtower service
+  watchtower:
+    image: containrrr/watchtower
+    container_name: mosla_watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 # Check for new images every 300 seconds (5 minutes)
 
-# No more 'secrets' block at the bottom
 volumes:
   db_data:
-  uploads:
+  uploads_data:

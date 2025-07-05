@@ -1,23 +1,29 @@
 # Dockerfile
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-# Use a modern, compatible Python version
-FROM python:3.11-slim
-
+# Set the working directory in the container
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends gcc default-libmysqlclient-dev && rm -rf /var/lib/apt/lists/*
+# Create a non-root user for better security
+RUN useradd --create-home appuser
+USER appuser
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Set environment variables for Python
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# --- THIS IS THE KEY CHANGE ---
-# Copy the .env file created by the GitHub Action
-COPY .env .
-# Copy the rest of the application
-COPY . .
+# Copy the requirements file and install dependencies
+# This is done first to leverage Docker layer caching
+COPY --chown=appuser:appuser requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 8000
+# Copy the rest of the application code into the container
+COPY --chown=appuser:appuser . .
 
-# The command to run the app. It now uses wsgi.py
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8000", "app:app"]
+# Expose the port Gunicorn will run on
+EXPOSE 12345
+
+# Command to run the application using Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:12345", "--workers", "4", "app:app"]

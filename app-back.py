@@ -1,12 +1,8 @@
 # app.py
 import os
 import logging
-from logging.handlers import RotatingFileHandler # ADDED for production logging
 from flask import Flask, current_app, jsonify, session, request, url_for, render_template
 from flask_login import current_user
-from dotenv import load_dotenv # ADDED: To load environment variables from .env file
-
-load_dotenv()
 
 # --- Import Utility Functions ---
 from utils.directory_configs import configure_directories
@@ -36,13 +32,15 @@ from routes.Client_Portal.offer_routes import client_offers_bp
 app = Flask(__name__)
 
 # --- Core App Configuration ---
-# CHANGED: Reads the secret key from the .env file
+# Reads the secret key directly from the environment variable set by the entrypoint.sh script
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 
-# CHANGED: This check is now hardened. The app will crash on startup if the key is missing.
-# This is a "fail-fast" approach, which is good for production setup.
+# This check is crucial for debugging. If the key isn't set, the app will log a fatal error.
 if not app.config['SECRET_KEY']:
-    raise ValueError("FATAL ERROR: FLASK_SECRET_KEY environment variable not set. App cannot run.")
+    # Using print() because logger might not be configured yet. This will always show up.
+    print("FATAL ERROR: FLASK_SECRET_KEY environment variable not set. Sessions will fail.")
+    # To make the app fail hard on startup if the key is missing, you can uncomment the next line:
+    # raise ValueError("No SECRET_KEY set for Flask application. Cannot run.")
 
 app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('FLASK_SESSION_LIFETIME', 3600))
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB upload limit
@@ -51,32 +49,19 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB upload limit
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# --- Configure Production Logging ---
-# REMOVED: logging.basicConfig(...) - it's not flexible enough for production.
-# ADDED: Production-ready logging to a file.
-if not app.debug:
-    # Create a log file that rotates when it reaches 1MB, keeping 5 old copies.
-    log_file = os.environ.get('LOG_FILE_PATH', 'app.log')
-    file_handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=5)
-    
-    # Define the format for the log messages
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s [in %(pathname)s:%(lineno)d]')
-    file_handler.setFormatter(formatter)
-    
-    # Set the logging level and add the handler to the app
-    app.logger.addHandler(file_handler)
-    app.logger.setLevel(logging.INFO)
-    app.logger.info('Mosla Pioneers App startup')
+# --- Configure Logging ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+app.logger.setLevel(logging.INFO if not app.debug else logging.DEBUG)
 
 # --- Configure Custom Features using Utility Functions ---
 configure_directories(app)
 register_template_helpers(app)
 
 # --- Initialize Extensions ---
+# Flask-Mail has been removed.
 init_login_manager(app) # Initialize Flask-Login
 
 # --- Register Blueprints ---
-# (No changes needed in this section)
 app.register_blueprint(login_bp, url_prefix='/auth')
 app.register_blueprint(register_bp, url_prefix='/auth')
 app.register_blueprint(staff_dashboard_bp, url_prefix='/staff-portal')
@@ -112,6 +97,7 @@ def internal_server_error(e):
 def set_theme():
     data = request.get_json()
     if data and 'theme' in data:
+        # This will fail if SECRET_KEY is not set, which is the error we are fixing.
         session['theme'] = data['theme']
         app.logger.info(f"Theme set to: {session['theme']}")
         return jsonify(success=True, theme=session['theme'])
@@ -130,3 +116,12 @@ def inject_current_app_utilities():
     def blueprint_exists(blueprint_name):
         return blueprint_name in current_app.blueprints
     return dict(blueprint_exists=blueprint_exists)
+
+# --- Run the App (for local development) ---
+if __name__ == '__main__':
+    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0')
+    port = int(os.environ.get('FLASK_RUN_PORT', 12345))
+    debug = os.environ.get('FLASK_DEBUG', 'True').lower() in ['true', '1', 't']
+
+    app.logger.info(f"Starting Mosla Pioneers App on http://{host}:{port} (Debug: {debug})")
+    app.run(debug=debug, host=host, port=port)
