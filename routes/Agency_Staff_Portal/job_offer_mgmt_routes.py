@@ -58,9 +58,6 @@ def _create_automated_announcement(db_cursor, source_type, title, content, audie
 @job_offer_mgmt_bp.route('/submit', methods=['GET', 'POST'])
 @login_required_with_role([CLIENT_CONTACT_ROLE_NAME])
 def client_submit_job_offer():
-    # This function is for clients to submit offers.
-    # The form they use is in the client_portal, not provided here.
-    # We are updating the backend logic to match the new schema.
     client_company_id = getattr(current_user, 'company_id', None)
     if not client_company_id:
         flash("Your company information could not be found. Please log in again.", "danger")
@@ -77,7 +74,6 @@ def client_submit_job_offer():
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor()
-                # UPDATED SQL to match the new ClientSubmittedJobOffers table schema
                 sql = """INSERT INTO ClientSubmittedJobOffers (
                              CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract,
                              RequiredLanguage, EnglishLevelRequirement, CandidatesNeeded, HiringCadence, WorkLocationType,
@@ -126,9 +122,6 @@ def client_submit_job_offer():
                 if conn and conn.is_connected(): conn.close()
         else:
             flash("Please correct the errors in the form before submitting.", "warning")
-            # This would re-render the client's form, passing back errors.
-            # return render_template('client_portal/submit_offer_form.html', ..., errors=errors)
-    # Fallback redirect if not a POST or has issues not handled by the above
     return redirect(url_for('client_portal_bp.dashboard'))
 
 
@@ -228,7 +221,6 @@ def staff_direct_create_job_offer():
             try:
                 conn_insert = get_db_connection()
                 cursor = conn_insert.cursor()
-                # FULLY UPDATED SQL INSERT to match new JobOffers schema
                 sql = """INSERT INTO JobOffers (
                             CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
                             MaxAge, HasContract, GraduationStatusRequirement, NationalityRequirement, RequiredLanguage, EnglishLevelRequirement,
@@ -279,7 +271,6 @@ def staff_direct_create_job_offer():
 def edit_live_job_offer(offer_id):
     form_data, errors, companies, categories = {}, {}, [], []
     original_title_hidden = "Job Offer"
-    # Fetch dropdown data
     conn_dd = get_db_connection()
     if conn_dd:
         try:
@@ -303,7 +294,6 @@ def edit_live_job_offer(offer_id):
             try:
                 conn_update = get_db_connection()
                 cursor = conn_update.cursor()
-                # FULLY UPDATED SQL UPDATE to match new schema
                 sql = """UPDATE JobOffers SET
                             CompanyID=%(company_id)s, CategoryID=%(category_id)s, Title=%(title)s, Location=%(location)s, NetSalary=%(salary)s, PaymentTerm=%(payment_term)s, HiringPlan=%(hiring_plan)s,
                             MaxAge=%(max_age)s, HasContract=%(has_contract)s, GraduationStatusRequirement=%(grad_status)s, NationalityRequirement=%(nationality)s, RequiredLanguage=%(required_language)s, EnglishLevelRequirement=%(english_level)s,
@@ -368,9 +358,16 @@ def edit_live_job_offer(offer_id):
                     form_data['shift_type'] = data.get('ShiftType')
                     form_data['nationality'] = data.get('NationalityRequirement')
                     form_data['has_contract'] = 'yes' if data.get('HasContract') else 'no'
-                    form_data['available_shifts'] = data.get('AvailableShifts', '').split(',') if data.get('AvailableShifts') else []
+                    
+                    # === FIX STARTS HERE ===
+                    available_shifts_data = data.get('AvailableShifts')
+                    form_data['available_shifts'] = list(available_shifts_data) if available_shifts_data else []
+                    
+                    benefits_data = data.get('Benefits')
+                    form_data['benefits'] = list(benefits_data) if benefits_data else []
+                    # === FIX ENDS HERE ===
+                    
                     form_data['salary'] = str(data['NetSalary']) if data.get('NetSalary') is not None else ''
-                    form_data['benefits'] = data.get('Benefits', '').split(',') if data.get('Benefits') else []
                     form_data['transportation'] = 'yes' if data.get('IsTransportationProvided') else 'no'
                     form_data['transport_type'] = data.get('TransportationType')
                     form_data['closing_date'] = data['ClosingDate'].isoformat() if data.get('ClosingDate') and isinstance(data['ClosingDate'], datetime.date) else ''
@@ -402,7 +399,6 @@ def delete_live_job_offer(offer_id):
             flash('The job offer could not be found or was already deleted.', 'warning')
     except mysql.connector.Error as e:
         if conn: conn.rollback()
-        # Foreign key constraint error
         if e.errno == 1451:
             flash('Cannot delete this offer because it has active job applications. Please close the offer instead.', 'danger')
         else:
@@ -425,7 +421,6 @@ def list_review_client_submissions():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Note: No CategoryID in ClientSubmittedJobOffers, so no join needed for CategoryName here.
         cursor.execute("""
             SELECT csjo.*, c.CompanyName, u.FirstName as SubmitterFirstName, u.LastName as SubmitterLastName 
             FROM ClientSubmittedJobOffers csjo 
@@ -436,8 +431,13 @@ def list_review_client_submissions():
         """)
         submissions = cursor.fetchall()
         for sub in submissions: 
-            sub['Benefits_list'] = sub.get('Benefits', '').split(',') if sub.get('Benefits') else []
-            sub['AvailableShifts_list'] = sub.get('AvailableShifts', '').split(',') if sub.get('AvailableShifts') else []
+            # === FIX STARTS HERE ===
+            benefits_data = sub.get('Benefits')
+            sub['Benefits_list'] = list(benefits_data) if benefits_data else []
+            
+            shifts_data = sub.get('AvailableShifts')
+            sub['AvailableShifts_list'] = list(shifts_data) if shifts_data else []
+            # === FIX ENDS HERE ===
         
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories_for_dropdown = cursor.fetchall()
@@ -480,7 +480,6 @@ def review_client_submission_action(submission_id):
             return redirect(url_for('.list_review_client_submissions'))
 
         if action == 'approve':
-            # FULLY UPDATED: This INSERT now maps all relevant fields from the submission to the live offer table.
             sql_live = """INSERT INTO JobOffers (
                             CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
                             MaxAge, HasContract, GraduationStatusRequirement, NationalityRequirement, RequiredLanguage, EnglishLevelRequirement,
@@ -540,9 +539,13 @@ def view_live_job_offer_detail(offer_id):
         """, (offer_id,))
         offer = cursor.fetchone()
         if offer: 
-            # Process SET fields for display
-            offer['Benefits_list'] = offer.get('Benefits', '').split(',') if offer.get('Benefits') else []
-            offer['AvailableShifts_list'] = offer.get('AvailableShifts', '').split(',') if offer.get('AvailableShifts') else []
+            # === FIX STARTS HERE ===
+            benefits_data = offer.get('Benefits')
+            offer['Benefits_list'] = list(benefits_data) if benefits_data else []
+
+            shifts_data = offer.get('AvailableShifts')
+            offer['AvailableShifts_list'] = list(shifts_data) if shifts_data else []
+            # === FIX ENDS HERE ===
     except Exception as e:
         current_app.logger.error(f"Error fetching live offer detail {offer_id}: {e}", exc_info=True)
         flash("Could not load offer details.", "danger")
