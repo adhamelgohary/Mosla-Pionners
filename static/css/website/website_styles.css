@@ -46,7 +46,7 @@
     --danger-color: #dc3545; 
     --font-family: 'Poppins', 'Arial', sans-serif;
 
-    /* Job Tag Colors */
+    /* Job Tag Colors (Legacy - Will be overridden by Tailwind) */
     --tag-location-bg: #FFFBEB; 
     --tag-location-text: #B45309; 
     --tag-category-bg: #F0FDF4; 
@@ -99,7 +99,7 @@ html[data-theme="dark"] {
     --input-border-color: #4A5568;
     --danger-color: #f1aeb5;
 
-    /* --- Dark Mode Job Tags --- */
+    /* --- Dark Mode Job Tags (Legacy - Will be overridden by Tailwind) --- */
     --tag-location-bg: #422006; 
     --tag-location-text: #FEF3C7; 
     --tag-category-bg: #14532D; 
@@ -124,14 +124,13 @@ html, body {
 
 body {
     font-family: var(--font-family);
-    line-height: 1.7; /* Adjusted for better readability */
+    line-height: 1.7;
     color: var(--text-color);
     background-color: var(--background-color);
     overflow-x: hidden;
     transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
-/* Prevents scrolling when mobile nav is open */
 body.mobile-nav-active {
     overflow: hidden;
 }
@@ -151,7 +150,7 @@ html[data-theme="dark"] img:not(.logo-image):not(.company-logo-img) {
 /* ============================================= */
 header {
     background: var(--header-bg);
-    padding: 0.8rem 0; /* Adjusted */
+    padding: 0.8rem 0;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     position: sticky;
     top: 0;
@@ -183,7 +182,7 @@ header nav {
 }
 
 .logo span {
-    font-size: 1.5rem; /* Adjusted */
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--logo-text-color);
 }
@@ -192,7 +191,7 @@ header nav {
     display: flex;
     justify-content: center;
     list-style: none;
-    gap: 2.2rem; /* Adjusted */
+    gap: 2.2rem;
     padding: 0;
     margin: 0;
 }
@@ -236,14 +235,12 @@ header nav {
     font-weight: 600;
 }
 
-/* Wrapper for header control buttons */
 .header-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* Animated theme toggle button */
 .theme-toggle-button {
     position: relative;
     background: var(--card-bg);
@@ -299,7 +296,6 @@ html[data-theme="dark"] .theme-toggle-button .moon-icon {
     transform: translate(-50%, -50%) rotate(0deg) scale(1);
 }
 
-/* Hamburger menu button - hidden by default on desktop */
 .mobile-menu-toggle {
     display: none;
     flex-direction: column;
@@ -310,7 +306,7 @@ html[data-theme="dark"] .theme-toggle-button .moon-icon {
     border: none;
     cursor: pointer;
     padding: 0;
-    z-index: 1001; /* Above the nav links overlay */
+    z-index: 1001;
 }
 
 .mobile-menu-toggle .bar {
@@ -324,10 +320,8 @@ html[data-theme="dark"] .theme-toggle-button .moon-icon {
 /* ============================================= */
 /* ==     HOMEPAGE SECTION STYLES             == */
 /* ============================================= */
-
-/* --- General Section & Text Styles --- */
 section {
-    padding: 80px 0; /* Adjusted default section padding */
+    padding: 80px 0;
 }
 
 h1, h2, h3, h4, h5, h6 { 
@@ -339,7 +333,7 @@ h1, h2, h3, h4, h5, h6 {
 
 p { 
     margin-bottom: 1rem; 
-    line-height: 1.7; /* Adjusted */
+    line-height: 1.7;
     color: var(--text-muted); 
 }
 
@@ -355,7 +349,6 @@ p {
     color: var(--secondary-color); 
 }
 
-/* --- Hero Section --- */
 .hero {
     position: relative;
     overflow: hidden;
@@ -365,8 +358,8 @@ p {
 
 .hero-content {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr; /* Give text slightly more space */
-    gap: 3.5rem; /* Increased gap */
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 3.5rem;
     align-items: center;
     position: relative;
     z-index: 1;
@@ -375,7 +368,7 @@ p {
 }
 
 .hero-text h1 {
-    font-size: clamp(2.4rem, 5vw, 3.2rem); /* Adjusted */
+    font-size: clamp(2.4rem, 5vw, 3.2rem);
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--primary-color);
@@ -384,9 +377,9 @@ p {
 }
 
 .hero-text p {
-    font-size: 1.05rem; /* Adjusted */
+    font-size: 1.05rem;
     color: var(--text-muted);
-    margin-bottom: 1.8rem; /* Adjusted */
+    margin-bottom: 1.8rem;
     line-height: 1.7;
     text-align: left;
 }
@@ -405,7 +398,7 @@ p {
 
 .stat-number {
     display: block;
-    font-size: 1.8rem; /* Adjusted */
+    font-size: 1.8rem;
     font-weight: 700;
     color: var(--primary-color);
     line-height: 1;
@@ -421,7 +414,7 @@ p {
     background: transparent;
     color: var(--secondary-color);
     border: 2px solid var(--secondary-color);
-    padding: 10px 22px; /* Adjusted */
+    padding: 10px 22px;
     border-radius: 25px;
     text-decoration: none;
     font-weight: 600;
@@ -456,7 +449,6 @@ html[data-theme="dark"] .btn-secondary:hover {
     height: auto;
 }
 
-/* --- Services Section --- */
 .services {
     background: var(--background-color);
     position: relative;
@@ -466,7 +458,7 @@ html[data-theme="dark"] .btn-secondary:hover {
 
 .section-header {
     text-align: center;
-    margin-bottom: 3.5rem; /* Adjusted */
+    margin-bottom: 3.5rem;
     position: relative;
     z-index: 2;
     max-width: 700px;
@@ -476,19 +468,19 @@ html[data-theme="dark"] .btn-secondary:hover {
 }
 
 .section-header h2 {
-    font-size: 2rem; /* Adjusted */
+    font-size: 2rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
 }
 
 .section-header p {
     color: var(--text-muted);
-    font-size: 1rem; /* Adjusted */
+    font-size: 1rem;
 }
 
 .services-grid {
     display: flex;
-    gap: 2rem; /* MODIFIED: Increased gap */
+    gap: 2rem;
     position: relative;
     z-index: 1;
     margin: 0;
@@ -534,11 +526,11 @@ html[data-theme="dark"] .btn-secondary:hover {
 
 .service-icon {
     background: none;
-    font-size: 2rem; /* Adjusted */
+    font-size: 2rem;
 }
 
 .service-card h3 {
-    font-size: 1.15rem; /* Adjusted */
+    font-size: 1.15rem;
     color: var(--text-color);
     margin: 0;
 }
@@ -548,7 +540,7 @@ html[data-theme="dark"] .btn-secondary:hover {
     line-height: 1.7;
     margin-bottom: 1.5rem;
     flex-grow: 1;
-    font-size: 0.9rem; /* Adjusted */
+    font-size: 0.9rem;
 }
 
 a.service-link {
@@ -569,8 +561,6 @@ a.service-link {
 .service-card:nth-child(3) .service-icon { color: var(--step-3-color); }
 .service-card:nth-child(4) .service-icon { color: var(--step-4-color); }
 
-
-/* --- About Section --- */
 .about {
     background: var(--dark-section-bg);
     color: var(--dark-section-text);
@@ -591,7 +581,7 @@ a.service-link {
 }
 
 .about-text h2 {
-    font-size: 2rem; /* Adjusted */
+    font-size: 2rem;
     margin-bottom: 1.5rem;
     color: var(--dark-section-text);
 }
@@ -605,7 +595,7 @@ html[data-theme="dark"] .about-text h2 {
 }
 
 .about-text p {
-    font-size: 1rem; /* Adjusted */
+    font-size: 1rem;
     line-height: 1.7;
     margin-bottom: 1.5rem;
     opacity: 0.9;
@@ -624,7 +614,7 @@ html[data-theme="dark"] .about-text p {
     display: flex;
     align-items: flex-start;
     margin-bottom: 1.25rem;
-    font-size: 0.95rem; /* Adjusted */
+    font-size: 0.95rem;
 }
 
 .feature-icon {
@@ -638,7 +628,6 @@ html[data-theme="dark"] .about-text p {
     flex-shrink: 0;
 }
 
-/* --- Testimonials Section --- */
 .testimonials {
     background: var(--background-color);
     transition: background var(--transition-speed) ease;
@@ -678,17 +667,17 @@ html[data-theme="dark"] .about-text p {
     line-height: 1.7;
     position: relative;
     z-index: 1;
-    font-size: 0.95rem; /* Adjusted */
+    font-size: 0.95rem;
 }
 
 .testimonial-author {
     font-weight: 600;
     color: var(--primary-color);
-    font-size: 1rem; /* Adjusted */
+    font-size: 1rem;
 }
 
 .testimonial-company {
-    font-size: 0.85rem; /* Adjusted */
+    font-size: 0.85rem;
     color: var(--text-muted);
 }
 
@@ -699,7 +688,7 @@ html[data-theme="dark"] .about-text p {
 footer {
     background: var(--footer-bg);
     color: var(--footer-text);
-    padding: 3.5rem 0 2rem; /* Adjusted */
+    padding: 3.5rem 0 2rem;
     transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
@@ -714,14 +703,14 @@ footer {
 .footer-section h3 {
     color: var(--primary-color);
     margin-bottom: 1.25rem;
-    font-size: 1.1rem; /* Adjusted */
+    font-size: 1.1rem;
 }
 
 .footer-section p, .footer-section a {
     color: var(--footer-text);
     text-decoration: none;
     line-height: 1.7;
-    font-size: 0.9rem; /* Adjusted */
+    font-size: 0.9rem;
 }
 
 .footer-section a:hover {
@@ -734,7 +723,7 @@ footer {
     padding: 2rem 35px 0;
     border-top: 1px solid #333;
     color: #999;
-    font-size: 0.85rem; /* Adjusted */
+    font-size: 0.85rem;
 }
 
 html[data-theme="dark"] .footer-bottom {
@@ -821,7 +810,7 @@ html[data-theme="dark"] .alert-info { color: #9eeaf9; background-color: #1c3e44;
 /*
   COMMENTED OUT: These rules are for the old job board design and conflict
   with the new Tailwind CSS implementation. Their styling is now handled directly by
-  utility classes in the `offers_list.html` and `job_detail.html` templates.
+  utility classes in the HTML templates.
 */
 /*
 .job-search-hero { background: var(--content-bg-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 2rem; margin-top: 2rem; }
@@ -853,9 +842,10 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
 /* ==     RESPONSIVE DESIGN                   == */
 /* ============================================= */
 @media (max-width: 1024px) {
-    .job-board-container {
+    /* This rule from the old design could still conflict with Tailwind's 'lg:' prefix */
+    /* .job-board-container {
         grid-template-columns: 1fr;
-    }
+    } */
     aside.sidebar.job-filters {
         position: static;
         margin-bottom: 2rem;
@@ -872,12 +862,6 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
         font-size: 1.4rem;
     }
     
-    /* Show the mobile menu toggle button */
-    .mobile-menu-toggle {
-        display: flex;
-    }
-
-    /* Animate hamburger to an 'X' */
     body.mobile-nav-active .mobile-menu-toggle .bar:nth-child(1) {
         transform: translateY(9px) rotate(45deg);
     }
@@ -888,14 +872,17 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
         transform: translateY(-9px) rotate(-45deg);
     }
     
-    /* Hide the desktop navigation and show the full-screen mobile version */
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
     .nav-links {
         display: none;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         gap: 2rem;
-        position: fixed; /* Take over the screen */
+        position: fixed;
         top: 0;
         left: 0;
         width: 100%;
@@ -907,9 +894,8 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
         pointer-events: none;
     }
     
-    /* Style for when the mobile menu is active */
     body.mobile-nav-active .nav-links {
-        display: flex; /* Show the navigation */
+        display: flex;
         opacity: 1;
         pointer-events: auto;
     }
@@ -932,7 +918,6 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
         font-size: 2rem;
     }
     
-    /* Hide the hero image on mobile */
     .hero-image {
         display: none;
     }
@@ -1005,6 +990,8 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
         font-size: 0.95rem;
     }
 
+    /* These are also legacy and should be disabled */
+    /*
     .job-search-hero {
         padding: 1.5rem;
     }
@@ -1014,4 +1001,5 @@ html[data-theme="dark"] .apply-btn { color: var(--background-color); }
     aside.sidebar.job-filters {
         padding: 1.5rem;
     }
+    */
 }
