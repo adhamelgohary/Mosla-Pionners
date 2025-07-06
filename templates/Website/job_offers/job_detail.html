@@ -2,111 +2,82 @@
 
 {% block title %}{{ offer.Title if offer else 'Job Offer Details' }} - Mosla Pioneers{% endblock %}
 
+{% block head_extra %}
+    {{ super() }}
+    {# Link to your custom CSS if it's not already in base.html #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/offer_styles.css') }}">
+{% endblock %}
+
 {% block content %}
-{# The main wrapper to contain the background images and position the content #}
-<div class="job-detail-page-wrapper">
-
-    {# The z-10 class ensures content stays above the background images #}
-    <main class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl border border-border/50">
-            {% if offer %}
-                <!-- Job Header -->
-                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-6 mb-6 border-b border-border">
-                    {% if offer.CompanyLogoURL %}
-                        <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl bg-white p-1 flex-shrink-0">
-                    {% endif %}
-                    <div>
-                        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-heading">{{ offer.Title }}</h1>
-                        {# MODIFIED: Added dark mode text color for the company name #}
-                        <p class="mt-1 text-lg font-medium text-primary-600 dark:text-primary-400">{{ offer.CompanyName }}</p>
-                    </div>
+<div class="job-offer-page-container">
+    <div class="offer-details">
+        {% if offer %}
+            <!-- Job Header -->
+            <div class="job-card-header">
+                {% if offer.CompanyLogoURL %}
+                    <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="company-logo">
+                {% endif %}
+                <div>
+                    <h1>{{ offer.Title }}</h1>
+                    <p class="company-name-display">{{ offer.CompanyName }}</p>
                 </div>
+            </div>
 
-                <!-- Job Meta Details Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 mb-8">
-                    {# MODIFIED: Added dark mode color for icons to ensure they stand out #}
-                    {% if offer.Location %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1-.368.1-.9.1-1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125c.75 0 1.5.25 2.125.625A2.982 2.982 0 0115 10.5v2.639c0 .57.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 16.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" /></svg> <span>{{ offer.Location }}</span></div>{% endif %}
-                    {% if offer.JobType %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5zM8.5 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5zM12 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5z" /></svg> <span>{{ offer.JobType }}</span></div>{% endif %}
-                    {% if offer.NetSalary %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100 6 3 3 0 000-6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg> <span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>{% endif %}
-                    {% if offer.CategoryName %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.25 3h15.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0V4.5H3V12h5.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12.75V3.75A.75.75 0 012.25 3z" /></svg> <span>{{ offer.CategoryName }}</span></div>{% endif %}
+            <!-- Job Meta Details Grid -->
+            <div class="details-grid">
+                {% if offer.Location %}
+                <div class="detail-item">
+                    <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1-.368.1-.9.1-1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4-.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125c.75 0 1.5.25 2.125.625A2.982 2.982 0 0115 10.5v2.639c0 .57.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 16.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" /></svg>
+                    <div><strong>Location</strong><span>{{ offer.Location }}</span></div>
                 </div>
+                {% endif %}
+                {% if offer.JobType %}
+                <div class="detail-item">
+                     <svg viewBox="0 0 20 20"><path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5zM8.5 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5zM12 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5z" /></svg>
+                    <div><strong>Job Type</strong><span>{{ offer.JobType }}</span></div>
+                </div>
+                {% endif %}
+                 {% if offer.NetSalary %}
+                <div class="detail-item">
+                    <svg viewBox="0 0 20 20"><path d="M10 8a3 3 0 100 6 3 3 0 000-6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg>
+                    <div><strong>Salary</strong><span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>
+                </div>
+                {% endif %}
+            </div>
 
-                <!-- Content Sections with corrected rendering logic -->
-                <div class="prose prose-lg max-w-none prose-headings:text-heading prose-p:text-text prose-strong:text-text prose-ul:text-text prose-li:text-text dark:prose-invert">
-                    {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
-                    
-                    {% if offer.Requirements_list %}
-                        <h3>Requirements</h3>
-                        <ul>{% for req in offer.Requirements_list %}<li>{{ req }}</li>{% endfor %}</ul>
-                    {% elif offer.Requirements %}
-                        <h3>Requirements</h3>
-                        {{ offer.Requirements|safe }}
-                    {% endif %}
-
-                    {% if offer.Benefits_list %}
-                        <h3>Benefits</h3>
-                        <ul>{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>
-                    {% elif offer.Benefits %}
-                        <h3>Benefits</h3>
-                        {{ offer.Benefits|safe }}
-                    {% endif %}
-
-                    {% if offer.CompanyDescription %}<h3>About {{ offer.CompanyName }}</h3>{{ offer.CompanyDescription|safe }}{% endif %}
-                </div>
-                
-                <div class="mt-10 text-center">
-                    {# MODIFIED: Added dark mode text color for better contrast #}
-                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">← Back to All Job Offers</a>
-                </div>
-            {% else %}
-                <div class="text-center py-10">
-                    <h2 class="text-xl font-bold text-heading">Job Offer Not Found</h2>
-                    <p class="mt-2 text-text-muted">This offer may no longer be available.</p>
-                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">← View Other Job Offers</a>
-                </div>
-            {% endif %}
-        </div>
-    </main>
+            <!-- Content Sections -->
+            <div class="content-formatted">
+                {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
+                {% if offer.Requirements %}<h3>Requirements</h3>{{ offer.Requirements|safe }}{% endif %}
+                {% if offer.Benefits_list %}<h3>Benefits</h3><ul class="styled-list">{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>{% endif %}
+                {% if offer.CompanyDescription %}<h3>About {{ offer.CompanyName }}</h3>{{ offer.CompanyDescription|safe }}{% endif %}
+            </div>
+            
+        {% else %}
+            <div class="text-center py-10">
+                <h2 class="text-xl font-bold text-heading">Job Offer Not Found</h2>
+                <p class="mt-2 text-text-muted">This offer may no longer be available.</p>
+                <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">← View Other Job Offers</a>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Sticky Apply Bar -->
-<div class="sticky-apply-bar fixed bottom-0 left-0 w-full bg-card/80 backdrop-blur-sm border-t border-border shadow-2xl z-50">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
-            <div class="text-center sm:text-left">
-                <h4 class="font-bold text-heading text-base sm:text-lg">{{ offer.Title }}</h4>
-                <p class="text-sm text-text-muted">{{ offer.CompanyName }} • {{ offer.Location }}</p>
-            </div>
-            <div class="flex-shrink-0 w-full sm:w-auto">
-                {# This button is a primary CTA and should already have good contrast. #}
-                {% if current_user.is_authenticated and current_user.role_type == 'Candidate' %}
-                    <a href="{{ url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID) }}" class="block w-full text-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Apply Now</a>
-                {% else %}
-                    <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID)) }}" class="block w-full text-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Login to Apply</a>
-                {% endif %}
-            </div>
+<div class="sticky-apply-bar">
+    <div class="sticky-apply-bar-content">
+        <div class="job-info">
+            <h4>{{ offer.Title }}</h4>
+            <p>{{ offer.CompanyName }} • {{ offer.Location }}</p>
         </div>
+        <!-- FIX: Using the classes from your CSS file -->
+        {% if current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+            <a href="{{ url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID) }}" class="apply-button">Apply Now</a>
+        {% else %}
+            <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID)) }}" class="apply-button">Login to Apply</a>
+        {% endif %}
     </div>
 </div>
-{% endblock %}
-
-
-{% block page_scripts %}
-{{ super() }}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const stickyBar = document.querySelector('.sticky-apply-bar');
-        const mainContent = document.querySelector('main');
-        function updateContentPadding() {
-            if (stickyBar && mainContent) {
-                const barHeight = stickyBar.offsetHeight;
-                mainContent.style.paddingBottom = (barHeight + 40) + 'px';
-            }
-        }
-        updateContentPadding();
-        window.addEventListener('resize', updateContentPadding);
-    });
-</script>
 {% endblock %}
 
 {% block footer %}{% endblock footer %}
