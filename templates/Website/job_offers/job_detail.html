@@ -5,10 +5,6 @@
 {% block content %}
 {# The main wrapper to contain the background images and position the content #}
 <div class="job-detail-page-wrapper">
-    <div class="background-images">
-        <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
-        <img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-2">
-    </div>
 
     {# The z-10 class ensures content stays above the background images #}
     <main class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">

@@ -269,8 +269,8 @@ def submit_application_form(offer_id):
     candidate_questions = request.form.get('candidateQuestions', '').strip()
     
     cv_file = request.files.get('cv_file')
-    voice_note_blob = request.files.get('voice_note')
-    voice_note_filename_from_form = request.form.get('voice_note_filename', '')
+    # MODIFIED: Get voice note from a standard file input.
+    voice_note_file = request.files.get('voice_note_file')
 
     errors = {}
     if not full_name: errors['full_name'] = "Full name is required."
@@ -278,7 +278,8 @@ def submit_application_form(offer_id):
     if not phone_number: errors['phone_number'] = "Phone number is required."
     if not candidate_questions: errors['candidateQuestions'] = "Please answer why you are interested in this role."
     if not cv_file or not cv_file.filename: errors['cv_file'] = "CV upload is required."
-    if not voice_note_blob or not voice_note_blob.filename: errors['voice_note'] = "Voice introduction is required."
+    # MODIFIED: Validate the new voice note file input.
+    if not voice_note_file or not voice_note_file.filename: errors['voice_note_file'] = "Voice note upload is required."
     
     referring_staff_id = None
     referring_staff_team_lead_id = None
@@ -321,9 +322,8 @@ def submit_application_form(offer_id):
         if not cv_db_path:
              raise Exception("Failed to save CV file.")
         
-        default_voice_filename = f"voice_offer_{offer_id}_candidate_{candidate_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.webm"
-        final_voice_note_filename_to_save = secure_filename(voice_note_filename_from_form or voice_note_blob.filename or default_voice_filename)
-        voice_note_db_path = save_file_from_config(voice_note_blob, f'candidate_applications/voice/{candidate_id}', filename_override=final_voice_note_filename_to_save)
+        # MODIFIED: Save the uploaded voice note file.
+        voice_note_db_path = save_file_from_config(voice_note_file, f'candidate_applications/voice/{candidate_id}')
         if not voice_note_db_path:
             raise Exception("Failed to save voice note file.")
 
@@ -346,10 +346,11 @@ def submit_application_form(offer_id):
             """, (candidate_id, cv_db_path, cv_file.filename, is_primary_for_this_upload, datetime.datetime.now(), 
              cv_file.mimetype, cv_file.content_length // 1024 if cv_file.content_length else None))
         
+        # MODIFIED: Insert record for the uploaded voice note file.
         cursor.execute("""
             INSERT INTO CandidateVoiceNotes (CandidateID, VoiceNoteURL, Title, Purpose, UploadedAt)
             VALUES (%s, %s, %s, %s, %s)
-            """, (candidate_id, voice_note_db_path, final_voice_note_filename_to_save, "Job Application", datetime.datetime.now()))
+            """, (candidate_id, voice_note_db_path, secure_filename(voice_note_file.filename), "Job Application", datetime.datetime.now()))
 
         conn.commit()
         flash("Your application has been submitted successfully!", "success") 
