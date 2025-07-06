@@ -20,7 +20,7 @@
                 <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8 border border-border/50">
                     <div>
                         <h2 class="text-2xl sm:text-3xl font-bold text-heading">Apply for {{ offer.Title }}</h2>
-                        <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary hover:text-primary-darker">View job details again</a>.</p>
+                        <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">View job details again</a>.</p>
                     </div>
 
                     <div id="formErrorMessages" class="hidden rounded-md bg-danger-50 p-4">
@@ -58,7 +58,6 @@
                             <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_candidateQuestions"></p>
                         </div>
                         
-                        <!-- MODIFIED: Replaced live recorder with file upload and instructions -->
                         <div>
                             <label for="voice_note_file" class="block text-sm font-medium leading-6 text-text">Upload Your Voice Introduction <span class="text-danger-500">*</span></label>
                             <div class="mt-2 p-4 rounded-md border border-input-border bg-background/50">
@@ -78,14 +77,16 @@
                                 </ul>
                             </div>
                             <div class="mt-2">
-                                <input type="file" id="voice_note_file" name="voice_note_file" accept=".mp3,.m4a,.wav,.webm,.ogg" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                                {# MODIFIED: Improved colors for file input button for light/dark mode #}
+                                <input type="file" id="voice_note_file" name="voice_note_file" accept=".mp3,.m4a,.wav,.webm,.ogg" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-100 file:text-primary-700 dark:file:bg-primary-500/20 dark:file:text-primary-300 hover:file:bg-primary-200 dark:hover:file:bg-primary-500/30 cursor-pointer">
                             </div>
                             <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note_file"></p>
                         </div>
 
                         <div>
                             <label for="cv_file" class="block text-sm font-medium leading-6 text-text">Upload Your CV <span class="text-danger-500">*</span></label>
-                            <div class="mt-2"><input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"></div>
+                            {# MODIFIED: Improved colors for file input button for light/dark mode #}
+                            <div class="mt-2"><input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-100 file:text-primary-700 dark:file:bg-primary-500/20 dark:file:text-primary-300 hover:file:bg-primary-200 dark:hover:file:bg-primary-500/30 cursor-pointer"></div>
                             <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_cv_file"></p>
                         </div>
                     </div>
@@ -115,7 +116,6 @@
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return;
 
-        // MODIFIED: Removed all variables related to the live recorder.
         const referralCodeInput = document.getElementById('referralCode');
         const referralCodeFeedbackDiv = document.getElementById('referralCodeFeedback');
         const formErrorMessagesDiv = document.getElementById('formErrorMessages');
@@ -157,20 +157,19 @@
                         referralCodeFeedbackDiv.className = 'text-sm mt-2';
                         if (data.status === 'success') {
                             referralCodeFeedbackDiv.textContent = `Referred by: ${data.recruiter_name}`;
-                            referralCodeFeedbackDiv.classList.add('text-success-600');
+                            // MODIFIED: Added dark mode text color for feedback
+                            referralCodeFeedbackDiv.classList.add('text-success-600', 'dark:text-success-400');
                         } else {
                             referralCodeFeedbackDiv.textContent = data.message || 'Invalid code.';
-                            referralCodeFeedbackDiv.classList.add('text-danger-600');
+                            referralCodeFeedbackDiv.classList.add('text-danger-600', 'dark:text-danger-400');
                         }
                     }).catch(err => {
                         referralCodeFeedbackDiv.textContent = 'Could not verify. Check connection.';
-                        referralCodeFeedbackDiv.classList.add('text-warning-600');
+                        referralCodeFeedbackDiv.classList.add('text-warning-600', 'dark:text-warning-400');
                     });
                 }, 750);
             });
         }
-        
-        // MODIFIED: Removed all MediaRecorder logic.
         
         applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
 
@@ -183,7 +182,6 @@
             const formData = new FormData(applicationForm);
             let hasClientSideErrors = false;
             
-            // MODIFIED: Updated client-side validation for file inputs.
             if (!formData.get('full_name')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('fullName'),'Full name is required.');}
             if (!formData.get('email')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('email'), 'Email is required.');}
             if (!formData.get('phone_number')?.trim()) { hasClientSideErrors=true; markFieldInvalid(document.getElementById('phoneNumber'), 'Phone number is required.');}
@@ -196,8 +194,6 @@
                 formErrorMessagesDiv.classList.remove('hidden');
                 return;
             }
-
-            // MODIFIED: Removed manual formData.append for the voice note. It's now handled automatically.
             
             const sendBtn = document.getElementById('sendBtn');
             sendBtn.disabled = true; sendBtn.textContent = 'Submitting...';
@@ -217,7 +213,6 @@
                     formErrorContent.innerHTML = errorHtml;
                     formErrorMessagesDiv.classList.remove('hidden');
                     Object.keys(result.errors || {}).forEach(field => {
-                        // This will now find elements by their ID, e.g., id="cv_file", id="voice_note_file"
                         const el = document.getElementById(field);
                         if (el) markFieldInvalid(el, result.errors[field]);
                     });

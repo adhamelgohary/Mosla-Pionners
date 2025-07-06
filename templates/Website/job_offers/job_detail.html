@@ -17,23 +17,24 @@
                     {% endif %}
                     <div>
                         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-heading">{{ offer.Title }}</h1>
-                        <p class="mt-1 text-lg font-medium text-primary">{{ offer.CompanyName }}</p>
+                        {# MODIFIED: Added dark mode text color for the company name #}
+                        <p class="mt-1 text-lg font-medium text-primary-600 dark:text-primary-400">{{ offer.CompanyName }}</p>
                     </div>
                 </div>
 
                 <!-- Job Meta Details Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6 mb-8">
-                    {% if offer.Location %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1-.368.1-.9.1-1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125c.75 0 1.5.25 2.125.625A2.982 2.982 0 0115 10.5v2.639c0 .57.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 16.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" /></svg> <span>{{ offer.Location }}</span></div>{% endif %}
-                    {% if offer.JobType %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5zM8.5 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5zM12 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5z" /></svg> <span>{{ offer.JobType }}</span></div>{% endif %}
-                    {% if offer.NetSalary %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100 6 3 3 0 000-6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg> <span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>{% endif %}
-                    {% if offer.CategoryName %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.25 3h15.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0V4.5H3V12h5.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12.75V3.75A.75.75 0 012.25 3z" /></svg> <span>{{ offer.CategoryName }}</span></div>{% endif %}
+                    {# MODIFIED: Added dark mode color for icons to ensure they stand out #}
+                    {% if offer.Location %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1-.368.1-.9.1-1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125c.75 0 1.5.25 2.125.625A2.982 2.982 0 0115 10.5v2.639c0 .57.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 16.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" clip-rule="evenodd" /></svg> <span>{{ offer.Location }}</span></div>{% endif %}
+                    {% if offer.JobType %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5zM8.5 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5zM12 6a.5.5 0 01.5.5v2a.5.5 0 01-1 0v-2a.5.5 0 01.5-.5z" /></svg> <span>{{ offer.JobType }}</span></div>{% endif %}
+                    {% if offer.NetSalary %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100 6 3 3 0 000-6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg> <span>{{ offer.NetSalary }} {{ offer.Currency }}</span></div>{% endif %}
+                    {% if offer.CategoryName %}<div class="flex items-center gap-3 text-sm text-text-muted"><svg class="w-5 h-5 text-primary-500 dark:text-primary-400 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M2.25 3h15.5a.75.75 0 01.75.75v3a.75.75 0 01-1.5 0V4.5H3V12h5.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12.75V3.75A.75.75 0 012.25 3z" /></svg> <span>{{ offer.CategoryName }}</span></div>{% endif %}
                 </div>
 
                 <!-- Content Sections with corrected rendering logic -->
-                <div class="prose prose-lg max-w-none">
+                <div class="prose prose-lg max-w-none prose-headings:text-heading prose-p:text-text prose-strong:text-text prose-ul:text-text prose-li:text-text dark:prose-invert">
                     {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
                     
-                    {# === FIX FOR REQUIREMENTS === #}
                     {% if offer.Requirements_list %}
                         <h3>Requirements</h3>
                         <ul>{% for req in offer.Requirements_list %}<li>{{ req }}</li>{% endfor %}</ul>
@@ -42,7 +43,6 @@
                         {{ offer.Requirements|safe }}
                     {% endif %}
 
-                    {# === FIX FOR BENEFITS === #}
                     {% if offer.Benefits_list %}
                         <h3>Benefits</h3>
                         <ul>{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>
@@ -55,7 +55,8 @@
                 </div>
                 
                 <div class="mt-10 text-center">
-                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="text-sm font-semibold text-primary hover:text-primary-darker">← Back to All Job Offers</a>
+                    {# MODIFIED: Added dark mode text color for better contrast #}
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">← Back to All Job Offers</a>
                 </div>
             {% else %}
                 <div class="text-center py-10">
@@ -77,6 +78,7 @@
                 <p class="text-sm text-text-muted">{{ offer.CompanyName }} • {{ offer.Location }}</p>
             </div>
             <div class="flex-shrink-0 w-full sm:w-auto">
+                {# This button is a primary CTA and should already have good contrast. #}
                 {% if current_user.is_authenticated and current_user.role_type == 'Candidate' %}
                     <a href="{{ url_for('job_board_bp.apply_to_job', offer_id=offer.OfferID) }}" class="block w-full text-center rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Apply Now</a>
                 {% else %}

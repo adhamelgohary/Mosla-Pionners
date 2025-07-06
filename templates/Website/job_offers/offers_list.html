@@ -45,8 +45,10 @@
             <!-- Action Buttons -->
             <div class="flex items-center gap-4 w-full sm:w-auto">
                 {% if search_term or selected_category_id or selected_location %}
-                    <a href="{{ url_for('.job_offers_list') }}" class="w-full sm:w-auto text-center text-sm font-semibold text-primary hover:text-primary-darker">Clear All</a>
+                    {# MODIFIED: Added dark mode text color for better contrast #}
+                    <a href="{{ url_for('.job_offers_list') }}" class="w-full sm:w-auto text-center text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">Clear All</a>
                 {% endif %}
+                {# MODIFIED: Primary button style is generally robust, but ensuring text is white is good. #}
                 <button type="submit" class="w-full sm:w-auto rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Search</button>
             </div>
         </div>
@@ -59,15 +61,16 @@
             <div class="bg-card p-6 rounded-2xl shadow-lg sticky top-28">
                 <h3 class="text-lg font-semibold text-heading mb-4">Job Categories</h3>
                 <nav class="flex flex-col gap-1">
+                    {# MODIFIED: Improved colors for active and inactive states in both modes #}
                     <a href="{{ url_for('.job_offers_list', q=search_term, location=selected_location) }}"
                        class="px-3 py-2 text-sm font-medium rounded-md transition-colors
-                              {% if not selected_category_id %}bg-primary/10 text-primary{% else %}text-text-muted hover:bg-primary/5 hover:text-primary{% endif %}">
+                              {% if not selected_category_id %}bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300{% else %}text-text-muted hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400{% endif %}">
                         All Categories
                     </a>
                     {% for category in job_categories %}
                     <a href="{{ url_for('.job_offers_list', category=category.CategoryID, q=search_term, location=selected_location) }}"
                        class="px-3 py-2 text-sm font-medium rounded-md transition-colors
-                              {% if selected_category_id == category.CategoryID %}bg-primary/10 text-primary{% else %}text-text-muted hover:bg-primary/5 hover:text-primary{% endif %}">
+                              {% if selected_category_id == category.CategoryID %}bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300{% else %}text-text-muted hover:bg-gray-100 dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400{% endif %}">
                         {{ category.CategoryName }}
                     </a>
                     {% endfor %}
@@ -96,21 +99,24 @@
                                     {{ job.JobType or 'Full-time' }} • Posted {{ job.DatePosted | timeago }}
                                 </p>
                                 <h3 class="text-lg font-semibold text-heading group-hover:text-primary transition-colors">{{ job.Title }}</h3>
-                                <p class="text-base font-medium text-primary-darker mt-1">{{ job.CompanyName }}</p>
+                                {# MODIFIED: Use a specific primary color shade for dark mode contrast #}
+                                <p class="text-base font-medium text-primary-600 dark:text-primary-400 mt-1">{{ job.CompanyName }}</p>
                                 <p class="text-sm text-text-muted mt-2">
                                     {% if job.NetSalary %}{{ job.NetSalary | currency(job.Currency or 'EGP') }} / Monthly{% else %}Salary Undisclosed{% endif %}
                                 </p>
                             </div>
                             <!-- Action Button (visible on hover) -->
                             <div class="w-full sm:w-auto flex justify-end items-start mt-4 sm:mt-0">
-                               <span class="hidden sm:inline-block rounded-md bg-primary/10 px-4 py-2 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 opacity-0 group-hover:opacity-100 transition-opacity">View Details</span>
+                               {# MODIFIED: Explicit colors for light/dark mode #}
+                               <span class="hidden sm:inline-block rounded-md bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-300 px-4 py-2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">View Details</span>
                             </div>
                         </div>
                         <!-- Tags -->
                         <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                            {% if job.Location %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-location-bg text-tag-location-text">🌍 {{ job.Location }}</span>{% endif %}
-                            {% if job.CategoryName %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-category-bg text-tag-category-text">{{ job.CategoryName }}</span>{% endif %}
-                            {% if job.EnglishLevelRequirement %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-english-bg text-tag-english-text">🇬🇧 {{ job.EnglishLevelRequirement }}</span>{% endif %}
+                            {# MODIFIED: Replaced custom tag classes with standard, dark-mode aware Tailwind classes for high contrast #}
+                            {% if job.Location %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-200">🌍 {{ job.Location }}</span>{% endif %}
+                            {% if job.CategoryName %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-200">{{ job.CategoryName }}</span>{% endif %}
+                            {% if job.EnglishLevelRequirement %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-200">🇬🇧 {{ job.EnglishLevelRequirement }}</span>{% endif %}
                         </div>
                     </a>
                     {% endfor %}
