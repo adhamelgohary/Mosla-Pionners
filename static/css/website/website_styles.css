@@ -816,6 +816,14 @@ html[data-theme="dark"] .alert-danger { color: var(--danger-color); background-c
 html[data-theme="dark"] .alert-success { color: #a3cfbb; background-color: #1a3c23; border-color: #3b714a; }
 html[data-theme="dark"] .alert-warning { color: #ffe8a1; background-color: #544214; border-color: #8e6f20; }
 html[data-theme="dark"] .alert-info { color: #9eeaf9; background-color: #1c3e44; border-color: #3da0b3; }
+
+
+/*
+  COMMENTED OUT: These rules are for the old job board design and conflict
+  with the new Tailwind CSS implementation. Their styling is now handled directly by
+  utility classes in the `offers_list.html` and `job_detail.html` templates.
+*/
+/*
 .job-search-hero { background: var(--content-bg-color); border-radius: 16px; box-shadow: var(--card-shadow); padding: 2rem; margin-top: 2rem; }
 .job-search-hero h1 { font-size: 1.75rem; font-weight: 700; color: var(--heading-color); margin-bottom: 1.5rem; text-align: left; }
 .search-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
@@ -838,6 +846,7 @@ aside.sidebar.job-filters { background: var(--content-bg-color); border-radius: 
 .apply-btn { background: var(--primary-color); color: white; padding: 8px 16px; border: 1px solid var(--primary-color); border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; margin-top: 1rem; align-self: flex-start; text-decoration: none; transition: background-color 0.2s ease; }
 .apply-btn:hover { background: var(--primary-color-darker); }
 html[data-theme="dark"] .apply-btn { color: var(--background-color); }
+*/
 
 
 /* ============================================= */

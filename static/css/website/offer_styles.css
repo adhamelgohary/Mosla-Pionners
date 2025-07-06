@@ -1,6 +1,13 @@
 /* static/css/offer_styles.css */
-   :root {
-    /* Job Tag Colors (Light Mode) - Moved here if exclusive to offers page */
+
+/*
+   COMMENTED OUT: These variables and the rules below that use them are now
+   handled directly by Tailwind utility classes in the HTML templates
+   (e.g., offers_list.html) to ensure the modern UI works correctly.
+*/
+
+/*
+:root {
     --tag-location-bg: #FFFBEB; 
     --tag-location-text: #B45309; 
     --tag-category-bg: #F0FDF4; 
@@ -10,7 +17,6 @@
 }
 
 html[data-theme="dark"] {
-    /* Job Tag Colors (Dark Mode) - Moved here if exclusive to offers page */
     --tag-location-bg: #422006; 
     --tag-location-text: #FEF3C7; 
     --tag-category-bg: #14532D; 
@@ -18,21 +24,26 @@ html[data-theme="dark"] {
     --tag-english-bg: #1E40AF;
     --tag-english-text: #DBEAFE;
 }
+*/
 
 
-/* === JOB BOARD SPECIFIC STYLES === */
+/* 
+  COMMENTED OUT: The entire job board layout and component styling is now handled by Tailwind CSS.
+  Keeping these rules would override the Tailwind classes and cause the UI to break or look inconsistent.
+*/
+/*
 .job-search-hero { 
     background: var(--content-bg-color); 
     border-radius: 16px; 
     box-shadow: var(--card-shadow); 
     padding: 2rem; 
     margin-top: 2rem; 
-    margin-bottom: 2rem; /* Added margin for spacing */
+    margin-bottom: 2rem;
 }
 .job-search-hero h1 { 
     font-size: 1.75rem; 
     font-weight: 700; 
-    color: var(--heading-color); /* Use heading color */
+    color: var(--heading-color);
     margin-bottom: 1.5rem; 
     text-align: left; 
 }
@@ -59,7 +70,7 @@ html[data-theme="dark"] {
 }
 .search-input:focus { 
     border-color: var(--primary-color); 
-    box-shadow: 0 0 0 3px var(--focus-ring-color); /* Added focus ring */
+    box-shadow: 0 0 0 3px var(--focus-ring-color);
 }
 .search-icon { 
     position: absolute; 
@@ -73,7 +84,7 @@ html[data-theme="dark"] {
     display: flex; 
     gap: 0.75rem; 
     flex-wrap: wrap; 
-    align-items: center; /* Align items */
+    align-items: center;
 }
 .location-dropdown, .filters-button { 
     display: flex; 
@@ -109,15 +120,15 @@ html[data-theme="dark"] {
     flex-wrap: wrap; 
     align-items: center; 
     margin-bottom: 1rem; 
-    margin-top: 1rem; /* Added margin */
+    margin-top: 1rem;
 }
 .tag { 
     display: flex; 
     align-items: center; 
     gap: 8px; 
     padding: 6px 12px; 
-    background: var(--bg-color); /* Use main bg for tags */
-    border: 1px solid var(--border-color); /* Use main border color */
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     border-radius: 8px; 
     font-size: 0.8rem; 
     color: var(--text-muted); 
@@ -134,7 +145,7 @@ html[data-theme="dark"] {
     cursor: pointer; 
     text-decoration: none; 
     font-weight: 500; 
-    margin-left: auto; /* Push to the right */
+    margin-left: auto;
 }
 .clear-all:hover {
     text-decoration: underline;
@@ -145,21 +156,21 @@ html[data-theme="dark"] {
     grid-template-columns: 280px 1fr; 
     gap: 2rem; 
     margin-top: 2rem; 
-    max-width: 1400px; /* Wider container for job board */
+    max-width: 1400px;
     margin-left: auto;
     margin-right: auto;
-    padding: 0 20px; /* Consistent padding */
+    padding: 0 20px;
 }
 aside.sidebar.job-filters { 
     background: var(--content-bg-color); 
     border-radius: 16px; 
     box-shadow: var(--card-shadow); 
-    padding: 1.5rem; /* Reduced padding slightly */
+    padding: 1.5rem;
     height: fit-content; 
     position: sticky; 
-    top: calc(1rem + 70px + 1rem); /* Header height (approx 70px) + margins */
+    top: calc(1rem + 70px + 1rem);
 }
-.job-categories h3, .filter-group h3 { /* Combined for filter groups */
+.job-categories h3, .filter-group h3 { 
     font-size: 1.1rem; 
     font-weight: 600; 
     color: var(--heading-color); 
@@ -167,11 +178,11 @@ aside.sidebar.job-filters {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color);
 }
-.category-item, .filter-item { /* Combined for filter items */
+.category-item, .filter-item { 
     display: flex; 
     align-items: center; 
     justify-content: space-between; 
-    padding: 0.6rem 0; /* Adjusted padding */
+    padding: 0.6rem 0;
     border-bottom: 1px solid var(--border-color); 
     cursor: pointer; 
     transition: background-color 0.2s; 
@@ -190,9 +201,9 @@ aside.sidebar.job-filters {
 }
 .category-icon { 
     font-size: 1.2em; 
-    color: var(--primary-color); /* Added color */
+    color: var(--primary-color);
 }
-.category-name, .filter-label { /* Combined */
+.category-name, .filter-label { 
     color: var(--text-color); 
     font-weight: 500; 
 }
@@ -207,7 +218,7 @@ aside.sidebar.job-filters {
 .main-content.job-listings { 
     display: flex; 
     flex-direction: column; 
-    gap: 1.5rem; /* Reduced gap slightly */
+    gap: 1.5rem;
 }
 .job-list-header { 
     display: flex;
@@ -351,8 +362,6 @@ aside.sidebar.job-filters {
 html[data-theme="dark"] .apply-btn { 
     color: var(--background-color); 
 }
-
-/* === SINGLE JOB OFFER DETAIL PAGE === */
 .job-offer-page-container {
     max-width: 900px;
     margin: 2rem auto;
@@ -431,8 +440,6 @@ html[data-theme="dark"] .apply-btn {
 .content-formatted p { margin-bottom: 1rem; line-height: 1.7; }
 .content-formatted ul, .styled-list { list-style-position: inside; padding-left: 0.5rem; }
 .content-formatted ul li, .styled-list li { margin-bottom: 0.5rem; }
-
-/* === STICKY APPLY BAR (Job Detail Page) === */
 .sticky-apply-bar {
     position: fixed;
     bottom: 0;
@@ -489,8 +496,6 @@ html[data-theme="dark"] .sticky-apply-bar .apply-button {
 .sticky-apply-bar .apply-button:hover {
      background-color: var(--primary-color-darker);
 }
-
-/* === RESPONSIVE ADJUSTMENTS for Job Offers === */
 @media (max-width: 1024px) {
     .job-board-container { grid-template-columns: 1fr; }
     aside.sidebar.job-filters { position: static; margin-bottom: 2rem; top: auto; }
@@ -512,3 +517,4 @@ html[data-theme="dark"] .sticky-apply-bar .apply-button {
     .sticky-apply-bar-content { flex-direction: column; align-items: stretch; text-align: center; }
     .sticky-apply-bar .job-info { margin-bottom: 0.75rem; }
 }
+*/
