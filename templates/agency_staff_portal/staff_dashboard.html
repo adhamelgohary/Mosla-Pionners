@@ -1,139 +1,168 @@
+{# templates/agency_staff_portal/staff_dashboard.html #}
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{% block staff_title %}Staff Dashboard{% endblock %}
-{% block staff_page_title %}Agency Staff Dashboard{% endblock %}
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    Dashboard
+{% endblock %}
 
 {% block staff_content %}
+<div>
+    <!-- Welcome Header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-800">Welcome back, {{ current_user.first_name }}!</h2>
+        <p class="text-gray-500">Here's a snapshot of your performance and agency activity.</p>
+    </div>
 
-<div class="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-    <h2 class="text-2xl font-bold text-gray-800">Welcome back, {{ current_user.first_name }}!</h2>
-    <p class="mt-1 text-gray-600">Your current role is: <span class="font-semibold">{{ current_user.role_type }}</span></p>
-</div>
-
-{# Reusable KPI Card Macro #}
-{% macro kpi_card(title, value, color='primary') %}
-<div class="bg-gray-50/70 p-4 rounded-lg text-center border border-gray-200 hover:shadow-md transition-shadow">
-    <dt class="text-sm font-medium text-gray-500 truncate">{{ title }}</dt>
-    <dd class="mt-1 text-3xl font-semibold tracking-tight text-{{color}}-600">{{ value }}</dd>
-</div>
-{% endmacro %}
-
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Left Column: Announcements & Activity -->
-    <div class="lg:col-span-2 space-y-8">
-        {# Manual Announcements #}
-        {% if manual_announcements or (current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE) %}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <div class="flex justify-between items-center pb-4 mb-4 border-b border-gray-200">
-                 <h3 class="text-lg font-semibold text-gray-900">System Announcements</h3>
-                 {% if current_user.role_type in ANNOUNCEMENT_MANAGEMENT_ROLES_FOR_TEMPLATE %}
-                    <a href="{{ url_for('announcement_bp.list_announcements') }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">Manage</a>
-                {% endif %}
-            </div>
-            {% if manual_announcements %}
-                <div class="space-y-6">
-                {% for announcement in manual_announcements %}
-                    {% set priority_class = {
-                        'Urgent': 'border-red-500 bg-red-50', 
-                        'High': 'border-yellow-400 bg-yellow-50',
-                        'Normal': 'border-gray-300 bg-white'
-                    }[announcement.Priority] %}
-                    <div class="p-4 rounded-md border-l-4 {{ priority_class }}">
-                        <h4 class="font-semibold text-gray-800">{{ announcement.Title }}</h4>
-                        <p class="text-xs text-gray-500 mt-1">Posted {{ announcement.CreatedAt | timeago }} by {{ announcement.PosterFirstName }}</p>
-                        <div class="mt-2 text-sm text-gray-700 prose max-w-none">{{ announcement.Content | nl2br }}</div>
+    <!-- KPI Cards Grid -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Key Performance Indicators</h3>
+        <dl class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            
+            {# --- Personal Performance KPIs --- #}
+            {% if 'my_referred_applications_month' in dashboard_stats %}
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-indigo-500 p-3">
+                        <i class="bi bi-send-check-fill text-white h-6 w-6"></i>
                     </div>
-                {% endfor %}
-                </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">My Referrals (30d)</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.my_referred_applications_month }}</p>
+                    <p class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                        <span class="sr-only">Applications</span>
+                        applications
+                    </p>
+                </dd>
+            </div>
+            {% endif %}
+
+            {% if 'my_managed_clients' in dashboard_stats %}
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-indigo-500 p-3">
+                        <i class="bi bi-person-workspace text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">My Managed Clients</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.my_managed_clients }}</p>
+                </dd>
+            </div>
+            {% endif %}
+            
+            {% if 'team_managed_clients' in dashboard_stats %}
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-indigo-500 p-3">
+                        <i class="bi bi-diagram-3-fill text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Team's Managed Clients</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.team_managed_clients }}</p>
+                </dd>
+            </div>
+            {% endif %}
+
+            {# --- Agency-Wide KPIs (For Executives) --- #}
+            {% if is_executive %}
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-blue-500 p-3">
+                        <i class="bi bi-people-fill text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Candidates</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.total_candidates_system }}</p>
+                </dd>
+            </div>
+            
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-blue-500 p-3">
+                        <i class="bi bi-building-fill text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Companies</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.total_companies }}</p>
+                </dd>
+            </div>
+            
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-blue-500 p-3">
+                        <i class="bi bi-briefcase-fill text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Open Job Offers</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.open_job_offers }}</p>
+                </dd>
+            </div>
+
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-blue-500 p-3">
+                        <i class="bi bi-person-badge-fill text-white h-6 w-6"></i>
+                    </div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Active Staff</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_stats.active_staff_count }}</p>
+                </dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <!-- Announcements and Activity Feed -->
+    <div class="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <!-- Manual Announcements -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-4 mb-4">Announcements</h3>
+            {% if manual_announcements %}
+                <ul class="space-y-4">
+                    {% for item in manual_announcements %}
+                    <li>
+                        <div class="font-semibold text-gray-800">{{ item.Title }}</div>
+                        <p class="text-sm text-gray-600">{{ item.Content }}</p>
+                        <p class="text-xs text-gray-400 mt-1">Posted by {{ item.PosterFirstName }} on {{ item.CreatedAt.strftime('%b %d') }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
             {% else %}
-                <p class="text-sm text-center text-gray-500 py-8">No active announcements.</p>
+                <p class="text-center text-gray-500 py-6">No new announcements.</p>
             {% endif %}
         </div>
-        {% endif %}
 
-        {# Automated Activity Feed #}
-        {% if activity_feed_items %}
+        <!-- Automated Activity Feed -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-             <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Recent Agency Activity</h3>
-             <div class="flow-root">
-                <ul role="list" class="-mb-8">
-                {% for item in activity_feed_items %}
-                    <li>
-                        <div class="relative pb-8">
-                            {% if not loop.last %}<span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>{% endif %}
-                            <div class="relative flex space-x-3">
-                                <div>
-                                    {% set icon_class = {'Automated_Course': 'bi-book-half bg-blue-500', 'Automated_Offer': 'bi-briefcase-fill bg-green-500'}[item.Source] %}
-                                    <span class="h-8 w-8 rounded-full flex items-center justify-center text-white {{ icon_class }}"><i class="bi {{ icon_class.split(' ')[0] }}"></i></span>
-                                </div>
-                                <div class="min-w-0 flex-1 pt-1.5">
-                                    <p class="text-sm text-gray-800">{{ item.Title | safe }}</p>
-                                    <p class="text-xs text-gray-500">{{ item.CreatedAt | timeago }}</p>
-                                </div>
-                            </div>
+            <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-4 mb-4">Recent Activity</h3>
+            {% if activity_feed_items %}
+                <ul class="space-y-4">
+                    {% for item in activity_feed_items %}
+                    <li class="flex items-start gap-3">
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-blue-100">
+                                <i class="bi {{ 'bi-megaphone-fill' if item.Source == 'Automated_Offer' else 'bi-mortarboard-fill' }} text-blue-600"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-800">{{ item.Title }}</div>
+                            <p class="text-sm text-gray-500">{{ item.CreatedAt.strftime('%d %b, %Y at %I:%M %p') }}</p>
                         </div>
                     </li>
-                {% endfor %}
+                    {% endfor %}
                 </ul>
-            </div>
+            {% else %}
+                 <p class="text-center text-gray-500 py-6">No recent automated activity.</p>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
-
-    <!-- Right Column: Stats & Quick Actions -->
-    <div class="lg:col-span-1 space-y-8">
-        {# General Stats #}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Agency Overview</h3>
-            <dl class="space-y-4">
-                {{ kpi_card('Open Job Offers', dashboard_stats.get('open_job_offers', '0'), 'yellow') }}
-
-                {% if current_user.role_type == 'CEO' %}
-                    {{ kpi_card('Total System Candidates', dashboard_stats.get('total_candidates_system', '0'), 'info') }}
-                {% endif %}
-                
-                {% if current_user.role_type in ['CEO', 'OperationsManager', 'SalesManager', 'AccountManager', 'SeniorAccountManager'] %}
-                    {{ kpi_card('Active Companies', dashboard_stats.get('total_companies', '0'), 'green') }}
-                {% endif %}
-            </dl>
-        </div>
-
-        {# Sourcing Activity #}
-        {% if 'my_referred_applications_month' in dashboard_stats %}
-        <div>
-            <p class="text-sm font-medium text-gray-500 truncate">Referred Applications (30d)</p>
-            <p class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ dashboard_stats.my_referred_applications_month }}</p>
-        </div>
-        {% endif %}
-
-        {# Sales/AM Activity #}
-        {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'SalesManager', 'CEO'] %}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Client Overview</h3>
-            <dl class="space-y-4">
-                {% if current_user.role_type == 'AccountManager' %}
-                    {{ kpi_card('My Managed Clients', dashboard_stats.get('my_managed_clients', '0')) }}
-                {% endif %}
-                {% if current_user.role_type == 'SeniorAccountManager' %}
-                    {{ kpi_card('Team Managed Clients', dashboard_stats.get('team_managed_clients', '0')) }}
-                {% endif %}
-                {{ kpi_card('New Clients (30d)', dashboard_stats.get('new_clients_agency_month', '0'), 'success') }}
-            </dl>
-        </div>
-        {% endif %}
-
-        {# Quick Actions for Course Managers #}
-        {% if can_manage_courses %}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-             <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">Quick Actions</h3>
-             <div class="flex flex-col space-y-3">
-                <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-info-600 hover:bg-info-700">View Courses Dashboard</a>
-                <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">Manage All Courses</a>
-             </div>
-        </div>
-        {% endif %}
     </div>
 </div>
-
 {% endblock %}
