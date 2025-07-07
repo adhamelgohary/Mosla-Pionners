@@ -51,8 +51,8 @@
                                         <div class="text-gray-500">{{ app.CompanyName }}</div>
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        {{ app.ApplicationDate.strftime('%d %b, %Y') }}
-                                    </td>
+    {{ app.ApplicationDate.strftime('%d %b, %Y') if app.ApplicationDate else 'N/A' }}
+</td>
                                     <td class="whitespace-nowrap px-3 py-4 text-sm">
                                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ {'Applied': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Submitted': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Shortlisted': 'bg-purple-50 text-purple-700 ring-purple-600/20', 'Hired': 'bg-green-50 text-green-700 ring-green-600/20', 'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'}.get(app.Status, 'bg-gray-50 text-gray-600 ring-gray-500/10') }}">{{ app.Status }}</span>
                                     </td>
