@@ -1,7 +1,7 @@
 # routes/Recruiter_Team_Portal/recruiter_routes.py
 from flask import Blueprint, render_template, flash, redirect, url_for, current_app, request
 from flask_login import login_required, current_user
-from utils.decorators import login_required_with_role # We still use this for role checks
+from utils.decorators import login_required_with_role
 from db import get_db_connection
 
 # Define roles that can access this entire portal
@@ -10,10 +10,9 @@ RECRUITER_PORTAL_ROLES = [
     'CEO', 'OperationsManager'
 ]
 
-# Define roles that are considered "Leaders" within this portal
+# Define roles that are considered "Leaders" within this portal and can see the "My Team" page
 LEADER_ROLES_IN_PORTAL = [
-    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
-    'CEO', 'OperationsManager'
+    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'
 ]
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
@@ -23,13 +22,11 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
-    """
-    The main dashboard for the Recruiter Portal.
-    """
+    """ The main dashboard for the Recruiter Portal. """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
         flash("Your staff profile could not be found.", "danger")
-        return redirect(url_for('staff_dashboard_bp.main_dashboard')) # Fallback to main staff dash
+        return redirect(url_for('staff_dashboard_bp.main_dashboard'))
 
     kpis = {}
     conn = None
@@ -37,11 +34,11 @@ def dashboard():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # KPI: My Referred Applications (This Month)
+        # KPI: My Referred Applications (This Calendar Month)
         cursor.execute(
             """SELECT COUNT(ApplicationID) AS count 
                FROM JobApplications 
-               WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)""",
+               WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_FORMAT(NOW(), '%Y-%m-01')""",
             (staff_id,)
         )
         res = cursor.fetchone()
@@ -64,15 +61,10 @@ def dashboard():
                            title="Recruiter Dashboard", 
                            kpis=kpis)
 
-
 @recruiter_bp.route('/my-referrals')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def my_referred_applications():
-    """
-    Displays a list of all job applications that were submitted
-    using the logged-in recruiter's referral code.
-    (This is the function moved from team_routes.py)
-    """
+    """ Displays a list of all job applications submitted using the recruiter's referral code. """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
         flash("Your staff profile ID could not be found.", "danger")
@@ -85,7 +77,7 @@ def my_referred_applications():
         cursor = conn.cursor(dictionary=True)
         sql = """
             SELECT ja.ApplicationID, ja.ApplicationDate, ja.Status, c.CandidateID,
-                   u.FirstName, u.LastName, u.Email, jo.Title AS JobTitle, comp.CompanyName
+                   u.FirstName, u.LastName, u.Email, u.ProfilePictureURL, jo.Title AS JobTitle, comp.CompanyName
             FROM JobApplications ja
             JOIN Candidates c ON ja.CandidateID = c.CandidateID
             JOIN Users u ON c.UserID = u.UserID
@@ -108,14 +100,11 @@ def my_referred_applications():
                            title="My Referred Applications",
                            applications=referred_applications)
 
-
+# --- NEW: `my_team` logic is now moved here ---
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def my_team_performance():
-    """
-    Displays team members for a logged-in leader.
-    (This is the function moved from team_routes.py)
-    """
+    """ Displays team members for a logged-in sourcing leader. """
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     if not leader_staff_id:
         flash("Your staff profile ID could not be found.", "warning")
@@ -126,8 +115,8 @@ def my_team_performance():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # This query is now simpler because we know the user is a leader
-        # We find everyone who reports directly to this leader
+        # This query finds everyone who reports directly to this leader
+        # and counts their total referrals.
         sql = """
             SELECT 
                 u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
@@ -135,7 +124,7 @@ def my_team_performance():
             FROM Staff s
             JOIN Users u ON s.UserID = u.UserID
             WHERE s.ReportsToStaffID = %s
-            ORDER BY u.LastName, u.FirstName
+            ORDER BY total_referrals DESC, u.LastName ASC
         """
         cursor.execute(sql, (leader_staff_id,))
         team_members = cursor.fetchall()
@@ -148,5 +137,5 @@ def my_team_performance():
             conn.close()
             
     return render_template('recruiter_team_portal/my_team.html',
-                           title="My Team's Referrals",
+                           title="My Team's Referral Performance",
                            team_members=team_members)
