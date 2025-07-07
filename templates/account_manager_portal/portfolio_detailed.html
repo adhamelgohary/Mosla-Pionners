@@ -1,3 +1,4 @@
+{# templates/account_manager_portal/portfolio_detailed.html #}
 {% extends "account_manager_portal/account_manager_base.html" %}
 
 {% block page_title %}
@@ -7,75 +8,48 @@
 {% block content %}
 <div class="space-y-8">
     {% for company in companies_data %}
-    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ company.CompanyName }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ company.Industry or 'No industry specified' }}</p>
-        </div>
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+        <!-- Company Header (Now a link) -->
+        <a href="{{ url_for('.view_single_company', company_id=company.CompanyID) }}" class="block p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
+            <h3 class="text-xl font-semibold text-indigo-600 hover:text-indigo-700">{{ company.CompanyName }}</h3>
+            <p class="text-sm text-gray-500">{{ company.Industry or 'No industry specified' }}</p>
+        </a>
 
-        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <!-- Job Offers List for this company -->
+        <div class="divide-y divide-gray-200">
             {% for offer in company.job_offers %}
-            <div class="p-6" x-data="{ open: false }">
-                <button @click="open = !open" class="w-full flex justify-between items-center text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-md transition-colors">
-                    <div class="flex-grow">
-                        <p class="font-semibold text-lg text-gray-800 dark:text-gray-200">{{ offer.Title }}</p>
-                        <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' }}">
-                            {{ offer.Status }}
-                        </span>
+            <div class="p-6">
+                <div class="w-full flex justify-between items-center text-left">
+                    <!-- Offer Title (Now a link) -->
+                    <div>
+                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-lg text-gray-800 hover:text-indigo-600">{{ offer.Title }}</a>
+                        <div class="mt-1">
+                            <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">
+                                {{ offer.Status }}
+                            </span>
+                        </div>
                     </div>
+                    <!-- Applicant Count and Link to Offer Page -->
                     <div class="flex items-center gap-4">
-                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ offer.applicants|length }} Applicant(s)</span>
-                        <i class="bi transition-transform text-lg text-gray-500" :class="{ 'bi-chevron-down': !open, 'bi-chevron-up': open }"></i>
+                        <div class="text-right">
+                           <p class="text-sm font-semibold text-gray-900">{{ offer.NewApplicantCount }}</p>
+                           <p class="text-xs text-gray-500">New Applicant(s)</p>
+                        </div>
+                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
+                            Review →
+                        </a>
                     </div>
-                </button>
-
-                <div x-show="open" x-collapse.duration.400ms class="mt-4 pl-4 border-l-2 border-primary-500 dark:border-primary-400">
-                    {% if offer.applicants %}
-                    <ul class="divide-y divide-gray-200 dark:divide-gray-600">
-                        {% for applicant in offer.applicants %}
-                        <li class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ applicant.FirstName }} {{ applicant.LastName }}</p>
-                                <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="text-sm text-blue-600 hover:underline dark:text-blue-400" target="_blank">
-                                    View Full Profile <i class="bi bi-box-arrow-up-right text-xs"></i>
-                                </a>
-                            </div>
-                            <div class="flex-shrink-0 flex items-center gap-2 mt-2 md:mt-0">
-                                <!-- Form actions correctly point to the AM portal's update route -->
-                                <form method="POST" action="{{ url_for('.update_application_status', application_id=applicant.ApplicationID) }}">
-                                    <input type="hidden" name="manager_staff_id" value="{{ manager.StaffID }}">
-                                    <input type="hidden" name="action" value="reject">
-                                    <button type="submit" class="text-xs font-medium rounded-md px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/40">Reject</button>
-                                </form>
-                                <form method="POST" action="{{ url_for('.update_application_status', application_id=applicant.ApplicationID) }}">
-                                    <input type="hidden" name="manager_staff_id" value="{{ manager.StaffID }}">
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" class="text-xs font-medium rounded-md px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">Approve</button>
-                                </form>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="text-sm text-gray-500 dark:text-gray-400 py-4">No applicants for this offer yet.</p>
-                    {% endif %}
                 </div>
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 dark:text-gray-400 p-6">No job offers found for this company.</p>
+            <p class="text-sm text-gray-500 p-6">No job offers found for this company.</p>
             {% endfor %}
         </div>
     </div>
     {% else %}
-    <div class="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-        <p class="text-gray-500 dark:text-gray-400">No companies are currently assigned to this portfolio.</p>
+    <div class="text-center py-12 bg-white rounded-lg shadow">
+        <p class="text-gray-500">No companies are currently assigned to this portfolio.</p>
     </div>
     {% endfor %}
 </div>
-{% endblock %}
-
-{% block page_scripts %}
-{# Alpine.js is needed for the interactive accordion dropdowns #}
-<script src="//unpkg.com/alpinejs" defer></script>
-<script src="//unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}

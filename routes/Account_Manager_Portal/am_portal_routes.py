@@ -169,30 +169,48 @@ def my_portfolio():
         return redirect(url_for('.dashboard'))
     return redirect(url_for('.view_manager_portfolio', manager_staff_id=current_user.specific_role_id))
 
+# In am_portal_routes.py
+
 @account_manager_bp.route('/portfolio/<int:manager_staff_id>')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def view_manager_portfolio(manager_staff_id):
+    # Authorization checks remain the same
     is_own_portfolio = hasattr(current_user, 'specific_role_id') and current_user.specific_role_id == manager_staff_id
     if not is_own_portfolio and current_user.role_type not in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder']:
         abort(403, "You are not authorized to view this portfolio.")
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # 1. Fetch manager details
         cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName, s.Role FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (manager_staff_id,))
         manager_details = cursor.fetchone()
-        if not manager_details: abort(404, "Account Manager not found.")
+        if not manager_details:
+            abort(404, "Account Manager not found.")
+            
+        # 2. Fetch companies managed by this AM
         cursor.execute("SELECT CompanyID, CompanyName, Industry FROM Companies WHERE ManagedByStaffID = %s ORDER BY CompanyName", (manager_staff_id,))
         managed_companies = cursor.fetchall()
+
+        # 3. For each company, fetch its offers and a COUNT of their applicants
         companies_with_data = []
         for company in managed_companies:
             company['job_offers'] = []
-            cursor.execute("SELECT OfferID, Title, Status FROM JobOffers WHERE CompanyID = %s ORDER BY Status, Title", (company['CompanyID'],))
+            cursor.execute("""
+                SELECT 
+                    OfferID, Title, Status,
+                    (SELECT COUNT(*) FROM JobApplications WHERE OfferID = jo.OfferID AND Status IN ('Applied', 'Submitted')) as NewApplicantCount
+                FROM JobOffers jo
+                WHERE CompanyID = %s 
+                ORDER BY Status, Title
+            """, (company['CompanyID'],))
             offers = cursor.fetchall()
-            for offer in offers:
-                cursor.execute("SELECT ja.ApplicationID, ja.Status AS ApplicationStatus, c.CandidateID, u.FirstName, u.LastName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC", (offer['OfferID'],))
-                offer['applicants'] = cursor.fetchall()
-                company['job_offers'].append(offer)
+            
+            # The applicants themselves are NOT fetched here, only the count
+            company['job_offers'] = offers
             companies_with_data.append(company)
+
     except Exception as e:
         current_app.logger.error(f"Error fetching portfolio for manager {manager_staff_id}: {e}", exc_info=True)
         flash("An error occurred while loading the portfolio.", "danger")
@@ -201,8 +219,11 @@ def view_manager_portfolio(manager_staff_id):
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
-    return render_template('account_manager_portal/portfolio_detailed.html', title=f"Portfolio: {manager_details['FirstName']} {manager_details['LastName']}", manager=manager_details, companies_data=companies_with_data)
-
+            
+    return render_template('account_manager_portal/portfolio_detailed.html', 
+                           title=f"Portfolio: {manager_details['FirstName']} {manager_details['LastName']}", 
+                           manager=manager_details, 
+                           companies_data=companies_with_data)
 # ======================================================================
 # FULLY UPDATED `update_application_status` FUNCTION
 # ======================================================================
