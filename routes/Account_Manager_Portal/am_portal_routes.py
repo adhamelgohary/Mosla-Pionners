@@ -205,6 +205,7 @@ def view_manager_portfolio(manager_staff_id):
 # ======================================================================
 # FULLY UPDATED `update_application_status` FUNCTION
 # ======================================================================
+
 @account_manager_bp.route('/application/<int:application_id>/update', methods=['POST'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def update_application_status(application_id):
@@ -212,17 +213,19 @@ def update_application_status(application_id):
     action = request.form.get('action')
     manager_staff_id = request.form.get('manager_staff_id')
     company_id_for_redirect = request.form.get('company_id')
+    offer_id_for_redirect = request.form.get('offer_id') # NEW
 
     if not all([action, manager_staff_id]):
         flash("Invalid request. Missing action or manager ID.", "danger")
         return redirect(url_for('.dashboard'))
-
-    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id):
+        
+    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id): 
         abort(403)
 
     new_status = {'approve': 'Shortlisted', 'reject': 'Rejected'}.get(action)
     
     if new_status:
+        # ... (database update logic remains the same) ...
         conn = None
         try:
             conn = get_db_connection()
@@ -238,15 +241,18 @@ def update_application_status(application_id):
             if conn and conn.is_connected():
                 if 'cursor' in locals(): cursor.close()
                 conn.close()
-    else:
+    else: 
         flash("Unknown action specified.", "danger")
 
-    # --- NEW, SMARTER REDIRECTION LOGIC ---
-    if company_id_for_redirect:
+    # --- NEW, HIERARCHICAL REDIRECTION LOGIC ---
+    if offer_id_for_redirect:
+        # If we came from the single offer page, redirect back there
+        return redirect(url_for('.view_offer_applicants', offer_id=offer_id_for_redirect))
+    elif company_id_for_redirect:
         # If we came from the single company page, redirect back there
         return redirect(url_for('.view_single_company', company_id=company_id_for_redirect))
     else:
-        # Otherwise (e.g., from portfolio), redirect back to the full portfolio page
+        # Otherwise, redirect back to the full portfolio page
         return redirect(url_for('.view_manager_portfolio', manager_staff_id=manager_staff_id))
 
 
@@ -288,3 +294,75 @@ def view_single_company(company_id):
             conn.close()
             
     return render_template('account_manager_portal/single_company_view.html', title=f"Manage: {company_data['info']['CompanyName']}", company_data=company_data, manager_staff_id=staff_id)
+
+
+@account_manager_bp.route('/offer/<int:offer_id>/applicants')
+@login_required_with_role(AM_PORTAL_ACCESS_ROLES)
+def view_offer_applicants(offer_id):
+    """
+    Displays a dedicated page for a single job offer, listing all its applicants
+    for review and action by the authorized Account Manager.
+    """
+    staff_id = getattr(current_user, 'specific_role_id', None)
+    if not staff_id:
+        abort(403)
+
+    conn = get_db_connection()
+    offer_data = {}
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Fetch offer details and verify authorization
+        cursor.execute("""
+            SELECT 
+                jo.OfferID, jo.Title, jo.Status, 
+                c.CompanyID, c.CompanyName, c.ManagedByStaffID
+            FROM JobOffers jo
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            WHERE jo.OfferID = %s
+        """, (offer_id,))
+        offer_info = cursor.fetchone()
+
+        if not offer_info:
+            abort(404, "Job offer not found.")
+
+        # Authorization Check: Is the current user the manager of this company?
+        # A more robust hierarchical check could be added here if needed.
+        if offer_info['ManagedByStaffID'] != staff_id and current_user.role_type not in ['HeadAccountManager', 'CEO', 'OperationsManager']:
+             abort(403, "You are not authorized to view applicants for this offer.")
+        
+        offer_data['info'] = offer_info
+
+        # 2. Fetch all applicants for this specific offer
+        cursor.execute("""
+            SELECT 
+                ja.ApplicationID, ja.Status, ja.ApplicationDate,
+                c.CandidateID, u.FirstName, u.LastName, u.Email, u.ProfilePictureURL
+            FROM JobApplications ja
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            WHERE ja.OfferID = %s
+            ORDER BY 
+                CASE ja.Status
+                    WHEN 'Applied' THEN 1
+                    WHEN 'Submitted' THEN 2
+                    WHEN 'Shortlisted' THEN 3
+                    ELSE 4
+                END,
+                ja.ApplicationDate DESC
+        """, (offer_id,))
+        offer_data['applicants'] = cursor.fetchall()
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching applicants for OfferID {offer_id} for AM {staff_id}: {e}", exc_info=True)
+        flash("An error occurred while loading the applicant list.", "danger")
+        return redirect(url_for('.dashboard'))
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return render_template('account_manager_portal/single_offer_view.html',
+                           title=f"Applicants for: {offer_data['info']['Title']}",
+                           offer_data=offer_data,
+                           manager_staff_id=staff_id)

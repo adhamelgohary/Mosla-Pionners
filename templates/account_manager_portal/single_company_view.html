@@ -30,13 +30,17 @@
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for offer in company_data.job_offers %}
             <div class="p-6" x-data="{ open: true }"> <!-- Default to open -->
-                <button @click="open = !open" class="w-full flex justify-between items-center text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-md transition-colors">
-                    <div class="flex-grow">
-                        <p class="font-semibold text-lg text-gray-800 dark:text-gray-200">{{ offer.Title }}</p>
-                        <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' }}">
-                            {{ offer.Status }}
-                        </span>
+                <button @click="open = !open" class="w-full flex justify-between items-center text-left hover:bg-gray-50 p-2 -m-2 rounded-md transition-colors">
+                    <div>
+                        {# --- THIS IS THE NEW LINK --- #}
+                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-lg text-gray-800 hover:text-indigo-600">{{ offer.Title }}</a>
+                        <div class="mt-1">
+                            <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">
+                                {{ offer.Status }}
+                            </span>
+                        </div>
                     </div>
+                    <div class="flex items-center gap-4">
                     <div class="flex items-center gap-4">
                         <span class="text-sm text-gray-600 dark:text-gray-400">{{ offer.applicants|length }} Applicant(s)</span>
                         <i class="bi transition-transform text-lg text-gray-500" :class="{ 'bi-chevron-down': !open, 'bi-chevron-up': open }"></i>
