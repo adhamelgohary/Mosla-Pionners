@@ -12,8 +12,7 @@
             <div class="flex items-center gap-4">
                 <img class="h-12 w-12 rounded-lg object-contain bg-white p-1" src="{{ url_for('static', filename=company_data.info.CompanyLogoURL) if company_data.info.CompanyLogoURL else url_for('static', filename='images/default-company.png') }}" alt="{{ company_data.info.CompanyName }} Logo">
                 <div>
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">{{ company_data.info.CompanyName }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ company_data.info.Industry or 'No industry specified' }}</p>
+                    <h3 class="text-sm text-gray-500 dark:text-gray-400">{{ company_data.info.Industry or 'No industry specified' }}</>
                 </div>
             </div>
             <a href="{{ url_for('account_manager_bp.dashboard') }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-primary rounded-lg shadow-md
