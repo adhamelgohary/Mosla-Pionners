@@ -31,6 +31,7 @@ from routes.Account_Manager_Portal.company_assignment_routes import company_assi
 from routes.Agency_Staff_Portal.candidate_details_routes import candidate_details_bp
 from routes.Client_Portal.dashboard_routes import client_dashboard_bp
 from routes.Client_Portal.offer_routes import client_offers_bp
+from routes.Website.courses_page_routes import courses_page_bp
 
 from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 # --- Create Flask App ---
@@ -97,6 +98,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
+app.register_blueprint(courses_page_bp)
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)

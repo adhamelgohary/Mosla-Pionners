@@ -3,160 +3,123 @@
 {% block title %}Welcome to Mosla Pioneers - Your Recruitment Partner{% endblock %}
 
 {% block content %}
-    <section id="home" class="hero"> <!-- class="hero" is from home.css -->
+    <!-- ======================= HERO SECTION ======================= -->
+    <section id="home" class="hero">
         <div class="hero-content">
             <div class="hero-text fade-in">
-                <h1>The Ultimate Recruitment<span class="highlight">Partner for High-Performance Teams</span></h1>
-                <p>We specialize in building high-performing teams for the nation's leading customer service, telesales, call center, and real estate companies. Our comprehensive solutions cover the entire talent lifecycle—from sourcing and screening frontline customer service agents and persuasive telesales representatives to securing licensed real estate professionals. This allows you to focus on your core business objectives, confident that your recruitment needs are in the hands of dedicated specialists.</p>
+                <h1>The Ultimate Recruitment <span class="highlight">Partner for High-Performance Teams</span></h1>
+                <p>We specialize in building elite teams for the nation's leading customer service, telesales, and real estate companies. Our end-to-end solutions allow you to focus on your core business, confident that your recruitment needs are in the hands of dedicated specialists.</p>
                 <div class="hero-buttons">
-                    <a href="#services" class="btn-secondary">GET Started</a>
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-primary">Find Your Next Job</a>
+                    <a href="#services" class="btn-secondary">Explore Our Services</a>
                 </div>
                 <div class="hero-stats">
-                    {% if recent_jobs %} {# This part is from your original Flask home.html, good to keep #}
+                    {% if recent_jobs %}
                         <div class="stat">
                             <span class="stat-number">{{ recent_jobs|length }}+</span>
                             <span class="stat-label">Recent Openings</span>
                         </div>
                     {% endif %}
                     <div class="stat">
-                        {# === CHANGED THIS VALUE === #}
                         <span class="stat-number">100+</span>
-                        <span class="stat-label">Call Center Agents Placed</span>
+                        <span class="stat-label">Agents Placed</span>
                     </div>
                     <div class="stat">
-                        {# === CHANGED THIS VALUE === #}
-                        <span class="stat-number">10k+</span>
+                        <span class="stat-number">50+</span>
                         <span class="stat-label">Happy Clients</span>
                     </div>
                 </div>
             </div>
             <div class="hero-image">
-                {# UPDATED ALT TEXT FOR BETTER ACCESSIBILITY #}
-                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Recruitment professionals in a meeting" >
+                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Recruitment professionals collaborating in a modern office" >
             </div>
         </div>
     </section>
 
+    <!-- ======================= SERVICES SECTION ======================= -->
     <section id="services" class="services">
         <div class="section-header">
-             <h2>Our <span class="highlight-text">Services</span></h2>
-            <p>A streamlined, four-step approach to connect you with top-tier call center talent.</p>
+             <h2>Our <span class="highlight-text">Solutions</span></h2>
+             <p>Tailored services to meet the needs of both job seekers and employers.</p>
         </div>
 
         <div class="services-grid">
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">💼</div>
-                    <h3>Our Offers</h3>
+                    <h3>Find Top Talent</h3>
                 </div>
-                <p>We connect you with elite frontline talent for your customer service, call center, telesales, and real estate needs. We specialize in sourcing professionals, including bilingual English and German speakers.</p>
-                <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="service-link">Learn More →</a>
+                <p>For employers looking to fill vacancies with the best candidates. Post your job and let us connect you with our pool of pre-screened, top-tier agents.</p>
+                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
             </div>
         
             <div class="service-card fade-in">
                 <div class="service-header">
-                    <div class="service-icon">🌐</div>
-                    <h3>Train To Hire Course</h3>
+                    <div class="service-icon">🎓</div>
+                    <h3>Train To Hire Courses</h3>
                 </div>
-                <p>Unlock new markets by breaking language barriers. Our 'Train to Hire' program cultivates professionally fluent English and German communicators, custom-molded for your specific roles.</p>
-                <a href="#" class="service-link">Learn More →</a> {# Placeholder - Update with url_for for courses #}
+                <p>Unlock new markets with our "Train to Hire" program. We cultivate fluent English and German communicators, custom-molded for your specific roles.</p>
+                <a href="{{ url_for('courses_page_bp.view_courses') }}" class="service-link">Learn More →</a>
             </div>
 
+            <div class="service-card fade-in">
+                <div class="service-header">
+                    <div class="service-icon">🚀</div>
+                    <h3>Advance Your Career</h3>
+                </div>
+                <p>For talented individuals seeking their next big opportunity. Browse our exclusive job listings and apply to the nation's leading companies.</p>
+                <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="service-link">View Open Jobs →</a>
+            </div>
+            
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">🤝</div>
                     <h3>Join Our Team</h3>
                 </div>
-                <p>Ready to connect top talent with great opportunities? Start your journey as a recruiter with Mosla Pioneers and help shape the future of call center staffing.</p>
+                <p>Ready to connect top talent with great opportunities? Start your journey as a recruiter with Mosla Pioneers and help shape the future of staffing.</p>
                 <a href="{{ url_for('register_bp.apply_to_be_staff') }}" class="service-link">Apply Now →</a>
-            </div>
-            
-            <div class="service-card fade-in">
-                <div class="service-header">
-                    <div class="service-icon">🚀</div>
-                    <h3>Post a New Job</h3>
-                </div>
-                <p>Looking to fill your vacancies with the best talent? Post your job requirements through our simple form, and let us connect you with our pool of pre-screened, top-tier call center agents.</p>
-                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
             </div>
         </div>
     </section>
 
+    <!-- ======================= ABOUT SECTION ======================= -->
     <section id="about" class="about">
         <div class="about-content">
             <div class="about-text">
                 <h2>Why Choose <span class="highlight-text">Mosla Pioneers</span>?</h2>
-                <p>We're more than just a recruitment agency; we are your strategic growth partner. We understand that finding the right talent is only the beginning. Our commitment extends from initial sourcing to post-hire success, ensuring a seamless and effective partnership that builds lasting value for your team.</p>
-                <p>Our methodology is built on a deep understanding of high-stakes communication roles, allowing us to identify individuals who not only meet but exceed performance expectations.</p>
-                
+                <p>We're more than just a recruitment agency; we are your strategic growth partner. Our commitment extends from initial sourcing to post-hire success, ensuring a seamless and effective partnership that builds lasting value for your team.</p>
                 <div class="about-features">
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span>
-                            <strong>End-to-End Support (A to Z Follow-up):</strong> We manage the entire lifecycle—from sourcing and screening to onboarding support and performance check-ins, ensuring a smooth transition for both you and your new hire.
-                        </span>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span>
-                            <strong>Exclusive Train-to-Hire Program:</strong> Access a unique pool of talent developed through our intensive training courses, where we mold high-potential candidates into role-ready professionals tailored to your specific needs.
-                        </span>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span>
-                            <strong>Specialized Industry Expertise:</strong> Deep knowledge of the call center, telesales, and real estate sectors, ensuring we understand your unique operational challenges and requirements.
-                        </span>
-                    </div>
-                    <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span>
-                            <strong>Rigorous & Comprehensive Screening:</strong> Our multi-stage vetting process goes beyond resumes, assessing communication skills, problem-solving abilities, and cultural fit to guarantee quality.
-                        </span>
-                    </div>
-                     <div class="feature">
-                        <div class="feature-icon">✓</div>
-                        <span>
-                            <strong>Rapid & Efficient Turnaround:</strong> We leverage our active talent network to quickly fill your urgent staffing needs without compromising on candidate quality.
-                        </span>
-                    </div>
+                    <div class="feature"><div class="feature-icon">✓</div><span><strong>End-to-End Support:</strong> We manage the entire lifecycle—from sourcing and screening to onboarding support and performance check-ins.</span></div>
+                    <div class="feature"><div class="feature-icon">✓</div><span><strong>Exclusive Train-to-Hire Program:</strong> Access a unique pool of talent developed through our intensive training courses.</span></div>
+                    <div class="feature"><div class="feature-icon">✓</div><span><strong>Specialized Industry Expertise:</strong> Deep knowledge of the call center, telesales, and real estate sectors.</span></div>
+                    <div class="feature"><div class="feature-icon">✓</div><span><strong>Rapid & Efficient Turnaround:</strong> We leverage our active talent network to quickly fill your urgent staffing needs.</span></div>
                 </div>
             </div>
-            {# The .about-content is a grid. The .about-text child is now styled to span the full width. #}
         </div>
     </section>
 
+    <!-- ======================= TESTIMONIALS SECTION ======================= -->
     <section id="testimonials" class="testimonials">
         <div class="section-header">
             <h2>What Our <span class="highlight-text">Clients</span> Say</h2>
-            <p>Hear from call center companies who've transformed their operations with our talent</p>
+            <p>Hear from companies who've transformed their operations with our talent</p>
         </div>
         <div class="testimonial-grid">
             <div class="testimonial-card">
-                <div class="testimonial-text">
-                    Mosla Pioneers helped us scale our customer service team from 20 to 100 agents in just 3 months. Their candidates are pre-screened and ready to perform from day one.
-                </div>
+                <div class="testimonial-text">"Mosla Pioneers helped us scale our customer service team from 20 to 100 agents in just 3 months. Their candidates are pre-screened and ready to perform from day one."</div>
                 <div class="testimonial-author">Sarah Johnson</div>
                 <div class="testimonial-company">Operations Manager, TechSupport Plus</div>
             </div>
             <div class="testimonial-card">
-                <div class="testimonial-text">
-                    The quality of telesales agents we received exceeded our expectations. Our conversion rates improved by 40% after partnering with Mosla Pioneers.
-                </div>
+                <div class="testimonial-text">"The quality of telesales agents we received exceeded our expectations. Our conversion rates improved by 40% after partnering with Mosla Pioneers."</div>
                 <div class="testimonial-author">Michael Chen</div>
                 <div class="testimonial-company">Sales Director, CallPro Solutions</div>
             </div>
             <div class="testimonial-card">
-                <div class="testimonial-text">
-                    Outstanding service! They understand the call center industry and consistently deliver candidates who fit our culture and performance standards.
-                </div>
+                <div class="testimonial-text">"Outstanding service! They understand the call center industry and consistently deliver candidates who fit our culture and performance standards."</div>
                 <div class="testimonial-author">Lisa Rodriguez</div>
                 <div class="testimonial-company">HR Manager, CustomerFirst Call Center</div>
             </div>
         </div>
     </section>
-{% endblock %}
-
-{% block page_scripts %}
-    {# No page-specific scripts needed here if theme & proximity nav are in base.html #}
 {% endblock %}
