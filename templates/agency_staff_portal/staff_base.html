@@ -37,6 +37,14 @@
                                     <div x-show="managementMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
                                         <div class="py-1">
                                             {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses</a>{% endif %}
+                                            {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager'] %}
+                                            <div class="mb-6">
+                                                <a href="{{ url_for('team_bp.my_sourced_candidates') }}" class="inline-flex items-center gap-x-2 rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-600">
+                                                    <i class="bi bi-people"></i>
+                                                    View My Sourced Candidates
+                                                </a>
+                                            </div>
+                                            {% endif %}
                                             {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Job Offers</a>{% endif %}
                                         </div>
                                     </div>
