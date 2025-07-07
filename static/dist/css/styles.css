@@ -1654,6 +1654,10 @@ html[data-theme="dark"] {
   right: 0px;
 }
 
+.top-0 {
+  top: 0px;
+}
+
 .top-28 {
   top: 7rem;
 }
@@ -1726,10 +1730,6 @@ html[data-theme="dark"] {
 .my-8 {
   margin-top: 2rem;
   margin-bottom: 2rem;
-}
-
-.-mb-px {
-  margin-bottom: -1px;
 }
 
 .-ml-0\.5 {
@@ -1976,12 +1976,12 @@ html[data-theme="dark"] {
   height: 2rem;
 }
 
-.h-\[70vh\] {
-  height: 70vh;
-}
-
 .h-\[80vh\] {
   height: 80vh;
+}
+
+.h-\[90vh\] {
+  height: 90vh;
 }
 
 .h-full {
@@ -2279,12 +2279,6 @@ html[data-theme="dark"] {
   margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
 }
 
-.space-x-6 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 0;
-  margin-right: calc(1.5rem * var(--tw-space-x-reverse));
-  margin-left: calc(1.5rem * calc(1 - var(--tw-space-x-reverse)));
-}
-
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
@@ -2448,10 +2442,6 @@ html[data-theme="dark"] {
   border-bottom-width: 1px;
 }
 
-.border-b-2 {
-  border-bottom-width: 2px;
-}
-
 .border-l-2 {
   border-left-width: 2px;
 }
@@ -2529,11 +2519,6 @@ html[data-theme="dark"] {
 .border-green-500 {
   --tw-border-opacity: 1;
   border-color: rgb(34 197 94 / var(--tw-border-opacity, 1));
-}
-
-.border-indigo-500 {
-  --tw-border-opacity: 1;
-  border-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
 }
 
 .border-red-400 {
@@ -2624,6 +2609,10 @@ html[data-theme="dark"] {
 
 .bg-gray-50\/50 {
   background-color: rgb(249 250 251 / 0.5);
+}
+
+.bg-gray-50\/70 {
+  background-color: rgb(249 250 251 / 0.7);
 }
 
 .bg-gray-500 {
@@ -2835,11 +2824,6 @@ html[data-theme="dark"] {
 
 .p-8 {
   padding: 2rem;
-}
-
-.px-1 {
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
 }
 
 .px-2 {
@@ -3711,11 +3695,6 @@ body {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
-.hover\:border-gray-300:hover {
-  --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity, 1));
-}
-
 .hover\:border-primary:hover {
   --tw-border-opacity: 1;
   border-color: rgb(var(--primary-color-rgb) / var(--tw-border-opacity, 1));
@@ -4040,6 +4019,10 @@ body {
 
   .sm\:h-20 {
     height: 5rem;
+  }
+
+  .sm\:h-\[85vh\] {
+    height: 85vh;
   }
 
   .sm\:w-1\/2 {

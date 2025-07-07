@@ -380,32 +380,32 @@ def view_offer_applicants(offer_id):
                            offer_data=offer_data,
                            manager_staff_id=staff_id)
     
+# In am_portal_routes.py, replace the review_application_details function
+
 @account_manager_bp.route('/application/<int:application_id>/review-details')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def review_application_details(application_id):
     """
-    Fetches all necessary details for a single application review
-    and renders them in a format suitable for a modal.
+    Fetches ALL necessary details for a single application review,
+    including full candidate profile, and renders them in a single modal view.
     """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id or not _is_user_authorized_for_application(staff_id, application_id):
         abort(403)
 
     conn = get_db_connection()
-    application_details = {}
+    # Use a single dictionary to hold all data for the template
+    review_data = {}
     try:
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Get Application, Candidate, User, and Offer Info
+        # 1. Get Core Application Info (Candidate, Offer, etc.)
         cursor.execute("""
             SELECT 
                 ja.ApplicationID, ja.NotesByCandidate, ja.ApplicationDate,
-                c.CandidateID, u.FirstName, u.LastName, u.Email, u.PhoneNumber,
-                jo.OfferID, jo.Title as OfferTitle,
-                comp.CompanyID, comp.CompanyName
+                c.CandidateID, jo.OfferID, jo.Title as OfferTitle, comp.CompanyName
             FROM JobApplications ja
             JOIN Candidates c ON ja.CandidateID = c.CandidateID
-            JOIN Users u ON c.UserID = u.UserID
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
             JOIN Companies comp ON jo.CompanyID = comp.CompanyID
             WHERE ja.ApplicationID = %s
@@ -413,33 +413,39 @@ def review_application_details(application_id):
         app_info = cursor.fetchone()
         if not app_info:
             abort(404, "Application not found.")
-        application_details['info'] = app_info
-
-        # 2. Get the specific CV and Voice Note associated with THIS application
-        # This assumes the most recent CV/VoiceNote before the application date is the one used.
-        # A more robust system might link them with IDs in the JobApplications table.
+        review_data['application'] = app_info
         
-        # Get the CV submitted around the time of application
+        candidate_id = app_info['CandidateID']
+
+        # 2. Get Full Candidate Profile (same query as candidate_details_routes)
         cursor.execute("""
-            SELECT CVFileUrl, OriginalFileName, CVTitle, UploadedAt
+            SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL, u.RegistrationDate
+            FROM Candidates c
+            JOIN Users u ON c.UserID = u.UserID
+            WHERE c.CandidateID = %s
+        """, (candidate_id,))
+        review_data['candidate_profile'] = cursor.fetchone()
+
+        # 3. Get CV associated with this application
+        cursor.execute("""
+            SELECT CVFileUrl, OriginalFileName, CVTitle
             FROM CandidateCVs
             WHERE CandidateID = %s AND UploadedAt <= %s
             ORDER BY UploadedAt DESC LIMIT 1
-        """, (app_info['CandidateID'], app_info['ApplicationDate']))
-        application_details['cv'] = cursor.fetchone()
+        """, (candidate_id, app_info['ApplicationDate']))
+        review_data['cv'] = cursor.fetchone()
 
-        # Get the Voice Note submitted around the time of application
+        # 4. Get Voice Note associated with this application
         cursor.execute("""
-            SELECT VoiceNoteURL, Title, UploadedAt
+            SELECT VoiceNoteURL, Title
             FROM CandidateVoiceNotes
             WHERE CandidateID = %s AND UploadedAt <= %s AND Purpose = 'Job Application'
             ORDER BY UploadedAt DESC LIMIT 1
-        """, (app_info['CandidateID'], app_info['ApplicationDate']))
-        application_details['voice_note'] = cursor.fetchone()
+        """, (candidate_id, app_info['ApplicationDate']))
+        review_data['voice_note'] = cursor.fetchone()
 
     except Exception as e:
         current_app.logger.error(f"Error fetching review details for AppID {application_id}: {e}", exc_info=True)
-        # Return a simple error message that can be displayed in the modal
         return "<p class='p-4 text-red-600'>Error loading application details.</p>"
     finally:
         if conn and conn.is_connected():
@@ -447,5 +453,5 @@ def review_application_details(application_id):
             conn.close()
 
     return render_template('account_manager_portal/application_review_modal.html',
-                           application=application_details,
+                           review_data=review_data,
                            manager_staff_id=staff_id)
