@@ -1,0 +1,41 @@
+{# templates/recruiter_team_portal/my_team.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 sm:px-0">
+    <p class="mt-1 text-sm text-gray-600">Performance snapshot of your direct reports.</p>
+</div>
+
+<div class="mt-8 flow-root">
+    <div class="inline-block min-w-full py-2 align-middle">
+        <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Team Member</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Total Referrals</th>
+                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">View</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for member in team_members %}
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ member.FirstName }} {{ member.LastName }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ member.Role }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-900 font-semibold">{{ member.total_referrals }}</td>
+                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="text-indigo-600 hover:text-indigo-900">View Profile</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

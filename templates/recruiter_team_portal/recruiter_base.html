@@ -1,0 +1,89 @@
+{# templates/recruiter_team_portal/recruiter_base.html #}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <title>{% block recruiter_title %}Recruiter Portal{% endblock %} - Mosla Pioneers</title>
+    
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="h-full">
+    <div class="min-h-full">
+        <!-- ===== Recruiter Portal Top Navigation Bar ===== -->
+        <nav class="bg-indigo-600" x-data="{ profileMenuOpen: false }">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="flex h-16 items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <a href="{{ url_for('recruiter_bp.dashboard') }}" class="text-white font-bold text-lg flex items-center gap-2">
+                                <i class="bi bi-bullseye"></i>
+                                <span>Recruiter & Team Portal</span>
+                            </a>
+                        </div>
+                        <div class="hidden md:block">
+                            <div class="ml-10 flex items-baseline space-x-4">
+                                <!-- Main Links for this portal -->
+                                <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Dashboard</a>
+                                <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
+                                
+                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
+                                    <a href="{{ url_for('recruiter_bp.my_team_performance') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_performance' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Team</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Profile Dropdown -->
+                    <div class="hidden md:block">
+                        <div class="ml-4 flex items-center md:ml-6">
+                            <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
+                                <div>
+                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-indigo-600 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
+                                        <span class="sr-only">Open user menu</span>
+                                        <img class="h-8 w-8 rounded-full object-cover" src="{{ current_user.profile_picture_url or url_for('static', filename='images/default-profile.png') }}" alt="">
+                                    </button>
+                                </div>
+                                <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                    <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Main Staff Portal</a>
+                                    <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Mobile menu button can be added here if needed -->
+                </div>
+            </div>
+        </nav>
+        
+        <header class="bg-white shadow-sm">
+            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                <h1 class="text-xl font-bold tracking-tight text-gray-900">{% block recruiter_page_title %}{% endblock %}</h1>
+            </div>
+        </header>
+        
+        <main>
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                 {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    <div class="space-y-4 mb-6">
+                        {% for category, message in messages %}
+                            {% set color_classes = {'success': 'bg-green-50 border-green-400 text-green-700','danger': 'bg-red-50 border-red-400 text-red-700','warning': 'bg-yellow-50 border-yellow-400 text-yellow-700','info': 'bg-blue-50 border-blue-400 text-blue-700'} %}
+                            <div class="rounded-md border-l-4 p-4 {{ color_classes.get(category, 'bg-gray-50 border-gray-400 text-gray-700') }}">
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block recruiter_content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>

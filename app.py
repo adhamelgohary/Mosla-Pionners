@@ -32,6 +32,7 @@ from routes.Agency_Staff_Portal.candidate_details_routes import candidate_detail
 from routes.Client_Portal.dashboard_routes import client_dashboard_bp
 from routes.Client_Portal.offer_routes import client_offers_bp
 
+from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 # --- Create Flask App ---
 app = Flask(__name__)
 
@@ -91,6 +92,7 @@ app.register_blueprint(team_bp, url_prefix='/staff-management/team')
 app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
 app.register_blueprint(client_offers_bp, url_prefix='/client-portal')
 app.register_blueprint(account_manager_bp, url_prefix='/account-manager-portal')
+app.register_blueprint(recruiter_bp, url_prefix='/recruiter-portal')
 app.register_blueprint(admin_bp)
 app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)

@@ -2647,6 +2647,11 @@ html[data-theme="dark"] {
   background-color: rgb(79 70 229 / var(--tw-bg-opacity, 1));
 }
 
+.bg-indigo-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(67 56 202 / var(--tw-bg-opacity, 1));
+}
+
 .bg-input {
   background-color: var(--input-bg-color);
 }
@@ -3213,6 +3218,11 @@ html[data-theme="dark"] {
   color: var(--heading-color);
 }
 
+.text-indigo-100 {
+  --tw-text-opacity: 1;
+  color: rgb(224 231 255 / var(--tw-text-opacity, 1));
+}
+
 .text-indigo-600 {
   --tw-text-opacity: 1;
   color: rgb(79 70 229 / var(--tw-text-opacity, 1));
@@ -3713,6 +3723,11 @@ body {
   background-color: rgb(99 102 241 / var(--tw-bg-opacity, 1));
 }
 
+.hover\:bg-indigo-700:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(67 56 202 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:bg-primary-darker:hover {
   background-color: var(--primary-color-darker);
 }
@@ -3856,6 +3871,10 @@ body {
 
 .focus\:ring-offset-gray-800:focus {
   --tw-ring-offset-color: #1f2937;
+}
+
+.focus\:ring-offset-indigo-600:focus {
+  --tw-ring-offset-color: #4f46e5;
 }
 
 .focus\:ring-offset-slate-800:focus {
