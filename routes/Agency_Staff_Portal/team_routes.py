@@ -113,13 +113,13 @@ def my_team():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-# ADD THIS NEW ROUTE AT THE END OF THE FILE
-@team_bp.route('/my-sourced-candidates')
+# CORRECTED ROUTE - Replace the old my_sourced_candidates function with this
+@team_bp.route('/my-referrals') # Changed URL to be more accurate
 @login_required_with_role(SOURCING_ROLES)
-def my_sourced_candidates():
+def my_referred_applications():
     """
-    Displays a list of candidates sourced by the logged-in recruiter,
-    along with the jobs they have applied for.
+    Displays a list of all job applications that were submitted
+    using the logged-in recruiter's referral code.
     """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
@@ -127,54 +127,38 @@ def my_sourced_candidates():
         return redirect(url_for('staff_dashboard_bp.main_dashboard'))
 
     conn = None
-    sourced_candidates = []
+    referred_applications = []
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # This query finds all candidates sourced by the current staff member
-        # and then joins with applications and job offers to see where they applied.
+        # THIS IS THE NEW, CORRECT QUERY
+        # It starts from JobApplications and correctly uses ReferringStaffID
         sql = """
             SELECT 
+                ja.ApplicationID,
+                ja.ApplicationDate,
+                ja.Status,
                 c.CandidateID,
                 u.FirstName,
                 u.LastName,
                 u.Email,
-                c.SourceDate,
-                GROUP_CONCAT(
-                    DISTINCT jo.Title 
-                    ORDER BY ja.ApplicationDate DESC 
-                    SEPARATOR '||'
-                ) AS AppliedJobs,
-                GROUP_CONCAT(
-                    DISTINCT ja.Status 
-                    ORDER BY ja.ApplicationDate DESC 
-                    SEPARATOR '||'
-                ) AS ApplicationStatuses
-            FROM Candidates c
+                jo.Title AS JobTitle,
+                comp.CompanyName
+            FROM JobApplications ja
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID
             JOIN Users u ON c.UserID = u.UserID
-            LEFT JOIN JobApplications ja ON c.CandidateID = ja.CandidateID
-            LEFT JOIN JobOffers jo ON ja.OfferID = jo.OfferID
-            WHERE c.SourcedByStaffID = %s
-            GROUP BY c.CandidateID, u.FirstName, u.LastName, u.Email, c.SourceDate
-            ORDER BY c.SourceDate DESC, u.LastName ASC;
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
+            WHERE ja.ReferringStaffID = %s
+            ORDER BY ja.ApplicationDate DESC;
         """
         cursor.execute(sql, (staff_id,))
-        results = cursor.fetchall()
-        
-        # Process the results to be more template-friendly
-        for row in results:
-            applications = []
-            if row['AppliedJobs']:
-                jobs = row['AppliedJobs'].split('||')
-                statuses = row['ApplicationStatuses'].split('||')
-                applications = list(zip(jobs, statuses))
-            row['applications_list'] = applications
-            sourced_candidates.append(row)
+        referred_applications = cursor.fetchall()
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching sourced candidates for StaffID {staff_id}: {e}", exc_info=True)
-        flash("An error occurred while loading your sourced candidates.", "danger")
+        current_app.logger.error(f"Error fetching referred applications for StaffID {staff_id}: {e}", exc_info=True)
+        flash("An error occurred while loading your referred applications.", "danger")
         return redirect(url_for('staff_dashboard_bp.main_dashboard'))
     finally:
         if conn and conn.is_connected():
@@ -182,6 +166,6 @@ def my_sourced_candidates():
                 cursor.close()
             conn.close()
 
-    return render_template('agency_staff_portal/staff/my_sourced_candidates.html',
-                           title="My Sourced Candidates",
-                           candidates=sourced_candidates)
+    return render_template('agency_staff_portal/staff/my_referred_applications.html',
+                           title="My Referred Applications",
+                           applications=referred_applications)
