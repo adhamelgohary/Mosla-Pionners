@@ -1,4 +1,4 @@
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends "agency_staff_portal/staff_base.html" if not is_modal_view else "base_empty.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
 

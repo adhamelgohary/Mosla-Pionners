@@ -113,8 +113,9 @@ def my_team():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-# CORRECTED ROUTE - Replace the old my_sourced_candidates function with this
-@team_bp.route('/my-referrals') # Changed URL to be more accurate
+# Replace the existing my_referred_applications function with this enhanced version
+
+@team_bp.route('/my-referrals')
 @login_required_with_role(SOURCING_ROLES)
 def my_referred_applications():
     """
@@ -132,8 +133,7 @@ def my_referred_applications():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # THIS IS THE NEW, CORRECT QUERY
-        # It starts from JobApplications and correctly uses ReferringStaffID
+        # ENHANCED QUERY: Now also fetches the ProfilePictureURL for the cards
         sql = """
             SELECT 
                 ja.ApplicationID,
@@ -143,6 +143,7 @@ def my_referred_applications():
                 u.FirstName,
                 u.LastName,
                 u.Email,
+                u.ProfilePictureURL, -- Added this field
                 jo.Title AS JobTitle,
                 comp.CompanyName
             FROM JobApplications ja

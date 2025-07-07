@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort, current_app
+from flask import Blueprint, render_template, abort, current_app, request
 from flask_login import login_required # Or your specific role decorator
 from db import get_db_connection
 import mysql.connector
@@ -18,6 +18,9 @@ def view_candidate_profile(candidate_id):
     # Optional: Add specific role check here if not done by decorator
     # if current_user.role_type not in CANDIDATE_VIEW_ROLES:
     #     abort(403) 
+
+    
+    is_modal_view = request.args.get('view') == 'modal'
 
     conn = None
     candidate_data = {}
@@ -120,4 +123,5 @@ def view_candidate_profile(candidate_id):
             
     return render_template('agency_staff_portal/candidate/candidate_profile_detailed.html',
                            title=f"Candidate Profile: {candidate_data['info']['FirstName']} {candidate_data['info']['LastName']}",
-                           candidate=candidate_data)
+                           candidate=candidate_data,
+                           is_modal_view=is_modal_view)
