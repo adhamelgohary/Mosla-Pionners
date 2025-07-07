@@ -100,12 +100,10 @@
         </div>
 
         {# Sourcing Activity #}
-        {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'CEO', 'SalesManager', 'OperationsManager'] %}
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 pb-4 mb-4 border-b border-gray-200">My Sourcing</h3>
-            <dl class="space-y-4">
-                 {{ kpi_card('Sourced Candidates (30d)', dashboard_stats.get('my_sourced_candidates_month', '0'), 'primary') }}
-            </dl>
+        {% if 'my_referred_applications_month' in dashboard_stats %}
+        <div>
+            <p class="text-sm font-medium text-gray-500 truncate">Referred Applications (30d)</p>
+            <p class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ dashboard_stats.my_referred_applications_month }}</p>
         </div>
         {% endif %}
 

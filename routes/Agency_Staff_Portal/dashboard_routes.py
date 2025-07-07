@@ -60,15 +60,18 @@ def main_dashboard():
         # Sourced Candidates (My Performance)
         # This applies if the user is in a role that sources and has a StaffID
         if hasattr(current_user, 'specific_role_id') and current_user.specific_role_id and \
-           current_user.role_type in AGENCY_STAFF_ROLES: # Ensure they are staff
-            # SourcedByStaffID in Candidates table
+        current_user.role_type in AGENCY_STAFF_ROLES:
+            
+            # --- NEW, CORRECTED LOGIC ---
+            # Change KPI from "Sourced Candidates" to "Referred Applications"
+            # This correctly queries the JobApplications table.
             cursor.execute(
-                """SELECT COUNT(*) AS count FROM Candidates 
-                   WHERE SourcedByStaffID = %s AND SourceDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)""",
-                (current_user.specific_role_id,) # specific_role_id is StaffID for staff
+                """SELECT COUNT(*) AS count FROM JobApplications 
+                WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)""",
+                (current_user.specific_role_id,)
             )
             res = cursor.fetchone()
-            dashboard_stats['my_sourced_candidates_month'] = res['count'] if res else 0
+            dashboard_stats['my_referred_applications_month'] = res['count'] if res else 0
         
         # Client related stats (My Performance / My Team's Performance)
         # ManagedByStaffID in Companies table

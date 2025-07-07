@@ -32,12 +32,9 @@ def view_candidate_profile(candidate_id):
         cursor.execute("""
             SELECT 
                 c.*, 
-                u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL, u.RegistrationDate,
-                s_source.FirstName as SourcedByFirstName, s_source.LastName as SourcedByLastName 
+                u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL, u.RegistrationDate
             FROM Candidates c
             JOIN Users u ON c.UserID = u.UserID
-            LEFT JOIN Staff s_staff ON c.SourcedByStaffID = s_staff.StaffID
-            LEFT JOIN Users s_source ON s_staff.UserID = s_source.UserID
             WHERE c.CandidateID = %s
         """, (candidate_id,))
         candidate_info = cursor.fetchone()
