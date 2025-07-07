@@ -1,5 +1,5 @@
 # routes/Auth/register_routes.py # Assuming this is the correct path for register_routes
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, session, url_for, current_app
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 import os
