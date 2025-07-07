@@ -262,6 +262,7 @@ def submit_application_form(offer_id):
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         return jsonify({'status': 'error', 'message': 'Access denied: Only candidates can apply.'}), 403
 
+    # --- Step 1: Get Form Data ---
     full_name = request.form.get('full_name', f"{current_user.first_name} {current_user.last_name}").strip()
     email = request.form.get('email', current_user.email).strip()
     phone_number = request.form.get('phone_number', '').strip()
@@ -269,23 +270,24 @@ def submit_application_form(offer_id):
     candidate_questions = request.form.get('candidateQuestions', '').strip()
     
     cv_file = request.files.get('cv_file')
-    # MODIFIED: Get voice note from a standard file input.
     voice_note_file = request.files.get('voice_note_file')
 
+    # --- Step 2: Server-Side Validation ---
     errors = {}
     if not full_name: errors['full_name'] = "Full name is required."
     if not email: errors['email'] = "Email is required."
     if not phone_number: errors['phone_number'] = "Phone number is required."
     if not candidate_questions: errors['candidateQuestions'] = "Please answer why you are interested in this role."
     if not cv_file or not cv_file.filename: errors['cv_file'] = "CV upload is required."
-    # MODIFIED: Validate the new voice note file input.
     if not voice_note_file or not voice_note_file.filename: errors['voice_note_file'] = "Voice note upload is required."
     
+    # --- Step 3: Handle Optional Referral Code (Corrected Logic) ---
     referring_staff_id = None
     referring_staff_team_lead_id = None
     
     if referral_code_input:
         try:
+            # Use a 'with' statement for safer connection handling
             with get_db_connection() as conn_ref_check:
                 with conn_ref_check.cursor(dictionary=True) as cursor_ref_check:
                     cursor_ref_check.execute("""
@@ -294,8 +296,10 @@ def submit_application_form(offer_id):
                         WHERE s.ReferralCode = %s AND u.IsActive = 1 
                         """, (referral_code_input,))
                     referred_by_staff = cursor_ref_check.fetchone()
+                    
                     if referred_by_staff:
                         referring_staff_id = referred_by_staff['StaffID']
+                        # This is safer: .get() returns None if key doesn't exist or value is NULL
                         referring_staff_team_lead_id = referred_by_staff.get('ReportsToStaffID')
                     else:
                         errors['referral_code'] = "Invalid or inactive referral code."
@@ -306,27 +310,31 @@ def submit_application_form(offer_id):
     if errors:
         return jsonify({'status': 'error', 'message': 'Please correct the errors below.', 'errors': errors}), 400
 
+    # --- Step 4: Database Transaction ---
     conn = None
     try:
         conn = get_db_connection()
         conn.start_transaction()
         cursor = conn.cursor()
 
+        # Get CandidateID for the current user
         cursor.execute("SELECT CandidateID FROM Candidates WHERE UserID = %s", (current_user.id,))
         candidate_result = cursor.fetchone()
         if not candidate_result:
+            conn.rollback()
             return jsonify({'status': 'error', 'message': 'Your candidate profile was not found. Please contact support.'}), 404
         candidate_id = candidate_result[0]
 
-        cv_db_path = save_file_from_config(cv_file, f'candidate_applications/cv/{candidate_id}')
+        # Save files to disk
+        cv_db_path = save_file_from_config(cv_file, f'candidate_cvs/{candidate_id}')
         if not cv_db_path:
              raise Exception("Failed to save CV file.")
         
-        # MODIFIED: Save the uploaded voice note file.
         voice_note_db_path = save_file_from_config(voice_note_file, f'candidate_applications/voice/{candidate_id}')
         if not voice_note_db_path:
             raise Exception("Failed to save voice note file.")
 
+        # Insert into JobApplications
         cursor.execute("""
             INSERT INTO JobApplications 
             (OfferID, CandidateID, ApplicationDate, Status, NotesByCandidate, 
@@ -335,18 +343,20 @@ def submit_application_form(offer_id):
         """, (offer_id, candidate_id, datetime.datetime.now(), 'Submitted', 
               candidate_questions, referring_staff_id, referring_staff_team_lead_id))
         
+        # Insert CV into CandidateCVs
         cursor.execute("SELECT 1 FROM CandidateCVs WHERE CandidateID = %s AND IsPrimary = 1", (candidate_id,))
         is_primary_for_this_upload = not bool(cursor.fetchone())
         if is_primary_for_this_upload:
+             # Ensure no other CV is primary if this is the first one
              cursor.execute("UPDATE CandidateCVs SET IsPrimary = 0 WHERE CandidateID = %s", (candidate_id,))
 
         cursor.execute("""
-            INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, IsPrimary, UploadedAt, FileType, FileSizeKB)
+            INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, IsPrimary, CVTitle, FileType, FileSizeKB)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (candidate_id, cv_db_path, cv_file.filename, is_primary_for_this_upload, datetime.datetime.now(), 
-             cv_file.mimetype, cv_file.content_length // 1024 if cv_file.content_length else None))
+            """, (candidate_id, cv_db_path, secure_filename(cv_file.filename), is_primary_for_this_upload, 
+             f"CV for Offer {offer_id}", cv_file.mimetype, cv_file.content_length // 1024 if cv_file.content_length else None))
         
-        # MODIFIED: Insert record for the uploaded voice note file.
+        # Insert Voice Note into CandidateVoiceNotes
         cursor.execute("""
             INSERT INTO CandidateVoiceNotes (CandidateID, VoiceNoteURL, Title, Purpose, UploadedAt)
             VALUES (%s, %s, %s, %s, %s)
@@ -363,5 +373,6 @@ def submit_application_form(offer_id):
         current_app.logger.error(f"Error submitting application for OfferID {offer_id} by UserID {current_user.id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'An unexpected error occurred during submission. Please try again.'}), 500
     finally:
-        if cursor: cursor.close()
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
