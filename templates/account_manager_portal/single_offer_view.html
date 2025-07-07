@@ -17,9 +17,10 @@
         isModalOpen: false, 
         modalContentUrl: '',
         openModal(applicationId) {
-            // CORRECTED: Use a reliable placeholder for URL generation
-            let urlTemplate = `{{ url_for('account_manager_bp.review_application_details', application_id='APPLICATION_ID_PLACEHOLDER') }}`;
-            this.modalContentUrl = urlTemplate.replace('APPLICATION_ID_PLACEHOLDER', applicationId);
+            // 1. Generate a valid URL with a dummy ID (e.g., 999999)
+            let urlTemplate = `{{ url_for('account_manager_bp.review_application_details', application_id=999999) }}`;
+            // 2. Replace the dummy ID with the real one
+            this.modalContentUrl = urlTemplate.replace('999999', applicationId);
             this.isModalOpen = true; 
         } 
     }"
