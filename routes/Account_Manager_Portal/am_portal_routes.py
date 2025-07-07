@@ -53,6 +53,9 @@ def portal_home():
     """Redirects AM portal users to their dashboard."""
     return redirect(url_for('.dashboard'))
 
+# ======================================================================
+# FULLY UPDATED `dashboard` FUNCTION
+# ======================================================================
 @account_manager_bp.route('/dashboard')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def dashboard():
@@ -65,16 +68,59 @@ def dashboard():
     dashboard_data = {}
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # --- KPI 1: Managed Companies Count ---
         cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE ManagedByStaffID = %s", (staff_id,))
         dashboard_data['managed_companies_count'] = cursor.fetchone()['count']
-        cursor.execute("SELECT COUNT(*) as count FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND jo.Status = 'Open'", (staff_id,))
+        
+        # --- KPI 2: Open Offers Count ---
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM JobOffers jo 
+            JOIN Companies c ON jo.CompanyID = c.CompanyID 
+            WHERE c.ManagedByStaffID = %s AND jo.Status = 'Open'
+        """, (staff_id,))
         dashboard_data['open_offers_count'] = cursor.fetchone()['count']
-        cursor.execute("SELECT COUNT(ja.ApplicationID) as count FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND ja.Status = 'Applied'", (staff_id,))
+        
+        # --- KPI 3: Pending Applicants Count ---
+        cursor.execute("""
+            SELECT COUNT(ja.ApplicationID) as count FROM JobApplications ja 
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID 
+            JOIN Companies c ON jo.CompanyID = c.CompanyID 
+            WHERE c.ManagedByStaffID = %s AND ja.Status IN ('Applied', 'Submitted')
+        """, (staff_id,))
         dashboard_data['pending_applicants_count'] = cursor.fetchone()['count']
-        cursor.execute("SELECT CompanyID, CompanyName, CompanyLogoURL, (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs FROM Companies c WHERE ManagedByStaffID = %s ORDER BY CompanyName", (staff_id,))
+
+        # --- Data for "My Company Portfolio" list ---
+        cursor.execute("""
+            SELECT 
+                c.CompanyID, c.CompanyName, c.CompanyLogoURL, 
+                (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs 
+            FROM Companies c 
+            WHERE ManagedByStaffID = %s 
+            ORDER BY CompanyName
+        """, (staff_id,))
         dashboard_data['managed_companies_list'] = cursor.fetchall()
-        cursor.execute("SELECT u.FirstName, u.LastName, jo.Title as JobTitle, ja.ApplicationDate, c.CandidateID FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE comp.ManagedByStaffID = %s AND ja.Status = 'Applied' ORDER BY ja.ApplicationDate DESC LIMIT 5", (staff_id,))
+        
+        # --- CORRECTED QUERY for "Recent Applicants" list ---
+        cursor.execute("""
+            SELECT 
+                u.FirstName, 
+                u.LastName, 
+                jo.Title as JobTitle, 
+                ja.ApplicationDate, 
+                c.CandidateID,
+                comp.CompanyName 
+            FROM JobApplications ja 
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID 
+            JOIN Users u ON c.UserID = u.UserID 
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID 
+            JOIN Companies comp ON jo.CompanyID = comp.CompanyID 
+            WHERE comp.ManagedByStaffID = %s AND ja.Status IN ('Applied', 'Submitted') 
+            ORDER BY ja.ApplicationDate DESC 
+            LIMIT 5
+        """, (staff_id,))
         dashboard_data['recent_applicants'] = cursor.fetchall()
+
     except Exception as e:
         current_app.logger.error(f"Error building AM dashboard for StaffID {staff_id}: {e}", exc_info=True)
         flash("An error occurred while loading your dashboard data.", "danger")
@@ -82,7 +128,9 @@ def dashboard():
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
+            
     return render_template('account_manager_portal/dashboard.html', title="Account Manager Dashboard", dashboard_data=dashboard_data)
+
 
 @account_manager_bp.route('/my-staff')
 @login_required_with_role(STAFF_MANAGEMENT_ROLES)
@@ -140,7 +188,7 @@ def view_manager_portfolio(manager_staff_id):
             cursor.execute("SELECT OfferID, Title, Status FROM JobOffers WHERE CompanyID = %s ORDER BY Status, Title", (company['CompanyID'],))
             offers = cursor.fetchall()
             for offer in offers:
-                cursor.execute("SELECT ja.ApplicationID, ja.Status AS ApplicationStatus, c.CandidateID, u.FirstName, u.LastName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s ORDER BY ja.ApplicationDate DESC LIMIT 20", (offer['OfferID'],))
+                cursor.execute("SELECT ja.ApplicationID, ja.Status AS ApplicationStatus, c.CandidateID, u.FirstName, u.LastName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC", (offer['OfferID'],))
                 offer['applicants'] = cursor.fetchall()
                 company['job_offers'].append(offer)
             companies_with_data.append(company)
@@ -154,33 +202,53 @@ def view_manager_portfolio(manager_staff_id):
             conn.close()
     return render_template('account_manager_portal/portfolio_detailed.html', title=f"Portfolio: {manager_details['FirstName']} {manager_details['LastName']}", manager=manager_details, companies_data=companies_with_data)
 
+# ======================================================================
+# FULLY UPDATED `update_application_status` FUNCTION
+# ======================================================================
 @account_manager_bp.route('/application/<int:application_id>/update', methods=['POST'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def update_application_status(application_id):
-    action, manager_staff_id = request.form.get('action'), request.form.get('manager_staff_id')
+    # Get all form data needed for action and redirection
+    action = request.form.get('action')
+    manager_staff_id = request.form.get('manager_staff_id')
+    company_id_for_redirect = request.form.get('company_id')
+
     if not all([action, manager_staff_id]):
         flash("Invalid request. Missing action or manager ID.", "danger")
         return redirect(url_for('.dashboard'))
-    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id): abort(403)
+
+    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id):
+        abort(403)
+
     new_status = {'approve': 'Shortlisted', 'reject': 'Rejected'}.get(action)
+    
     if new_status:
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE JobApplications SET Status = %s, UpdatedAt = NOW() WHERE ApplicationID = %s", (new_status, application_id))
+            cursor.execute("UPDATE JobApplications SET Status = %s WHERE ApplicationID = %s", (new_status, application_id))
             conn.commit()
             flash(f"Application status updated to '{new_status}'.", "success")
         except Exception as e:
             if conn: conn.rollback()
-            current_app.logger.error(f"DB error updating app status for AppID {application_id}: {e}")
+            current_app.logger.error(f"DB error updating app status for AppID {application_id}: {e}", exc_info=True)
             flash("A database error occurred.", "danger")
         finally:
             if conn and conn.is_connected():
-                cursor.close()
+                if 'cursor' in locals(): cursor.close()
                 conn.close()
-    else: flash("Unknown action specified.", "danger")
-    return redirect(url_for('.view_manager_portfolio', manager_staff_id=manager_staff_id))
+    else:
+        flash("Unknown action specified.", "danger")
+
+    # --- NEW, SMARTER REDIRECTION LOGIC ---
+    if company_id_for_redirect:
+        # If we came from the single company page, redirect back there
+        return redirect(url_for('.view_single_company', company_id=company_id_for_redirect))
+    else:
+        # Otherwise (e.g., from portfolio), redirect back to the full portfolio page
+        return redirect(url_for('.view_manager_portfolio', manager_staff_id=manager_staff_id))
+
 
 @account_manager_bp.route('/company/<int:company_id>')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
@@ -194,14 +262,20 @@ def view_single_company(company_id):
         cursor.execute("SELECT CompanyID, CompanyName, Industry, CompanyWebsite, CompanyLogoURL FROM Companies WHERE CompanyID = %s AND ManagedByStaffID = %s", (company_id, staff_id))
         company_info = cursor.fetchone()
         if not company_info:
+            # Check if user is a manager of the AM who owns this company
+            cursor.execute("SELECT ManagedByStaffID FROM Companies WHERE CompanyID = %s", (company_id,))
+            owner = cursor.fetchone()
+            # This is a simplified check. A full hierarchical check would be more robust.
+            # For now, we'll just deny direct access if not the owner.
             flash("You are not authorized to view this company or it does not exist.", "danger")
             return redirect(url_for('.dashboard'))
+            
         company_data['info'] = company_info
         company_data['job_offers'] = []
         cursor.execute("SELECT OfferID, Title, Status FROM JobOffers WHERE CompanyID = %s ORDER BY CASE Status WHEN 'Open' THEN 1 WHEN 'On Hold' THEN 2 ELSE 3 END, Title", (company_id,))
         job_offers = cursor.fetchall()
         for offer in job_offers:
-            cursor.execute("SELECT ja.ApplicationID, ja.Status AS ApplicationStatus, c.CandidateID, u.FirstName, u.LastName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s ORDER BY ja.ApplicationDate DESC LIMIT 20", (offer['OfferID'],))
+            cursor.execute("SELECT ja.ApplicationID, ja.Status AS ApplicationStatus, c.CandidateID, u.FirstName, u.LastName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC", (offer['OfferID'],))
             offer['applicants'] = cursor.fetchall()
             company_data['job_offers'].append(offer)
     except Exception as e:
@@ -210,6 +284,7 @@ def view_single_company(company_id):
         return redirect(url_for('.dashboard'))
     finally:
         if conn and conn.is_connected():
-            cursor.close()
+            if 'cursor' in locals(): cursor.close()
             conn.close()
+            
     return render_template('account_manager_portal/single_company_view.html', title=f"Manage: {company_data['info']['CompanyName']}", company_data=company_data, manager_staff_id=staff_id)
