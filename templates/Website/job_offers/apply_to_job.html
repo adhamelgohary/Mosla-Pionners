@@ -14,7 +14,7 @@
 
 {% block content %}
 <div class="job-detail-page-wrapper">
-    <main class="relative z-10 bg-transparent py-8 sm:py-12">
+    <main id="mainContent" class="relative z-10 bg-transparent py-8 sm:py-12">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
                 <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8 border border-border/50">
@@ -33,7 +33,7 @@
                     <div class="border-t border-border pt-8 space-y-6">
                         <!-- Personal Information Section -->
                         <div class="space-y-6">
-                            <div>
+                             <div>
                                 <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
                                 <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
                                 <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_full_name"></p>
@@ -84,10 +84,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="border-t border-border pt-8">
-                        <button type="submit" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button>
-                    </div>
+                    
+                    {# The in-form submit button is now hidden, as its action is handled by the sticky bar #}
+                    <button type="submit" id="hiddenSubmitBtn" class="hidden">Submit</button>
                 </form>
             {% else %}
                  <div class="bg-card/90 backdrop-blur-sm p-10 rounded-2xl shadow-xl text-center border border-border/50">
@@ -101,14 +100,35 @@
         </div>
     </main>
 </div>
+
+<!-- NEW: Sticky Send Application Bar -->
+<div id="stickyBar" class="fixed bottom-0 left-0 w-full bg-gray-900/90 backdrop-blur-lg border-t border-white/10 shadow-2xl z-50">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between gap-4 py-3">
+            <div class="text-left">
+                <p class="text-sm text-gray-300">Ready to submit?</p>
+            </div>
+            <div class="flex-shrink-0 w-full sm:w-auto">
+                 <button type="button" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block page_scripts %}
     {{ super() }}
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return;
+
+        // --- NEW: Selectors for the sticky bar functionality ---
+        const stickyBar = document.getElementById('stickyBar');
+        const mainContent = document.getElementById('mainContent');
+        const sendBtn = document.getElementById('sendBtn'); // The visible button in the bar
+        const hiddenSubmitBtn = document.getElementById('hiddenSubmitBtn'); // The actual form submit button
 
         const referralCodeInput = document.getElementById('referralCode');
         const referralCodeFeedbackDiv = document.getElementById('referralCodeFeedback');
@@ -116,18 +136,41 @@
         const formErrorContent = document.getElementById('formErrorContent');
 
         let debounceTimer;
+
+        // --- NEW: Padding adjustment for the sticky bar ---
+        function updateContentPadding() {
+            if (stickyBar && mainContent) {
+                const barHeight = stickyBar.offsetHeight;
+                // Add extra space so the last element isn't perfectly flush with the bar
+                mainContent.style.paddingBottom = (barHeight + 40) + 'px';
+            }
+        }
+        updateContentPadding();
+        window.addEventListener('resize', updateContentPadding);
+
+        // --- NEW: Connect the sticky button to the form ---
+        if (sendBtn && hiddenSubmitBtn) {
+            sendBtn.addEventListener('click', () => {
+                // Programmatically click the hidden submit button inside the form
+                hiddenSubmitBtn.click();
+            });
+        }
         
         const markFieldValid = (field) => {
             field.classList.remove('ring-danger-500', 'is-invalid');
-            field.classList.add('ring-input-border');
-            const errorEl = field.closest('div').querySelector('.invalid-feedback');
-            if(errorEl) errorEl.textContent = '';
+            const parentDiv = field.closest('div');
+            if(parentDiv) {
+                const errorEl = parentDiv.querySelector('.invalid-feedback');
+                if(errorEl) errorEl.textContent = '';
+            }
         };
         const markFieldInvalid = (field, message) => {
             field.classList.add('ring-danger-500', 'is-invalid');
-            field.classList.remove('ring-input-border');
-            let errorEl = field.closest('div').querySelector('.invalid-feedback');
-            if (errorEl) errorEl.textContent = message;
+            const parentDiv = field.closest('div');
+            if(parentDiv) {
+                const errorEl = parentDiv.querySelector('.invalid-feedback');
+                if (errorEl) errorEl.textContent = message;
+            }
         };
 
         if (referralCodeInput) {
@@ -185,11 +228,12 @@
             if (hasClientSideErrors) {
                 formErrorContent.innerHTML = 'Please correct the errors highlighted below.';
                 formErrorMessagesDiv.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
             
-            const sendBtn = document.getElementById('sendBtn');
-            sendBtn.disabled = true; sendBtn.textContent = 'Submitting...';
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Submitting...';
 
             try {
                 const response = await fetch(applicationForm.action, { 
@@ -205,6 +249,7 @@
                     let errorHtml = `Please correct the following errors:<ul>${Object.values(result.errors || {}).map(e => `<li>- ${e}</li>`).join('')}</ul>`;
                     formErrorContent.innerHTML = errorHtml;
                     formErrorMessagesDiv.classList.remove('hidden');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                     Object.keys(result.errors || {}).forEach(field => {
                         const el = document.getElementById(field);
                         if (el) markFieldInvalid(el, result.errors[field]);
@@ -213,8 +258,10 @@
             } catch (error) {
                 formErrorContent.innerHTML = "An unexpected network error occurred. Please check your connection and try again.";
                 formErrorMessagesDiv.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } finally {
-                 sendBtn.disabled = false; sendBtn.textContent = 'Send Application';
+                 sendBtn.disabled = false;
+                 sendBtn.textContent = 'Send Application';
             }
         });
     });
