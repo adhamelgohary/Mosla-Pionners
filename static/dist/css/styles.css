@@ -1210,11 +1210,11 @@ html[data-theme="dark"] {
   --tw-prose-pre-bg: var(--input-bg-color);
   --tw-prose-th-borders: var(--border-color);
   --tw-prose-td-borders: var(--border-color);
-  --tw-prose-invert-body: #d1d5db;
-  --tw-prose-invert-headings: #fff;
-  --tw-prose-invert-lead: #9ca3af;
-  --tw-prose-invert-links: #fff;
-  --tw-prose-invert-bold: #fff;
+  --tw-prose-invert-body: var(--text-muted);
+  --tw-prose-invert-headings: var(--heading-color);
+  --tw-prose-invert-lead: var(--text-color);
+  --tw-prose-invert-links: rgb(var(--primary-color-rgb) / <alpha-value>);
+  --tw-prose-invert-bold: var(--text-color);
   --tw-prose-invert-counters: #9ca3af;
   --tw-prose-invert-bullets: #4b5563;
   --tw-prose-invert-hr: #374151;

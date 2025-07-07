@@ -3,7 +3,6 @@ const colors = require('tailwindcss/colors');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // This darkMode strategy looks for the `data-theme="dark"` attribute on the <html> tag
   darkMode: ['selector', '[data-theme="dark"]'],
   
   content: [
@@ -16,7 +15,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // --- THEME-AWARE COLORS ---
+        // --- BASE THEME COLORS (from your CSS variables) ---
         primary: {
           DEFAULT: 'rgb(var(--primary-color-rgb) / <alpha-value>)',
           darker: 'var(--primary-color-darker)',
@@ -35,11 +34,25 @@ module.exports = {
         heading: 'var(--heading-color)',
         border: 'var(--border-color)',
         'input-border': 'var(--input-border-color)',
+        
+        // --- NEW: TAG COLORS MIGRATED FROM CSS ---
+        // This allows you to use classes like `bg-tag-location-bg`
         tag: {
-            location: { bg: 'var(--tag-location-bg)', text: 'var(--tag-location-text)' },
-            category: { bg: 'var(--tag-category-bg)', text: 'var(--tag-category-text)' },
-            english: { bg: 'var(--tag-english-bg)', text: 'var(--tag-english-text)' }
+            location: { 
+                bg: 'var(--tag-location-bg)', 
+                text: 'var(--tag-location-text)' 
+            },
+            category: { 
+                bg: 'var(--tag-category-bg)', 
+                text: 'var(--tag-category-text)' 
+            },
+            english: { 
+                bg: 'var(--tag-english-bg)', 
+                text: 'var(--tag-english-text)' 
+            }
         },
+
+        // --- UTILITY COLORS ---
         success: colors.green,
         danger: { DEFAULT: 'var(--danger-color)', ...colors.red },
         warning: colors.amber,
@@ -55,7 +68,6 @@ module.exports = {
         DEFAULT: 'var(--card-shadow)',
       },
       
-      // === NEW: Add typography styles to match your theme ===
       typography: ({ theme }) => ({
         DEFAULT: {
           css: {
@@ -75,6 +87,12 @@ module.exports = {
             '--tw-prose-pre-bg': theme('colors.input'),
             '--tw-prose-th-borders': theme('colors.border'),
             '--tw-prose-td-borders': theme('colors.border'),
+            // Add dark mode support for prose
+            '--tw-prose-invert-body': theme('colors.text.muted'),
+            '--tw-prose-invert-headings': theme('colors.heading'),
+            '--tw-prose-invert-lead': theme('colors.text.main'),
+            '--tw-prose-invert-links': theme('colors.primary.DEFAULT'),
+            '--tw-prose-invert-bold': theme('colors.text.main'),
           },
         },
       }),
