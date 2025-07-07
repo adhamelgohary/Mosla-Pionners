@@ -1,130 +1,67 @@
 {# templates/Website/courses_page.html #}
 {% extends "Website/base.html" %}
 
-{% block title %}{{ title }} - Mosla Pioneers{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+    {{ super() }}
+    <!-- Link to the specific CSS for this page's design -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
+{% endblock %}
 
 {% block content %}
-<main class="page-wrapper-content" style="padding-top: 2rem;">
-    <!-- About Section -->
-    <section id="about" class="about-us" style="max-width: 1200px; margin: 0 auto 3rem auto; background: var(--card-bg); border-radius: 20px; box-shadow: var(--card-shadow); padding: 4rem 2rem;">
-        <div class="about-us-text">
-            <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
-            <p>Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries.</p>
-            <p>Our success is built on our partnership with leading multinational companies who recognize our graduates' job-ready skills and professional communication abilities.</p>
+<main>
+    <section id="about" class="about-us">
+      <div class="about-us-text">
+        <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
+        <p>Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries.</p>
+        <p>Our success is built on our partnership with leading multinational companies who recognize our graduates' job-ready skills and professional communication abilities.</p>
+      </div>
+      <div class="about-us-image">
+        <div>
+          <h3>🎓 Professional Training</h3><p>Expert instructors with 8+ years experience</p><br>
+          <h3>💼 Job Guarantee</h3><p>Direct placement with partner companies</p><br>
+          <h3>💰 Competitive Salaries</h3><p>High earning potential post-course</p>
         </div>
-        <div class="about-us-image">
-            <div>
-                <h3>🎓 Professional Training</h3>
-                <p>Expert instructors with 8+ years experience</p>
-                <br>
-                <h3>💼 Job Guarantee</h3>
-                <p>Direct placement with partner companies</p>
-                <br>
-                <h3>💰 Competitive Salaries</h3>
-                <p>High earning potential post-course</p>
-            </div>
-        </div>
+      </div>
     </section>
 
-    <!-- Courses Section -->
-    <section id="courses" class="courses" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-        <div class="section-header" style="text-align: center; margin-bottom: 2rem;">
-            <h2>Our Course Packages</h2>
-        </div>
-
+    <section id="courses" class="courses">
+        <h2 class="section-title">Our Course Packages</h2>
+        
         {# Loop through the grouped courses from the backend #}
-        {% for category, courses in grouped_courses.items() %}
-        <div class="course-info" style="background: var(--card-bg); border-radius: 20px; padding: 2rem; margin-bottom: 2rem; box-shadow: var(--card-shadow);">
-            <h3>{{ category }} Course Packages</h3>
-            {# You can add a description for each category here if needed #}
-            
-            <div class="course-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem;">
-                {% for course in courses %}
-                <div class="course-card" style="background: var(--card-bg); border-radius: 15px; padding: 2rem; text-align: center; box-shadow: var(--card-shadow); display: flex; flex-direction: column;">
-                    <h3>{{ course.CourseName }}</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem; flex-grow: 1;">
-                        {% if course.Description %}{{ course.Description }}{% endif %}<br>
-                        <strong>Duration:</strong> {{ course.Duration or 'N/A' }}
-                    </p>
-                    <p class="font-bold text-lg mb-4" style="color: var(--primary-color);">
-                        {{ course.Price | currency(course.Currency or 'EGP') if course.Price else 'Contact for Price' }}
-                    </p>
-                    <div class="course-actions" style="margin-top: auto;">
-                        {# The link can point to a Google Form or a future application route #}
-                        <a href="{{ course.SyllabusLink or '#' }}" class="apply-button" target="_blank" rel="noopener noreferrer">Apply To Course</a>
+        {% for category, courses_in_category in grouped_courses.items() %}
+            <div id="{{ category|lower|replace(' ', '-') }}-courses" class="course-info">
+                <h3>{{ category }} Course Packages</h3>
+                
+                <div class="course-cards">
+                    {% for course in courses_in_category %}
+                    <div class="course-card">
+                        <h3>{{ course.CourseName }}</h3>
+                        <p>
+                            {% if course.Description %}{{ course.Description }}<br>{% endif %}
+                            <strong>Duration:</strong> {{ course.Duration or 'N/A' }}
+                        </p>
+                        <p class="font-bold text-lg mb-4" style="color: var(--primary-color);">
+                            {{ course.Price | currency(course.Currency or 'EGP') if course.Price else 'Contact for Price' }}
+                        </p>
+                        <div class="course-actions">
+                            <a href="{{ course.SyllabusLink or '#' }}" class="apply-button" target="_blank" rel="noopener noreferrer">Apply To Course</a>
+                        </div>
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
-        </div>
         {% else %}
-        <div class="text-center py-12">
-            <p class="text-gray-500">No courses are available at this time. Please check back later.</p>
-        </div>
+            <div class="text-center py-12">
+                <p class="text-gray-500">No courses are available at this time. Please check back later.</p>
+            </div>
         {% endfor %}
     </section>
 </main>
 {% endblock %}
 
-{% block page_scripts %}
-<style>
-    /* Scoped styles for this page, adapted from courses.css */
-    .about-us {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: center;
-    }
-    .about-us-text h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1.5rem;
-      color: var(--text-color);
-    }
-    .about-us-text span {
-      background: var(--highlight-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .about-us-text p {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
-      color: var(--text-muted);
-    }
-    .about-us-image {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--dark-section-bg);
-      border-radius: 15px;
-      color: var(--dark-section-text);
-      font-size: 1.2rem;
-      text-align: center;
-      padding: 2rem;
-      transition: background var(--transition-speed) ease;
-    }
-    .apply-button {
-      background: var(--highlight-gradient);
-      color: white;
-      padding: 0.8rem 2rem;
-      border: none;
-      border-radius: 25px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      display: inline-block;
-      width: 100%;
-      font-size: 1rem;
-      text-align: center;
-    }
-    .apply-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    @media (max-width: 768px) {
-        .about-us { grid-template-columns: 1fr; text-align: center; }
-        .about-us-text h1 { font-size: 2rem; }
-    }
-</style>
+{% block footer %}
+    {# This will use the footer from base.html, so we can leave this block empty or call super() #}
+    {{ super() }}
 {% endblock %}
