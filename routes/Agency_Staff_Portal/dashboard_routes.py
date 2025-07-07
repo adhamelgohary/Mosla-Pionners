@@ -62,27 +62,29 @@ def main_dashboard():
         if hasattr(current_user, 'specific_role_id') and current_user.specific_role_id and \
         current_user.role_type in AGENCY_STAFF_ROLES:
             
-            # --- NEW, CORRECTED LOGIC ---
-            # Change KPI from "Sourced Candidates" to "Referred Applications"
-            # This correctly queries the JobApplications table.
+            # --- THIS IS THE NEW, CORRECTED AND ISOLATED QUERY ---
+            # We now fetch the referral count in its own clean query to prevent row multiplication.
             cursor.execute(
-                """SELECT COUNT(*) AS count FROM JobApplications 
+                """SELECT COUNT(ApplicationID) AS count 
+                FROM JobApplications 
                 WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)""",
                 (current_user.specific_role_id,)
             )
             res = cursor.fetchone()
+            # The key name remains the same for the template
             dashboard_stats['my_referred_applications_month'] = res['count'] if res else 0
-        
-        # Client related stats (My Performance / My Team's Performance)
-        # ManagedByStaffID in Companies table
+
+        # ... Client related stats (My Performance / My Team's Performance) ...
         if current_user.role_type == 'AccountManager':
             if hasattr(current_user, 'specific_role_id') and current_user.specific_role_id:
+                # This query is already simple and correct, no changes needed.
                 cursor.execute(
                     "SELECT COUNT(*) AS count FROM Companies WHERE ManagedByStaffID = %s",
                     (current_user.specific_role_id,) 
                 )
                 res = cursor.fetchone()
                 dashboard_stats['my_managed_clients'] = res['count'] if res else 0
+
         
         if current_user.role_type in ['SeniorAccountManager', 'HeadAccountManager']:
              if hasattr(current_user, 'specific_role_id') and current_user.specific_role_id:
