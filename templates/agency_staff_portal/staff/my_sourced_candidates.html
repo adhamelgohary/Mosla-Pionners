@@ -1,53 +1,47 @@
 {# templates/agency_staff_portal/staff/my_sourced_candidates.html #}
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{% block title %}{{ title }} - Staff Portal{% endblock %}
+{% block staff_title %}{{ title }}{% endblock %}
 
-{% block content %}
-<div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+{% block staff_page_title %}{{ title }}{% endblock %}
 
-        <!-- Page Header -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ title }}</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">View the candidates you've brought into the system and their application history.</p>
-        </div>
+{% block staff_content %}
+<div class="px-4 sm:px-0">
+    <p class="mt-1 text-sm text-gray-600">View the candidates you've brought into the system and their application history.</p>
+</div>
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="space-y-4 mb-6">
-        {% for category, message in messages %}<div class="border-l-4 p-4 {{ {'success': 'bg-green-50 border-green-400 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-300','danger': 'bg-red-50 border-red-400 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-300'}[category] }}"><p>{{ message }}</p></div>{% endfor %}
-        </div>{% endif %}{% endwith %}
-
-        <!-- Candidates Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-gray-700/50">
+<!-- Candidates Table -->
+<div class="mt-8 flow-root">
+    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+            <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Candidate</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sourced Date</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Job Applications</th>
-                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">View</span></th>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Candidate</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sourced Date</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Job Applications</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">View</span></th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-gray-200 bg-white">
                         {% if candidates %}
                             {% for candidate in candidates %}
                             <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ candidate.FirstName }} {{ candidate.LastName }}</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ candidate.Email }}</div>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                    <div class="font-medium text-gray-900">{{ candidate.FirstName }} {{ candidate.LastName }}</div>
+                                    <div class="text-gray-500">{{ candidate.Email }}</div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                     {{ candidate.SourceDate.strftime('%d %b, %Y') if candidate.SourceDate else 'N/A' }}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <td class="px-3 py-4 text-sm text-gray-500">
                                     {% if candidate.applications_list %}
-                                        <ul class="space-y-1">
+                                        <ul class="space-y-1.5">
                                             {% for job, status in candidate.applications_list %}
                                             <li class="flex items-center gap-2">
-                                                <span class="font-medium text-gray-700 dark:text-gray-300">{{ job }}</span>
-                                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ {'Applied': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Submitted': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Shortlisted': 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300', 'Hired': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', 'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}.get(status, 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200') }}">{{ status }}</span>
+                                                <span class="font-medium text-gray-800">{{ job }}</span>
+                                                <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ {'Applied': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Submitted': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Shortlisted': 'bg-purple-50 text-purple-700 ring-purple-600/20', 'Hired': 'bg-green-50 text-green-700 ring-green-600/20', 'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'}.get(status, 'bg-gray-50 text-gray-600 ring-gray-500/10') }}">{{ status }}</span>
                                             </li>
                                             {% endfor %}
                                         </ul>
@@ -55,14 +49,14 @@
                                         <span class="text-gray-400 italic">No applications yet</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=candidate.CandidateID) }}" class="text-primary hover:text-primary-darker">View Profile</a>
+                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                    <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=candidate.CandidateID) }}" class="text-indigo-600 hover:text-indigo-900">View Profile<span class="sr-only">, {{ candidate.FirstName }} {{ candidate.LastName }}</span></a>
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
                                     You have not sourced any candidates yet.
                                 </td>
                             </tr>
