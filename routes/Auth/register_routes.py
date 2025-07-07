@@ -158,8 +158,8 @@ def register_candidate():
                         date_of_birth = (datetime.date.today() - datetime.timedelta(days=int(age * 365.25))) if age else None
                         
                         cursor.execute("""
-                            INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, EnglishLevel, DateOfBirth, SourceChannel, SourceDate)
-                            VALUES (%s, %s, %s, %s, %s, 'Web Registration', CURDATE())
+                            INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, EnglishLevel, DateOfBirth)
+                            VALUES (%s, %s, %s, %s, %s)
                         """, (user_id, form_data.get('linkedin_profile_url'), form_data.get('educational_status'), 
                               form_data.get('english_level'), date_of_birth))
                         
