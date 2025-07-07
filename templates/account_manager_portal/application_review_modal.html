@@ -4,70 +4,100 @@
 {% block title %}Review Application{% endblock %}
 
 {% block content %}
-<div class="p-6 bg-gray-50">
-    <div class="space-y-6">
-        <!-- Header -->
-        <div>
-            <h2 class="text-xl font-bold text-gray-900">{{ application.info.FirstName }} {{ application.info.LastName }}</h2>
-            <p class="text-sm text-gray-600">
-                Application for <span class="font-semibold">{{ application.info.OfferTitle }}</span>
-            </p>
-        </div>
+<div class="p-6 bg-gray-50" x-data="{ activeTab: 'review' }">
+    <!-- Header -->
+    <div class="pb-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">{{ application.info.FirstName }} {{ application.info.LastName }}</h2>
+        <p class="text-sm text-gray-600">
+            Application for <span class="font-semibold">{{ application.info.OfferTitle }}</span>
+            at <span class="font-semibold">{{ application.info.CompanyName }}</span>
+        </p>
+    </div>
 
-        <!-- Application Details -->
-        <div class="bg-white p-4 rounded-lg shadow-sm border">
-            <h3 class="font-semibold text-gray-800 mb-2">Candidate's Motivation</h3>
-            <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ application.info.NotesByCandidate or 'No answer provided.' }}</p>
-        </div>
+    <!-- Tab Navigation -->
+    <div class="mt-4 border-b border-gray-200">
+        <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+            <button @click="activeTab = 'review'" 
+                    :class="{ 'border-indigo-500 text-indigo-600': activeTab === 'review', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'review' }"
+                    class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                Application Review
+            </button>
+            <button @click="activeTab = 'profile'"
+                    :class="{ 'border-indigo-500 text-indigo-600': activeTab === 'profile', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'profile' }"
+                    class="whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                Full Candidate Profile
+            </button>
+        </nav>
+    </div>
 
-        <!-- Submitted Materials -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- CV Card -->
+    <!-- Tab Content -->
+    <div class="mt-6">
+        <!-- Application Review Tab -->
+        <div x-show="activeTab === 'review'" class="space-y-6">
             <div class="bg-white p-4 rounded-lg shadow-sm border">
-                <h3 class="font-semibold text-gray-800 mb-3">Submitted CV</h3>
-                {% if application.cv %}
-                    <a href="{{ url_for('static', filename=application.cv.CVFileUrl) }}" target="_blank"
-                       class="flex items-center gap-3 p-3 bg-gray-50 hover:bg-indigo-50 rounded-md border border-gray-200">
-                        <i class="bi bi-file-earmark-pdf-fill text-2xl text-red-500"></i>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">{{ application.cv.CVTitle or application.cv.OriginalFileName }}</p>
-                            <p class="text-xs text-gray-500">Click to view in new tab</p>
-                        </div>
-                    </a>
-                {% else %}
-                    <p class="text-sm text-gray-500 italic">No CV found for this application.</p>
-                {% endif %}
+                <h3 class="font-semibold text-gray-800 mb-2">Candidate's Motivation</h3>
+                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ application.info.NotesByCandidate or 'No answer provided.' }}</p>
             </div>
-            <!-- Voice Note Card -->
-            <div class="bg-white p-4 rounded-lg shadow-sm border">
-                <h3 class="font-semibold text-gray-800 mb-3">Voice Introduction</h3>
-                {% if application.voice_note %}
-                    <audio controls class="w-full">
-                        <source src="{{ url_for('static', filename=application.voice_note.VoiceNoteURL) }}" type="audio/webm">
-                        Your browser does not support the audio element.
-                    </audio>
-                {% else %}
-                    <p class="text-sm text-gray-500 italic">No voice note found for this application.</p>
-                {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-lg shadow-sm border">
+                    <h3 class="font-semibold text-gray-800 mb-3">Submitted CV</h3>
+                    {% if application.cv %}
+                        <a href="{{ url_for('static', filename=application.cv.CVFileUrl) }}" target="_blank" class="flex items-center gap-3 p-3 bg-gray-50 hover:bg-indigo-50 rounded-md border border-gray-200">
+                            <i class="bi bi-file-earmark-pdf-fill text-2xl text-red-500"></i>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ application.cv.CVTitle or application.cv.OriginalFileName }}</p>
+                                <p class="text-xs text-gray-500">Click to view in new tab</p>
+                            </div>
+                        </a>
+                    {% else %}
+                        <p class="text-sm text-gray-500 italic">No CV found for this application.</p>
+                    {% endif %}
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow-sm border">
+                    <h3 class="font-semibold text-gray-800 mb-3">Voice Introduction</h3>
+                    {% if application.voice_note %}
+                        <audio controls class="w-full"><source src="{{ url_for('static', filename=application.voice_note.VoiceNoteURL) }}"></audio>
+                    {% else %}
+                        <p class="text-sm text-gray-500 italic">No voice note found for this application.</p>
+                    {% endif %}
+                </div>
             </div>
+
+            <!-- Decision Form -->
+            <form id="decisionForm" method="POST" action="{{ url_for('account_manager_bp.update_application_status', application_id=application.info.ApplicationID) }}">
+                 <input type="hidden" name="manager_staff_id" value="{{ manager_staff_id }}">
+                 <input type="hidden" name="offer_id" value="{{ application.info.OfferID }}">
+                 {# The action ('approve' or 'reject') will be set by the buttons #}
+                 <input type="hidden" name="action" id="decisionAction">
+
+                <div class="pt-6 border-t">
+                    <label for="feedback_notes" class="block text-sm font-medium leading-6 text-gray-900">Feedback / Notes for Decision</label>
+                    <div class="mt-2">
+                        <textarea rows="3" name="feedback_notes" id="feedback_notes" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">This feedback will be saved to the application record.</p>
+                </div>
+                
+                <div class="mt-4 flex justify-end items-center gap-3">
+                    <button type="submit" @click="document.getElementById('decisionAction').value = 'reject'" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reject</button>
+                    <button type="submit" @click="document.getElementById('decisionAction').value = 'approve'" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Shortlist</button>
+                </div>
+            </form>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="pt-6 border-t flex justify-end items-center gap-3">
-            <p class="text-sm text-gray-600 mr-auto">Decision:</p>
-            <form method="POST" action="{{ url_for('account_manager_bp.update_application_status', application_id=application.info.ApplicationID) }}">
-                <input type="hidden" name="manager_staff_id" value="{{ manager_staff_id }}">
-                <input type="hidden" name="offer_id" value="{{ application.info.OfferID }}">
-                <input type="hidden" name="action" value="reject">
-                <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reject</button>
-            </form>
-            <form method="POST" action="{{ url_for('account_manager_bp.update_application_status', application_id=application.info.ApplicationID) }}">
-                <input type="hidden" name="manager_staff_id" value="{{ manager_staff_id }}">
-                <input type="hidden" name="offer_id" value="{{ application.info.OfferID }}">
-                <input type="hidden" name="action" value="approve">
-                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Shortlist</button>
-            </form>
+        <!-- Full Candidate Profile Tab -->
+        <div x-show="activeTab === 'profile'" style="display: none;">
+            <div class="h-[70vh] w-full bg-white rounded-lg border shadow-sm">
+                <iframe src="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=application.info.CandidateID, view='modal') }}" class="w-full h-full" frameborder="0"></iframe>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+    {{ super() }}
+    <!-- Add Alpine.js if not already in base_empty.html -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}

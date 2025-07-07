@@ -1,5 +1,6 @@
 # routes/Account_Manager_Portal/am_portal_routes.py
 
+import datetime
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
 from flask_login import current_user
 from utils.decorators import login_required_with_role
@@ -206,6 +207,8 @@ def view_manager_portfolio(manager_staff_id):
 # FULLY UPDATED `update_application_status` FUNCTION
 # ======================================================================
 
+# In am_portal_routes.py, replace the existing update_application_status function
+
 @account_manager_bp.route('/application/<int:application_id>/update', methods=['POST'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def update_application_status(application_id):
@@ -213,7 +216,10 @@ def update_application_status(application_id):
     action = request.form.get('action')
     manager_staff_id = request.form.get('manager_staff_id')
     company_id_for_redirect = request.form.get('company_id')
-    offer_id_for_redirect = request.form.get('offer_id') # NEW
+    offer_id_for_redirect = request.form.get('offer_id')
+    
+    # NEW: Get the feedback notes from the form
+    feedback_notes = request.form.get('feedback_notes', '').strip()
 
     if not all([action, manager_staff_id]):
         flash("Invalid request. Missing action or manager ID.", "danger")
@@ -225,12 +231,23 @@ def update_application_status(application_id):
     new_status = {'approve': 'Shortlisted', 'reject': 'Rejected'}.get(action)
     
     if new_status:
-        # ... (database update logic remains the same) ...
         conn = None
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE JobApplications SET Status = %s WHERE ApplicationID = %s", (new_status, application_id))
+            # NEW: Update query to include NotesByStaff
+            # We use COALESCE to append to existing notes if any, or just set the new notes.
+            sql = """
+                UPDATE JobApplications 
+                SET 
+                    Status = %s, 
+                    NotesByStaff = CONCAT(COALESCE(NotesByStaff, ''), %s)
+                WHERE ApplicationID = %s
+            """
+            # Add a separator for cleanliness if appending.
+            notes_to_add = f"\n\n--- {new_status} by {current_user.first_name} on {datetime.date.today().strftime('%Y-%m-%d')} ---\n{feedback_notes}"
+            
+            cursor.execute(sql, (new_status, notes_to_add, application_id))
             conn.commit()
             flash(f"Application status updated to '{new_status}'.", "success")
         except Exception as e:
@@ -244,17 +261,13 @@ def update_application_status(application_id):
     else: 
         flash("Unknown action specified.", "danger")
 
-    # --- NEW, HIERARCHICAL REDIRECTION LOGIC ---
+    # Redirection logic remains the same
     if offer_id_for_redirect:
-        # If we came from the single offer page, redirect back there
         return redirect(url_for('.view_offer_applicants', offer_id=offer_id_for_redirect))
     elif company_id_for_redirect:
-        # If we came from the single company page, redirect back there
         return redirect(url_for('.view_single_company', company_id=company_id_for_redirect))
     else:
-        # Otherwise, redirect back to the full portfolio page
         return redirect(url_for('.view_manager_portfolio', manager_staff_id=manager_staff_id))
-
 
 @account_manager_bp.route('/company/<int:company_id>')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
