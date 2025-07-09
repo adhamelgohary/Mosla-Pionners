@@ -157,3 +157,48 @@ def delete_offer(offer_id):
     if company_id_redirect:
         return redirect(url_for('account_manager_bp.view_single_company', company_id=company_id_redirect))
     return redirect(url_for('.list_company_offers'))
+
+# In am_offer_mgmt_routes.py, add these two new routes.
+
+@am_offer_mgmt_bp.route('/offer/<int:offer_id>/activate', methods=['POST'])
+@login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
+def activate_offer(offer_id):
+    """Sets a job offer's status to 'Open'."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE JobOffers SET Status = 'Open', UpdatedAt = NOW() WHERE OfferID = %s", (offer_id,))
+        conn.commit()
+        flash("Job offer has been activated and is now live.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error activating offer {offer_id}: {e}", exc_info=True)
+        flash("An error occurred while activating the offer.", "danger")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return redirect(url_for('.list_company_offers'))
+
+
+@am_offer_mgmt_bp.route('/offer/<int:offer_id>/deactivate', methods=['POST'])
+@login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
+def deactivate_offer(offer_id):
+    """Sets a job offer's status to 'Closed' or 'On Hold'."""
+    # For now, we'll use 'Closed' as the deactivated status.
+    # You could pass a status in the form if you want both 'Closed' and 'On Hold'.
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE JobOffers SET Status = 'Closed', UpdatedAt = NOW() WHERE OfferID = %s", (offer_id,))
+        conn.commit()
+        flash("Job offer has been deactivated.", "info")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error deactivating offer {offer_id}: {e}", exc_info=True)
+        flash("An error occurred while deactivating the offer.", "danger")
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+    return redirect(url_for('.list_company_offers'))
