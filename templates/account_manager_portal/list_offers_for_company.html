@@ -20,14 +20,6 @@
 
     <!-- Filter Tabs -->
     <div class="mt-6">
-        <div class="sm:hidden">
-            <label for="tabs" class="sr-only">Select a tab</label>
-            <select id="tabs" name="tabs" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" onchange="window.location.href = this.value;">
-                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='all') }}" {% if current_filter == 'all' %}selected{% endif %}>All</option>
-                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='active') }}" {% if current_filter == 'active' %}selected{% endif %}>Active</option>
-                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='inactive') }}" {% if current_filter == 'inactive' %}selected{% endif %}>Inactive</option>
-            </select>
-        </div>
         <div class="hidden sm:block">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8" aria-label="Tabs">
@@ -64,14 +56,24 @@
                                     {% endif %}
                                 </td>
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                    <div class="flex items-center justify-center gap-x-2">
-                                        {% if offer.Status == 'Open' %}
-                                            <form method="POST" action="{{ url_for('.set_offer_status', offer_id=offer.OfferID, action='deactivate') }}"><button type="submit" class="text-yellow-600 hover:text-yellow-900">Deactivate</button></form>
-                                        {% else %}
-                                            <form method="POST" action="{{ url_for('.set_offer_status', offer_id=offer.OfferID, action='activate') }}"><button type="submit" class="text-green-600 hover:text-green-900">Activate</button></form>
-                                        {% endif %}
+                                    <div class="flex items-center justify-center gap-x-4">
+                                        {# --- THIS IS THE CORRECTED ACTION FORM BLOCK --- #}
+                                        <form method="POST" action="{{ url_for('.handle_offer_action', offer_id=offer.OfferID) }}">
+                                            <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
+                                            {% if offer.Status == 'Open' %}
+                                                <input type="hidden" name="action" value="deactivate">
+                                                <button type="submit" class="text-yellow-600 hover:text-yellow-900">Deactivate</button>
+                                            {% else %}
+                                                <input type="hidden" name="action" value="activate">
+                                                <button type="submit" class="text-green-600 hover:text-green-900">Activate</button>
+                                            {% endif %}
+                                        </form>
                                         <span class="text-gray-300">|</span>
-                                        <form method="POST" action="{{ url_for('.delete_offer', offer_id=offer.OfferID) }}" onsubmit="return confirm('Are you sure? This action is permanent.')"><button type="submit" class="text-red-600 hover:text-red-900">Delete</button></form>
+                                        <form method="POST" action="{{ url_for('.handle_offer_action', offer_id=offer.OfferID) }}" onsubmit="return confirm('Are you sure? This action is permanent.');">
+                                            <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
+                                            <input type="hidden" name="action" value="delete">
+                                            <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

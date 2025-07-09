@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
+import mysql.connector
 import decimal
 
 # Roles that can manage offers within the AM portal
@@ -141,40 +142,64 @@ def add_offer_for_company(company_id):
                            categories=categories, action_verb="Create")
 
 
-# The activate, deactivate, and delete routes now redirect back to the specific company's offer list
-@am_offer_mgmt_bp.route('/offer/<int:offer_id>/<action>')
+# --- ADD THIS NEW, CONSOLIDATED FUNCTION ---
+@am_offer_mgmt_bp.route('/offer/<int:offer_id>/action', methods=['POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
-def set_offer_status(offer_id, action):
-    # ... (This can be a combined route for activate/deactivate) ...
-    # On success, it should redirect back to the company page. To do that,
-    # we need the company_id, which we can get with one more query.
+def handle_offer_action(offer_id):
+    """Handles all actions for a job offer: activate, deactivate, and delete."""
+    
+    action = request.form.get('action')
+    # Get company_id from the form for a reliable redirect
+    company_id_redirect = request.form.get('company_id')
+
+    if not company_id_redirect:
+        flash("An error occurred: Missing company context.", "danger")
+        return redirect(url_for('.list_companies_for_offers'))
+
     conn = get_db_connection()
     try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT CompanyID FROM JobOffers WHERE OfferID = %s", (offer_id,))
-        result = cursor.fetchone()
-        if not result:
-            flash("Offer not found.", "warning")
-            return redirect(url_for('.list_companies_for_offers'))
-        company_id_redirect = result['CompanyID']
-        
-        if action == 'activate':
-            new_status = 'Open'
-            message = "Job offer has been activated."
-        elif action == 'deactivate':
-            new_status = 'Closed'
-            message = "Job offer has been deactivated."
-        else:
-            flash("Invalid action.", "danger")
-            return redirect(url_for('.list_offers_for_company', company_id=company_id_redirect))
+        cursor = conn.cursor()
 
-        cursor.execute("UPDATE JobOffers SET Status = %s WHERE OfferID = %s", (new_status, offer_id))
+        # Perform action based on the form value
+        if action == 'activate':
+            cursor.execute("UPDATE JobOffers SET Status = 'Open', UpdatedAt = NOW() WHERE OfferID = %s", (offer_id,))
+            flash("Job offer has been activated.", "success")
+        
+        elif action == 'deactivate':
+            cursor.execute("UPDATE JobOffers SET Status = 'Closed', UpdatedAt = NOW() WHERE OfferID = %s", (offer_id,))
+            flash("Job offer has been deactivated.", "info")
+        
+        elif action == 'delete':
+            # Check for related applications first to prevent DB errors
+            cursor.execute("SELECT COUNT(*) FROM JobApplications WHERE OfferID = %s", (offer_id,))
+            if cursor.fetchone()[0] > 0:
+                flash("Cannot delete this offer because it has active applications. Please close the offer instead.", "danger")
+            else:
+                cursor.execute("DELETE FROM JobOffers WHERE OfferID = %s", (offer_id,))
+                if cursor.rowcount > 0:
+                    flash("Job offer has been permanently deleted.", "success")
+                else:
+                    flash("Job offer could not be found.", "warning")
+        else:
+            flash("Invalid action specified.", "warning")
+            
         conn.commit()
-        flash(message, "success")
+
+    except mysql.connector.Error as e:
+        if conn: conn.rollback()
+        # Handle foreign key constraint error specifically for delete
+        if action == 'delete' and hasattr(e, 'errno') and e.errno == 1451:
+             flash('Cannot delete this offer as it is linked to other records.', 'danger')
+        else:
+            current_app.logger.error(f"DB Error processing offer action '{action}' for OfferID {offer_id}: {e}", exc_info=True)
+            flash("A database error occurred.", "danger")
     except Exception as e:
-        flash("An error occurred.", "danger")
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error processing offer action '{action}' for OfferID {offer_id}: {e}", exc_info=True)
+        flash("An unexpected error occurred.", "danger")
     finally:
-        if conn.is_connected():
+        if conn and conn.is_connected():
             cursor.close()
             conn.close()
+
     return redirect(url_for('.list_offers_for_company', company_id=company_id_redirect))
