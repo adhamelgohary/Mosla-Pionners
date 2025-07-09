@@ -1,0 +1,49 @@
+{# templates/Website/apply_for_course.html #}
+{% extends "Website/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<main class="page-wrapper-content" style="padding-top: 2rem;">
+    <div class="max-w-2xl mx-auto bg-card p-8 rounded-xl shadow-lg border border-border">
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-heading">Apply for Course</h1>
+            <p class="mt-2 text-lg font-semibold text-primary">{{ course.CourseName }}</p>
+            <p class="mt-2 text-sm text-text-muted">Confirm your details and submit your application below.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('courses_page_bp.submit_course_application', course_id=course.CourseID) }}" class="mt-8 space-y-6">
+            
+            <!-- Pre-filled User Information -->
+            <div>
+                <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name</label>
+                <div class="mt-2">
+                    <input type="text" id="fullName" value="{{ form_data.get('full_name', '') }}" readonly class="block w-full rounded-md border-0 py-2.5 text-text-muted bg-input/50 ring-1 ring-inset ring-input-border focus:ring-2 focus:ring-inset focus:ring-primary-darker cursor-not-allowed">
+                </div>
+            </div>
+            
+            <div>
+                <label for="email" class="block text-sm font-medium leading-6 text-text">Email Address</label>
+                <div class="mt-2">
+                    <input type="email" id="email" value="{{ form_data.get('email', '') }}" readonly class="block w-full rounded-md border-0 py-2.5 text-text-muted bg-input/50 ring-1 ring-inset ring-input-border focus:ring-2 focus:ring-inset focus:ring-primary-darker cursor-not-allowed">
+                </div>
+            </div>
+            
+            <!-- Application Notes -->
+            <div>
+                <label for="application_notes" class="block text-sm font-medium leading-6 text-text">Why are you interested in this course? (Optional)</label>
+                <div class="mt-2">
+                    <textarea id="application_notes" name="application_notes" rows="4" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input" placeholder="Tell us a bit about your goals..."></textarea>
+                </div>
+            </div>
+            
+            <!-- Submission Button -->
+            <div class="pt-6 border-t border-border">
+                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-darker focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-darker">
+                    Submit Application
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}

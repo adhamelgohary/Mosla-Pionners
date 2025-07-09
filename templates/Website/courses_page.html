@@ -45,8 +45,9 @@
                         <p class="font-bold text-lg mb-4" style="color: var(--primary-color);">
                             {{ course.Price | currency(course.Currency or 'EGP') if course.Price else 'Contact for Price' }}
                         </p>
-                        <div class="course-actions">
-                            <a href="{{ course.SyllabusLink or '#' }}" class="apply-button" target="_blank" rel="noopener noreferrer">Apply To Course</a>
+                        <div class="course-actions" style="margin-top: auto;">
+                            {# --- THIS IS THE UPDATED LINK --- #}
+                            <a href="{{ url_for('courses_page_bp.apply_for_course_form', course_id=course.CourseID) }}" class="apply-button">Apply To Course</a>
                         </div>
                     </div>
                     {% endfor %}

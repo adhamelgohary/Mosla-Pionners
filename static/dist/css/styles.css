@@ -2144,6 +2144,10 @@ html[data-theme="dark"] {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
 .cursor-pointer {
   cursor: pointer;
 }
@@ -3891,6 +3895,10 @@ body {
 .focus\:ring-primary:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(var(--primary-color-rgb) / var(--tw-ring-opacity, 1));
+}
+
+.focus\:ring-primary-darker:focus {
+  --tw-ring-color: var(--primary-color-darker);
 }
 
 .focus\:ring-success-500:focus {
