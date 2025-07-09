@@ -170,8 +170,6 @@ def add_offer():
                            companies=companies, categories=categories, action_verb="Create")
 
 
-# In am_offer_mgmt_routes.py
-
 @am_offer_mgmt_bp.route('/edit-offer/<int:offer_id>', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
 def edit_offer(offer_id):
