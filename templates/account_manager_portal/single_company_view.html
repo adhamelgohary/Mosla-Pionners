@@ -47,7 +47,7 @@
                         <li class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div class="flex-1">
                                 <p class="font-medium text-gray-900 dark:text-gray-100">{{ applicant.FirstName }} {{ applicant.LastName }}</p>
-                                <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="text-sm text-blue-600 hover:underline dark:text-blue-400" target="_blank">
+                                <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="text-sm text-blue-600 hover:underline dark:text-blue-400" target="_blank">
                                     View Full Profile <i class="bi bi-box-arrow-up-right text-xs"></i>
                                 </a>
                             </div>

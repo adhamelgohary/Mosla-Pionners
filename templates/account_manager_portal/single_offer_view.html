@@ -81,7 +81,7 @@
                                                 Review Application
                                             </button>
                                             {% else %}
-                                            <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" target="_blank" class="text-sm text-gray-500 hover:text-gray-900">
+                                            <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" target="_blank" class="text-sm text-gray-500 hover:text-gray-900">
                                                 View Profile
                                             </a>
                                             {% endif %}

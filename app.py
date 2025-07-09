@@ -28,10 +28,10 @@ from routes.Website.public_routes import public_routes_bp
 from routes.Website.job_board_routes import job_board_bp
 from routes.Candidate_Portal.candidate_routes import candidate_bp
 from routes.Account_Manager_Portal.company_assignment_routes import company_assignment_bp
-from routes.Agency_Staff_Portal.candidate_details_routes import candidate_details_bp
 from routes.Client_Portal.dashboard_routes import client_dashboard_bp
 from routes.Client_Portal.offer_routes import client_offers_bp
 from routes.Website.courses_page_routes import courses_page_bp
+from routes.Agency_Staff_Portal.candidate_details_routes import staff_candidate_bp
 
 from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 # --- Create Flask App ---
@@ -88,7 +88,7 @@ app.register_blueprint(job_offer_mgmt_bp, url_prefix='/staff-portal/job-offers')
 app.register_blueprint(employee_mgmt_bp, url_prefix='/staff-portal/employees')
 app.register_blueprint(leaderboard_bp, url_prefix='/staff-portal/leaderboard')
 app.register_blueprint(company_assignment_bp, url_prefix='/staff-portal/company-assignments')
-app.register_blueprint(candidate_details_bp, url_prefix='/staff/candidate')
+app.register_blueprint(staff_candidate_bp, url_prefix='/staff/candidate')
 app.register_blueprint(team_bp, url_prefix='/staff-management/team')
 app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
 app.register_blueprint(client_offers_bp, url_prefix='/client-portal')

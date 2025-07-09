@@ -69,7 +69,7 @@
                     {% for applicant in dashboard_data.recent_applicants %}
                     <li class="p-4 hover:bg-gray-50">
                         <p class="font-medium text-gray-800">
-                            <a href="{{ url_for('candidate_details_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="hover:underline" target="_blank">
+                            <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="hover:underline" target="_blank">
                                 {{ applicant.FirstName }} {{ applicant.LastName }}
                             </a>
                         </p>
