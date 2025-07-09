@@ -78,39 +78,76 @@ def list_offers_for_company(company_id):
                            title=f"Offers for {company['CompanyName']}", company=company,
                            offers=offers, current_filter=status_filter)
 
-@am_offer_mgmt_bp.route('/add-offer/for-company/<int:company_id>', methods=['GET', 'POST'])
+@am_offer_mgmt_bp.route('/add-offer', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
-def add_offer_for_company(company_id):
-    """Provides a comprehensive form to add a new job offer for a specific company."""
-    errors, form_data = {}, {}
-    conn = get_db_connection()
-    company, categories = None, []
+def add_offer():
+    """
+    Provides a form to add a new job offer, with the option to either
+    select an existing company or create a new one on the fly.
+    """
+    errors = {}
+    
+    # Fetch data needed for the form dropdowns (Companies, Categories)
+    conn_data = get_db_connection()
+    companies, categories = [], []
     try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT CompanyID, CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
-        company = cursor.fetchone()
-        if not company:
-            flash("Company not found.", "danger")
-            return redirect(url_for('.list_companies_for_offers'))
+        cursor = conn_data.cursor(dictionary=True)
+        cursor.execute("SELECT CompanyID, CompanyName FROM Companies ORDER BY CompanyName")
+        companies = cursor.fetchall()
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error loading data for add offer page: {e}", exc_info=True)
+        flash("Could not load required data for the form.", "danger")
     finally:
-        if conn.is_connected():
+        if conn_data.is_connected():
             cursor.close()
-            conn.close()
+            conn_data.close()
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
         form_data['required_languages'] = request.form.getlist('required_languages')
         form_data['benefits_included'] = request.form.getlist('benefits_included')
         form_data['available_shifts'] = request.form.getlist('available_shifts')
-        form_data['company_id'] = company_id
-        errors = validate_job_offer_data(form_data)
         
+        # --- Validation Logic ---
+        company_selection_mode = form_data.get('company_selection_mode')
+        if company_selection_mode == 'existing':
+            if not form_data.get('company_id'):
+                errors['company_id'] = "You must select an existing company."
+        elif company_selection_mode == 'new':
+            if not form_data.get('new_company_name', '').strip():
+                errors['new_company_name'] = "New company name cannot be empty."
+        else:
+            errors['company_selection_mode'] = "Please select a company option."
+            
+        if not form_data.get('title', '').strip(): errors['title'] = 'Job title is required.'
+        if not form_data.get('category_id'): errors['category_id'] = 'Job category is required.'
+
         if not errors:
-            conn_insert = get_db_connection()
+            conn_tx = get_db_connection()
             try:
-                cursor = conn_insert.cursor()
+                conn_tx.start_transaction()
+                cursor = conn_tx.cursor()
+                
+                company_id = None
+                # If creating a new company, insert it first and get the new ID
+                if company_selection_mode == 'new':
+                    new_company_name = form_data.get('new_company_name').strip()
+                    # Optional: Check if company name already exists
+                    cursor.execute("SELECT CompanyID FROM Companies WHERE CompanyName = %s", (new_company_name,))
+                    if cursor.fetchone():
+                        errors['new_company_name'] = f"A company named '{new_company_name}' already exists. Please select it from the list."
+                        raise ValueError("Duplicate company name")
+
+                    cursor.execute("INSERT INTO Companies (CompanyName, ManagedByStaffID) VALUES (%s, %s)", 
+                                   (new_company_name, current_user.specific_role_id))
+                    company_id = cursor.lastrowid
+                    current_app.logger.info(f"Created new company '{new_company_name}' with ID {company_id}.")
+                else:
+                    company_id = form_data.get('company_id')
+
+                # Proceed with inserting the job offer
                 sql = """
                     INSERT INTO JobOffers (
                         CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
@@ -151,41 +188,55 @@ def add_offer_for_company(company_id):
                     "closing_date": form_data.get('closing_date') or None
                 }
                 cursor.execute(sql, params)
-                conn_insert.commit()
-                flash(f"New job offer '{params['title']}' created successfully.", "success")
+                conn_tx.commit()
+                flash(f"New job offer created successfully!", "success")
                 return redirect(url_for('.list_offers_for_company', company_id=company_id))
+
+            except ValueError as ve:
+                if conn_tx: conn_tx.rollback()
+                flash(str(ve), 'danger') # Show the duplicate company name error
             except Exception as e:
-                if conn_insert and conn_insert.is_connected(): conn_insert.rollback()
-                current_app.logger.error(f"Error adding offer for company {company_id}: {e}", exc_info=True)
-                flash("An error occurred while adding the offer.", "danger")
+                if conn_tx: conn_tx.rollback()
+                current_app.logger.error(f"Error in add_offer: {e}", exc_info=True)
+                flash("An error occurred while creating the offer.", "danger")
             finally:
-                if 'cursor' in locals() and cursor: cursor.close()
-                if conn_insert and conn_insert.is_connected(): conn_insert.close()
+                if 'cursor' in locals(): cursor.close()
+                if conn_tx and conn_tx.is_connected(): conn_tx.close()
     
     return render_template('account_manager_portal/offers/add_edit_offer.html',
-                           title=f"Add Offer for {company['CompanyName']}", form_data=form_data, errors=errors,
-                           company=company, categories=categories, action_verb="Create")
+                           title="Create New Job Offer", form_data=form_data, errors=errors,
+                           companies=companies, categories=categories, action_verb="Create")
 
+
+# In am_offer_mgmt_routes.py
 
 @am_offer_mgmt_bp.route('/edit-offer/<int:offer_id>', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
 def edit_offer(offer_id):
+    """
+    Provides a comprehensive form to edit an existing job offer,
+    reflecting all the detailed fields in the database schema.
+    """
     errors = {}
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        # Fetch existing offer data for both GET and POST (to get company_id)
         cursor.execute("SELECT * FROM JobOffers WHERE OfferID = %s", (offer_id,))
         offer_data = cursor.fetchone()
         if not offer_data:
             flash("Job offer not found.", "danger")
+            if conn.is_connected(): conn.close()
             return redirect(url_for('.list_companies_for_offers'))
-        
+
+        # Fetch company and category data for the form dropdowns
         cursor.execute("SELECT CompanyID, CompanyName FROM Companies WHERE CompanyID = %s", (offer_data['CompanyID'],))
         company = cursor.fetchone()
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor.fetchall()
     except Exception as e:
-        flash("Error loading offer data.", "danger")
+        flash("Error loading offer data for editing.", "danger")
+        current_app.logger.error(f"Error fetching data for edit offer {offer_id}: {e}", exc_info=True)
         if conn.is_connected(): conn.close()
         return redirect(url_for('.list_companies_for_offers'))
     finally:
@@ -196,7 +247,8 @@ def edit_offer(offer_id):
         form_data['required_languages'] = request.form.getlist('required_languages')
         form_data['benefits_included'] = request.form.getlist('benefits_included')
         form_data['available_shifts'] = request.form.getlist('available_shifts')
-        form_data['company_id'] = offer_data['CompanyID']
+        
+        # We don't need company_id for validation here as it's an existing offer
         errors = validate_job_offer_data(form_data)
 
         if not errors:
@@ -214,17 +266,28 @@ def edit_offer(offer_id):
                     WHERE OfferID = %(offer_id)s
                 """
                 params = {
-                    "category_id": form_data.get('category_id'), "title": form_data.get('title').strip(), "location": form_data.get('location'),
+                    "category_id": form_data.get('category_id'),
+                    "title": form_data.get('title').strip(),
+                    "location": form_data.get('location'),
                     "net_salary": decimal.Decimal(form_data['net_salary']) if form_data.get('net_salary') else None,
-                    "payment_term": form_data.get('payment_term'), "hiring_plan": form_data.get('hiring_plan'),
+                    "payment_term": form_data.get('payment_term'),
+                    "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
-                    "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0, "grad_status": form_data.get('grad_status'),
-                    "languages_type": form_data.get('languages_type'), "required_languages": ",".join(form_data.get('required_languages', [])),
-                    "required_level": form_data.get('required_level'), "candidates_needed": int(form_data['candidates_needed']) if form_data.get('candidates_needed') else 1,
-                    "hiring_cadence": form_data.get('hiring_cadence'), "work_location": form_data.get('work_location'), "shift_type": form_data.get('shift_type'),
-                    "available_shifts": ",".join(form_data.get('available_shifts', [])), "benefits_included": ",".join(form_data.get('benefits_included', [])),
-                    "interview_type": form_data.get('interview_type'), "nationality": form_data.get('nationality'),
-                    "status": form_data.get('status', 'Open'), "closing_date": form_data.get('closing_date') or None,
+                    "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
+                    "grad_status": form_data.get('grad_status'),
+                    "languages_type": form_data.get('languages_type'),
+                    "required_languages": ",".join(form_data.get('required_languages', [])),
+                    "required_level": form_data.get('required_level'),
+                    "candidates_needed": int(form_data['candidates_needed']) if form_data.get('candidates_needed') else 1,
+                    "hiring_cadence": form_data.get('hiring_cadence'),
+                    "work_location": form_data.get('work_location'),
+                    "shift_type": form_data.get('shift_type'),
+                    "available_shifts": ",".join(form_data.get('available_shifts', [])),
+                    "benefits_included": ",".join(form_data.get('benefits_included', [])),
+                    "interview_type": form_data.get('interview_type'),
+                    "nationality": form_data.get('nationality'),
+                    "status": form_data.get('status', 'Open'),
+                    "closing_date": form_data.get('closing_date') or None,
                     "offer_id": offer_id
                 }
                 cursor_update.execute(sql, params)
@@ -233,24 +296,50 @@ def edit_offer(offer_id):
                 return redirect(url_for('.list_offers_for_company', company_id=company['CompanyID']))
             except Exception as e:
                 if conn_update: conn_update.rollback()
+                current_app.logger.error(f"Error updating offer {offer_id}: {e}", exc_info=True)
                 flash("An error occurred while updating the offer.", "danger")
             finally:
                 if 'cursor_update' in locals() and cursor_update: cursor_update.close()
                 if conn_update and conn_update.is_connected(): conn_update.close()
+        
+        # If there are validation errors, we pass the submitted (but unsaved) data back to the form
+        form_data_for_template = form_data
+    
+    else: # GET request
+        # For GET request, populate form_data from the fetched offer
+        form_data_for_template = offer_data
+        # Convert SET fields to lists for the template checkboxes
+        # The MySQL connector may return a set or a string, so we handle both
+        if isinstance(offer_data.get('RequiredLanguages'), set):
+            form_data_for_template['required_languages'] = list(offer_data.get('RequiredLanguages'))
+        else:
+            form_data_for_template['required_languages'] = offer_data.get('RequiredLanguages', '').split(',') if offer_data.get('RequiredLanguages') else []
 
-    # For GET request, populate form_data from the fetched offer
-    form_data_for_template = offer_data
-    if request.method != 'POST':
-        form_data_for_template['required_languages'] = list(offer_data.get('RequiredLanguages')) if offer_data.get('RequiredLanguages') else []
-        form_data_for_template['benefits_included'] = list(offer_data.get('BenefitsIncluded')) if offer_data.get('BenefitsIncluded') else []
-        form_data_for_template['available_shifts'] = list(offer_data.get('AvailableShifts')) if offer_data.get('AvailableShifts') else []
+        if isinstance(offer_data.get('BenefitsIncluded'), set):
+            form_data_for_template['benefits_included'] = list(offer_data.get('BenefitsIncluded'))
+        else:
+            form_data_for_template['benefits_included'] = offer_data.get('BenefitsIncluded', '').split(',') if offer_data.get('BenefitsIncluded') else []
+
+        if isinstance(offer_data.get('AvailableShifts'), set):
+             form_data_for_template['available_shifts'] = list(offer_data.get('AvailableShifts'))
+        else:
+             form_data_for_template['available_shifts'] = offer_data.get('AvailableShifts', '').split(',') if offer_data.get('AvailableShifts') else []
+
+        # Format date for the date input
         if offer_data.get('ClosingDate'):
             form_data_for_template['closing_date'] = offer_data['ClosingDate'].isoformat()
-    
+        else:
+            form_data_for_template['closing_date'] = '' # Ensure it's an empty string if NULL
+        
     return render_template('account_manager_portal/offers/add_edit_offer.html',
-                           title=f"Edit Offer: {offer_data['Title']}", form_data=form_data_for_template, 
-                           errors=errors, company=company, categories=categories, 
-                           action_verb="Update", is_editing=True, offer_id=offer_id)
+                           title=f"Edit Offer: {offer_data['Title']}",
+                           form_data=form_data_for_template, 
+                           errors=errors,
+                           company=company,
+                           categories=categories, 
+                           action_verb="Update", 
+                           is_editing=True,
+                           offer_id=offer_id)
 
 
 @am_offer_mgmt_bp.route('/offer/<int:offer_id>/action', methods=['POST'])
