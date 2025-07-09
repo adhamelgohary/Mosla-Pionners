@@ -3466,6 +3466,15 @@ html[data-theme="dark"] {
   --tw-ring-color: rgb(254 202 202 / var(--tw-ring-opacity, 1));
 }
 
+.ring-red-500 {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+.ring-red-600\/10 {
+  --tw-ring-color: rgb(220 38 38 / 0.1);
+}
+
 .ring-red-600\/20 {
   --tw-ring-color: rgb(220 38 38 / 0.2);
 }
@@ -4184,8 +4193,16 @@ body {
     padding-bottom: 1.75rem;
   }
 
+  .sm\:pl-0 {
+    padding-left: 0px;
+  }
+
   .sm\:pl-6 {
     padding-left: 1.5rem;
+  }
+
+  .sm\:pr-0 {
+    padding-right: 0px;
   }
 
   .sm\:pr-6 {

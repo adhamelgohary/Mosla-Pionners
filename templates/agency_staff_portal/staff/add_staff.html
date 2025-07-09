@@ -1,0 +1,64 @@
+{# templates/agency_staff_portal/staff/add_staff.html #}
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% macro form_field(label, name, value='', type='text', placeholder='', required=False, error=None) %}
+<div class="sm:col-span-3">
+    <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900">{{ label }}{% if required %}<span class="text-red-500">*</span>{% endif %}</label>
+    <div class="mt-2">
+        <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}
+               class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 {{ 'ring-red-500' if error }}">
+        {% if error %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% block staff_content %}
+<div class="max-w-4xl mx-auto">
+    <form method="POST" action="{{ url_for('employee_mgmt_bp.add_staff') }}" class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+        <div class="space-y-12">
+            <div class="border-b border-gray-900/10 pb-12">
+                <p class="mt-1 text-sm leading-6 text-gray-600">Create a new user account and assign them a staff role.</p>
+                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    {{ form_field('First Name', 'first_name', form_data.get('first_name', ''), required=True, error=errors.get('first_name')) }}
+                    {{ form_field('Last Name', 'last_name', form_data.get('last_name', ''), required=True, error=errors.get('last_name')) }}
+                    
+                    <div class="sm:col-span-4">
+                        {{ form_field('Email Address', 'email', form_data.get('email', ''), type='email', placeholder='user@example.com', required=True, error=errors.get('email')) }}
+                    </div>
+                    <div class="sm:col-span-4">
+                        {{ form_field('Password', 'password', '', type='password', placeholder='Min. 8 characters', required=True, error=errors.get('password')) }}
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        {{ form_field('Phone Number', 'phone_number', form_data.get('phone_number', ''), type='tel', placeholder='+1234567890') }}
+                    </div>
+                     <div class="sm:col-span-3">
+                        {{ form_field('Employee ID', 'employee_id', form_data.get('employee_id', ''), placeholder='Optional ID') }}
+                    </div>
+
+                    <div class="sm:col-span-3">
+                        <label for="role" class="block text-sm font-medium leading-6 text-gray-900">Role<span class="text-red-500">*</span></label>
+                        <div class="mt-2">
+                            <select name="role" id="role" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 {{ 'ring-red-500' if errors.get('role') }}">
+                                <option value="" disabled selected>Select a role...</option>
+                                {% for role in possible_roles %}
+                                <option value="{{ role }}" {% if form_data.get('role') == role %}selected{% endif %}>{{ role }}</option>
+                                {% endfor %}
+                            </select>
+                             {% if errors.get('role') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('role') }}</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-center justify-end gap-x-6">
+            <a href="{{ url_for('.list_all_staff') }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Staff Member</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

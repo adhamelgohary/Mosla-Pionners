@@ -1,13 +1,14 @@
 # routes/Agency_Staff_Portal/employee_mgmt_routes.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
-from flask_login import current_user, login_required
+from flask_login import current_user
 from utils.decorators import login_required_with_role, LEADER_ROLES, EXECUTIVE_ROLES
 from db import get_db_connection
+from werkzeug.security import generate_password_hash
 import mysql.connector
 import random
+import re
 
 # This blueprint is a unified module for top-level staff management.
-# It includes listing all staff, viewing profiles, and all related management actions.
 employee_mgmt_bp = Blueprint('employee_mgmt_bp', __name__,
                                template_folder='../../../templates',
                                url_prefix='/staff-management')
@@ -17,14 +18,12 @@ employee_mgmt_bp = Blueprint('employee_mgmt_bp', __name__,
 def _can_manager_view_profile(manager, profile_to_view_staff_data):
     """Checks if a manager can view/manage another staff profile."""
     if not manager or not hasattr(manager, 'role_type'): return False
-    # Executives can view anyone.
     if manager.role_type in EXECUTIVE_ROLES: return True
 
     manager_staff_id = getattr(manager, 'specific_role_id', None)
     profile_reports_to_staff_id = profile_to_view_staff_data.get('ReportsToStaffID')
     if not manager_staff_id or profile_reports_to_staff_id is None: return False
     
-    # Check for direct report or hierarchy.
     if manager_staff_id == profile_reports_to_staff_id: return True
     
     conn = None
@@ -73,6 +72,15 @@ def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
         if cursor: cursor.close()
         if conn and conn.is_connected(): conn.close()
 
+def check_email_exists_in_db(email, conn):
+    """Checks if an email already exists using an existing connection."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT UserID FROM Users WHERE Email = %s", (email,))
+        return cursor.fetchone() is not None
+    finally:
+        if cursor: cursor.close()
+
 # --- Main Views for Top-Level Management ---
 
 @employee_mgmt_bp.route('/')
@@ -102,10 +110,75 @@ def list_all_staff():
         if conn and conn.is_connected(): 
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
-    return render_template('agency_staff_portal/staff/list_all_staff.html', title="Manage All Staff", staff_list=staff_list)
+    return render_template('agency_staff_portal/staff/list_all_staff.html', 
+                           title="Manage All Staff", 
+                           staff_list=staff_list)
+
+@employee_mgmt_bp.route('/add-staff', methods=['GET', 'POST'])
+@login_required_with_role(EXECUTIVE_ROLES)
+def add_staff():
+    """Provides a form to add a new User and corresponding Staff entry."""
+    errors = {}
+    form_data = request.form if request.method == 'POST' else {}
+    
+    # Fetch roles for the dropdown
+    conn_data = get_db_connection()
+    cursor_data = conn_data.cursor()
+    cursor_data.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
+    enum_str = cursor_data.fetchone()[1]
+    possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
+    cursor_data.close()
+    conn_data.close()
+    
+    if request.method == 'POST':
+        email = form_data.get('email', '').strip()
+        password = form_data.get('password', '')
+        
+        # Validation
+        if not form_data.get('first_name'): errors['first_name'] = 'First name is required.'
+        if not form_data.get('last_name'): errors['last_name'] = 'Last name is required.'
+        if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email): errors['email'] = 'A valid email is required.'
+        if len(password) < 8: errors['password'] = 'Password must be at least 8 characters long.'
+        if not form_data.get('role') in possible_roles: errors['role'] = 'A valid role must be selected.'
+
+        conn = get_db_connection()
+        try:
+            if not errors and check_email_exists_in_db(email, conn):
+                errors['email'] = 'This email is already in use.'
+
+            if not errors:
+                conn.start_transaction()
+                cursor = conn.cursor()
+                hashed_password = generate_password_hash(password)
+                cursor.execute(
+                    "INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 1)",
+                    (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number'))
+                )
+                user_id = cursor.lastrowid
+                cursor.execute(
+                    "INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)",
+                    (user_id, form_data.get('role'), form_data.get('employee_id'))
+                )
+                conn.commit()
+                flash(f"Staff member '{form_data.get('first_name')}' created successfully!", "success")
+                return redirect(url_for('.list_all_staff'))
+        except Exception as e:
+            if conn: conn.rollback()
+            current_app.logger.error(f"Error adding new staff member: {e}", exc_info=True)
+            flash("An error occurred while creating the new staff member.", "danger")
+        finally:
+            if conn and conn.is_connected():
+                if 'cursor' in locals(): cursor.close()
+                conn.close()
+
+    return render_template('agency_staff_portal/staff/add_staff.html', 
+                           title="Add New Staff Member", 
+                           errors=errors, 
+                           form_data=form_data, 
+                           possible_roles=possible_roles)
 
 @employee_mgmt_bp.route('/profile/<int:user_id_viewing>')
-@login_required_with_role(LEADER_ROLES) # Allow any leader to view profiles
+@login_required_with_role(LEADER_ROLES)
 def view_staff_profile(user_id_viewing):
     """Displays the detailed profile page for a specific staff member."""
     conn, user_profile_data = None, None
@@ -113,34 +186,26 @@ def view_staff_profile(user_id_viewing):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("""
-            SELECT u.*, s.* FROM Users u 
-            JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s
-        """, (user_id_viewing,))
+        cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
         user_profile_data = cursor.fetchone()
 
         if not user_profile_data:
             flash("Staff profile not found.", "danger")
             return redirect(url_for('.list_all_staff'))
-
-        # Security check: can the current user view this profile?
+        
         if not _can_manager_view_profile(current_user, user_profile_data):
             flash("You do not have permission to view this profile.", "danger")
             return redirect(url_for('.list_all_staff'))
         
-        # Fetch data for dropdowns (potential leaders)
         leader_roles_tuple = tuple(LEADER_ROLES)
         placeholders = ', '.join(['%s'] * len(leader_roles_tuple))
         cursor.execute(f"SELECT s.StaffID, u.FirstName, u.LastName, s.Role FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role IN ({placeholders}) ORDER BY u.LastName", leader_roles_tuple)
         team_leaders = cursor.fetchall()
         
-        # Fetch data for dropdown (possible roles)
         cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
         enum_str = cursor.fetchone()['Type']
         possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
 
-        # Fetch data for logs and reports
         if user_profile_data.get('StaffID'):
             cursor.execute("SELECT * FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
             points_log = cursor.fetchall()
@@ -161,16 +226,15 @@ def view_staff_profile(user_id_viewing):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
-# --- ACTION ROUTES (Processing Forms from the Profile Page) ---
+# --- ACTION ROUTES ---
 
 @employee_mgmt_bp.route('/profile/<int:staff_id_to_edit>/update-role', methods=['POST'])
 @login_required_with_role(EXECUTIVE_ROLES)
 def update_role(staff_id_to_edit):
-    """Action to update a staff member's role."""
     user_id_redirect = request.form.get('user_id')
     new_role = request.form.get('role')
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_edit))
         conn.commit()
@@ -178,13 +242,12 @@ def update_role(staff_id_to_edit):
     except Exception as e:
         flash(f"Error updating role: {e}", "danger")
     finally:
-        if 'conn' in locals() and conn.is_connected(): conn.close()
+        if conn.is_connected(): conn.close()
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 @employee_mgmt_bp.route('/profile/<int:staff_id_to_edit>/update-leader', methods=['POST'])
 @login_required_with_role(EXECUTIVE_ROLES)
 def update_leader(staff_id_to_edit):
-    """Action to update who a staff member reports to."""
     user_id_redirect = request.form.get('user_id')
     new_leader_staff_id_str = request.form.get('leader_id')
     new_leader_staff_id = int(new_leader_staff_id_str) if new_leader_staff_id_str else None
@@ -193,8 +256,8 @@ def update_leader(staff_id_to_edit):
         flash("Invalid manager assignment: this would create a reporting loop.", "danger")
         return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
     
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("UPDATE Staff SET ReportsToStaffID = %s WHERE StaffID = %s", (new_leader_staff_id, staff_id_to_edit))
         conn.commit()
@@ -202,24 +265,17 @@ def update_leader(staff_id_to_edit):
     except Exception as e:
         flash(f"Error updating manager: {e}", "danger")
     finally:
-        if 'conn' in locals() and conn.is_connected(): conn.close()
+        if conn.is_connected(): conn.close()
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 @employee_mgmt_bp.route('/profile/<int:staff_id_award_points>/add-points', methods=['POST'])
 @login_required_with_role(LEADER_ROLES)
 def add_points(staff_id_award_points):
-    """Action to award or deduct points from a staff member."""
     user_id_redirect = request.form.get('user_id')
+    conn = get_db_connection()
     try:
         points = int(request.form.get('points'))
-        if request.form.get('action_type') == 'deduct':
-            points = -points
-        
-        # Security check: Can current user manage points for this person?
-        # A full check would be needed, but we rely on the decorator for general access
-        # and assume a leader won't act maliciously on another leader's team.
-        
-        conn = get_db_connection()
+        if request.form.get('action_type') == 'deduct': points = -points
         cursor = conn.cursor()
         cursor.execute("INSERT INTO StaffPointsLog (AwardedToStaffID, AwardedByStaffID, PointsAmount, ActivityType, Notes) VALUES (%s, %s, %s, %s, %s)",
                        (staff_id_award_points, current_user.specific_role_id, points, 'ManualAdjustment', request.form.get('reason', '')))
@@ -231,37 +287,32 @@ def add_points(staff_id_award_points):
     except Exception as e:
         flash(f"An error occurred: {e}", "danger")
     finally:
-        if 'conn' in locals() and conn.is_connected(): conn.close()
+        if conn.is_connected(): conn.close()
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 @employee_mgmt_bp.route('/profile/<int:target_staff_id>/generate-referral-code', methods=['POST'])
 @login_required_with_role(LEADER_ROLES)
 def generate_referral_code(target_staff_id):
-    """Action to generate a referral code for a staff member."""
     user_id_redirect = request.form.get('user_id_redirect')
-    conn = None
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT u.FirstName, s.ReferralCode FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (target_staff_id,))
         staff = cursor.fetchone()
-        if not staff:
-             raise Exception("Staff member not found.")
+        if not staff: raise Exception("Staff member not found.")
         if staff.get('ReferralCode'):
             flash("This user already has a referral code.", "info")
             return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
-
         base_name = staff['FirstName'].upper().replace(' ', '')[:5]
         while True:
             new_code = f"{base_name}{random.randint(100, 999)}"
             cursor.execute("SELECT StaffID FROM Staff WHERE ReferralCode = %s", (new_code,))
             if not cursor.fetchone(): break
-        
         cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (new_code, target_staff_id))
         conn.commit()
         flash(f"Referral code '{new_code}' generated successfully.", "success")
     except Exception as e:
         flash(f"Error generating code: {e}", "danger")
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn.is_connected(): conn.close()
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))

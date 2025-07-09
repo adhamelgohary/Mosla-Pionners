@@ -34,6 +34,10 @@
                                 {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
                                     <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.blueprint == 'recruiter_bp' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Recruiter Portal</a>
                                 {% endif %}
+
+                                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
+                                    <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Staff</a>
+                                {% endif %}
                                 
                                 <!-- Management Dropdown for other items -->
                                 <div class="relative" x-on:click.away="managementMenuOpen = false">
