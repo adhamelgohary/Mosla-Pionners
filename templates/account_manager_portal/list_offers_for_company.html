@@ -1,0 +1,90 @@
+{# templates/account_manager_portal/offers/list_offers_for_company.html #}
+{% extends "account_manager_portal/account_manager_base.html" %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div class="sm:flex-auto">
+            <h1 class="text-xl font-semibold text-gray-900">Offers for {{ company.CompanyName }}</h1>
+            <p class="mt-2 text-sm text-gray-700">Manage all job offers associated with this company.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <a href="{{ url_for('.add_offer_for_company', company_id=company.CompanyID) }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                Add New Offer
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="mt-6">
+        <div class="sm:hidden">
+            <label for="tabs" class="sr-only">Select a tab</label>
+            <select id="tabs" name="tabs" class="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500" onchange="window.location.href = this.value;">
+                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='all') }}" {% if current_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='active') }}" {% if current_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='inactive') }}" {% if current_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        <div class="hidden sm:block">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='all') }}" class="{{ 'border-indigo-500 text-indigo-600' if current_filter == 'all' else 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium">All</a>
+                    <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='active') }}" class="{{ 'border-indigo-500 text-indigo-600' if current_filter == 'active' else 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium">Active</a>
+                    <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID, status='inactive') }}" class="{{ 'border-indigo-500 text-indigo-600' if current_filter == 'inactive' else 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium">Inactive</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offers Table -->
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Offer Title</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for offer in offers %}
+                            <tr>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ offer.Title }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                    {% if offer.Status == 'Open' %}
+                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">{{ offer.Status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
+                                    <div class="flex items-center justify-center gap-x-2">
+                                        {% if offer.Status == 'Open' %}
+                                            <form method="POST" action="{{ url_for('.set_offer_status', offer_id=offer.OfferID, action='deactivate') }}"><button type="submit" class="text-yellow-600 hover:text-yellow-900">Deactivate</button></form>
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('.set_offer_status', offer_id=offer.OfferID, action='activate') }}"><button type="submit" class="text-green-600 hover:text-green-900">Activate</button></form>
+                                        {% endif %}
+                                        <span class="text-gray-300">|</span>
+                                        <form method="POST" action="{{ url_for('.delete_offer', offer_id=offer.OfferID) }}" onsubmit="return confirm('Are you sure? This action is permanent.')"><button type="submit" class="text-red-600 hover:text-red-900">Delete</button></form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-10 text-gray-500">No offers match the current filter.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
