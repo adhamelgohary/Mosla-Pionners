@@ -17,76 +17,104 @@
     {% endif %}
     
     <form method="POST" class="bg-white p-6 sm:p-8 rounded-xl shadow-sm border border-gray-200"
-          x-data="{ companyMode: '{{ 'existing' if form_data.get('company_id') or is_editing else 'new' if form_data.get('new_company_name') else 'existing' }}' }">
+          x-data="{ companyMode: '{{ 'existing' if form_data.get('selected_company_id') or company else 'new' if form_data.get('new_company_name') else 'existing' }}' }">
         
-        <!-- Hidden input for edit mode to pass company_id back -->
-        {% if is_editing %}
+        {# Pass company_id back to the server if pre-selected or editing #}
+        {% if company %}
             <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
         {% endif %}
 
         <div class="space-y-12">
-            <!-- Section 1: Core Job Details -->
+            <!-- Section 1: Core Job & Company Details -->
             <div class="border-b border-gray-200 pb-12">
                 <h2 class="text-base font-semibold leading-7 text-gray-900">Core Job Details</h2>
                 
-                {% if not is_editing %}
-                <!-- Company Selection for ADD mode -->
+                {# Company Selection Logic #}
+                {% if not is_editing and not company %}
                 <div class="mt-8 p-4 bg-gray-50 rounded-lg border">
                     <fieldset>
-                        <legend class="text-sm font-semibold text-gray-900">Company</legend>
+                        <legend class="text-sm font-semibold text-gray-900">Company <span class="text-red-500">*</span></legend>
                         <div class="mt-4 flex gap-x-8">
                             <div class="flex items-center gap-x-2"><input id="mode-existing" name="company_selection_mode" type="radio" value="existing" x-model="companyMode" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="mode-existing">Select Existing Company</label></div>
                             <div class="flex items-center gap-x-2"><input id="mode-new" name="company_selection_mode" type="radio" value="new" x-model="companyMode" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="mode-new">Add New Company</label></div>
                         </div>
                     </fieldset>
                     <div class="mt-4">
-                        <div x-show="companyMode === 'existing'" x-transition><select name="company_id" id="company_id" :disabled="companyMode !== 'existing'" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><option disabled selected>-- Select a Company --</option>{% for comp in companies %}<option value="{{ comp.CompanyID }}" {% if form_data.get('company_id')|string == comp.CompanyID|string %}selected{% endif %}>{{ comp.CompanyName }}</option>{% endfor %}</select>{% if errors.company_id %}<p class="mt-2 text-sm text-red-600">{{ errors.company_id }}</p>{% endif %}</div>
-                        <div x-show="companyMode === 'new'" x-cloak x-transition><input type="text" name="new_company_name" id="new_company_name" :disabled="companyMode !== 'new'" value="{{ form_data.get('new_company_name', '') }}" placeholder="Enter new company name..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% if errors.new_company_name %}<p class="mt-2 text-sm text-red-600">{{ errors.new_company_name }}</p>{% endif %}</div>
+                        <div x-show="companyMode === 'existing'" x-transition>
+                            <select name="selected_company_id" id="selected_company_id" :disabled="companyMode !== 'existing'" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="" disabled selected>-- Select a Company --</option>
+                                {% for comp in companies %}
+                                <option value="{{ comp.CompanyID }}" {% if form_data.get('selected_company_id')|string == comp.CompanyID|string %}selected{% endif %}>{{ comp.CompanyName }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.company_id %}<p class="mt-2 text-sm text-red-600">{{ errors.company_id }}</p>{% endif %}
+                        </div>
+                        <div x-show="companyMode === 'new'" x-cloak x-transition>
+                            <input type="text" name="new_company_name" id="new_company_name" :disabled="companyMode !== 'new'" value="{{ form_data.get('new_company_name', '') }}" placeholder="Enter new company name..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            {% if errors.new_company_name %}<p class="mt-2 text-sm text-red-600">{{ errors.new_company_name }}</p>{% endif %}
+                        </div>
                     </div>
                 </div>
                 {% else %}
-                <!-- Display company name for EDIT mode -->
                 <p class="mt-1 text-sm leading-6 text-gray-600">Company: <span class="font-semibold">{{ company.CompanyName }}</span></p>
                 {% endif %}
 
                 <div class="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
                     <div class="sm:col-span-4"><label for="title" class="block text-sm font-medium text-gray-900">Job Title <span class="text-red-500">*</span></label><input type="text" name="title" id="title" value="{{ form_data.get('Title', form_data.get('title', '')) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% if errors.title %}<p class="mt-1 text-xs text-red-500">{{ errors.title }}</p>{% endif %}</div>
-                    <div class="sm:col-span-2"><label for="category_id" class="block text-sm font-medium text-gray-900">Category <span class="text-red-500">*</span></label><select name="category_id" id="category_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><option value="" disabled>Select...</option>{% for cat in categories %}<option value="{{ cat.CategoryID }}" {% if form_data.get('CategoryID')|string == cat.CategoryID|string %}selected{% endif %}>{{ cat.CategoryName }}</option>{% endfor %}</select>{% if errors.category_id %}<p class="mt-1 text-xs text-red-500">{{ errors.category_id }}</p>{% endif %}</div>
+                    <div class="sm:col-span-2"><label for="category_id" class="block text-sm font-medium text-gray-900">Category <span class="text-red-500">*</span></label><select name="category_id" id="category_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"><option value="" disabled selected>Select...</option>{% for cat in categories %}<option value="{{ cat.CategoryID }}" {% if form_data.get('CategoryID')|string == cat.CategoryID|string or form_data.get('category_id')|string == cat.CategoryID|string %}selected{% endif %}>{{ cat.CategoryName }}</option>{% endfor %}</select>{% if errors.category_id %}<p class="mt-1 text-xs text-red-500">{{ errors.category_id }}</p>{% endif %}</div>
                     <div class="sm:col-span-3"><label for="location" class="block text-sm font-medium text-gray-900">Location</label><input type="text" name="location" id="location" value="{{ form_data.get('Location', form_data.get('location', '')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
-                    <div class="sm:col-span-3"><label for="candidates_needed" class="block text-sm font-medium text-gray-900">Candidates Needed</label><input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('CandidatesNeeded', form_data.get('candidates_needed', 1)) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
-                    <div class="sm:col-span-3"><label for="closing_date" class="block text-sm font-medium text-gray-900">Closing Date</label><input type="date" name="closing_date" id="closing_date" value="{{ form_data.get('closing_date', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
+                    <div class="sm:col-span-3"><label for="work_location" class="block text-sm font-medium text-gray-900">Work Location Type</label><select name="work_location" id="work_location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['On-site', 'Remote', 'Hybrid'] %}<option value="{{ opt }}" {% if form_data.get('WorkLocationType', form_data.get('work_location')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-2"><label for="candidates_needed" class="block text-sm font-medium text-gray-900">Candidates Needed</label><input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('CandidatesNeeded', form_data.get('candidates_needed', 1)) }}" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
+                    <div class="sm:col-span-2"><label for="closing_date" class="block text-sm font-medium text-gray-900">Closing Date</label><input type="date" name="closing_date" id="closing_date" value="{{ form_data.get('closing_date', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
+                    <div class="sm:col-span-2"><label for="max_age" class="block text-sm font-medium text-gray-900">Max Age</label><input type="number" name="max_age" id="max_age" value="{{ form_data.get('MaxAge', form_data.get('max_age', '')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
                 </div>
             </div>
 
-            <!-- Section 2: Language & Candidate Requirements -->
+            <!-- Section 2: Candidate Requirements -->
             <div class="border-b border-gray-200 pb-12">
                 <h2 class="text-base font-semibold leading-7 text-gray-900">Candidate Requirements</h2>
                 <div class="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-3"><label for="languages_type" class="block text-sm font-medium text-gray-900">Languages Type</label><select name="languages_type" id="languages_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['Monolingual', 'Bilingual'] %}<option value="{{ opt }}" {% if form_data.get('LanguagesType', form_data.get('languages_type')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
-                    <div class="sm:col-span-3"><label for="required_level" class="block text-sm font-medium text-gray-900">Required Level</label><select name="required_level" id="required_level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for level in ['B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'] %}<option value="{{level}}" {% if form_data.get('RequiredLevel') == level %}selected{% endif %}>{{level}}</option>{% endfor %}</select></div>
-                    <fieldset class="sm:col-span-full"><legend class="text-sm font-medium text-gray-900">Required Languages</legend><div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">{% for lang in ['English', 'Spanish', 'Portuguese', 'German', 'Arabic', 'French'] %}<div class="flex items-center gap-x-2"><input id="lang-{{lang}}" name="required_languages" type="checkbox" value="{{lang}}" {% if lang in form_data.get('required_languages', []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="lang-{{lang}}">{{lang}}</label></div>{% endfor %}</div></fieldset>
-                    <div class="sm:col-span-3"><fieldset><legend class="text-sm font-medium text-gray-900">Nationality</legend><div class="mt-2 flex gap-x-6">{% for val in ['Egyptians Only', 'Foreigners & Egyptians'] %}<div class="flex items-center gap-x-2"><input id="nat-{{loop.index}}" name="nationality" type="radio" value="{{val}}" {% if form_data.get('Nationality') == val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="nat-{{loop.index}}">{{val}}</label></div>{% endfor %}</div></fieldset></div>
+                    <div class="sm:col-span-3"><label for="required_level" class="block text-sm font-medium text-gray-900">Required Level</label><select name="required_level" id="required_level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for level in ['B1', 'B1+', 'B2', 'B2+', 'C1', 'C2', 'Native'] %}<option value="{{level}}" {% if form_data.get('RequiredLevel', form_data.get('required_level')) == level %}selected{% endif %}>{{level}}</option>{% endfor %}</select></div>
+                    <fieldset class="sm:col-span-full"><legend class="text-sm font-medium text-gray-900">Required Languages</legend><div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">{% for lang in ['English', 'Spanish', 'Portuguese', 'German', 'Arabic', 'French', 'Italian'] %}<div class="flex items-center gap-x-2"><input id="lang-{{lang}}" name="required_languages" type="checkbox" value="{{lang}}" {% if lang in form_data.get('required_languages', []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="lang-{{lang}}">{{lang}}</label></div>{% endfor %}</div></fieldset>
+                    <div class="sm:col-span-3"><fieldset><legend class="text-sm font-medium text-gray-900">Nationality</legend><div class="mt-2 flex gap-x-6">{% for val in ['Egyptians Only', 'Foreigners & Egyptians'] %}<div class="flex items-center gap-x-2"><input id="nat-{{loop.index}}" name="nationality" type="radio" value="{{val}}" {% if form_data.get('Nationality', form_data.get('nationality')) == val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="nat-{{loop.index}}">{{val}}</label></div>{% endfor %}</div></fieldset></div>
+                    <div class="sm:col-span-3"><label for="grad_status" class="block text-sm font-medium text-gray-900">Graduation Status</label><select name="grad_status" id="grad_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['Any', 'Graduates Only', 'Undergraduates Only'] %}<option value="{{ opt }}" {% if form_data.get('GraduationStatusRequirement', form_data.get('grad_status')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
                 </div>
             </div>
             
-            <!-- Section 3: Benefits & Conditions -->
+            <!-- Section 3: Salary, Benefits & Conditions -->
             <div class="border-b border-gray-200 pb-12">
-                <h2 class="text-base font-semibold leading-7 text-gray-900">Benefits & Conditions</h2>
+                <h2 class="text-base font-semibold leading-7 text-gray-900">Salary, Benefits & Conditions</h2>
                  <div class="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-3"><label for="net_salary" class="block text-sm font-medium text-gray-900">Net Salary (EGP)</label><input type="number" step="0.01" name="net_salary" id="net_salary" value="{{ form_data.get('NetSalary', form_data.get('net_salary', '')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></div>
+                    <div class="sm:col-span-3"><label for="payment_term" class="block text-sm font-medium text-gray-900">Payment Term</label><select name="payment_term" id="payment_term" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['Monthly', 'Weekly', 'Per-hour'] %}<option value="{{ opt }}" {% if form_data.get('PaymentTerm', form_data.get('payment_term')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
                     <fieldset class="sm:col-span-full"><legend class="text-sm font-semibold leading-6 text-gray-900">Benefits Included</legend><div class="mt-2 grid grid-cols-2 gap-4">{% for benefit in ['Transportation (Door to Door)', 'Transportation (Nearest Point)', 'Medical Insurance', 'Social Insurance', 'Paid Training'] %}<div class="relative flex items-start"><div class="flex h-6 items-center"><input id="benefit-{{loop.index}}" name="benefits_included" type="checkbox" value="{{benefit}}" {% if benefit in form_data.get('benefits_included', []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"></div><div class="ml-3 text-sm leading-6"><label for="benefit-{{loop.index}}" class="font-medium text-gray-900">{{benefit}}</label></div></div>{% endfor %}</div></fieldset>
-                    <div class="sm:col-span-3"><fieldset><legend class="text-sm font-medium text-gray-900">Interview Type</legend><div class="mt-2 flex gap-x-6">{% for val in ['On-site', 'Online'] %}<div class="flex items-center gap-x-2"><input id="iv-{{val}}" name="interview_type" type="radio" value="{{val}}" {% if form_data.get('InterviewType') == val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="iv-{{val}}">{{val}}</label></div>{% endfor %}</div></fieldset></div>
-                </div>
+                    <div class="sm:col-span-3"><fieldset><legend class="text-sm font-medium text-gray-900">Interview Type</legend><div class="mt-2 flex gap-x-6">{% for val in ['On-site', 'Online'] %}<div class="flex items-center gap-x-2"><input id="iv-{{val}}" name="interview_type" type="radio" value="{{val}}" {% if form_data.get('InterviewType', form_data.get('interview_type')) == val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="iv-{{val}}">{{val}}</label></div>{% endfor %}</div></fieldset></div>
+                    <div class="sm:col-span-3"><fieldset><legend class="text-sm font-medium text-gray-900">Has Contract?</legend><div class="mt-2 flex gap-x-6">{% for val, label in [('yes', 'Yes'), ('no', 'No')] %}<div class="flex items-center gap-x-2"><input id="contract-{{val}}" name="has_contract" type="radio" value="{{val}}" {% if form_data.get('HasContract')|string == '1' and val == 'yes' or form_data.get('has_contract') == val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="contract-{{val}}">{{label}}</label></div>{% endfor %}</div></fieldset></div>
+                 </div>
+            </div>
+
+            <!-- Section 4: Hiring & Shift Details -->
+            <div class="border-b border-gray-200 pb-12">
+                <h2 class="text-base font-semibold leading-7 text-gray-900">Hiring & Shift Details</h2>
+                 <div class="mt-8 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-3"><label for="hiring_plan" class="block text-sm font-medium text-gray-900">Hiring Plan</label><select name="hiring_plan" id="hiring_plan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['Immediate', 'Ongoing', 'Future'] %}<option value="{{ opt }}" {% if form_data.get('HiringPlan', form_data.get('hiring_plan')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-3"><label for="hiring_cadence" class="block text-sm font-medium text-gray-900">Hiring Cadence</label><select name="hiring_cadence" id="hiring_cadence" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['As needed', 'Weekly', 'Monthly'] %}<option value="{{ opt }}" {% if form_data.get('HiringCadence', form_data.get('hiring_cadence')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-3"><label for="shift_type" class="block text-sm font-medium text-gray-900">Shift Type</label><select name="shift_type" id="shift_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{% for opt in ['Fixed', 'Rotational'] %}<option value="{{ opt }}" {% if form_data.get('ShiftType', form_data.get('shift_type')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
+                    <fieldset class="sm:col-span-full"><legend class="text-sm font-semibold leading-6 text-gray-900">Available Shifts (if fixed)</legend><div class="mt-2 flex flex-wrap gap-x-6 gap-y-2">{% for shift in ['Morning', 'Afternoon', 'Evening', 'Night'] %}<div class="relative flex items-start"><div class="flex h-6 items-center"><input id="shift-{{shift}}" name="available_shifts" type="checkbox" value="{{shift}}" {% if shift in form_data.get('available_shifts', []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"></div><div class="ml-3 text-sm leading-6"><label for="shift-{{shift}}" class="font-medium text-gray-900">{{shift}}</label></div></div>{% endfor %}</div></fieldset>
+                 </div>
             </div>
 
             <!-- Status (Only shown when editing) -->
             {% if is_editing %}
             <div class="pt-8 border-t border-gray-200">
-                 <div class="sm:col-span-3"><label for="status" class="block text-sm font-medium leading-6 text-gray-900">Offer Status</label><select name="status" id="status" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs">{% for opt in ['Open', 'Closed', 'On Hold'] %}<option value="{{opt}}" {% if form_data.get('Status') == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
+                 <h2 class="text-base font-semibold leading-7 text-gray-900">Administrative</h2>
+                 <div class="mt-6 sm:col-span-3"><label for="status" class="block text-sm font-medium leading-6 text-gray-900">Offer Status</label><select name="status" id="status" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs">{% for opt in ['Open', 'Closed', 'On Hold'] %}<option value="{{opt}}" {% if form_data.get('Status', form_data.get('status')) == opt %}selected{% endif %}>{{opt}}</option>{% endfor %}</select></div>
             </div>
             {% endif %}
         </div>
 
-        <div class="mt-6 flex items-center justify-end gap-x-6">
+        <div class="mt-12 flex items-center justify-end gap-x-6">
             {% if is_editing %}
                 <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID) }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
             {% else %}

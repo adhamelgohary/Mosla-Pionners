@@ -10,7 +10,7 @@
                 <!-- Job Header -->
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 pb-6 mb-6 border-b border-border">
                     {% if offer.CompanyLogoURL %}
-                        <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl bg-white p-1 flex-shrink-0">
+                        <img src="{{ url_for('static', filename=offer.CompanyLogoURL) }}" alt="{{ offer.CompanyName }} Logo" class="w-16 h-16 sm:w-20 sm:h-20 object-contain rounded-xl bg-white p-1 flex-shrink-0 border border-border">
                     {% endif %}
                     <div>
                         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-heading">{{ offer.Title }}</h1>
@@ -18,46 +18,60 @@
                     </div>
                 </div>
 
-                <!-- Job Meta Details Grid with NEW Icons -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6 mb-8">
-                    {% if offer.Location %}
-                        <div class="flex items-center gap-3 text-sm text-text-muted">
-                            <svg class="w-5 h-5 text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.14c.186-.1.4-.27.6-.5s.4-.5.5-.868c.1.368.1.9.1 1.469V10.5a3 3 0 00-3-3V3.375C5.25 3.375 3 5.625 3 8.375v1.369a5.741 5.741 0 00.281.14c.186.1.4.27.6.5s.4.5.5.868c.1.368.1.9.1-1.469V8.375a3 3 0 013-3v3.125A2.982 2.982 0 0115 10.5v2.639c0 .57-.005 1.102-.1 1.469-.1.368-.205.668-.5.868-.2.2-.415.399-.6.5a5.741 5.741 0 00-.281.14l-.018.008-.006.003zM10 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clip-rule="evenodd"></path></svg>
-                            <span>{{ offer.Location }}</span>
-                        </div>
-                    {% endif %}
-                    {% if offer.JobType %}
-                        <div class="flex items-center gap-3 text-sm text-text-muted">
-                            <svg class="w-5 h-5 text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg>
-                            <span>{{ offer.JobType }}</span>
-                        </div>
-                    {% endif %}
-                    {% if offer.NetSalary %}
-                        <div class="flex items-center gap-3 text-sm text-text-muted">
-                            <svg class="w-5 h-5 text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15H4.25A2.25 2.25 0 012 12.75v-8.5zm1.5 0a.75.75 0 01.75-.75h11.5a.75.75 0 01.75.75v8.5a.75.75 0 01-.75.75H4.25a.75.75 0 01-.75-.75v-8.5z" /><path d="M10 6a.75.75 0 100 1.5.75.75 0 000-1.5zM3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10zM8.25 10a1.75 1.75 0 113.5 0 1.75 1.75 0 01-3.5 0z" /></svg>
-                            <span>{{ offer.NetSalary }} {{ offer.Currency }}</span>
-                        </div>
-                    {% endif %}
-                    {% if offer.CategoryName %}
-                        <div class="flex items-center gap-3 text-sm text-text-muted">
-                            <svg class="w-5 h-5 text-primary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.5 3A2.5 2.5 0 003 5.5v2.879a2.5 2.5 0 00.732 1.767l6.5 6.5a2.5 2.5 0 003.536 0l2.878-2.878a2.5 2.5 0 000-3.536l-6.5-6.5A2.5 2.5 0 008.38 3H5.5zM6 7a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /></svg>
-                            <span>{{ offer.CategoryName }}</span>
-                        </div>
-                    {% endif %}
+                <!-- Job Meta Details Grid -->
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-6 mb-8 text-sm">
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg> <span class="text-text-muted">{{ offer.Location }}</span></div>
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" /></svg> <span class="text-text-muted">{{ offer.WorkLocationType }}</span></div>
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.826-1.106-2.255 0-3.081a2.5 2.5 0 014.242 0l.879.659" /></svg> <span class="text-text-muted">{{ 'Up to ' ~ offer.NetSalary|int if offer.NetSalary else 'Not Disclosed' }} EGP / {{ offer.PaymentTerm }}</span></div>
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" /></svg> <span class="text-text-muted">{{ offer.CategoryName }}</span></div>
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg> <span class="text-text-muted">{{ offer.RequiredLevel }} English</span></div>
+                    <div class="flex items-center gap-3"><svg class="w-5 h-5 text-primary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> <span class="text-text-muted">{{ offer.InterviewType }} Interview</span></div>
                 </div>
 
-                <div class="prose prose-lg max-w-none dark:prose-invert">
-                    {% if offer.Description %}<h3>Job Description</h3>{{ offer.Description|safe }}{% endif %}
-                    {% if offer.Requirements %}<h3>Requirements</h3>{{ offer.Requirements|safe }}{% endif %}
-                    {% if offer.Benefits_list %}<h3>Benefits</h3><ul>{% for benefit in offer.Benefits_list %}<li>{{ benefit }}</li>{% endfor %}</ul>{% endif %}
-                    {% if offer.CompanyDescription %}<h3>About {{ offer.CompanyName }}</h3>{{ offer.CompanyDescription|safe }}{% endif %}
+                <div class="prose prose-lg max-w-none dark:prose-invert prose-headings:text-heading prose-a:text-primary prose-strong:text-text">
+                    
+                    <!-- Key Qualifications -->
+                    <h3>Key Qualifications</h3>
+                    <ul>
+                        <li><strong>Language Proficiency:</strong> {{ offer.LanguagesType }} candidate with a required level of <strong>{{ offer.RequiredLevel }}</strong>. Languages: {{ offer.RequiredLanguages_list|join(', ') if offer.RequiredLanguages_list else 'Not Specified' }}.</li>
+                        <li><strong>Graduation Status:</strong> {{ offer.GraduationStatusRequirement }}.</li>
+                        <li><strong>Nationality:</strong> Open to {{ offer.Nationality }}.</li>
+                        {% if offer.MaxAge %}<li><strong>Age Requirement:</strong> Maximum age of {{ offer.MaxAge }} years.</li>{% endif %}
+                    </ul>
+
+                    <!-- Offer Conditions & Shifts -->
+                    <h3>Offer Conditions</h3>
+                    <ul>
+                        <li><strong>Contract:</strong> This position {% if offer.HasContract %}<strong>includes a formal contract</strong>{% else %}does not include a formal contract{% endif %}.</li>
+                        <li><strong>Shift Type:</strong> {{ offer.ShiftType }} shifts.
+                        {% if offer.ShiftType == 'Fixed' and offer.AvailableShifts_list %}
+                            (Available shifts: {{ offer.AvailableShifts_list|join(', ') }})
+                        {% endif %}
+                        </li>
+                    </ul>
+
+                    <!-- Benefits -->
+                    {% if offer.BenefitsIncluded_list %}
+                        <h3>Benefits & Perks</h3>
+                        <ul>
+                            {% for benefit in offer.BenefitsIncluded_list %}
+                                <li>{{ benefit }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <!-- About Company -->
+                    {% if offer.CompanyDescription %}
+                        <h3>About {{ offer.CompanyName }}</h3>
+                        <p>{{ offer.CompanyDescription|safe }}</p>
+                    {% endif %}
                 </div>
                 
                 <div class="mt-10 text-center">
                     <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="text-sm font-semibold text-primary hover:text-primary-darker">← Back to All Job Offers</a>
                 </div>
             {% else %}
-                <div class="text-center py-10">
+                 <div class="text-center py-10">
                     <h2 class="text-xl font-bold text-heading">Job Offer Not Found</h2>
                     <p class="mt-2 text-text-muted">This offer may no longer be available.</p>
                     <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">← View Other Job Offers</a>
@@ -67,7 +81,7 @@
     </main>
 </div>
 
-<!-- Sticky Apply Bar with NEW Styling -->
+<!-- Sticky Apply Bar -->
 <div class="fixed bottom-0 left-0 w-full bg-gray-900/90 backdrop-blur-lg border-t border-white/10 shadow-2xl z-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
@@ -87,12 +101,11 @@
 </div>
 {% endblock %}
 
-
 {% block page_scripts %}
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const stickyBar = document.querySelector('.sticky-apply-bar');
+        const stickyBar = document.querySelector('.fixed.bottom-0');
         const mainContent = document.querySelector('main');
         function updateContentPadding() {
             if (stickyBar && mainContent) {

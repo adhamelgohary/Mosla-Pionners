@@ -1885,6 +1885,10 @@ html[data-theme="dark"] {
   display: inline-block;
 }
 
+.inline {
+  display: inline;
+}
+
 .flex {
   display: flex;
 }
@@ -2593,10 +2597,6 @@ html[data-theme="dark"] {
 .bg-amber-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
-}
-
-.bg-background {
-  background-color: var(--background-color);
 }
 
 .bg-blue-100 {
@@ -3345,11 +3345,6 @@ html[data-theme="dark"] {
   color: transparent;
 }
 
-.text-warning-600 {
-  --tw-text-opacity: 1;
-  color: rgb(217 119 6 / var(--tw-text-opacity, 1));
-}
-
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
@@ -3460,11 +3455,6 @@ html[data-theme="dark"] {
 
 .ring-blue-600\/20 {
   --tw-ring-color: rgb(37 99 235 / 0.2);
-}
-
-.ring-danger-500 {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
 }
 
 .ring-gray-300 {
@@ -4049,6 +4039,19 @@ body {
   opacity: 1;
 }
 
+.prose-headings\:text-heading :is(:where(h1, h2, h3, h4, h5, h6, th):not(:where([class~="not-prose"],[class~="not-prose"] *))) {
+  color: var(--heading-color);
+}
+
+.prose-a\:text-primary :is(:where(a):not(:where([class~="not-prose"],[class~="not-prose"] *))) {
+  --tw-text-opacity: 1;
+  color: rgb(var(--primary-color-rgb) / var(--tw-text-opacity, 1));
+}
+
+.prose-strong\:text-text :is(:where(strong):not(:where([class~="not-prose"],[class~="not-prose"] *))) {
+  color: var(--text-color);
+}
+
 @media (min-width: 640px) {
   .sm\:col-span-1 {
     grid-column: span 1 / span 1;
@@ -4539,11 +4542,6 @@ body {
   color: rgb(252 165 165 / var(--tw-text-opacity, 1));
 }
 
-.dark\:text-danger-400:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
-}
-
 .dark\:text-gray-100:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(243 244 246 / var(--tw-text-opacity, 1));
@@ -4607,16 +4605,6 @@ body {
 .dark\:text-slate-900:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
-}
-
-.dark\:text-success-400:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(74 222 128 / var(--tw-text-opacity, 1));
-}
-
-.dark\:text-warning-400:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(251 191 36 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-white:where([data-theme="dark"], [data-theme="dark"] *) {
