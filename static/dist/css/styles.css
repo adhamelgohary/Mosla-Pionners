@@ -2653,11 +2653,6 @@ html[data-theme="dark"] {
   background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
 }
 
-.bg-gray-900 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
-}
-
 .bg-gray-900\/90 {
   background-color: rgb(17 24 39 / 0.9);
 }
@@ -3784,11 +3779,6 @@ body {
   background-color: rgb(249 250 251 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-gray-700:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(55 65 81 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-green-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(21 128 61 / var(--tw-bg-opacity, 1));
@@ -4426,17 +4416,8 @@ body {
   border-color: rgb(55 65 81 / var(--tw-divide-opacity, 1));
 }
 
-.dark\:border-b:where([data-theme="dark"], [data-theme="dark"] *) {
-  border-bottom-width: 1px;
-}
-
 .dark\:border-t:where([data-theme="dark"], [data-theme="dark"] *) {
   border-top-width: 1px;
-}
-
-.dark\:border-blue-600:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-border-opacity: 1;
-  border-color: rgb(37 99 235 / var(--tw-border-opacity, 1));
 }
 
 .dark\:border-gray-200\/10:where([data-theme="dark"], [data-theme="dark"] *) {
@@ -4468,17 +4449,8 @@ body {
   border-color: rgb(51 65 85 / var(--tw-border-opacity, 1));
 }
 
-.dark\:border-yellow-600:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-border-opacity: 1;
-  border-color: rgb(202 138 4 / var(--tw-border-opacity, 1));
-}
-
 .dark\:bg-blue-500\/20:where([data-theme="dark"], [data-theme="dark"] *) {
   background-color: rgb(59 130 246 / 0.2);
-}
-
-.dark\:bg-blue-900\/20:where([data-theme="dark"], [data-theme="dark"] *) {
-  background-color: rgb(30 58 138 / 0.2);
 }
 
 .dark\:bg-blue-900\/50:where([data-theme="dark"], [data-theme="dark"] *) {
@@ -4546,10 +4518,6 @@ body {
 .dark\:bg-slate-900:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-bg-opacity: 1;
   background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
-}
-
-.dark\:bg-yellow-900\/20:where([data-theme="dark"], [data-theme="dark"] *) {
-  background-color: rgb(113 63 18 / 0.2);
 }
 
 .dark\:text-blue-300:where([data-theme="dark"], [data-theme="dark"] *) {
@@ -4650,11 +4618,6 @@ body {
 .dark\:text-white:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-
-.dark\:text-yellow-300:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(253 224 71 / var(--tw-text-opacity, 1));
 }
 
 .dark\:placeholder-gray-400:where([data-theme="dark"], [data-theme="dark"] *)::-moz-placeholder {
