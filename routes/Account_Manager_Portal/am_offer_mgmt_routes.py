@@ -41,7 +41,7 @@ def list_companies_for_offers():
             cursor.close()
             conn.close()
 
-    return render_template('account_manager_portal/offers/list_companies.html',
+    return render_template('account_manager_portal/list_companies.html',
                            title="Job Offer Management",
                            companies=companies_with_counts)
 
@@ -91,7 +91,7 @@ def list_offers_for_company(company_id):
             cursor.close()
             conn.close()
 
-    return render_template('account_manager_portal/offers/list_offers_for_company.html',
+    return render_template('account_manager_portal/list_offers_for_company.html',
                            title=f"Offers for {company['CompanyName']}",
                            company=company,
                            offers=offers,
@@ -135,7 +135,7 @@ def add_offer_for_company(company_id):
             flash("New job offer created successfully.", "success")
             # --- THIS IS THE UPDATED REDIRECT ---
             return redirect(url_for('.list_offers_for_company', company_id=company_id))
-    return render_template('account_manager_portal/offers/add_edit_offer.html',
+    return render_template('account_manager_portal/add_edit_offer.html',
                            title=f"Add Offer for {company['CompanyName']}",
                            form_data=form_data, errors=errors, company=company,
                            categories=categories, action_verb="Create")
