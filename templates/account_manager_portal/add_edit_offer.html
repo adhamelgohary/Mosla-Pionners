@@ -5,62 +5,80 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <a href="{{ url_for('.list_companies_for_offers') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700 mb-4 inline-block">
-        ← Back to Offer Management
+    <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID) }}" class="text-sm font-medium text-gray-500 hover:text-gray-700 mb-4 inline-block">
+        ← Back to Offers for {{ company.CompanyName }}
     </a>
     <form method="POST" class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-        <div class="space-y-8">
-            <div class="border-b border-gray-900/10 pb-8">
-                <h2 class="text-base font-semibold leading-7 text-gray-900">Job Offer Details</h2>
-                <p class="mt-1 text-sm leading-6 text-gray-600">Provide the essential details for this new job posting.</p>
+        <div class="space-y-12">
+            <!-- Section 1: Core Job Details -->
+            <div class="border-b border-gray-200 pb-12">
+                <h2 class="text-base font-semibold leading-7 text-gray-900">Core Job Details</h2>
+                <p class="mt-1 text-sm leading-6 text-gray-600">Company: <span class="font-semibold">{{ company.CompanyName }}</span></p>
 
                 <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-4">
-                        <label class="block text-sm font-medium leading-6 text-gray-900">Company</label>
-                        <p class="mt-2 text-sm font-semibold text-gray-700">{{ company.CompanyName }}</p>
-                    </div>
-
-                    <div class="sm:col-span-4">
                         <label for="title" class="block text-sm font-medium leading-6 text-gray-900">Job Title <span class="text-red-500">*</span></label>
-                        <div class="mt-2">
-                            <input type="text" name="title" id="title" value="{{ form_data.get('title', '') }}" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            {% if errors.title %}<p class="mt-2 text-sm text-red-600">{{ errors.title }}</p>{% endif %}
-                        </div>
+                        <input type="text" name="title" id="title" value="{{ form_data.get('Title', '') }}" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                     </div>
-
                     <div class="sm:col-span-2">
-                        <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Location</label>
-                        <div class="mt-2">
-                            <input type="text" name="location" id="location" value="{{ form_data.get('location', '') }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                        </div>
-                    </div>
-
-                    <div class="sm:col-span-3">
                         <label for="category_id" class="block text-sm font-medium leading-6 text-gray-900">Category <span class="text-red-500">*</span></label>
-                        <div class="mt-2">
-                            <select id="category_id" name="category_id" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                                <option value="" disabled selected>Select a category...</option>
-                                {% for cat in categories %}
-                                <option value="{{ cat.CategoryID }}" {% if form_data.get('category_id')|int == cat.CategoryID %}selected{% endif %}>{{ cat.CategoryName }}</option>
-                                {% endfor %}
-                            </select>
-                            {% if errors.category_id %}<p class="mt-2 text-sm text-red-600">{{ errors.category_id }}</p>{% endif %}
-                        </div>
+                        <select name="category_id" id="category_id" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                            <option disabled {% if not form_data.get('CategoryID') %}selected{% endif %}>Select...</option>
+                            {% for cat in categories %}<option value="{{ cat.CategoryID }}" {% if form_data.get('CategoryID')|int == cat.CategoryID %}selected{% endif %}>{{ cat.CategoryName }}</option>{% endfor %}
+                        </select>
                     </div>
-
                     <div class="sm:col-span-3">
-                        <label for="net_salary" class="block text-sm font-medium leading-6 text-gray-900">Net Salary (Optional)</label>
-                        <div class="mt-2">
-                            <input type="number" name="net_salary" id="net_salary" step="0.01" value="{{ form_data.get('net_salary', '') }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
-                            {% if errors.salary %}<p class="mt-2 text-sm text-red-600">{{ errors.salary }}</p>{% endif %}
-                        </div>
+                        <label for="location" class="block text-sm font-medium leading-6 text-gray-900">Location</label>
+                        <input type="text" name="location" id="location" value="{{ form_data.get('Location', '') }}" placeholder="e.g., Cairo, Egypt" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
                     </div>
+                    <div class="sm:col-span-3">
+                        <label for="candidates_needed" class="block text-sm font-medium leading-6 text-gray-900">Candidates Needed</label>
+                        <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('CandidatesNeeded', 1) }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                    </div>
+                     <div class="sm:col-span-3">
+                        <label for="closing_date" class="block text-sm font-medium leading-6 text-gray-900">Closing Date</label>
+                        <input type="date" name="closing_date" id="closing_date" value="{{ form_data.get('closing_date', '') }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Candidate Requirements -->
+            <div class="border-b border-gray-200 pb-12">
+                <h2 class="text-base font-semibold leading-7 text-gray-900">Candidate Requirements</h2>
+                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-2"><label for="max_age" class="block text-sm font-medium leading-6 text-gray-900">Maximum Age</label><input type="number" name="max_age" id="max_age" value="{{ form_data.get('MaxAge', '') }}" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"></div>
+                    <div class="sm:col-span-2"><label for="grad_status" class="block text-sm font-medium leading-6 text-gray-900">Graduation</label><select id="grad_status" name="grad_status" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{% for opt in ['grad','ungrad','dropout','gap_year'] %}<option value="{{ opt }}" {% if form_data.get('GraduationStatusRequirement') == opt %}selected{% endif %}>{{ opt|replace('_',' ')|title }}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-2"><label for="nationality_req" class="block text-sm font-medium leading-6 text-gray-900">Nationality</label><select id="nationality_req" name="nationality_req" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{% for opt in ['any','egyptian','foreigner'] %}<option value="{{ opt }}" {% if form_data.get('NationalityRequirement') == opt %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-3"><label for="req_lang" class="block text-sm font-medium leading-6 text-gray-900">Language</label><select id="req_lang" name="req_lang" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{% for opt in ['english','german','arabic','french','spanish','other'] %}<option value="{{ opt }}" {% if form_data.get('RequiredLanguage') == opt %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}</select></div>
+                    <div class="sm:col-span-3"><label for="eng_level" class="block text-sm font-medium leading-6 text-gray-900">English Level</label><select id="eng_level" name="eng_level" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{% for opt in ['b1','b1+','b2','b2+','c1','c2'] %}<option value="{{ opt }}" {% if form_data.get('EnglishLevelRequirement') == opt %}selected{% endif %}>{{ opt|upper }}</option>{% endfor %}</select></div>
+                </div>
+            </div>
+
+            <!-- Section 3: Salary & Work Conditions -->
+            <div class="border-b border-gray-200 pb-12">
+                 <h2 class="text-base font-semibold leading-7 text-gray-900">Salary & Work Conditions</h2>
+                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-3"><label for="net_salary" class="block text-sm font-medium leading-6 text-gray-900">Net Salary</label><input type="number" name="net_salary" id="net_salary" step="0.01" value="{{ form_data.get('NetSalary', '') }}" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"></div>
+                    <div class="sm:col-span-3"><label for="payment_term" class="block text-sm font-medium leading-6 text-gray-900">Payment Term</label><input type="text" name="payment_term" id="payment_term" value="{{ form_data.get('PaymentTerm', '') }}" placeholder="e.g., Monthly" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"></div>
+                    <div class="sm:col-span-3"><label class="text-sm font-semibold leading-6 text-gray-900">Hiring Plan</label><div class="mt-4 flex gap-x-6">{% for val, txt in [('long-term','Long-Term'),('short-term','Short-Term')] %}<div class="flex items-center gap-x-2"><input id="hp-{{val}}" name="hiring_plan" type="radio" value="{{val}}" {% if form_data.get('HiringPlan')==val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="hp-{{val}}" class="block text-sm font-medium text-gray-900">{{txt}}</label></div>{% endfor %}</div></div>
+                    <div class="sm:col-span-3"><label class="text-sm font-semibold leading-6 text-gray-900">Work Location</label><div class="mt-4 flex gap-x-6">{% for val, txt in [('site','On-Site'),('wfh','Work from Home')] %}<div class="flex items-center gap-x-2"><input id="wl-{{val}}" name="work_location" type="radio" value="{{val}}" {% if form_data.get('WorkLocationType')==val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="wl-{{val}}" class="block text-sm font-medium text-gray-900">{{txt}}</label></div>{% endfor %}</div></div>
+                    <div class="sm:col-span-full"><label class="text-sm font-semibold leading-6 text-gray-900">Shift Type & Available Shifts</label><div class="mt-4 flex gap-x-10">{% for val, txt in [('fixed','Fixed'),('rotational','Rotational')] %}<div class="flex items-center gap-x-2"><input id="st-{{val}}" name="shift_type" type="radio" value="{{val}}" {% if form_data.get('ShiftType')==val %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="st-{{val}}" class="block text-sm font-medium text-gray-900">{{txt}}</label></div>{% endfor %}</div><div class="mt-4 flex gap-x-6">{% for opt in ['morning','night','overnight'] %}<div class="relative flex gap-x-2"><div class="flex h-6 items-center"><input id="shift-{{opt}}" name="available_shifts" type="checkbox" value="{{opt}}" {% if opt in form_data.get('available_shifts',[]) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"></div><label for="shift-{{opt}}" class="font-medium text-gray-900 text-sm">{{opt|title}}</label></div>{% endfor %}</div></div>
+                </div>
+            </div>
+
+            <!-- Section 4: Benefits & Logistics -->
+            <div>
+                <h2 class="text-base font-semibold leading-7 text-gray-900">Benefits & Logistics</h2>
+                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                    <div class="sm:col-span-full"><label class="text-sm font-semibold leading-6 text-gray-900">Benefits</label><div class="mt-4 flex gap-x-6">{% for opt in ['paid_training','social_insurance','medical_insurance'] %}<div class="relative flex gap-x-2"><div class="flex h-6 items-center"><input id="ben-{{opt}}" name="benefits" type="checkbox" value="{{opt}}" {% if opt in form_data.get('benefits',[]) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"></div><label for="ben-{{opt}}" class="font-medium text-gray-900 text-sm">{{opt|replace('_',' ')|title}}</label></div>{% endfor %}</div></div>
+                    <div class="sm:col-span-3"><label class="text-sm font-semibold leading-6 text-gray-900">Transportation</label><div class="mt-4 flex gap-x-6">{% for val, txt in [('yes','Yes'),('no','No')] %}<div class="flex items-center gap-x-2"><input id="tp-{{val}}" name="transportation" type="radio" value="{{val}}" {% if (form_data.get('IsTransportationProvided') and val=='yes') or (not form_data.get('IsTransportationProvided') and val=='no') %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"><label for="tp-{{val}}" class="block text-sm font-medium text-gray-900">{{txt}}</label></div>{% endfor %}</div></div>
+                    <div class="sm:col-span-3"><label for="transport_type" class="block text-sm font-medium leading-6 text-gray-900">Transport Type</label><select id="transport_type" name="transport_type" class="mt-2 block w-full rounded-md border-0 py-1.5 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm">{% for opt in ['d2d','pickup'] %}<option value="{{opt}}" {% if form_data.get('TransportationType')==opt %}selected{% endif %}>{{opt|upper}}</option>{% endfor %}</select></div>
                 </div>
             </div>
         </div>
 
         <div class="mt-6 flex items-center justify-end gap-x-6">
-            <a href="{{ url_for('.list_companies_for_offers') }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
+            <a href="{{ url_for('.list_offers_for_company', company_id=company.CompanyID) }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">{{ action_verb }} Offer</button>
         </div>
     </form>
