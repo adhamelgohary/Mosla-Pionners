@@ -1,0 +1,42 @@
+{# templates/account_manager_portal/offers/list_company_offers.html #}
+{% extends "account_manager_portal/account_manager_base.html" %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-xl font-semibold text-gray-900">Companies & Offers</h1>
+            <p class="mt-2 text-sm text-gray-700">Select a company to add a new job offer.</p>
+        </div>
+    </div>
+
+    <div class="mt-8 space-y-6">
+        {% for company in companies_data %}
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-xl">
+                <div class="p-4 sm:p-6 flex justify-between items-center">
+                    <h3 class="text-lg font-medium text-gray-900">{{ company.CompanyName }}</h3>
+                    <a href="{{ url_for('am_offer_mgmt_bp.add_offer_for_company', company_id=company.CompanyID) }}" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                        Add Offer
+                    </a>
+                </div>
+                {% if company.offers %}
+                <div class="border-t border-gray-200">
+                    <ul class="divide-y divide-gray-200">
+                        {% for offer in company.offers %}
+                        <li class="p-4 sm:p-6 flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-800">{{ offer.Title }}</span>
+                            <span class="text-xs font-semibold px-2 py-1 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">{{ offer.Status }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <p class="text-center text-gray-500">No companies found.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

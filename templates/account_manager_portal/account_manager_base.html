@@ -47,7 +47,18 @@
                                     Detailed Portfolio
                                 </a>
                                 
-                                {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder', 'OperationsManager'] %}
+                                {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager'] %}
+
+                                <a href="{{ url_for('am_offer_mgmt_bp.list_company_offers') }}" 
+                                class="px-3 py-2 rounded-md text-sm font-medium 
+                                        {% if request.blueprint == 'am_offer_mgmt_bp' %}
+                                            bg-slate-900 text-white
+                                        {% else %}
+                                            text-gray-300 hover:bg-slate-700 hover:text-white
+                                        {% endif %}">
+                                    Offer Management
+                                </a>
+ 
 
                                 {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
                                 <a href="{{ url_for('account_manager_bp.my_staff') }}" class="{{ 'bg-gray-900 text-white' if request.endpoint == 'account_manager_bp.my_staff' else 'text-gray-300 hover:bg-gray-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">

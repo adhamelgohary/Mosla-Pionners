@@ -2956,6 +2956,10 @@ html[data-theme="dark"] {
   padding-bottom: 1.5rem;
 }
 
+.pb-8 {
+  padding-bottom: 2rem;
+}
+
 .pl-10 {
   padding-left: 2.5rem;
 }
@@ -3443,6 +3447,10 @@ html[data-theme="dark"] {
 
 .ring-gray-500\/10 {
   --tw-ring-color: rgb(107 114 128 / 0.1);
+}
+
+.ring-gray-900\/5 {
+  --tw-ring-color: rgb(17 24 39 / 0.05);
 }
 
 .ring-green-600\/20 {
