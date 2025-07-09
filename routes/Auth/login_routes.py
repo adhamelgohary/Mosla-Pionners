@@ -11,28 +11,34 @@ from urllib.parse import urlparse, urljoin
 login_bp = Blueprint('login_bp', __name__, template_folder='../../templates/auth')
 login_manager = LoginManager()
 
-# --- UPDATED ROLE CONSTANTS ---
+# --- RESTRUCTURED & CENTRALIZED ROLE CONSTANTS ---
 
-# NEW: Defines roles for redirection to the new Recruiter & Team portal.
-RECRUITER_PORTAL_ROLES = [
-    'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager'
-]
+# These roles have their own dedicated portal.
+RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead']
+ACCOUNT_MANAGER_ROLES = ['AccountManager', 'SeniorAccountManager']
 
-# Defines Account Manager roles for redirection to the dedicated AM portal.
-ACCOUNT_MANAGER_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
+# These are leader roles who might access multiple portals but their HOME dashboard is the main one.
+# They are supervisors of the roles above.
+LEADER_ROLES = ['HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager']
 
-# This list defines general staff roles who use the main staff dashboard.
-# It now EXCLUDES roles that have their own dedicated portals.
-# Executives like CEO/OM are included here as they use the main dashboard.
-AGENCY_STAFF_ROLES = [
-    'OperationsManager', 'CEO', 'SalesManager', 'Admin', 'Founder'
-]
+# These are top-level executives whose HOME is the main staff dashboard.
+EXECUTIVE_ROLES = ['OperationsManager', 'CEO', 'Founder']
 
-# Defines Client roles for redirection to the client portal.
+# Other staff who use the main staff dashboard.
+OTHER_STAFF_ROLES = ['SalesManager', 'Admin']
+
+# Client roles for redirection to the client portal.
 CLIENT_ROLES = ['ClientContact']
+
+# A comprehensive list of ALL internal staff for permission checks elsewhere.
+AGENCY_STAFF_ROLES_ALL = (
+    RECRUITER_PORTAL_ROLES + ACCOUNT_MANAGER_ROLES + 
+    LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES
+)
 
 
 class LoginUser(UserMixin):
+    # ... (this class does not need any changes) ...
     def __init__(self, user_id, email, first_name, last_name, is_active_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
         self.id = int(user_id)
         self.email = email
@@ -53,6 +59,8 @@ class LoginUser(UserMixin):
         if self.password_hash is None: return False
         return check_password_hash(self.password_hash, password_to_check)
 
+
+# ... (The helper functions like determine_user_identity, get_user_by_id, etc., do not need changes) ...
 def determine_user_identity(user_id, db_connection):
     cursor = db_connection.cursor(dictionary=True)
     identity = {'role': "Unknown", 'id': None, 'company_id': None, 'reports_to_id': None}
@@ -150,21 +158,22 @@ def is_safe_url(target):
     is_valid_path_format = target.startswith('/') or (not urlparse(target).scheme and not urlparse(target).netloc) or target.startswith(request.host_url)
     return is_same_site and is_valid_path_format
 
+
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # --- UPDATED REDIRECTION LOGIC for already logged-in users ---
-        if current_user.role_type in RECRUITER_PORTAL_ROLES:
+        # --- NEW REDIRECTION LOGIC ---
+        role = current_user.role_type
+        if role in RECRUITER_PORTAL_ROLES:
             return redirect(url_for('recruiter_bp.dashboard'))
-        elif current_user.role_type in ACCOUNT_MANAGER_ROLES:
+        elif role in ACCOUNT_MANAGER_ROLES:
             return redirect(url_for('account_manager_bp.portal_home'))
-        elif current_user.role_type in AGENCY_STAFF_ROLES:
+        elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES): # Any other staff
             return redirect(url_for('staff_dashboard_bp.main_dashboard'))
-        elif current_user.role_type in CLIENT_ROLES:
+        elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
-        elif current_user.role_type == 'Candidate':
+        elif role == 'Candidate':
             return redirect(url_for('candidate_bp.dashboard'))
-        
         return redirect(url_for('public_routes_bp.home_page'))
 
     errors, form_data = {}, {}
@@ -201,31 +210,28 @@ def login():
                     if next_page_from_url and is_safe_url(next_page_from_url):
                         return redirect(next_page_from_url)
 
-                    # --- UPDATED REDIRECTION LOGIC ON SUCCESSFUL LOGIN ---
-                    # The order is important: check for specific portals first.
-                    if user_obj.role_type in RECRUITER_PORTAL_ROLES:
-                        current_app.logger.info(f"Recruiter/Leader {user_obj.email} redirecting to Recruiter Portal.")
+                    # --- NEW, UNAMBIGUOUS REDIRECTION LOGIC ---
+                    role = user_obj.role_type
+                    if role in RECRUITER_PORTAL_ROLES:
                         return redirect(url_for('recruiter_bp.dashboard'))
-
-                    elif user_obj.role_type in ACCOUNT_MANAGER_ROLES:
-                        current_app.logger.info(f"Account Manager {user_obj.email} redirecting to AM Portal.")
+                    
+                    elif role in ACCOUNT_MANAGER_ROLES:
                         return redirect(url_for('account_manager_bp.portal_home'))
 
-                    elif user_obj.role_type in AGENCY_STAFF_ROLES:
-                        current_app.logger.info(f"Agency Staff {user_obj.email} redirecting to Main Staff Dashboard.")
+                    elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
                         return redirect(url_for('staff_dashboard_bp.main_dashboard'))
                         
-                    elif user_obj.role_type in CLIENT_ROLES:
+                    elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
                     
-                    elif user_obj.role_type == 'Candidate':
+                    elif role == 'Candidate':
                         intended_destination = session.pop('candidate_intended_destination', None)
                         if intended_destination and is_safe_url(intended_destination):
                             return redirect(intended_destination)
                         return redirect(url_for('candidate_bp.dashboard'))
                         
                     else: 
-                        current_app.logger.warning(f"User {user_obj.email} with unknown role '{user_obj.role_type}' logged in.")
+                        current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
                         return redirect(url_for('public_routes_bp.home_page'))
                 else:
                     flash('Your account is inactive. Please contact support.', 'warning')
