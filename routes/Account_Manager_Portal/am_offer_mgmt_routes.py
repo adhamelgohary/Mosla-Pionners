@@ -205,7 +205,7 @@ def add_offer_for_company(company_id):
                     cursor_insert.close()
                     conn_insert.close()
     
-    return render_template('account_manager_portal/offers/add_edit_offer.html',
+    return render_template('account_manager_portal/add_edit_offer.html',
                            title=f"Add Offer for {company['CompanyName']}",
                            form_data=form_data,
                            errors=errors,
@@ -373,7 +373,7 @@ def edit_offer(offer_id):
         if offer_data.get('ClosingDate'):
             form_data['closing_date'] = offer_data['ClosingDate'].isoformat()
         
-    return render_template('account_manager_portal/offers/add_edit_offer.html',
+    return render_template('account_manager_portal/add_edit_offer.html',
                            title=f"Edit Offer: {offer_data['Title']}",
                            form_data=form_data, errors=errors, company=company,
                            categories=categories, action_verb="Update", is_editing=True, offer_id=offer_id)
