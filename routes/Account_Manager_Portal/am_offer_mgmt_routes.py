@@ -78,6 +78,8 @@ def list_offers_for_company(company_id):
                            title=f"Offers for {company['CompanyName']}", company=company,
                            offers=offers, current_filter=status_filter)
 
+# In am_offer_mgmt_routes.py
+
 @am_offer_mgmt_bp.route('/add-offer', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
 def add_offer():
@@ -85,9 +87,11 @@ def add_offer():
     Provides a form to add a new job offer, with the option to either
     select an existing company or create a new one on the fly.
     """
+    # Initialize dictionaries at the top to ensure they always exist
     errors = {}
+    form_data = {}
     
-    # Fetch data needed for the form dropdowns (Companies, Categories)
+    # Fetch data needed for the form dropdowns
     conn_data = get_db_connection()
     companies, categories = [], []
     try:
@@ -106,6 +110,7 @@ def add_offer():
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
+        # Handle multi-select fields from the form
         form_data['required_languages'] = request.form.getlist('required_languages')
         form_data['benefits_included'] = request.form.getlist('benefits_included')
         form_data['available_shifts'] = request.form.getlist('available_shifts')
@@ -120,7 +125,8 @@ def add_offer():
                 errors['new_company_name'] = "New company name cannot be empty."
         else:
             errors['company_selection_mode'] = "Please select a company option."
-            
+        
+        # Add other standard validations
         if not form_data.get('title', '').strip(): errors['title'] = 'Job title is required.'
         if not form_data.get('category_id'): errors['category_id'] = 'Job category is required.'
 
@@ -131,10 +137,8 @@ def add_offer():
                 cursor = conn_tx.cursor()
                 
                 company_id = None
-                # If creating a new company, insert it first and get the new ID
                 if company_selection_mode == 'new':
                     new_company_name = form_data.get('new_company_name').strip()
-                    # Optional: Check if company name already exists
                     cursor.execute("SELECT CompanyID FROM Companies WHERE CompanyName = %s", (new_company_name,))
                     if cursor.fetchone():
                         errors['new_company_name'] = f"A company named '{new_company_name}' already exists. Please select it from the list."
@@ -143,7 +147,6 @@ def add_offer():
                     cursor.execute("INSERT INTO Companies (CompanyName, ManagedByStaffID) VALUES (%s, %s)", 
                                    (new_company_name, current_user.specific_role_id))
                     company_id = cursor.lastrowid
-                    current_app.logger.info(f"Created new company '{new_company_name}' with ID {company_id}.")
                 else:
                     company_id = form_data.get('company_id')
 
@@ -177,7 +180,7 @@ def add_offer():
                     "languages_type": form_data.get('languages_type'),
                     "required_languages": ",".join(form_data.get('required_languages', [])),
                     "required_level": form_data.get('required_level'),
-                    "candidates_needed": int(form_data['candidates_needed']) if form_data.get('candidates_needed') else 1,
+                    "candidates_needed": int(form_data.get('candidates_needed')) if form_data.get('candidates_needed') else 1,
                     "hiring_cadence": form_data.get('hiring_cadence'),
                     "work_location": form_data.get('work_location'),
                     "shift_type": form_data.get('shift_type'),
@@ -194,7 +197,7 @@ def add_offer():
 
             except ValueError as ve:
                 if conn_tx: conn_tx.rollback()
-                flash(str(ve), 'danger') # Show the duplicate company name error
+                flash(str(ve), 'danger')
             except Exception as e:
                 if conn_tx: conn_tx.rollback()
                 current_app.logger.error(f"Error in add_offer: {e}", exc_info=True)
@@ -204,8 +207,12 @@ def add_offer():
                 if conn_tx and conn_tx.is_connected(): conn_tx.close()
     
     return render_template('account_manager_portal/offers/add_edit_offer.html',
-                           title="Create New Job Offer", form_data=form_data, errors=errors,
-                           companies=companies, categories=categories, action_verb="Create")
+                           title="Create New Job Offer",
+                           form_data=form_data, 
+                           errors=errors,
+                           companies=companies,
+                           categories=categories,
+                           action_verb="Create")
 
 
 # In am_offer_mgmt_routes.py
