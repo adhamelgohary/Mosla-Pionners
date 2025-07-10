@@ -1802,6 +1802,10 @@ html[data-theme="dark"] {
   margin-inline-end: 0.75rem;
 }
 
+.ml-1 {
+  margin-left: 0.25rem;
+}
+
 .ml-10 {
   margin-left: 2.5rem;
 }
@@ -2171,6 +2175,10 @@ html[data-theme="dark"] {
 
 .resize {
   resize: both;
+}
+
+.list-inside {
+  list-style-position: inside;
 }
 
 .list-outside {
@@ -2582,6 +2590,10 @@ html[data-theme="dark"] {
 .border-indigo-500 {
   --tw-border-opacity: 1;
   border-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
+}
+
+.border-primary\/50 {
+  border-color: rgb(var(--primary-color-rgb) / 0.5);
 }
 
 .border-red-400 {
