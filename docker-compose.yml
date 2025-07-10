@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   webapp:
-    image: adhamelgohary/mosla-pioners:latest
+    image: adhamelgohary/mosla-pioneers:latest
     container_name: mosla_webapp
     restart: always
     # NO LONGER MAPPING PORTS TO THE HOST.
