@@ -33,6 +33,9 @@
         {% endwith %}
 
         {% if candidate %}
+        {# Define mappings for user-friendly display text #}
+        {% set edu_status_map = {'grad': 'Graduate', 'ungrad': 'Undergraduate / Student', 'dropout': 'Dropout', 'gap_year': 'Gap Year'} %}
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Main Profile Details -->
             <div class="lg:col-span-2 space-y-8">
@@ -45,34 +48,35 @@
                         <div><dt class="font-medium text-gray-500 dark:text-gray-400">Phone</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.PhoneNumber or 'Not provided' }}</dd></div>
                         <div><dt class="font-medium text-gray-500 dark:text-gray-400">Date of Birth</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.DateOfBirth.strftime('%d %B %Y') if candidate.DateOfBirth else 'Not provided' }}</dd></div>
                         <div><dt class="font-medium text-gray-500 dark:text-gray-400">Nationality</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.Nationality or 'Not provided' }}</dd></div>
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Educational Status</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.EducationalStatus or 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Educational Status</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ edu_status_map[candidate.EducationalStatus] if candidate.EducationalStatus in edu_status_map else 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Languages</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.Languages or 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Language Level</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.LanguageLevel or 'Not provided' }}</dd></div>
                         <div class="sm:col-span-2"><dt class="font-medium text-gray-500 dark:text-gray-400">LinkedIn Profile</dt><dd class="mt-1 text-indigo-600 truncate hover:underline dark:text-indigo-400"><a href="{{ candidate.LinkedInProfileURL }}" target="_blank" rel="noopener noreferrer">{{ candidate.LinkedInProfileURL or 'Not provided' }}</a></dd></div>
                     </dl>
                 </div>
-                <!-- Job Applications Card -->
+                <!-- Job Applications Card (Unchanged) -->
                 <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                     <h3 class="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-4 dark:text-gray-100 dark:border-gray-700">My Job Applications</h3>
                     {% if applied_jobs %}<ul class="divide-y divide-gray-200 dark:divide-gray-700">
                         {% for app in applied_jobs %}
                         <li class="py-4 flex justify-between items-center gap-4">
-                            <div><p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ app.Title }}</p><p class="text-xs text-gray-500 dark:text-gray-400">at {{ app.CompanyName }}</p></div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ app.Title }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">at {{ app.CompanyName }}</p>
+                            </div>
                             {% if app.Status == 'Shortlisted' %}
-                                <a href="{{ url_for('candidate_bp.schedule_interview', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-sm font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap">
-                                    Schedule Interview
-                                </a>
+                                <a href="{{ url_for('candidate_bp.schedule_interview', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-sm font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap">Schedule Interview</a>
                             {% elif app.Status == 'Interview Scheduled' %}
                                 <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300">Interview Scheduled</span>
                             {% else %}
                                 <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap {{ {'Applied': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Submitted': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Hired': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', 'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}[app.Status] | default('bg-gray-100 text-gray-800') }}">{{ app.Status }}</span>
                             {% endif %}
-
                         </li>
                         {% endfor %}
                     </ul>{% else %}<div class="text-center py-8"><i class="bi bi-folder-x text-4xl text-gray-400 dark:text-gray-500"></i><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">You have not applied for any jobs yet.</p></div>{% endif %}
                 </div>
             </div>
-
-            <!-- Right Column: CV Management -->
+            <!-- Right Column: CV Management (Unchanged) -->
             <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                 <h3 class="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6 dark:text-gray-100 dark:border-gray-700">My CVs</h3>
                 <form action="{{ url_for('candidate_bp.upload_cv') }}" method="POST" enctype="multipart/form-data" class="mb-6 space-y-4">
@@ -81,86 +85,34 @@
                     <button type="submit" class="w-full inline-flex items-center justify-center gap-x-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition"><i class="bi bi-upload"></i> Upload New CV</button>
                 </form>
                 
-                {% if cv_list %}
-                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% if cv_list %}<ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for cv in cv_list %}
                     <li class="py-4 flex items-center justify-between gap-3">
                         <div class="flex-1 min-w-0">
                             <a href="{{ url_for('static', filename=cv.CVFileUrl) }}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-gray-800 hover:text-indigo-600 dark:text-gray-200 dark:hover:text-indigo-400 truncate block">{{ cv.CVTitle or cv.OriginalFileName }}</a>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                {{ cv.UploadedAt.strftime('%b %d, %Y') }} • {{ cv.FileSizeKB or 0 }} KB
-                            </p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ cv.UploadedAt.strftime('%b %d, %Y') }} • {{ cv.FileSizeKB or 0 }} KB</p>
                         </div>
                         <div class="flex-shrink-0 flex items-center gap-1.5">
-                            {% if cv.IsPrimary %}
-                                <span class="inline-flex items-center gap-x-1.5 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md dark:bg-green-900/50 dark:text-green-300">
-                                    <i class="bi bi-check-circle-fill"></i>Primary
-                                </span>
-                            {% else %}
-                                <button onclick="setPrimaryCV({{ cv.CVID }})" title="Set as Primary" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors">
-                                    <i class="bi bi-check2-circle text-base"></i>
-                                </button>
+                            {% if cv.IsPrimary %}<span class="inline-flex items-center gap-x-1.5 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md dark:bg-green-900/50 dark:text-green-300"><i class="bi bi-check-circle-fill"></i>Primary</span>
+                            {% else %}<button onclick="setPrimaryCV({{ cv.CVID }})" title="Set as Primary" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors"><i class="bi bi-check2-circle text-base"></i></button>
                             {% endif %}
-                            <button onclick="deleteCV({{ cv.CVID }})" title="Delete CV" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors">
-                                <i class="bi bi-trash3-fill text-sm"></i>
-                            </button>
+                            <button onclick="deleteCV({{ cv.CVID }})" title="Delete CV" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"><i class="bi bi-trash3-fill text-sm"></i></button>
                         </div>
                     </li>
                     {% endfor %}
                 </ul>
-                {% else %}
-                <div class="text-center py-8 border-t border-gray-200 dark:border-gray-700 mt-6"><i class="bi bi-file-earmark-x text-4xl text-gray-400 dark:text-gray-500"></i><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No CVs uploaded yet.</p></div>
+                {% else %}<div class="text-center py-8 border-t border-gray-200 dark:border-gray-700 mt-6"><i class="bi bi-file-earmark-x text-4xl text-gray-400 dark:text-gray-500"></i><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No CVs uploaded yet.</p></div>
                 {% endif %}
             </div>
         </div>
-        {% else %}
-            <div class="text-center py-10"><p class="text-lg text-gray-500 dark:text-gray-400">Could not load your profile data at this time.</p></div>
+        {% else %}<div class="text-center py-10"><p class="text-lg text-gray-500 dark:text-gray-400">Could not load your profile data at this time.</p></div>
         {% endif %}
     </div>
 </div>
 
 <script>
-// The Javascript functions remain the same as they correctly perform the desired actions.
-function deleteCV(cvId) {
-    if (!confirm('Are you sure you want to permanently delete this CV?')) {
-        return;
-    }
-
-    fetch(`/candidate/cv/delete/${cvId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An unexpected network error occurred.');
-    });
-}
-
-function setPrimaryCV(cvId) {
-    fetch(`/candidate/cv/set-primary/${cvId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            window.location.reload();
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An unexpected network error occurred.');
-    });
-}
+// Javascript functions are unchanged
+function deleteCV(cvId) { if (!confirm('Are you sure you want to permanently delete this CV?')) return; fetch(`/candidate/cv/delete/${cvId}`,{method:'POST',headers:{'Content-Type':'application/json'}}).then(r=>r.json()).then(d=>{if(d.status==='success'){window.location.reload()}else{alert('Error: '+d.message)}}).catch(e=>{console.error('Error:',e);alert('An unexpected network error occurred.')})}
+function setPrimaryCV(cvId) { fetch(`/candidate/cv/set-primary/${cvId}`,{method:'POST',headers:{'Content-Type':'application/json'}}).then(r=>r.json()).then(d=>{if(d.status==='success'){window.location.reload()}else{alert('Error: '+d.message)}}).catch(e=>{console.error('Error:',e);alert('An unexpected network error occurred.')})}
 </script>
 {% endblock %}

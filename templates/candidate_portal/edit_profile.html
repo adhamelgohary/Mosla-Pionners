@@ -13,7 +13,7 @@
 </div>
 {% endmacro %}
 
-{# Reusable macro for a select dropdown field #}
+{# Reusable macro for a select dropdown field - UPDATED to handle (value, text) tuples #}
 {% macro select_field(label, name, options, selected_value, required=False) %}
 <div class="sm:col-span-3">
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
@@ -21,8 +21,8 @@
         <select name="{{ name }}" id="{{ name }}" {% if required %}required{% endif %}
                 class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition">
             <option value="" {% if not selected_value %}selected{% endif %} disabled>Select an option</option>
-            {% for option in options %}
-            <option value="{{ option }}" {% if option == selected_value %}selected{% endif %}>{{ option }}</option>
+            {% for val, text in options %}
+            <option value="{{ val }}" {% if val == selected_value %}selected{% endif %}>{{ text }}</option>
             {% endfor %}
         </select>
     </div>
@@ -57,13 +57,7 @@
                             <label for="profile_picture" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">Profile Picture</label>
                             <div class="mt-2 flex items-center gap-x-4">
                                 <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) if form_data.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" class="h-16 w-16 rounded-full object-cover bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-800">
-                                <input type="file" name="profile_picture" id="profile_picture" class="block w-full text-sm text-gray-600 dark:text-gray-400
-                                file:mr-4 file:py-2 file:px-4
-                                file:rounded-lg file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-indigo-50 file:text-indigo-700
-                                hover:file:bg-indigo-100
-                                dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900/80 transition">
+                                <input type="file" name="profile_picture" id="profile_picture" class="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900/80 transition">
                             </div>
                         </div>
                     </div>
@@ -74,12 +68,41 @@
                     <h2 class="text-xl font-bold leading-7 text-gray-900 dark:text-gray-100">Professional Details</h2>
                     <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">Help us match you with the right roles.</p>
                     <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                        
                         <div class="sm:col-span-4">
                             {{ form_field('LinkedIn Profile URL', 'linkedin_url', form_data.LinkedInProfileURL, placeholder='https://linkedin.com/in/your-profile') }}
                         </div>
-                        {{ form_field('Years of Experience', 'years_of_experience', form_data.YearsOfExperience, type='number', extra_attrs='min="0"') }}
-                        {{ select_field('Educational Status', 'educational_status', ['Graduate', 'Student', 'Dropout', 'Gap Year'], form_data.EducationalStatus) }}
-                        {{ select_field('English Level', 'english_level', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], form_data.EnglishLevel) }}
+
+                        {# --- UPDATED: Educational Status uses (value, text) tuples --- #}
+                        {% set edu_status_options = [
+                            ('grad', 'Graduate'), ('ungrad', 'Undergraduate / Student'), 
+                            ('dropout', 'Dropout'), ('gap_year', 'Gap Year')
+                        ] %}
+                        {{ select_field('Educational Status', 'educational_status', edu_status_options, form_data.EducationalStatus) }}
+                        
+                        {# --- NEW: Language Level select field --- #}
+                        {% set lang_level_options = [
+                            ('B1', 'B1'), ('B1+', 'B1+'), ('B2', 'B2'), 
+                            ('B2+', 'B2+'), ('C1', 'C1'), ('C2', 'C2')
+                        ] %}
+                        {{ select_field('Language Level', 'language_level', lang_level_options, form_data.LanguageLevel) }}
+
+                        {# --- NEW: Languages multi-select field --- #}
+                        <div class="sm:col-span-4">
+                             <label for="languages" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">Languages Spoken</label>
+                             <div class="mt-2">
+                                 <select name="languages" id="languages" multiple 
+                                         class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition h-32">
+                                     {% set lang_options = ['English', 'Spanish', 'Portuguese', 'German', 'Arabic', 'French'] %}
+                                     {% set selected_langs = form_data.Languages.split(',') if form_data.Languages else [] %}
+                                     {% for lang in lang_options %}
+                                     <option value="{{ lang }}" {% if lang in selected_langs %}selected{% endif %}>{{ lang }}</option>
+                                     {% endfor %}
+                                 </select>
+                                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl (or Cmd on Mac) to select multiple languages.</p>
+                             </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
