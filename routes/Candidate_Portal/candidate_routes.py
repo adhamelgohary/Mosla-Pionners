@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from db import get_db_connection
 from utils.directory_configs import save_file_from_config # For CV uploads
-import datetime
+from datetime import datetime, timedelta, time
 import mysql.connector
 import os
 
@@ -48,10 +48,10 @@ def dashboard():
         """, (candidate_id,))
         candidate_profile = cursor.fetchone()
 
-        # --- UPDATED QUERY ---
-        # This query now explicitly includes CVTitle for a better user experience.
+        # --- QUERY UPDATED ---
+        # Now also fetches FileSizeKB to display in the UI.
         cursor.execute("""
-            SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary 
+            SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB 
             FROM CandidateCVs 
             WHERE CandidateID = %s 
             ORDER BY IsPrimary DESC, UploadedAt DESC
@@ -77,7 +77,7 @@ def dashboard():
         conn.close()
             
     return render_template('candidate_portal/dashboard.html',
-                           title="My Profile",
+                           title="My Dashboard", # Changed title for clarity
                            candidate=candidate_profile,
                            cv_list=cv_list,
                            applied_jobs=applied_jobs)
@@ -166,14 +166,13 @@ def edit_profile():
     return render_template('candidate_portal/edit_profile.html', title="Edit My Profile", form_data=form_data)
 
 
-# --- CV Management Routes ---
+# --- CV Management Routes (No changes needed, logic is sound) ---
 @candidate_bp.route('/cv/upload', methods=['POST'])
 @login_required
 def upload_cv():
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         abort(403)
 
-    # --- FIX: USE THE HELPER AND VALIDATE IMMEDIATELY ---
     candidate_id = get_candidate_id(current_user.id)
     if not candidate_id:
         flash("Your candidate profile could not be found. Cannot upload CV.", "danger")
@@ -188,31 +187,28 @@ def upload_cv():
         flash('No CV file selected for uploading.', 'warning')
         return redirect(url_for('.dashboard'))
 
-    # The rest of the logic can now safely assume `candidate_id` is valid.
     conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Refined logic: make this the primary CV only if it's the very first one being uploaded.
         cursor.execute("SELECT COUNT(*) FROM CandidateCVs WHERE CandidateID = %s", (candidate_id,))
         cv_count = cursor.fetchone()[0]
         is_primary = 1 if cv_count == 0 else 0
 
-        # Save the file. The subfolder structure is good practice.
         cv_path = save_file_from_config(file, f'candidate_cvs/{candidate_id}')
 
         if cv_path:
-            # If setting this as primary, all others must be un-marked.
-            # This is handled more safely by the set_primary_cv route, but for the very first upload this is fine.
             if is_primary:
                 cursor.execute("UPDATE CandidateCVs SET IsPrimary = 0 WHERE CandidateID = %s", (candidate_id,))
 
-            # This INSERT will now succeed because candidate_id is guaranteed to be valid.
+            file.seek(0, os.SEEK_END)
+            file_size_kb = file.tell() // 1024
+
             cursor.execute("""
                 INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, CVTitle, IsPrimary, FileType, FileSizeKB) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (candidate_id, cv_path, file.filename, request.form.get('cv_title', '').strip() or file.filename, is_primary, file.mimetype, file.tell() // 1024))
+            """, (candidate_id, cv_path, file.filename, request.form.get('cv_title', '').strip() or file.filename, is_primary, file.mimetype, file_size_kb))
             
             conn.commit()
             flash('CV uploaded successfully!', 'success')
@@ -221,7 +217,6 @@ def upload_cv():
 
     except Exception as e:
         if conn: conn.rollback()
-        # This is where your error was caught.
         current_app.logger.error(f"Error uploading CV for UserID {current_user.id} (CandidateID: {candidate_id}): {e}", exc_info=True)
         flash('An error occurred while uploading the CV.', 'danger')
     finally:
@@ -253,12 +248,13 @@ def delete_cv(cv_id):
         if not cv_data:
             return jsonify({'status': 'error', 'message': 'CV not found or you do not have permission to delete it.'}), 404
 
-        # Physical file deletion should be implemented here carefully
-        # e.g., os.remove(os.path.join(current_app.config['STATIC_FOLDER'], cv_data['CVFileUrl']))
+        # Physical file deletion can be added here
+        # upload_dir = current_app.config['UPLOAD_PATHS']['candidate_cvs']
+        # file_path = os.path.join(upload_dir, str(candidate_id), os.path.basename(cv_data['CVFileUrl']))
+        # if os.path.exists(file_path): os.remove(file_path)
 
         cursor.execute("DELETE FROM CandidateCVs WHERE CVID = %s", (cv_id,))
         
-        # If the deleted CV was primary, promote the most recent one.
         if cv_data['IsPrimary']:
             cursor.execute("SELECT CVID FROM CandidateCVs WHERE CandidateID = %s ORDER BY UploadedAt DESC LIMIT 1", (candidate_id,))
             next_primary = cursor.fetchone()
@@ -291,12 +287,10 @@ def set_primary_cv(cv_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Verify the CV belongs to this candidate
         cursor.execute("SELECT COUNT(*) FROM CandidateCVs WHERE CVID = %s AND CandidateID = %s", (cv_id, candidate_id))
         if cursor.fetchone()[0] == 0:
             return jsonify({'status': 'error', 'message': 'CV not found or does not belong to you.'}), 404
         
-        # Transaction: Set all to 0, then set the chosen one to 1.
         cursor.execute("UPDATE CandidateCVs SET IsPrimary = 0 WHERE CandidateID = %s", (candidate_id,))
         cursor.execute("UPDATE CandidateCVs SET IsPrimary = 1 WHERE CVID = %s AND CandidateID = %s", (cv_id, candidate_id))
         conn.commit()
@@ -310,3 +304,115 @@ def set_primary_cv(cv_id):
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
+            
+@candidate_bp.route('/application/<int:application_id>/schedule', methods=['GET', 'POST'])
+@login_required
+def schedule_interview(application_id):
+    if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
+        abort(403)
+
+    candidate_id = get_candidate_id(current_user.id)
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Validate the application and its status
+        cursor.execute("""
+            SELECT ja.ApplicationID, ja.Status, jo.OfferID, jo.Title, c.CompanyID, c.CompanyName
+            FROM JobApplications ja
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            WHERE ja.ApplicationID = %s AND ja.CandidateID = %s
+        """, (application_id, candidate_id))
+        application = cursor.fetchone()
+
+        if not application:
+            abort(404) # Or flash a message
+        if application['Status'] != 'Shortlisted':
+            flash("This interview has already been scheduled or is not available for scheduling.", "warning")
+            return redirect(url_for('.dashboard'))
+
+        if request.method == 'POST':
+            selected_slot_str = request.form.get('interview_slot')
+            if not selected_slot_str:
+                flash("Please select an interview slot.", "danger")
+                return redirect(url_for('.schedule_interview', application_id=application_id))
+
+            scheduled_dt = datetime.datetime.fromisoformat(selected_slot_str)
+            
+            # Transaction to book the interview
+            cursor.execute("START TRANSACTION;")
+            # Check for double booking (race condition)
+            cursor.execute("""
+                SELECT i.InterviewID FROM Interviews i
+                JOIN JobApplications ja ON i.ApplicationID = ja.ApplicationID
+                JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+                WHERE jo.CompanyID = %s AND i.ScheduledDateTime = %s
+            """, (application['CompanyID'], scheduled_dt))
+            
+            if cursor.fetchone():
+                cursor.execute("ROLLBACK;")
+                flash("Sorry, that slot was just taken. Please select another.", "danger")
+                return redirect(url_for('.schedule_interview', application_id=application_id))
+
+            # Insert the new interview
+            cursor.execute("""
+                INSERT INTO Interviews (ApplicationID, ScheduledDateTime, Status) VALUES (%s, %s, 'Scheduled')
+            """, (application_id, scheduled_dt))
+
+            # Update application status
+            cursor.execute("UPDATE JobApplications SET Status = 'Interview Scheduled' WHERE ApplicationID = %s", (application_id,))
+            cursor.execute("COMMIT;")
+            
+            flash(f"Your interview has been successfully scheduled for {scheduled_dt.strftime('%A, %B %d at %I:%M %p')}.", "success")
+            return redirect(url_for('.dashboard'))
+
+        # GET Request Logic: Generate available slots
+        # 2. Get the company's interview schedule
+        cursor.execute("SELECT DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules WHERE CompanyID = %s AND IsActive = 1", (application['CompanyID'],))
+        company_schedules = cursor.fetchall()
+        
+        # 3. Get all already booked slots for this company
+        cursor.execute("""
+            SELECT i.ScheduledDateTime FROM Interviews i
+            JOIN JobApplications ja ON i.ApplicationID = ja.ApplicationID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            WHERE jo.CompanyID = %s AND i.ScheduledDateTime >= CURDATE()
+        """, (application['CompanyID'],))
+        booked_slots = {row['ScheduledDateTime'] for row in cursor.fetchall()}
+
+        # 4. Generate available slots for the next 14 days
+        available_slots = {}
+        today = datetime.date.today()
+        for day_offset in range(14):
+            current_day = today + timedelta(days=day_offset)
+            day_name = current_day.strftime('%A')
+            
+            for schedule in company_schedules:
+                if schedule['DayOfWeek'] == day_name:
+                    slot_time = datetime.datetime.combine(current_day, schedule['StartTime'])
+                    end_time = datetime.datetime.combine(current_day, schedule['EndTime'])
+                    
+                    while slot_time < end_time:
+                        if slot_time > datetime.datetime.now() and slot_time not in booked_slots:
+                            date_str = current_day.strftime('%Y-%m-%d')
+                            if date_str not in available_slots:
+                                available_slots[date_str] = []
+                            available_slots[date_str].append(slot_time)
+                        slot_time += timedelta(hours=1) # Assuming 1-hour slots
+
+    except Exception as e:
+        if 'cursor' in locals() and cursor.connection.in_transaction:
+            cursor.execute("ROLLBACK;")
+        current_app.logger.error(f"Error scheduling interview for application {application_id}: {e}", exc_info=True)
+        flash("An error occurred while loading the scheduling page.", "danger")
+        return redirect(url_for('.dashboard'))
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return render_template('candidate_portal/schedule_interview.html',
+                           title="Schedule Your Interview",
+                           application=application,
+                           available_slots=available_slots)

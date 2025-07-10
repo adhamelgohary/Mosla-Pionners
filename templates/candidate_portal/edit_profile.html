@@ -2,64 +2,81 @@
 
 {% block title %}{{ title }} - Candidate Portal{% endblock %}
 
-{% macro form_field(label, name, value, type='text', placeholder='', extra_attrs='') %}
+{# Reusable macro for a standard form text/number/date input field #}
+{% macro form_field(label, name, value, type='text', placeholder='', required=False, extra_attrs='') %}
 <div class="sm:col-span-3">
-    <!-- ADDED DARK MODE CLASSES -->
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
     <div class="mt-2">
-        <!-- ADDED DARK MODE CLASSES -->
-        <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value or '' }}" placeholder="{{ placeholder }}" {{ extra_attrs }} 
-               class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:focus:ring-primary-500">
+        <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value or '' }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %} {{ extra_attrs|safe }} 
+               class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition">
     </div>
 </div>
 {% endmacro %}
 
-{% macro select_field(label, name, options, selected_value) %}
+{# Reusable macro for a select dropdown field #}
+{% macro select_field(label, name, options, selected_value, required=False) %}
 <div class="sm:col-span-3">
-    <!-- ADDED DARK MODE CLASSES -->
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
     <div class="mt-2">
-        <!-- ADDED DARK MODE CLASSES -->
-        <select name="{{ name }}" id="{{ name }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:focus:ring-primary-500">
-            {% for option in options %}<option {% if option == selected_value %}selected{% endif %}>{{ option }}</option>{% endfor %}
+        <select name="{{ name }}" id="{{ name }}" {% if required %}required{% endif %}
+                class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition">
+            <option value="" {% if not selected_value %}selected{% endif %} disabled>Select an option</option>
+            {% for option in options %}
+            <option value="{{ option }}" {% if option == selected_value %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
         </select>
     </div>
 </div>
 {% endmacro %}
 
+
 {% block content %}
-<!-- ADDED DARK MODE CLASSES -->
 <div class="bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <!-- ADDED DARK MODE CLASSES -->
-        <form method="POST" action="{{ url_for('candidate_bp.edit_profile') }}" enctype="multipart/form-data" class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+    <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <form method="POST" action="{{ url_for('candidate_bp.edit_profile') }}" enctype="multipart/form-data" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             <div class="space-y-12">
                 <!-- Section 1: Personal Information -->
-                <div class="border-b border-gray-900/10 pb-12 dark:border-gray-200/10">
-                    <h2 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Personal Information</h2>
+                <div class="border-b border-gray-900/10 dark:border-gray-200/10 pb-12">
+                    <h2 class="text-xl font-bold leading-7 text-gray-900 dark:text-gray-100">Personal Information</h2>
                     <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">This information will be used to contact you about job opportunities.</p>
+                    
                     <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                        {{ form_field('First Name', 'first_name', form_data.FirstName) }}
-                        {{ form_field('Last Name', 'last_name', form_data.LastName) }}
-                        <div class="sm:col-span-4"><label class="block text-sm font-medium text-gray-900 dark:text-gray-200">Email</label><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ form_data.Email }} (cannot be changed)</p></div>
+                        {{ form_field('First Name', 'first_name', form_data.FirstName, required=True) }}
+                        {{ form_field('Last Name', 'last_name', form_data.LastName, required=True) }}
+                        
+                        <div class="sm:col-span-4">
+                            <label class="block text-sm font-medium text-gray-900 dark:text-gray-200">Email Address</label>
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ form_data.Email }} <span class="text-xs">(cannot be changed)</span></p>
+                        </div>
+
                         {{ form_field('Phone Number', 'phone_number', form_data.PhoneNumber) }}
                         {{ form_field('Date of Birth', 'date_of_birth', form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth, type='date') }}
                         {{ form_field('Nationality', 'nationality', form_data.Nationality) }}
-                        <div class="sm:col-span-full">
-                            <label for="profile_picture" class="block text-sm font-medium text-gray-900 dark:text-gray-200">Profile Picture</label>
-                            <div class="mt-2 flex items-center gap-x-3">
-                                <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) if form_data.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" class="h-12 w-12 rounded-full object-cover bg-gray-50 dark:bg-gray-700">
-                                <input type="file" name="profile_picture" class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/50 dark:file:text-primary-300 dark:hover:file:bg-primary-900">
+
+                        <div class="col-span-full">
+                            <label for="profile_picture" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">Profile Picture</label>
+                            <div class="mt-2 flex items-center gap-x-4">
+                                <img src="{{ url_for('static', filename=form_data.ProfilePictureURL) if form_data.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" class="h-16 w-16 rounded-full object-cover bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-800">
+                                <input type="file" name="profile_picture" id="profile_picture" class="block w-full text-sm text-gray-600 dark:text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-indigo-50 file:text-indigo-700
+                                hover:file:bg-indigo-100
+                                dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900/80 transition">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Section 2: Professional Details -->
-                <div class="border-b border-gray-900/10 pb-12 dark:border-gray-200/10">
-                    <h2 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Professional Details</h2>
+                <div class="border-b border-gray-900/10 dark:border-gray-200/10 pb-12">
+                    <h2 class="text-xl font-bold leading-7 text-gray-900 dark:text-gray-100">Professional Details</h2>
+                    <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">Help us match you with the right roles.</p>
                     <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
-                        {{ form_field('LinkedIn Profile URL', 'linkedin_url', form_data.LinkedInProfileURL, placeholder='https://linkedin.com/in/...') }}
+                        <div class="sm:col-span-4">
+                            {{ form_field('LinkedIn Profile URL', 'linkedin_url', form_data.LinkedInProfileURL, placeholder='https://linkedin.com/in/your-profile') }}
+                        </div>
                         {{ form_field('Years of Experience', 'years_of_experience', form_data.YearsOfExperience, type='number', extra_attrs='min="0"') }}
                         {{ select_field('Educational Status', 'educational_status', ['Graduate', 'Student', 'Dropout', 'Gap Year'], form_data.EducationalStatus) }}
                         {{ select_field('English Level', 'english_level', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], form_data.EnglishLevel) }}
@@ -67,9 +84,9 @@
                 </div>
             </div>
 
-            <div class="mt-6 flex items-center justify-end gap-x-6">
-                <a href="{{ url_for('.dashboard') }}" class="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-200">Cancel</a>
-                <button type="submit" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">Save Profile</button>
+            <div class="mt-8 flex items-center justify-end gap-x-4">
+                <a href="{{ url_for('.dashboard') }}" class="rounded-md px-4 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition">Cancel</a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition">Save Profile</button>
             </div>
         </form>
     </div>

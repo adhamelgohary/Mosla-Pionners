@@ -1,114 +1,126 @@
-{# templates/candidate_portal/dashboard.html #}
 {% extends "Website/base.html" %}
 
 {% block title %}{{ title }} - Candidate Portal{% endblock %}
 
 {% block content %}
 <div class="bg-gray-50 min-h-screen dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ title }}</h1>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Welcome back, {{ candidate.FirstName }}! Manage your profile and applications here.</p>
+                <p class="mt-1 text-base text-gray-600 dark:text-gray-400">Welcome back, {{ candidate.FirstName }}! Manage your profile and applications here.</p>
             </div>
-            <a href="{{ url_for('candidate_bp.edit_profile') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-600">
-                <i class="bi bi-pencil-square text-gray-500 dark:text-gray-400"></i> Edit Profile
+            <a href="{{ url_for('candidate_bp.edit_profile') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-700 transition">
+                <i class="bi bi-pencil-square text-gray-500 dark:text-gray-400"></i>
+                <span>Edit Profile</span>
             </a>
         </div>
 
         <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="space-y-4 mb-6">
-        {% for category, message in messages %}<div class="border-l-4 p-4 {{ {'success': 'bg-green-50 border-green-400 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-300','danger': 'bg-red-50 border-red-400 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-300'}[category] }}"><p>{{ message }}</p></div>{% endfor %}
-        </div>{% endif %}{% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="space-y-4 mb-6">
+                {% for category, message in messages %}
+                {% set style = {'success': 'green', 'danger': 'red', 'warning': 'yellow'}[category] %}
+                <div class="flex items-start gap-3 rounded-lg border-l-4 border-{{style}}-500 bg-{{style}}-50 p-4 text-{{style}}-800 dark:bg-{{style}}-900/30 dark:border-{{style}}-600 dark:text-{{style}}-200" role="alert">
+                    <i class="bi {{ {'success': 'bi-check-circle-fill', 'danger': 'bi-x-circle-fill'}[category] }} text-xl text-{{style}}-600 dark:text-{{style}}-400"></i>
+                    <p class="font-medium">{{ message }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
 
         {% if candidate %}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Main Profile Details -->
             <div class="lg:col-span-2 space-y-8">
-                <!-- ... Profile Information and Job Applications sections are unchanged ... -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-4 mb-4 dark:text-gray-100 dark:border-gray-700">Profile Information</h3>
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Full Name</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.FirstName }} {{ candidate.LastName }}</dd></div>
+                <!-- Profile Information Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6 dark:text-gray-100 dark:border-gray-700">Profile Information</h3>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 text-sm">
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Full Name</dt><dd class="mt-1 text-gray-900 dark:text-gray-200 font-semibold">{{ candidate.FirstName }} {{ candidate.LastName }}</dd></div>
                         <div><dt class="font-medium text-gray-500 dark:text-gray-400">Email Address</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.Email }}</dd></div>
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Phone</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.PhoneNumber or 'N/A' }}</dd></div>
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Date of Birth</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.DateOfBirth.strftime('%d %B %Y') if candidate.DateOfBirth else 'N/A' }}</dd></div>
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Nationality</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.Nationality or 'N/A' }}</dd></div>
-                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Educational Status</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.EducationalStatus or 'N/A' }}</dd></div>
-                        <div class="sm:col-span-2"><dt class="font-medium text-gray-500 dark:text-gray-400">LinkedIn Profile</dt><dd class="mt-1 text-primary-600 truncate hover:underline dark:text-primary-400"><a href="{{ candidate.LinkedInProfileURL }}" target="_blank">{{ candidate.LinkedInProfileURL or 'N/A' }}</a></dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Phone</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.PhoneNumber or 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Date of Birth</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.DateOfBirth.strftime('%d %B %Y') if candidate.DateOfBirth else 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Nationality</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.Nationality or 'Not provided' }}</dd></div>
+                        <div><dt class="font-medium text-gray-500 dark:text-gray-400">Educational Status</dt><dd class="mt-1 text-gray-900 dark:text-gray-200">{{ candidate.EducationalStatus or 'Not provided' }}</dd></div>
+                        <div class="sm:col-span-2"><dt class="font-medium text-gray-500 dark:text-gray-400">LinkedIn Profile</dt><dd class="mt-1 text-indigo-600 truncate hover:underline dark:text-indigo-400"><a href="{{ candidate.LinkedInProfileURL }}" target="_blank" rel="noopener noreferrer">{{ candidate.LinkedInProfileURL or 'Not provided' }}</a></dd></div>
                     </dl>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-4 mb-4 dark:text-gray-100 dark:border-gray-700">My Job Applications</h3>
+                <!-- Job Applications Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                    <h3 class="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-4 dark:text-gray-100 dark:border-gray-700">My Job Applications</h3>
                     {% if applied_jobs %}<ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                        {% for app in applied_jobs %}<li class="py-3 flex justify-between items-center">
+                        {% for app in applied_jobs %}
+                        <li class="py-4 flex justify-between items-center gap-4">
                             <div><p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ app.Title }}</p><p class="text-xs text-gray-500 dark:text-gray-400">at {{ app.CompanyName }}</p></div>
-                            <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ {'Applied': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Shortlisted': 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300', 'Hired': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', 'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}[app.Status] }}">{{ app.Status }}</span>
-                        </li>{% endfor %}
-                    </ul>{% else %}<p class="text-sm text-center text-gray-500 dark:text-gray-400 py-6">You have not applied for any jobs yet.</p>{% endif %}
+                            {% if app.Status == 'Shortlisted' %}
+                                <a href="{{ url_for('candidate_bp.schedule_interview', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-sm font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap">
+                                    Schedule Interview
+                                </a>
+                            {% elif app.Status == 'Interview Scheduled' %}
+                                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300">Interview Scheduled</span>
+                            {% else %}
+                                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap {{ {'Applied': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Submitted': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', 'Hired': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300', 'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}[app.Status] | default('bg-gray-100 text-gray-800') }}">{{ app.Status }}</span>
+                            {% endif %}
+
+                        </li>
+                        {% endfor %}
+                    </ul>{% else %}<div class="text-center py-8"><i class="bi bi-folder-x text-4xl text-gray-400 dark:text-gray-500"></i><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">You have not applied for any jobs yet.</p></div>{% endif %}
                 </div>
             </div>
 
             <!-- Right Column: CV Management -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-4 mb-4 dark:text-gray-100 dark:border-gray-700">My CVs</h3>
-                <form action="{{ url_for('candidate_bp.upload_cv') }}" method="POST" enctype="multipart/form-data" class="mb-4 space-y-3">
-                    <div>
-                        <label for="cv_title" class="sr-only">CV Title</label>
-                        <input type="text" name="cv_title" id="cv_title" placeholder="Optional CV Title (e.g., Technical CV)" class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400">
-                    </div>
-                    <input type="file" name="cv_file" required class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/50 dark:file:text-primary-300 dark:hover:file:bg-primary-900">
-                    <button type="submit" class="w-full rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">Upload New CV</button>
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                <h3 class="text-xl font-bold text-gray-900 border-b border-gray-200 pb-4 mb-6 dark:text-gray-100 dark:border-gray-700">My CVs</h3>
+                <form action="{{ url_for('candidate_bp.upload_cv') }}" method="POST" enctype="multipart/form-data" class="mb-6 space-y-4">
+                    <input type="text" name="cv_title" id="cv_title" placeholder="Optional CV Title (e.g., Technical CV)" class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition">
+                    <input type="file" name="cv_file" required class="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/50 dark:file:text-indigo-300 dark:hover:file:bg-indigo-900/80 transition">
+                    <button type="submit" class="w-full inline-flex items-center justify-center gap-x-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition"><i class="bi bi-upload"></i> Upload New CV</button>
                 </form>
                 
                 {% if cv_list %}
                 <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for cv in cv_list %}
-                    <li class="py-3 flex items-center justify-between gap-2">
-                        <!-- CV Info -->
+                    <li class="py-4 flex items-center justify-between gap-3">
                         <div class="flex-1 min-w-0">
-                            <a href="{{ url_for('static', filename=cv.CVFileUrl) }}" target="_blank" class="text-sm font-medium text-gray-800 hover:text-primary-600 dark:text-gray-200 dark:hover:text-primary-400 truncate block">
-                                {{ cv.CVTitle or cv.OriginalFileName }}
-                            </a>
+                            <a href="{{ url_for('static', filename=cv.CVFileUrl) }}" target="_blank" rel="noopener noreferrer" class="text-sm font-medium text-gray-800 hover:text-indigo-600 dark:text-gray-200 dark:hover:text-indigo-400 truncate block">{{ cv.CVTitle or cv.OriginalFileName }}</a>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                Uploaded: {{ cv.UploadedAt.strftime('%b %d, %Y') }}
+                                {{ cv.UploadedAt.strftime('%b %d, %Y') }} • {{ cv.FileSizeKB or 0 }} KB
                             </p>
                         </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="flex-shrink-0 flex items-center gap-2"> <!-- Reduced gap for tighter buttons -->
+                        <div class="flex-shrink-0 flex items-center gap-1.5">
                             {% if cv.IsPrimary %}
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md dark:bg-green-900/50 dark:text-green-300">
-                                    <i class="bi bi-check-circle-fill mr-1.5"></i>Primary
+                                <span class="inline-flex items-center gap-x-1.5 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md dark:bg-green-900/50 dark:text-green-300">
+                                    <i class="bi bi-check-circle-fill"></i>Primary
                                 </span>
                             {% else %}
-                                <!-- HERE: UPDATED 'SET PRIMARY' BUTTON -->
-                                <button onclick="setPrimaryCV({{ cv.CVID }})" title="Set as Primary" class="p-1.5 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/40 transition-colors">
-                                    <i class="bi bi-check-circle block"></i>
+                                <button onclick="setPrimaryCV({{ cv.CVID }})" title="Set as Primary" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors">
+                                    <i class="bi bi-check2-circle text-base"></i>
                                 </button>
                             {% endif %}
-                            
-                            <!-- HERE: UPDATED 'DELETE' BUTTON -->
-                            <button onclick="deleteCV({{ cv.CVID }})" title="Delete CV" class="p-1.5 rounded-full bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/40 transition-colors">
-                                <i class="bi bi-trash3 block"></i>
+                            <button onclick="deleteCV({{ cv.CVID }})" title="Delete CV" class="p-2 h-8 w-8 flex items-center justify-center rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors">
+                                <i class="bi bi-trash3-fill text-sm"></i>
                             </button>
                         </div>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p class="text-sm text-center text-gray-500 dark:text-gray-400 py-4">No CVs uploaded yet.</p>
+                <div class="text-center py-8 border-t border-gray-200 dark:border-gray-700 mt-6"><i class="bi bi-file-earmark-x text-4xl text-gray-400 dark:text-gray-500"></i><p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No CVs uploaded yet.</p></div>
                 {% endif %}
             </div>
         </div>
         {% else %}
-            <p class="text-center text-gray-500 dark:text-gray-400 py-10">Could not load your profile data.</p>
+            <div class="text-center py-10"><p class="text-lg text-gray-500 dark:text-gray-400">Could not load your profile data at this time.</p></div>
         {% endif %}
     </div>
 </div>
 
 <script>
+// The Javascript functions remain the same as they correctly perform the desired actions.
 function deleteCV(cvId) {
     if (!confirm('Are you sure you want to permanently delete this CV?')) {
         return;
@@ -121,7 +133,6 @@ function deleteCV(cvId) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert(data.message);
             window.location.reload();
         } else {
             alert('Error: ' + data.message);
@@ -141,7 +152,6 @@ function setPrimaryCV(cvId) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            alert(data.message);
             window.location.reload();
         } else {
             alert('Error: ' + data.message);

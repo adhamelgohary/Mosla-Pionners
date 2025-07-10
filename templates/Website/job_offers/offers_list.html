@@ -7,11 +7,11 @@
     <!-- Header for Personalized View -->
     <div class="bg-card p-6 sm:p-8 rounded-2xl shadow-lg mb-8 border border-border">
         <h1 class="text-2xl sm:text-3xl font-bold text-heading">Jobs Curated For You</h1>
+        <!-- UPDATED: Removed non-existent 'Languages' and fixed 'GraduationStatus' to 'EducationalStatus' -->
         <p class="mt-2 text-text-muted">
             Based on your profile, we've filtered these openings to match your skills. Your profile indicates:
-            <span class="font-semibold text-primary">{{ candidate_profile.EnglishLevel }} English</span>,
-            <span class="font-semibold text-primary">{{ candidate_profile.GraduationStatus }}</span> status,
-            and language skills in <span class="font-semibold text-primary">{{ candidate_profile.Languages }}</span>.
+            {% if candidate_profile.EnglishLevel %}<span class="font-semibold text-primary">{{ candidate_profile.EnglishLevel }} English</span>{% endif %}
+            {% if candidate_profile.EducationalStatus %}and <span class="font-semibold text-primary">{{ candidate_profile.EducationalStatus }}</span> status.{% endif %}
         </p>
 
         <!-- Search within personalized results -->
@@ -54,7 +54,7 @@
                                 <h3 class="text-lg font-semibold text-heading group-hover:text-primary transition-colors">{{ job.Title }}</h3>
                                 <p class="text-sm font-medium text-text-muted mt-1">{{ job.CompanyName }}</p>
                                 <p class="text-sm text-text-muted mt-2">
-                                    {% if job.NetSalary %}<span class="font-semibold text-text">Up to {{ job.NetSalary|int }} EGP</span> / Monthly{% else %}Salary Undisclosed{% endif %}
+                                    {% if job.NetSalary %}<span class="font-semibold text-text">Up to {{ "%.0f"|format(job.NetSalary) }} EGP</span> / Monthly{% else %}Salary Undisclosed{% endif %}
                                 </p>
                             </div>
                         </div>
@@ -66,8 +66,8 @@
                     </div>
                     <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
                         <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-location-bg text-tag-location-text">📍 {{ job.Location }}</span>
-                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-worktype-bg text-tag-worktype-text">🏢 {{ job.WorkLocationType }}</span>
-                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-category-bg text-tag-category-text">{{ job.CategoryName }}</span>
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-worktype-bg text-tag-worktype-text">🏢 {{ job.WorkLocationType | capitalize }}</span>
+                        {% if job.CategoryName %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-category-bg text-tag-category-text">{{ job.CategoryName }}</span>{% endif %}
                         {% if job.RequiredLevel %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-english-bg text-tag-english-text">🇬🇧 {{ job.RequiredLevel }} Level</span>{% endif %}
                     </div>
                 </a>

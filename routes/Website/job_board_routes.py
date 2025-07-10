@@ -32,9 +32,8 @@ def check_candidate_role():
 def job_offers_list():
     """
     Displays a personalized job board for the logged-in candidate,
-    filtering offers based on their profile (languages, level, grad status).
+    filtering offers based on their profile (English level, educational status).
     """
-    # Role check: Ensure user is a candidate
     role_redirect = check_candidate_role()
     if role_redirect:
         return role_redirect
@@ -47,16 +46,17 @@ def job_offers_list():
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- Step 1: Fetch the candidate's profile for filtering ---
+        # --- Step 1: Fetch candidate's profile for filtering ---
+        # UPDATED: Fetched EducationalStatus instead of non-existent GraduationStatus/Languages
         cursor.execute("""
-            SELECT Languages, EnglishLevel, GraduationStatus 
+            SELECT EnglishLevel, EducationalStatus 
             FROM Candidates 
             WHERE UserID = %s
         """, (current_user.id,))
         candidate_profile = cursor.fetchone()
         
         if not candidate_profile:
-            flash("Your candidate profile could not be found. Please contact support.", "danger")
+            flash("Your candidate profile could not be found. Please complete your profile.", "danger")
             return redirect(url_for('candidate_bp.dashboard'))
 
         # --- Step 2: Build the personalized SQL query ---
@@ -68,7 +68,7 @@ def job_offers_list():
                 jc.CategoryName
             FROM JobOffers jo
             JOIN Companies c ON jo.CompanyID = c.CompanyID
-            JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
+            LEFT JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
             WHERE jo.Status = 'Open' AND (jo.ClosingDate IS NULL OR jo.ClosingDate >= CURDATE())
         """
         params = []
@@ -76,40 +76,37 @@ def job_offers_list():
 
         # --- Personalized Filtering Logic ---
 
-        # 1. Language Filter
-        candidate_languages = [lang.strip() for lang in candidate_profile.get('Languages', '').split(',') if lang.strip()]
-        if candidate_languages:
-            lang_conditions = " OR ".join(["FIND_IN_SET(%s, jo.RequiredLanguages) > 0" for _ in candidate_languages])
-            # Also include jobs that don't specify any language
-            conditions.append(f"(({lang_conditions}) OR jo.RequiredLanguages IS NULL OR jo.RequiredLanguages = '')")
-            params.extend(candidate_languages)
+        # 1. English Level Filter (This was correct and remains)
+        candidate_level = candidate_profile.get('EnglishLevel')
+        if candidate_level:
+            level_map_sql = """
+                CASE jo.RequiredLevel 
+                    WHEN 'C2' THEN 6 WHEN 'C1' THEN 5 WHEN 'B2+' THEN 4
+                    WHEN 'B2' THEN 3 WHEN 'B1+' THEN 2 WHEN 'B1' THEN 1
+                    ELSE 0 
+                END
+            """
+            candidate_level_map = {'C2': 6, 'C1': 5, 'B2+': 4, 'B2': 3, 'B1+': 2, 'B1': 2, 'A2': 1, 'A1': 1}
+            candidate_level_value = candidate_level_map.get(candidate_level, 0)
+            
+            conditions.append(f"({level_map_sql} <= %s)")
+            params.append(candidate_level_value)
 
-        # 2. Level Filter (Converts text levels to numbers for comparison)
-        level_map_sql = """
-            CASE 
-                WHEN %s = 'C2' THEN 6 WHEN %s = 'C1' THEN 5 WHEN %s = 'B2+' THEN 4
-                WHEN %s = 'B2' THEN 3 WHEN %s = 'B1+' THEN 2 WHEN %s = 'B1' THEN 1
-                ELSE 0 
-            END
-        """
-        job_level_map_sql = level_map_sql.replace('%s', 'jo.RequiredLevel')
-        candidate_level_map_sql = level_map_sql
-        
-        conditions.append(f"({job_level_map_sql} <= ({candidate_level_map_sql}))")
-        # Add candidate's level to params 6 times, once for each WHEN clause
-        params.extend([candidate_profile.get('EnglishLevel')] * 6)
+        # 2. Graduation Status Filter (UPDATED to use EducationalStatus and correct mapping)
+        edu_status = candidate_profile.get('EducationalStatus')
+        if edu_status in ['Graduate', 'Student', 'Dropout', 'Gap Year']:
+             # Map the candidate's status to the job's requirement enum
+             status_map = {
+                 'Graduate': 'grad',
+                 'Student': 'ungrad',
+                 'Dropout': 'dropout',
+                 'Gap Year': 'gap_year'
+             }
+             # A candidate can see jobs matching their status or jobs with no specific requirement
+             conditions.append("(jo.GraduationStatusRequirement = %s OR jo.GraduationStatusRequirement IS NULL)")
+             params.append(status_map[edu_status])
 
-        # 3. Graduation Status Filter
-        grad_status = candidate_profile.get('GraduationStatus')
-        if grad_status == 'Graduate':
-            # Show jobs for 'Graduates Only' or 'Any'
-            conditions.append("(jo.GraduationStatusRequirement = 'Graduates Only' OR jo.GraduationStatusRequirement = 'Any')")
-        elif grad_status == 'Undergraduate':
-            # Show jobs for 'Undergraduates Only' or 'Any'
-            conditions.append("(jo.GraduationStatusRequirement = 'Undergraduates Only' OR jo.GraduationStatusRequirement = 'Any')")
-        # If status is something else, they can see 'Any' jobs by default (no condition added)
-
-        # 4. Standard Search Term Filter
+        # 3. Standard Search Term Filter
         if search_term:
             conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jc.CategoryName LIKE %s)")
             search_like = f"%{search_term}%"
@@ -137,6 +134,7 @@ def job_offers_list():
                            job_offers_list=job_offers_list,
                            candidate_profile=candidate_profile,
                            search_term=search_term)
+
 
 
 @job_board_bp.route('/offer/<int:offer_id>')

@@ -1,0 +1,59 @@
+{% extends "Website/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 dark:bg-gray-900 min-h-screen py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ title }}</h1>
+        <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">
+            You have been shortlisted for the <strong class="text-gray-800 dark:text-white">{{ application.Title }}</strong> role at <strong class="text-gray-800 dark:text-white">{{ application.CompanyName }}</strong>.
+        </p>
+        <p class="mt-1 text-gray-600 dark:text-gray-400">Please select a time slot below for your interview.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}<div class="my-6 space-y-4">
+            {% for category, message in messages %}<div class="border-l-4 p-4 rounded-r-lg {{ {'success': 'bg-green-50 border-green-500 text-green-800', 'danger': 'bg-red-50 border-red-500 text-red-800'}[category] }}"><p>{{ message }}</p></div>{% endfor %}
+            </div>{% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('.schedule_interview', application_id=application.ApplicationID) }}" class="mt-8">
+            {% if available_slots %}
+                <div class="space-y-8">
+                    {% for date, slots in available_slots.items() %}
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border dark:border-gray-700">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 border-b dark:border-gray-600 pb-3 mb-4">
+                            {{ slots[0].strftime('%A, %B %d, %Y') }}
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            {% for slot in slots %}
+                            <div>
+                                <input type="radio" name="interview_slot" id="slot-{{ slot.isoformat() }}" value="{{ slot.isoformat() }}" class="sr-only peer" required>
+                                <label for="slot-{{ slot.isoformat() }}"
+                                       class="block w-full text-center py-3 px-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-pointer transition
+                                              peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600
+                                              hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <span class="font-semibold">{{ slot.strftime('%I:%M %p') }}</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-8 text-center">
+                    <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow-sm hover:bg-indigo-700">
+                        Confirm Interview Booking
+                    </button>
+                </div>
+            {% else %}
+                <div class="text-center bg-white dark:bg-gray-800 p-10 rounded-lg shadow-md border dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">No Available Slots</h3>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">There are currently no interview slots available for this position. Please check back later or contact support.</p>
+                    <a href="{{ url_for('.dashboard') }}" class="mt-6 inline-block text-indigo-600 hover:text-indigo-500">← Back to Dashboard</a>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
