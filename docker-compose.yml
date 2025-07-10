@@ -1,19 +1,34 @@
-# docker-compose.yml for manual deployment
-
 version: '3.8'
 
 services:
   webapp:
-    # This is just a name. It refers to the image we will load manually.
     image: adhamelgohary/mosla-pionners:latest
     container_name: mosla_webapp
     restart: always
-    ports:
-      - "12345:12345"
+    # NO LONGER MAPPING PORTS TO THE HOST.
+    # Nginx will handle that. We just 'expose' the port to the internal network.
+    expose:
+      - "12345"
     volumes:
       - uploads_data:/app/static/uploads
     env_file:
       - .env
+
+  nginx:
+    image: nginx:latest
+    container_name: mosla_nginx_proxy
+    restart: always
+    ports:
+      # Map the standard HTTP/S ports from the host to the Nginx container
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Mount the Nginx config, the Certbot challenge directory, and the SSL certs directory
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt/:ro
+    depends_on:
+      - webapp
 
   db:
     image: mysql:8.0
