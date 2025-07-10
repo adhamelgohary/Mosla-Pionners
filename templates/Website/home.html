@@ -10,7 +10,11 @@
                 <h1>The Ultimate Recruitment <span class="highlight">Partner for High-Performance Teams</span></h1>
                 <p>We specialize in building elite teams for the nation's leading customer service, telesales, and real estate companies. Our end-to-end solutions allow you to focus on your core business, confident that your recruitment needs are in the hands of dedicated specialists.</p>
                 <div class="hero-buttons">
-                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-primary">Find Your Next Job</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-primary">Find Your Next Job</a>
+                    {% else %}
+                        <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.job_offers_list')) }}" class="btn-primary">Find Your Next Job</a>
+                    {% endif %}
                     <a href="#services" class="btn-secondary">Explore Our Services</a>
                 </div>
                 <div class="hero-stats">
@@ -68,7 +72,11 @@
                     <h3>Advance Your Career</h3>
                 </div>
                 <p>For talented individuals seeking their next big opportunity. Browse our exclusive job listings and apply to the nation's leading companies.</p>
-                <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="service-link">View Open Jobs →</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="service-link">View Open Jobs →</a>
+                {% else %}
+                    <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.job_offers_list')) }}" class="service-link">View Open Jobs →</a>
+                {% endif %}
             </div>
             
             <div class="service-card fade-in">

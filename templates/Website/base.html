@@ -26,7 +26,11 @@
             <ul class="nav-links" id="main-nav-links">
                 <!-- ... Nav links are okay, they are styled in CSS ... -->
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}" class="{{ 'active' if request.endpoint == 'public_routes_bp.home_page' else '' }}">Home</a></li>
-                <li><a href="{{ url_for('job_board_bp.job_offers_list') }}" class="{{ 'active' if request.blueprint == 'job_board_bp' else '' }}">Jobs</a></li>
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('job_board_bp.job_offers_list') }}" class="{{ 'active' if request.blueprint == 'job_board_bp' else '' }}">Jobs</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.job_offers_list')) }}" class="{{ 'active' if request.blueprint == 'job_board_bp' else '' }}">Jobs</a></li>
+                {% endif %}
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}#services">Services</a></li>
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}#about">About</a></li>
                 <li><a href="{{ url_for('public_routes_bp.home_page') }}#testimonials">Testimonials</a></li>

@@ -10,22 +10,56 @@ job_board_bp = Blueprint('job_board_bp', __name__,
                          url_prefix='/job-board',
                          template_folder='../../../templates')
 
+def check_candidate_role():
+    """
+    Helper to check if the current user is a candidate.
+    If not, it flashes a message and returns a redirect object.
+    """
+    if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
+        flash("The job board is exclusively for registered candidates.", "warning")
+        # Redirect other roles to their respective dashboards
+        if hasattr(current_user, 'role_type') and current_user.role_type in ['Admin', 'HeadAccountManager', 'Recruiter', 'TeamLead', 'OperationsManager', 'CEO']:
+            return redirect(url_for('staff_dashboard_bp.main_dashboard'))
+        if hasattr(current_user, 'role_type') and current_user.role_type in ['Client', 'HRAssistant']:
+             return redirect(url_for('client_dashboard_bp.dashboard'))
+        # Default redirect to home if role is unknown
+        return redirect(url_for('public_routes_bp.home_page'))
+    return None
+
 
 @job_board_bp.route('/jobs')
+@login_required
 def job_offers_list():
     """
-    Displays the main job board with filtering and search capabilities.
+    Displays a personalized job board for the logged-in candidate,
+    filtering offers based on their profile (languages, level, grad status).
     """
+    # Role check: Ensure user is a candidate
+    role_redirect = check_candidate_role()
+    if role_redirect:
+        return role_redirect
+
     conn = get_db_connection()
     job_offers_list = []
-    job_categories_for_filter = []
-    
+    candidate_profile = None
     search_term = request.args.get('q', '').strip()
-    selected_category_id = request.args.get('category', type=int)
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # UPDATED: Query to select more fields for richer list cards
+        
+        # --- Step 1: Fetch the candidate's profile for filtering ---
+        cursor.execute("""
+            SELECT Languages, EnglishLevel, GraduationStatus 
+            FROM Candidates 
+            WHERE UserID = %s
+        """, (current_user.id,))
+        candidate_profile = cursor.fetchone()
+        
+        if not candidate_profile:
+            flash("Your candidate profile could not be found. Please contact support.", "danger")
+            return redirect(url_for('candidate_bp.dashboard'))
+
+        # --- Step 2: Build the personalized SQL query ---
         base_sql = """
             SELECT 
                 jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, jo.RequiredLevel,
@@ -40,14 +74,48 @@ def job_offers_list():
         params = []
         conditions = []
 
-        if search_term:
-            conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jc.CategoryName LIKE %s OR jo.Location LIKE %s)")
-            search_like = f"%{search_term}%"
-            params.extend([search_like, search_like, search_like, search_like])
-        if selected_category_id:
-            conditions.append("jo.CategoryID = %s")
-            params.append(selected_category_id)
+        # --- Personalized Filtering Logic ---
+
+        # 1. Language Filter
+        candidate_languages = [lang.strip() for lang in candidate_profile.get('Languages', '').split(',') if lang.strip()]
+        if candidate_languages:
+            lang_conditions = " OR ".join(["FIND_IN_SET(%s, jo.RequiredLanguages) > 0" for _ in candidate_languages])
+            # Also include jobs that don't specify any language
+            conditions.append(f"(({lang_conditions}) OR jo.RequiredLanguages IS NULL OR jo.RequiredLanguages = '')")
+            params.extend(candidate_languages)
+
+        # 2. Level Filter (Converts text levels to numbers for comparison)
+        level_map_sql = """
+            CASE 
+                WHEN %s = 'C2' THEN 6 WHEN %s = 'C1' THEN 5 WHEN %s = 'B2+' THEN 4
+                WHEN %s = 'B2' THEN 3 WHEN %s = 'B1+' THEN 2 WHEN %s = 'B1' THEN 1
+                ELSE 0 
+            END
+        """
+        job_level_map_sql = level_map_sql.replace('%s', 'jo.RequiredLevel')
+        candidate_level_map_sql = level_map_sql
         
+        conditions.append(f"({job_level_map_sql} <= ({candidate_level_map_sql}))")
+        # Add candidate's level to params 6 times, once for each WHEN clause
+        params.extend([candidate_profile.get('EnglishLevel')] * 6)
+
+        # 3. Graduation Status Filter
+        grad_status = candidate_profile.get('GraduationStatus')
+        if grad_status == 'Graduate':
+            # Show jobs for 'Graduates Only' or 'Any'
+            conditions.append("(jo.GraduationStatusRequirement = 'Graduates Only' OR jo.GraduationStatusRequirement = 'Any')")
+        elif grad_status == 'Undergraduate':
+            # Show jobs for 'Undergraduates Only' or 'Any'
+            conditions.append("(jo.GraduationStatusRequirement = 'Undergraduates Only' OR jo.GraduationStatusRequirement = 'Any')")
+        # If status is something else, they can see 'Any' jobs by default (no condition added)
+
+        # 4. Standard Search Term Filter
+        if search_term:
+            conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jc.CategoryName LIKE %s)")
+            search_like = f"%{search_term}%"
+            params.extend([search_like, search_like, search_like])
+        
+        # --- Step 3: Execute Final Query ---
         sql = base_sql
         if conditions:
             sql += " AND " + " AND ".join(conditions)
@@ -55,46 +123,42 @@ def job_offers_list():
         
         cursor.execute(sql, tuple(params))
         job_offers_list = cursor.fetchall()
-
-        cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
-        job_categories_for_filter = cursor.fetchall()
         
     except Exception as e:
-        current_app.logger.error(f"Error fetching job offers list: {e}", exc_info=True)
-        flash("Could not load job openings. Please try again.", "warning")
+        current_app.logger.error(f"Error fetching personalized job offers for UserID {current_user.id}: {e}", exc_info=True)
+        flash("Could not load personalized job openings. Please try again.", "warning")
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
     return render_template('Website/job_offers/offers_list.html', 
-                           title="Current Job Openings", 
+                           title="Your Personalized Job Board", 
                            job_offers_list=job_offers_list,
-                           job_categories=job_categories_for_filter,
-                           search_term=search_term,
-                           selected_category_id=selected_category_id)
+                           candidate_profile=candidate_profile,
+                           search_term=search_term)
 
 
 @job_board_bp.route('/offer/<int:offer_id>')
 @job_board_bp.route('/offer/<int:offer_id>/<job_title_slug>')
+@login_required
 def job_detail(offer_id, job_title_slug=None):
     """
     Displays the rich, read-only details for a single job offer.
+    Accessible only by logged-in candidates.
     """
+    # Role check: Ensure user is a candidate
+    role_redirect = check_candidate_role()
+    if role_redirect:
+        return role_redirect
+        
     conn = get_db_connection()
     offer = None
     try:
         cursor = conn.cursor(dictionary=True)
-        # UPDATED: Query to select all relevant candidate-facing fields from the new schema
         cursor.execute("""
-            SELECT 
-                jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, jo.NetSalary,
-                jo.PaymentTerm, jo.MaxAge, jo.HasContract, jo.GraduationStatusRequirement,
-                jo.LanguagesType, jo.RequiredLanguages, jo.RequiredLevel, jo.ShiftType,
-                jo.AvailableShifts, jo.BenefitsIncluded, jo.InterviewType, jo.Nationality,
-                jo.DatePosted, jo.ClosingDate,
-                c.CompanyName, c.CompanyLogoURL, c.CompanyWebsite, c.Description as CompanyDescription,
-                jc.CategoryName
+            SELECT jo.*, c.CompanyName, c.CompanyLogoURL, c.CompanyWebsite, 
+                   c.Description as CompanyDescription, jc.CategoryName
             FROM JobOffers jo
             JOIN Companies c ON jo.CompanyID = c.CompanyID
             JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
@@ -107,7 +171,6 @@ def job_detail(offer_id, job_title_slug=None):
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
 
-        # UPDATED: Process all comma-separated fields into lists for the template
         for field in ['BenefitsIncluded', 'RequiredLanguages', 'AvailableShifts']:
             template_key = f"{field}_list"
             db_value = offer.get(field)
@@ -115,7 +178,6 @@ def job_detail(offer_id, job_title_slug=None):
                 offer[template_key] = [item.strip() for item in db_value.split(',')]
             else:
                 offer[template_key] = []
-
     except Exception as e:
         current_app.logger.error(f"Error fetching job detail for OfferID {offer_id}: {e}", exc_info=True)
         flash("Could not load job details.", "danger")
@@ -128,7 +190,6 @@ def job_detail(offer_id, job_title_slug=None):
     return render_template('Website/job_offers/job_detail.html', offer=offer)
 
 
-# No changes needed for apply_to_job route. It is correct.
 @job_board_bp.route('/offer/<int:offer_id>/apply', methods=['GET'])
 @login_required
 def apply_to_job(offer_id):

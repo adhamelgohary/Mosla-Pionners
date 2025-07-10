@@ -3,99 +3,83 @@
 {% block title %}{{ title }} - Mosla Pioneers{% endblock %}
 
 {% block content %}
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Search and Filter Form -->
-    <form class="bg-card p-6 sm:p-8 rounded-2xl shadow-lg mb-8 border border-border" method="GET" action="{{ url_for('job_board_bp.job_offers_list') }}">
-        <h1 class="text-2xl sm:text-3xl font-bold text-heading mb-6">Find Your Next Opportunity</h1>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <!-- Keyword Search -->
-            <div class="relative lg:col-span-2">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <svg class="h-5 w-5 text-text-muted" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
-                </div>
-                <input type="text" name="q" placeholder="Job title, keywords, or company" value="{{ search_term or '' }}"
-                       class="block w-full rounded-lg border-0 bg-input pl-10 pr-3 py-2.5 text-text ring-1 ring-inset ring-input-border focus:ring-2 focus:ring-primary">
-            </div>
-             <!-- Action Buttons -->
-            <div class="lg:col-span-1 flex items-center justify-end gap-4">
-                {% if search_term or selected_category_id %}
-                    <a href="{{ url_for('.job_offers_list') }}" class="text-sm font-semibold text-primary hover:text-primary-darker">Clear All</a>
-                {% endif %}
-                <button type="submit" class="w-full sm:w-auto rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Search</button>
-            </div>
-        </div>
-    </form>
+<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header for Personalized View -->
+    <div class="bg-card p-6 sm:p-8 rounded-2xl shadow-lg mb-8 border border-border">
+        <h1 class="text-2xl sm:text-3xl font-bold text-heading">Jobs Curated For You</h1>
+        <p class="mt-2 text-text-muted">
+            Based on your profile, we've filtered these openings to match your skills. Your profile indicates:
+            <span class="font-semibold text-primary">{{ candidate_profile.EnglishLevel }} English</span>,
+            <span class="font-semibold text-primary">{{ candidate_profile.GraduationStatus }}</span> status,
+            and language skills in <span class="font-semibold text-primary">{{ candidate_profile.Languages }}</span>.
+        </p>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Sidebar with Categories -->
-        <aside class="lg:col-span-1">
-            <div class="bg-card p-6 rounded-2xl shadow-lg sticky top-28 border border-border">
-                <h3 class="text-lg font-semibold text-heading mb-4">Job Categories</h3>
-                <nav class="flex flex-col gap-1">
-                    <a href="{{ url_for('.job_offers_list', q=search_term) }}"
-                       class="px-3 py-2 text-sm font-medium rounded-md transition-colors
-                              {% if not selected_category_id %}bg-primary/10 text-primary{% else %}text-text-muted hover:bg-primary/5 hover:text-primary{% endif %}">
-                        All Categories
-                    </a>
-                    {% for category in job_categories %}
-                    <a href="{{ url_for('.job_offers_list', category=category.CategoryID, q=search_term) }}"
-                       class="px-3 py-2 text-sm font-medium rounded-md transition-colors
-                              {% if selected_category_id == category.CategoryID %}bg-primary/10 text-primary{% else %}text-text-muted hover:bg-primary/5 hover:text-primary{% endif %}">
-                        {{ category.CategoryName }}
-                    </a>
-                    {% endfor %}
-                </nav>
-            </div>
-        </aside>
-
-        <!-- Job Listings -->
-        <div class="lg:col-span-3">
-            <div class="border-b border-border pb-4 mb-6">
-                <p class="text-sm text-text-muted">
-                    Showing {{ job_offers_list|length }} job opening{{ 's' if job_offers_list|length != 1 else '' }}
-                    {% if search_term or selected_category_id %} (filtered results){% endif %}
-                </p>
-            </div>
-
-            <div class="flex flex-col gap-6">
-                {% if job_offers_list %}
-                    {% for job in job_offers_list %}
-                    <a href="{{ url_for('job_board_bp.job_detail', offer_id=job.OfferID) }}" class="block bg-card p-6 rounded-2xl border border-border hover:border-primary hover:shadow-xl transition-all duration-300 group">
-                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div class="flex items-start gap-4">
-                                <img src="{{ url_for('static', filename=job.CompanyLogoURL) if job.CompanyLogoURL else 'images/default-logo.png' }}" alt="{{ job.CompanyName }} Logo" class="w-12 h-12 object-contain rounded-lg bg-white p-1 flex-shrink-0 border border-border">
-                                <div class="flex-grow">
-                                    <h3 class="text-lg font-semibold text-heading group-hover:text-primary transition-colors">{{ job.Title }}</h3>
-                                    <p class="text-sm font-medium text-text-muted mt-1">{{ job.CompanyName }}</p>
-                                    <p class="text-sm text-text-muted mt-2">
-                                        {% if job.NetSalary %}<span class="font-semibold text-text">Up to {{ job.NetSalary|int }} EGP</span> / Monthly{% else %}Salary Undisclosed{% endif %}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="w-full sm:w-auto flex justify-end items-start mt-4 sm:mt-0">
-                               <span class="hidden sm:inline-block rounded-md bg-primary/10 px-4 py-2 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   View Details →
-                               </span>
-                            </div>
-                        </div>
-                        <!-- UPDATED: Tag section with new fields -->
-                        <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-location-bg text-tag-location-text">📍 {{ job.Location }}</span>
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-worktype-bg text-tag-worktype-text">🏢 {{ job.WorkLocationType }}</span>
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-category-bg text-tag-category-text">{{ job.CategoryName }}</span>
-                            {% if job.RequiredLevel %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-english-bg text-tag-english-text">🇬🇧 {{ job.RequiredLevel }} Level</span>{% endif %}
-                        </div>
-                    </a>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center py-16 px-6 bg-card rounded-2xl border border-border">
-                        <svg class="mx-auto h-12 w-12 text-text-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                        <h3 class="mt-2 text-lg font-semibold text-heading">No Jobs Found</h3>
-                        <p class="mt-1 text-sm text-text-muted">No jobs were found matching your criteria. Try broadening your search.</p>
+        <!-- Search within personalized results -->
+        <form class="mt-6" method="GET" action="{{ url_for('job_board_bp.job_offers_list') }}">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <div class="relative flex-grow">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-text-muted" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" /></svg>
                     </div>
-                {% endif %}
+                    <input type="text" name="q" placeholder="Filter these results by title or company..." value="{{ search_term or '' }}"
+                           class="block w-full rounded-lg border-0 bg-input pl-10 pr-3 py-2.5 text-text ring-1 ring-inset ring-input-border focus:ring-2 focus:ring-primary">
+                </div>
+                <div class="flex items-center justify-end gap-4">
+                    {% if search_term %}
+                        <a href="{{ url_for('.job_offers_list') }}" class="text-sm font-semibold text-primary hover:text-primary-darker">Clear Filter</a>
+                    {% endif %}
+                    <button type="submit" class="w-full sm:w-auto rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Filter</button>
+                </div>
             </div>
+        </form>
+    </div>
+
+    <!-- Job Listings -->
+    <div>
+        <div class="border-b border-border pb-4 mb-6">
+            <p class="text-sm text-text-muted">
+                Showing {{ job_offers_list|length }} relevant job opening{{ 's' if job_offers_list|length != 1 else '' }}
+                {% if search_term %} (filtered){% endif %}
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-6">
+            {% if job_offers_list %}
+                {% for job in job_offers_list %}
+                <a href="{{ url_for('job_board_bp.job_detail', offer_id=job.OfferID) }}" class="block bg-card p-6 rounded-2xl border border-border hover:border-primary hover:shadow-xl transition-all duration-300 group">
+                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div class="flex items-start gap-4">
+                            <img src="{{ url_for('static', filename=job.CompanyLogoURL) if job.CompanyLogoURL else 'images/default-logo.png' }}" alt="{{ job.CompanyName }} Logo" class="w-12 h-12 object-contain rounded-lg bg-white p-1 flex-shrink-0 border border-border">
+                            <div class="flex-grow">
+                                <h3 class="text-lg font-semibold text-heading group-hover:text-primary transition-colors">{{ job.Title }}</h3>
+                                <p class="text-sm font-medium text-text-muted mt-1">{{ job.CompanyName }}</p>
+                                <p class="text-sm text-text-muted mt-2">
+                                    {% if job.NetSalary %}<span class="font-semibold text-text">Up to {{ job.NetSalary|int }} EGP</span> / Monthly{% else %}Salary Undisclosed{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="w-full sm:w-auto flex justify-end items-start mt-4 sm:mt-0">
+                           <span class="hidden sm:inline-block rounded-md bg-primary/10 px-4 py-2 text-sm font-medium text-primary ring-1 ring-inset ring-primary/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                               View Details →
+                           </span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-location-bg text-tag-location-text">📍 {{ job.Location }}</span>
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-worktype-bg text-tag-worktype-text">🏢 {{ job.WorkLocationType }}</span>
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-category-bg text-tag-category-text">{{ job.CategoryName }}</span>
+                        {% if job.RequiredLevel %}<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-tag-english-bg text-tag-english-text">🇬🇧 {{ job.RequiredLevel }} Level</span>{% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-16 px-6 bg-card rounded-2xl border border-border">
+                    <svg class="mx-auto h-12 w-12 text-text-muted" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                    <h3 class="mt-2 text-lg font-semibold text-heading">No Jobs Found</h3>
+                    <p class="mt-1 text-sm text-text-muted">There are currently no job openings that match your specific profile. Please check back later or update your profile!</p>
+                    <a href="{{ url_for('candidate_bp.edit_profile') }}" class="mt-4 inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-darker">Update Your Profile</a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </main>
