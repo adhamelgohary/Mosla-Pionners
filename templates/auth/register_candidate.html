@@ -18,6 +18,7 @@
             width: 100%; padding: 14px 20px 14px 45px; border: 1px solid var(--input-border, #D0D5DD); border-radius: 8px;
             font-family: 'Poppins', sans-serif; font-size: 1rem; background-color: var(--input-background); color: var(--text-color);
         }
+        .input-group input[type="date"] { padding-left: 20px; }
         .input-group select { padding-left: 20px; -webkit-appearance: none; appearance: none; }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--primary-accent); }
         .password-input-wrapper { position: relative; }
@@ -59,7 +60,6 @@
 
             <form method="POST" action="{{ url_for('register_bp.register_candidate') }}">
                 
-                <!-- This hidden input tells the backend which step is being submitted -->
                 <input type="hidden" name="step" value="{{ step }}">
                 
                 <!-- ===== STEP 1: Account Info ===== -->
@@ -93,31 +93,45 @@
                 <!-- ===== STEP 2: Profile Details ===== -->
                 <div {% if step != 2 %}style="display: none;"{% endif %}>
                     <div class="input-group">
-                        <input type="url" name="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)">
+                        <input type="url" name="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}">
                     </div>
                     <div class="input-group">
                         <select name="educational_status">
-                            <option value="" disabled selected>Select Graduation Status...</option>
-                            <option value="Graduate">Graduate</option>
-                            <option value="Student">Student</option>
-                            <option value="Dropout">Dropout</option>
-                            <option value="Gap Year">Gap Year</option>
+                            <option value="" disabled {% if not form_data.get('educational_status') %}selected{% endif %}>Select Graduation Status...</option>
+                            <option value="grad" {% if form_data.get('educational_status') == 'grad' %}selected{% endif %}>Graduate</option>
+                            <option value="ungrad" {% if form_data.get('educational_status') == 'ungrad' %}selected{% endif %}>Undergraduate / Student</option>
+                            <option value="dropout" {% if form_data.get('educational_status') == 'dropout' %}selected{% endif %}>Dropout</option>
+                            <option value="gap_year" {% if form_data.get('educational_status') == 'gap_year' %}selected{% endif %}>Gap Year</option>
                         </select>
                     </div>
                     <div class="input-group">
-                        <select name="english_level">
-                            <option value="" disabled selected>Select English Level...</option>
-                            <option value="A1">A1</option><option value="A2">A2</option>
-                            <option value="B1">B1</option><option value="B2">B2</option>
-                            <option value="C1">C1</option><option value="C2">C2</option>
+                        <select name="language">
+                            <option value="" disabled {% if not form_data.get('language') %}selected{% endif %}>Select Primary Language...</option>
+                            <option value="English" {% if form_data.get('language') == 'English' %}selected{% endif %}>English</option>
+                            <option value="Spanish" {% if form_data.get('language') == 'Spanish' %}selected{% endif %}>Spanish</option>
+                            <option value="Portuguese" {% if form_data.get('language') == 'Portuguese' %}selected{% endif %}>Portuguese</option>
+                            <option value="German" {% if form_data.get('language') == 'German' %}selected{% endif %}>German</option>
+                            <option value="Arabic" {% if form_data.get('language') == 'Arabic' %}selected{% endif %}>Arabic</option>
+                            <option value="French" {% if form_data.get('language') == 'French' %}selected{% endif %}>French</option>
+                        </select>
+                    </div>
+                     <div class="input-group">
+                        <select name="language_level">
+                            <option value="" disabled {% if not form_data.get('language_level') %}selected{% endif %}>Select Language Level...</option>
+                            <option value="B1" {% if form_data.get('language_level') == 'B1' %}selected{% endif %}>B1</option>
+                            <option value="B1+" {% if form_data.get('language_level') == 'B1+' %}selected{% endif %}>B1+</option>
+                            <option value="B2" {% if form_data.get('language_level') == 'B2' %}selected{% endif %}>B2</option>
+                            <option value="B2+" {% if form_data.get('language_level') == 'B2+' %}selected{% endif %}>B2+</option>
+                            <option value="C1" {% if form_data.get('language_level') == 'C1' %}selected{% endif %}>C1</option>
+                            <option value="C2" {% if form_data.get('language_level') == 'C2' %}selected{% endif %}>C2</option>
                         </select>
                     </div>
                     <div class="input-group">
-                        <input type="number" name="age" min="16" max="60" placeholder="Your age (Optional)">
+                        <input type="date" name="date_of_birth" placeholder="Date of Birth (Optional)" value="{{ form_data.get('date_of_birth', '') }}" class="{{ 'is-invalid' if errors.get('date_of_birth') }}">
+                        {% if errors.get('date_of_birth') %}<div class="invalid-feedback">{{ errors.get('date_of_birth') }}</div>{% endif %}
                     </div>
                     <p class="text-sm text-center my-4">You can upload your CV and Profile Picture from your dashboard after creating your account.</p>
                     <button type="submit" class="login-button">Create Account</button>
-                    <!-- A "Back" button would require more complex JS, so we omit for simplicity -->
                 </div>
             </form>
             <div class="signup-link">

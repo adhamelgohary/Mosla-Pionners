@@ -40,6 +40,7 @@ def create_user_in_db(email, password, first_name, last_name, phone_number=None,
     try:
         cursor = conn.cursor()
         hashed_password = generate_password_hash(password)
+        # This query is compatible with the new Users schema, as CreatedAt/UpdatedAt are handled by MySQL.
         cursor.execute(
             """INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, ProfilePictureURL, RegistrationDate, LastLoginDate, IsActive)
                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), %s)""",
@@ -81,14 +82,12 @@ def register_options():
     """Presents the choice to register as a Candidate, a Client, or Apply to be Staff."""
     return render_template('auth/register_options.html', title='Register')
 
-# In register_routes.py
 
 @register_bp.route('/register/candidate', methods=['GET', 'POST'])
 def register_candidate():
     """Handles the two-step registration for a new Candidate."""
     errors = {}
     
-    # Determine the current step from the form submission, default to 1 on GET
     try:
         step = int(request.form.get('step', 1))
     except ValueError:
@@ -102,7 +101,7 @@ def register_candidate():
             email = form_data.get('email', '').strip()
             password = form_data.get('password', '')
             
-            # --- Validation for Step 1 ---
+            # --- Validation for Step 1 (no changes here) ---
             if not form_data.get('first_name'): errors['first_name'] = 'First name is required.'
             if not form_data.get('last_name'): errors['last_name'] = 'Last name is required.'
             if not email: errors['email'] = 'Email is required.'
@@ -112,22 +111,16 @@ def register_candidate():
             if password != form_data.get('confirm_password'): errors['confirm_password'] = 'Passwords do not match.'
 
             if not errors:
-                # If validation passes, create the user but DO NOT create the candidate profile yet.
-                # Store the data in the session and move to the next step.
                 session['registration_step1_data'] = {
-                    'email': email,
-                    'password': password, # Note: It's better not to store raw password in session if possible.
-                                          # For this workflow, it's a trade-off. A more complex system might create
-                                          # the user and log them in immediately.
+                    'email': email, 'password': password,
                     'first_name': form_data.get('first_name'),
                     'last_name': form_data.get('last_name'),
                     'phone_number': form_data.get('phone_number')
                 }
-                # Advance to step 2
                 return render_template('auth/register_candidate.html', title='Complete Your Profile', step=2, errors={}, form_data={})
             else:
                 flash('Please correct the errors to continue.', 'warning')
-                step = 1 # Stay on step 1 if errors exist
+                step = 1
 
         # --- STEP 2 PROCESSING: Create Candidate Profile & Finalize ---
         elif step == 2:
@@ -136,12 +129,16 @@ def register_candidate():
                 flash('Your session has expired. Please start the registration process again.', 'danger')
                 return redirect(url_for('.register_candidate'))
             
-            # --- Validation for Step 2 (if any) ---
-            # You can add validation for LinkedIn URL, age, etc. here if needed.
-            # For now, we assume they are optional or have basic client-side checks.
-
+            # --- Validation & Data Prep for Step 2 ---
+            date_of_birth_str = form_data.get('date_of_birth', '')
+            date_of_birth = None
+            if date_of_birth_str:
+                try:
+                    date_of_birth = datetime.datetime.strptime(date_of_birth_str, '%Y-%m-%d').date()
+                except ValueError:
+                    errors['date_of_birth'] = 'Invalid date format. Please use YYYY-MM-DD.'
+            
             if not errors:
-                # All good, create the user and the candidate profile in one transaction
                 user_id = create_user_in_db(
                     email=step1_data['email'], password=step1_data['password'],
                     first_name=step1_data['first_name'], last_name=step1_data['last_name'],
@@ -153,37 +150,40 @@ def register_candidate():
                     try:
                         conn = get_db_connection()
                         cursor = conn.cursor()
-                        age_str = form_data.get('age', '')
-                        age = int(age_str) if age_str.isdigit() else None
-                        date_of_birth = (datetime.date.today() - datetime.timedelta(days=int(age * 365.25))) if age else None
                         
+                        # **MODIFIED**: Use new fields in the INSERT statement
                         cursor.execute("""
-                            INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, EnglishLevel, DateOfBirth)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, (user_id, form_data.get('linkedin_profile_url'), form_data.get('educational_status'), 
-                              form_data.get('english_level'), date_of_birth))
+                            INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, DateOfBirth, Languages, LanguageLevel)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                        """, (
+                            user_id, 
+                            form_data.get('linkedin_profile_url'), 
+                            form_data.get('educational_status'), 
+                            date_of_birth,
+                            form_data.get('language'), # New field
+                            form_data.get('language_level') # New field
+                        ))
                         
                         conn.commit()
-                        
-                        # Clear the session data
                         session.pop('registration_step1_data', None)
                         
                         flash('Your profile has been created successfully! You can now log in.', 'success')
                         return redirect(url_for('login_bp.login', email=step1_data['email']))
+
                     except Exception as e:
                         if conn: conn.rollback()
-                        current_app.logger.error(f"DB Error creating Candidate profile details for {step1_data['email']}: {e}", exc_info=True)
+                        current_app.logger.error(f"DB Error creating Candidate profile for {step1_data['email']}: {e}", exc_info=True)
                         flash('A database error occurred creating your profile details.', 'danger')
-                        step = 2 # Stay on step 2
+                        step = 2
                 else:
                     flash('An error occurred creating your user account.', 'danger')
-                    step = 1 # Send back to step 1
+                    step = 1
             else:
                 flash('Please correct the errors.', 'warning')
-                step = 2 # Stay on step 2
+                step = 2
 
-    # GET request handler
     return render_template('auth/register_candidate.html', title='Register as Candidate', step=step, errors=errors, form_data=form_data)
+
 
 
 @register_bp.route('/register/client', methods=['GET', 'POST'])
@@ -227,6 +227,7 @@ def register_client():
                     company_id = company_result[0]
                     current_app.logger.info(f"Client registration: Existing company found '{company_name}' (ID: {company_id}).")
                 else:
+                    # This INSERT is compatible as other new columns in Companies are nullable.
                     cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (company_name,))
                     company_id = cursor.lastrowid
                     current_app.logger.info(f"Client registration: New company created '{company_name}' (ID: {company_id}).")
@@ -235,6 +236,7 @@ def register_client():
                 if not user_id:
                     raise Exception(f"User account creation failed in DB for client contact {email}.")
 
+                # This INSERT is compatible as other new columns in CompanyContacts are nullable.
                 cursor.execute(
                     "INSERT INTO CompanyContacts (UserID, CompanyID, IsPrimaryContact) VALUES (%s, %s, %s)",
                     (user_id, company_id, True) 
@@ -298,6 +300,7 @@ def apply_to_be_staff():
                     cursor = conn.cursor()
                     initial_staff_role = 'SourcingRecruiter' 
 
+                    # This INSERT is compatible as other new columns in Staff are nullable.
                     cursor.execute(
                         "INSERT INTO Staff (UserID, Role) VALUES (%s, %s)", 
                         (user_id, initial_staff_role)
