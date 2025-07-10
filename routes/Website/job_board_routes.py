@@ -27,6 +27,8 @@ def check_candidate_role():
     return None
 
 
+# In routes/Website/job_board_routes.py
+
 @job_board_bp.route('/jobs')
 @login_required
 def job_offers_list():
@@ -47,7 +49,7 @@ def job_offers_list():
         cursor = conn.cursor(dictionary=True)
         
         # --- Step 1: Fetch candidate's profile for filtering ---
-        # UPDATED: Fetched EducationalStatus instead of non-existent GraduationStatus/Languages
+        # THIS QUERY IS NOW CORRECT AND DOES NOT USE 'Languages'
         cursor.execute("""
             SELECT EnglishLevel, EducationalStatus 
             FROM Candidates 
@@ -74,9 +76,9 @@ def job_offers_list():
         params = []
         conditions = []
 
-        # --- Personalized Filtering Logic ---
+        # --- Personalized Filtering Logic (NOW CORRECT) ---
 
-        # 1. English Level Filter (This was correct and remains)
+        # 1. English Level Filter
         candidate_level = candidate_profile.get('EnglishLevel')
         if candidate_level:
             level_map_sql = """
@@ -92,17 +94,15 @@ def job_offers_list():
             conditions.append(f"({level_map_sql} <= %s)")
             params.append(candidate_level_value)
 
-        # 2. Graduation Status Filter (UPDATED to use EducationalStatus and correct mapping)
+        # 2. Graduation Status Filter (using EducationalStatus)
         edu_status = candidate_profile.get('EducationalStatus')
         if edu_status in ['Graduate', 'Student', 'Dropout', 'Gap Year']:
-             # Map the candidate's status to the job's requirement enum
              status_map = {
                  'Graduate': 'grad',
                  'Student': 'ungrad',
                  'Dropout': 'dropout',
                  'Gap Year': 'gap_year'
              }
-             # A candidate can see jobs matching their status or jobs with no specific requirement
              conditions.append("(jo.GraduationStatusRequirement = %s OR jo.GraduationStatusRequirement IS NULL)")
              params.append(status_map[edu_status])
 

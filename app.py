@@ -5,6 +5,8 @@ from logging.handlers import RotatingFileHandler # ADDED for production logging
 from flask import Flask, current_app, jsonify, session, request, url_for, render_template
 from flask_login import current_user
 from dotenv import load_dotenv # ADDED: To load environment variables from .env file
+import humanize
+from datetime import datetime
 
 load_dotenv()
 
@@ -36,6 +38,18 @@ from routes.Account_Manager_Portal.am_offer_mgmt_routes import am_offer_mgmt_bp
 from routes.Account_Manager_Portal.am_schedule_mgmt_routes import am_schedule_mgmt_bp
 
 from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
+
+# 1. Define the function that will act as the filter
+def humanize_date(dt, default=None):
+    """
+    Returns a human-readable string for a datetime object.
+    e.g., "2 hours ago", "3 days ago"
+    """
+    if dt is None:
+        return default
+    now = datetime.now(dt.tzinfo) # Make sure timezones are handled if applicable
+    return humanize.naturaltime(now - dt)
+
 # --- Create Flask App ---
 app = Flask(__name__)
 
@@ -50,6 +64,8 @@ if not app.config['SECRET_KEY']:
 
 app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('FLASK_SESSION_LIFETIME', 3600))
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB upload limit
+
+app.jinja_env.filters['humanize_date'] = humanize_date
 
 # Configure the upload folder
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
