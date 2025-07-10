@@ -13,7 +13,7 @@
 </div>
 {% endmacro %}
 
-{# Reusable macro for a select dropdown field - UPDATED to handle (value, text) tuples #}
+{# Reusable macro for a select dropdown field #}
 {% macro select_field(label, name, options, selected_value, required=False) %}
 <div class="sm:col-span-3">
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
@@ -51,7 +51,15 @@
 
                         {{ form_field('Phone Number', 'phone_number', form_data.PhoneNumber) }}
                         {{ form_field('Date of Birth', 'date_of_birth', form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth, type='date') }}
-                        {{ form_field('Nationality', 'nationality', form_data.Nationality) }}
+                        
+                        {# --- THIS IS THE CHANGE --- #}
+                        {# Define the options for the simplified nationality dropdown #}
+                        {% set nationality_options = [
+                            ('Egyptian', 'Egyptian'), 
+                            ('Foreigner', 'Foreigner')
+                        ] %}
+                        {# Use the select_field macro to create the dropdown #}
+                        {{ select_field('Nationality', 'nationality', nationality_options, form_data.Nationality) }}
 
                         <div class="col-span-full">
                             <label for="profile_picture" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">Profile Picture</label>
@@ -73,28 +81,17 @@
                             {{ form_field('LinkedIn Profile URL', 'linkedin_url', form_data.LinkedInProfileURL, placeholder='https://linkedin.com/in/your-profile') }}
                         </div>
 
-                        {# --- UPDATED: Educational Status uses (value, text) tuples --- #}
-                        {% set edu_status_options = [
-                            ('grad', 'Graduate'), ('ungrad', 'Undergraduate / Student'), 
-                            ('dropout', 'Dropout'), ('gap_year', 'Gap Year')
-                        ] %}
+                        {% set edu_status_options = [('grad', 'Graduate'), ('ungrad', 'Undergraduate / Student'), ('dropout', 'Dropout'), ('gap_year', 'Gap Year')] %}
                         {{ select_field('Educational Status', 'educational_status', edu_status_options, form_data.EducationalStatus) }}
                         
-                        {# --- NEW: Language Level select field --- #}
-                        {% set lang_level_options = [
-                            ('B1', 'B1'), ('B1+', 'B1+'), ('B2', 'B2'), 
-                            ('B2+', 'B2+'), ('C1', 'C1'), ('C2', 'C2')
-                        ] %}
+                        {% set lang_level_options = [('B1', 'B1'), ('B1+', 'B1+'), ('B2', 'B2'), ('B2+', 'B2+'), ('C1', 'C1'), ('C2', 'C2')] %}
                         {{ select_field('Language Level', 'language_level', lang_level_options, form_data.LanguageLevel) }}
 
-                        {# --- NEW: Languages multi-select field --- #}
                         <div class="sm:col-span-4">
                              <label for="languages" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">Languages Spoken</label>
                              <div class="mt-2">
-                                 <select name="languages" id="languages" multiple 
-                                         class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition h-32">
+                                 <select name="languages" id="languages" multiple class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition h-32">
                                      {% set lang_options = ['English', 'Spanish', 'Portuguese', 'German', 'Arabic', 'French'] %}
-                                     {# === THE FIX IS HERE === #}
                                      {% set selected_langs = form_data.Languages if form_data.Languages else [] %}
                                      {% for lang in lang_options %}
                                      <option value="{{ lang }}" {% if lang in selected_langs %}selected{% endif %}>{{ lang }}</option>
@@ -103,7 +100,6 @@
                                  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl (or Cmd on Mac) to select multiple languages.</p>
                              </div>
                         </div>
-
                     </div>
                 </div>
             </div>
