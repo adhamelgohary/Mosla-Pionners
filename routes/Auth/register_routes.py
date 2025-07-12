@@ -1,4 +1,5 @@
-# routes/Auth/register_routes.py # Assuming this is the correct path for register_routes
+# routes/Auth/register_routes.py
+
 from flask import Blueprint, render_template, request, flash, redirect, session, url_for, current_app
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
@@ -9,7 +10,7 @@ import mysql.connector
 from db import get_db_connection
 from .login_routes import is_safe_url # Import the helper
 
-register_bp = Blueprint('register_bp', __name__, template_folder='../templates/auth') # Adjusted template_folder if needed
+register_bp = Blueprint('register_bp', __name__, template_folder='../templates/auth')
 
 # --- Helper Functions ---
 def check_email_exists_in_db(email):
@@ -40,7 +41,6 @@ def create_user_in_db(email, password, first_name, last_name, phone_number=None,
     try:
         cursor = conn.cursor()
         hashed_password = generate_password_hash(password)
-        # This query is compatible with the new Users schema, as CreatedAt/UpdatedAt are handled by MySQL.
         cursor.execute(
             """INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, ProfilePictureURL, RegistrationDate, LastLoginDate, IsActive)
                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), %s)""",
@@ -101,7 +101,7 @@ def register_candidate():
             email = form_data.get('email', '').strip()
             password = form_data.get('password', '')
             
-            # --- Validation for Step 1 (no changes here) ---
+            # --- Validation for Step 1 ---
             if not form_data.get('first_name'): errors['first_name'] = 'First name is required.'
             if not form_data.get('last_name'): errors['last_name'] = 'Last name is required.'
             if not email: errors['email'] = 'Email is required.'
@@ -151,7 +151,11 @@ def register_candidate():
                         conn = get_db_connection()
                         cursor = conn.cursor()
                         
-                        # **MODIFIED**: Use new fields in the INSERT statement
+                        # Handle multi-select for languages from the registration form
+                        languages_list = request.form.getlist('languages')
+                        languages_db_val = ','.join(languages_list) if languages_list else None
+                        
+                        # Use the new fields in the INSERT statement
                         cursor.execute("""
                             INSERT INTO Candidates (UserID, LinkedInProfileURL, EducationalStatus, DateOfBirth, Languages, LanguageLevel)
                             VALUES (%s, %s, %s, %s, %s, %s)
@@ -160,8 +164,8 @@ def register_candidate():
                             form_data.get('linkedin_profile_url'), 
                             form_data.get('educational_status'), 
                             date_of_birth,
-                            form_data.get('language'), # New field
-                            form_data.get('language_level') # New field
+                            languages_db_val,
+                            form_data.get('language_level')
                         ))
                         
                         conn.commit()
@@ -183,7 +187,6 @@ def register_candidate():
                 step = 2
 
     return render_template('auth/register_candidate.html', title='Register as Candidate', step=step, errors=errors, form_data=form_data)
-
 
 
 @register_bp.route('/register/client', methods=['GET', 'POST'])
@@ -227,7 +230,6 @@ def register_client():
                     company_id = company_result[0]
                     current_app.logger.info(f"Client registration: Existing company found '{company_name}' (ID: {company_id}).")
                 else:
-                    # This INSERT is compatible as other new columns in Companies are nullable.
                     cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (company_name,))
                     company_id = cursor.lastrowid
                     current_app.logger.info(f"Client registration: New company created '{company_name}' (ID: {company_id}).")
@@ -236,7 +238,6 @@ def register_client():
                 if not user_id:
                     raise Exception(f"User account creation failed in DB for client contact {email}.")
 
-                # This INSERT is compatible as other new columns in CompanyContacts are nullable.
                 cursor.execute(
                     "INSERT INTO CompanyContacts (UserID, CompanyID, IsPrimaryContact) VALUES (%s, %s, %s)",
                     (user_id, company_id, True) 
@@ -300,7 +301,6 @@ def apply_to_be_staff():
                     cursor = conn.cursor()
                     initial_staff_role = 'SourcingRecruiter' 
 
-                    # This INSERT is compatible as other new columns in Staff are nullable.
                     cursor.execute(
                         "INSERT INTO Staff (UserID, Role) VALUES (%s, %s)", 
                         (user_id, initial_staff_role)
@@ -308,8 +308,10 @@ def apply_to_be_staff():
                     conn.commit()
                     flash('Your application to join our staff has been submitted! Our team will review it and contact you if your application is approved.', 'success')
                     current_app.logger.info(f"New staff application submitted: {email}, UserID: {user_id}")
-                    # Staff applicants usually don't need 'next' param propagation to login after application
-                    return redirect(url_for('homepage_bp.home_page')) 
+                    
+                    # Use the correct endpoint for the homepage redirect
+                    return redirect(url_for('public_routes_bp.home_page')) 
+                
                 except Exception as e:
                     if conn: conn.rollback()
                     current_app.logger.error(f"DB error creating Staff profile for applicant {email} (UserID: {user_id}): {e}", exc_info=True)
