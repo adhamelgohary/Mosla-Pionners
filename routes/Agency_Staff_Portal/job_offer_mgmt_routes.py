@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask_login import current_user
 from utils.decorators import login_required_with_role, EXECUTIVE_ROLES
-from db import get_db_connection, get_db_config
+from db import get_db_connection
 import datetime
 import decimal
 import mysql.connector
@@ -20,7 +20,7 @@ def get_column_options(cursor, table_name, column_name):
     Dynamically fetches the allowed values for an ENUM or SET column from the database schema.
     """
     try:
-        db_name = get_db_config()['database']
+        db_name = get_db_connection().database
         query = """
             SELECT COLUMN_TYPE 
             FROM INFORMATION_SCHEMA.COLUMNS
