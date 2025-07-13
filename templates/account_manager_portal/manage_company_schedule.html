@@ -1,3 +1,4 @@
+{# templates/account_manager_portal/manage_company_schedule.html #}
 {% extends "account_manager_portal/account_manager_base.html" %}
 
 {% block page_title %}{{ title }}{% endblock %}
@@ -34,11 +35,13 @@
                             </div>
                             <div>
                                 <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
-                                <input type="time" id="start_time" name="start_time" value="{{ slot_to_edit.StartTime.strftime('%H:%M') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                {# THE FIX: Convert timedelta to string and slice to HH:MM #}
+                                <input type="time" id="start_time" name="start_time" value="{{ slot_to_edit.StartTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div>
                                 <label for="end_time" class="block text-sm font-medium text-gray-700">End Time</label>
-                                <input type="time" id="end_time" name="end_time" value="{{ slot_to_edit.EndTime.strftime('%H:%M') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                {# THE FIX: Convert timedelta to string and slice to HH:MM #}
+                                <input type="time" id="end_time" name="end_time" value="{{ slot_to_edit.EndTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div class="flex items-center gap-x-4">
                                 <a href="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}" class="flex-1 text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</a>
@@ -83,10 +86,12 @@
                     <li class="py-3 flex justify-between items-center gap-4">
                         <div>
                             <p class="font-semibold text-gray-800">{{ schedule.DayOfWeek }}</p>
-                            <p class="text-sm text-gray-600">{{ schedule.StartTime.strftime('%I:%M %p') }} - {{ schedule.EndTime.strftime('%I:%M %p') }}</p>
+                            {# THE FIX: Create temporary datetime objects to format the timedelta values #}
+                            {% set start_display = (datetime.datetime.min + schedule.StartTime).strftime('%I:%M %p') %}
+                            {% set end_display = (datetime.datetime.min + schedule.EndTime).strftime('%I:%M %p') %}
+                            <p class="text-sm text-gray-600">{{ start_display }} - {{ end_display }}</p>
                         </div>
                         <div class="flex items-center gap-x-4">
-                            {# --- EDIT LINK ADDED --- #}
                             <a href="{{ url_for('.manage_company_schedule', company_id=company.CompanyID, edit_id=schedule.ScheduleID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Edit</a>
                             
                             <form method="POST" action="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}" onsubmit="return confirm('Are you sure you want to delete this slot?');">
@@ -105,4 +110,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+    {# Import datetime from Python into Jinja for formatting #}
+    {% set datetime = modules.datetime %}
 {% endblock %}
