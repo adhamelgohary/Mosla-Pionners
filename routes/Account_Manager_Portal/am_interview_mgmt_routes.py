@@ -11,6 +11,17 @@ am_interview_mgmt_bp = Blueprint('am_interview_mgmt_bp', __name__,
                                  template_folder='../../../templates',
                                  url_prefix='/am-portal/company-schedules')
 
+def format_timedelta(td):
+    """Helper function to format a timedelta object into a 12-hour time string (e.g., '02:30 PM')."""
+    if not isinstance(td, datetime.timedelta):
+        return ""
+    total_seconds = int(td.total_seconds())
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+    # Create a dummy datetime object to use strftime
+    dummy_dt = datetime.datetime.min + datetime.timedelta(hours=hours, minutes=minutes)
+    return dummy_dt.strftime("%I:%M %p")
+
 @am_interview_mgmt_bp.route('/manage/<int:company_id>', methods=['GET', 'POST'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def manage_company_schedule(company_id):
@@ -29,7 +40,6 @@ def manage_company_schedule(company_id):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- Simplified Authorization Check ---
         cursor.execute("SELECT CompanyID, CompanyName, ManagedByStaffID FROM Companies WHERE CompanyID = %s", (company_id,))
         company = cursor.fetchone()
         
@@ -44,69 +54,57 @@ def manage_company_schedule(company_id):
             flash("You are not authorized to manage this company's schedule.", "danger")
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
         
-        # --- EDIT WORKFLOW (GET) ---
         edit_id = request.args.get('edit_id', type=int)
         if edit_id:
             cursor.execute("SELECT * FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (edit_id, company_id))
             slot_to_edit = cursor.fetchone()
 
-        # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
             action = request.form.get('action')
             
-            # Start transaction only when we are sure we are writing to the DB
-            try:
-                if conn.in_transaction:
-                    current_app.logger.warning(f"Connection for company {company_id} had a lingering transaction. Rolling back.")
-                    conn.rollback()
-                
-                conn.start_transaction()
-                
-                if action == 'delete':
-                    schedule_id = request.form.get('schedule_id')
-                    cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
-                    flash("Schedule slot deleted successfully.", "success")
-                
-                elif action in ['add', 'edit']:
-                    day_of_week = request.form.get('day_of_week')
-                    start_time = request.form.get('start_time')
-                    end_time = request.form.get('end_time')
+            if action == 'delete':
+                schedule_id = request.form.get('schedule_id')
+                cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
+                flash("Schedule slot deleted successfully.", "success")
+            
+            elif action in ['add', 'edit']:
+                day_of_week = request.form.get('day_of_week')
+                start_time = request.form.get('start_time')
+                end_time = request.form.get('end_time')
 
-                    if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
-                        flash("Invalid schedule details provided. End time must be after start time.", "danger")
-                    else:
-                        if action == 'add':
-                            cursor.execute("""
-                                INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
-                                VALUES (%s, %s, %s, %s)
-                            """, (company_id, day_of_week, start_time, end_time))
-                            flash("New interview availability added successfully.", "success")
-                        elif action == 'edit':
-                            schedule_id = request.form.get('schedule_id')
-                            cursor.execute("""
-                                UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
-                                WHERE ScheduleID = %s AND CompanyID = %s
-                            """, (day_of_week, start_time, end_time, schedule_id, company_id))
-                            flash("Schedule slot updated successfully.", "success")
-                
-                conn.commit()
-
-            except Exception as e:
-                if conn and conn.in_transaction: 
-                    conn.rollback()
-                current_app.logger.error(f"Database operation failed for company {company_id}: {e}", exc_info=True)
-                flash("An error occurred while processing your request. Please try again.", "danger")
+                if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
+                    flash("Invalid schedule details provided. End time must be after start time.", "danger")
+                else:
+                    if action == 'add':
+                        cursor.execute("""
+                            INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+                            VALUES (%s, %s, %s, %s)
+                        """, (company_id, day_of_week, start_time, end_time))
+                        flash("New interview availability added successfully.", "success")
+                    elif action == 'edit':
+                        schedule_id = request.form.get('schedule_id')
+                        cursor.execute("""
+                            UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
+                            WHERE ScheduleID = %s AND CompanyID = %s
+                        """, (day_of_week, start_time, end_time, schedule_id, company_id))
+                        flash("Schedule slot updated successfully.", "success")
             
             return redirect(url_for('.manage_company_schedule', company_id=company_id))
 
-        # --- DATA FOR LISTING (GET request) ---
         cursor.execute("""
             SELECT ScheduleID, DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules 
             WHERE CompanyID = %s AND IsActive = 1
             ORDER BY FIELD(DayOfWeek, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), StartTime
             """, (company_id,)
         )
-        schedules = cursor.fetchall()
+        schedules_raw = cursor.fetchall()
+        
+        # Pre-format the time strings before sending to the template
+        schedules = []
+        for sched in schedules_raw:
+            sched['start_time_formatted'] = format_timedelta(sched.get('StartTime'))
+            sched['end_time_formatted'] = format_timedelta(sched.get('EndTime'))
+            schedules.append(sched)
         
     except Exception as e:
         current_app.logger.error(f"Error managing schedule for company {company_id}: {e}", exc_info=True)
