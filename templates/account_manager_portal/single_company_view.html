@@ -1,7 +1,7 @@
 {% extends "account_manager_portal/account_manager_base.html" %}
 
 {% block page_title %}
-    {{ company_data.info.CompanyName }}
+    Manage: {{ company_data.info.CompanyName }}
 {% endblock %}
 
 {% block content %}
@@ -9,77 +9,45 @@
     <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <!-- Company Header -->
         <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <a href="{{ url_for('account_manager_bp.dashboard') }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-primary rounded-lg shadow-md
-                                  dark:bg-dark-primary dark:text-gray-900
-                                  transition-all duration-200 ease-in-out
-                                  hover:bg-primary-darker hover:-translate-y-0.5 hover:shadow-lg
-                                  dark:hover:brightness-110
-                                  active:scale-95 active:shadow-sm">
-                ← Back to Dashboard
-            </a>
+             <div>
+                <h2 class="text-xl font-bold text-gray-900">{{ company_data.info.CompanyName }}</h2>
+                <a href="{{ company_data.info.CompanyWebsite }}" target="_blank" class="text-sm text-indigo-500 hover:underline">{{ company_data.info.CompanyWebsite }}</a>
+             </div>
+             <div>
+                <a href="{{ url_for('am_offer_mgmt_bp.list_offers_for_company', company_id=company_data.info.CompanyID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
+                    Manage Offers →
+                </a>
+             </div>
         </div>
 
-        <!-- Job Offers List -->
+        <!-- Job Offers List with Accordion -->
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for offer in company_data.job_offers %}
-            <div class="p-6" x-data="{ open: true }"> <!-- Default to open -->
+            <div class="p-6" x-data="{ open: true }">
                 <button @click="open = !open" class="w-full flex justify-between items-center text-left hover:bg-gray-50 p-2 -m-2 rounded-md transition-colors">
                     <div>
-                        {# --- THIS IS THE NEW LINK --- #}
-                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-lg text-gray-800 hover:text-indigo-600">{{ offer.Title }}</a>
+                        <a href="{{ url_for('account_manager_bp.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-lg text-gray-800 hover:text-indigo-600">{{ offer.Title }}</a>
                         <div class="mt-1">
-                            <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">
-                                {{ offer.Status }}
-                            </span>
+                            <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">{{ offer.Status }}</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ offer.applicants|length }} Applicant(s)</span>
                         <i class="bi transition-transform text-lg text-gray-500" :class="{ 'bi-chevron-down': !open, 'bi-chevron-up': open }"></i>
                     </div>
                 </button>
-
-                <div x-show="open" x-collapse.duration.400ms class="mt-4 pl-4 border-l-2 border-primary-500 dark:border-primary-400">
-                    {% if offer.applicants %}
-                    <ul class="divide-y divide-gray-200 dark:divide-gray-600">
-                        {% for applicant in offer.applicants %}
-                        <li class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div class="flex-1">
-                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ applicant.FirstName }} {{ applicant.LastName }}</p>
-                                <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="text-sm text-blue-600 hover:underline dark:text-blue-400" target="_blank">
-                                    View Full Profile <i class="bi bi-box-arrow-up-right text-xs"></i>
-                                </a>
-                            </div>
-                            <div class="flex-shrink-0 flex items-center gap-2 mt-2 md:mt-0">
-                                <!-- UPDATED FORM to include company_id for correct redirection -->
-                                <form method="POST" action="{{ url_for('.update_application_status', application_id=applicant.ApplicationID) }}">
-                                    <input type="hidden" name="company_id" value="{{ company_data.info.CompanyID }}">
-                                    <input type="hidden" name="action" value="reject">
-                                    <button type="submit" class="text-xs font-medium rounded-md px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500/40">Reject</button>
-                                </form>
-                                <form method="POST" action="{{ url_for('.update_application_status', application_id=applicant.ApplicationID) }}">
-                                    <input type="hidden" name="company_id" value="{{ company_data.info.CompanyID }}">
-                                    <input type="hidden" name="action" value="approve">
-                                    <button type="submit" class="text-xs font-medium rounded-md px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">Approve</button>
-                                </form>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="text-sm text-gray-500 dark:text-gray-400 py-4">No applicants for this offer yet.</p>
-                    {% endif %}
+                <div x-show="open" x-collapse.duration.400ms class="mt-4 pl-4 border-l-2 border-indigo-500">
+                     <p class="text-sm text-gray-600 mb-2">No pending applicants for this offer.</p>
                 </div>
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 dark:text-gray-400 p-6">No job offers found for this company.</p>
+            <p class="text-sm text-gray-500 p-6">No job offers found for this company.</p>
             {% endfor %}
         </div>
     </div>
 </div>
+{% endblock %}
 
-{# Alpine.js is needed for the interactive accordion dropdowns #}
-<script src="//unpkg.com/alpinejs" defer></script>
-<script src="//unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+{% block page_scripts %}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}

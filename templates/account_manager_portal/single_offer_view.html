@@ -17,13 +17,12 @@
         isModalOpen: false, 
         modalContentUrl: '',
         openModal(applicationId) {
-            // 1. Generate a valid URL with a dummy ID (e.g., 999999)
             let urlTemplate = `{{ url_for('account_manager_bp.review_application_details', application_id=999999) }}`;
-            // 2. Replace the dummy ID with the real one
             this.modalContentUrl = urlTemplate.replace('999999', applicationId);
             this.isModalOpen = true; 
         } 
     }"
+    @open-review-modal.window="openModal($event.detail.id)"
     x-on:keydown.escape.window="isModalOpen = false"
 >
     <div class="space-y-8">
@@ -32,10 +31,10 @@
             <div>
                 <h2 class="text-xl font-bold text-gray-900">Applicants for: {{ offer_data.info.Title }}</h2>
                 <p class="mt-1 text-sm text-gray-500">
-                    For <a href="{{ url_for('.view_single_company', company_id=offer_data.info.CompanyID) }}" class="font-medium text-indigo-600 hover:text-indigo-500">{{ offer_data.info.CompanyName }}</a>
+                    For <a href="{{ url_for('account_manager_bp.view_single_company', company_id=offer_data.info.CompanyID) }}" class="font-medium text-indigo-600 hover:text-indigo-500">{{ offer_data.info.CompanyName }}</a>
                 </p>
             </div>
-            <a href="{{ url_for('.view_single_company', company_id=offer_data.info.CompanyID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
+            <a href="{{ url_for('account_manager_bp.view_single_company', company_id=offer_data.info.CompanyID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
                 ← Back to Company
             </a>
         </div>
@@ -73,18 +72,13 @@
                                             {{ applicant.ApplicationDate.strftime('%d %b, %Y') if applicant.ApplicationDate else 'N/A' }}
                                         </td>
                                         <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ {'Applied': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Submitted': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Shortlisted': 'bg-purple-50 text-purple-700 ring-purple-600/20', 'Hired': 'bg-green-50 text-green-700 ring-green-600/20', 'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'}.get(applicant.Status, 'bg-gray-50 text-gray-600 ring-gray-500/10') }}">{{ applicant.Status }}</span>
+                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ {'Applied': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Submitted': 'bg-blue-50 text-blue-700 ring-blue-600/20', 'Shortlisted': 'bg-purple-50 text-purple-700 ring-purple-600/20', 'Interview Scheduled': 'bg-teal-50 text-teal-700 ring-teal-600/20', 'Hired': 'bg-green-50 text-green-700 ring-green-600/20', 'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'}.get(applicant.Status, 'bg-gray-50 text-gray-600 ring-gray-500/10') }}">{{ applicant.Status }}</span>
                                         </td>
                                         <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                            {% if applicant.Status in ['Applied', 'Submitted'] %}
+                                            {# This is the main button to open the review modal #}
                                             <button @click="openModal({{ applicant.ApplicationID }})" type="button" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
-                                                Review Application
+                                                Review
                                             </button>
-                                            {% else %}
-                                            <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" target="_blank" class="text-sm text-gray-500 hover:text-gray-900">
-                                                View Profile
-                                            </a>
-                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -103,41 +97,14 @@
         </div>
     </div>
 
-<!-- Modal for Application Review -->
-<div 
-    x-show="isModalOpen" 
-    x-transition:enter="ease-out duration-300"
-    x-transition:enter-start="opacity-0"
-    x-transition:enter-end="opacity-100"
-    x-transition:leave="ease-in duration-200"
-    x-transition:leave-start="opacity-100"
-    x-transition:leave-end="opacity-0"
-    class="relative z-50" 
-    aria-labelledby="modal-title" role="dialog" aria-modal="true"
-    style="display: none;"
->
-    <!-- Backdrop -->
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-    
-    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div 
-                x-show="isModalOpen"
-                x-transition:enter="ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                @click.away="isModalOpen = false"
-                class="relative transform overflow-hidden rounded-lg bg-gray-50 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl"
-            >
-                <!-- This iframe will now load our new, combined review template -->
-                <iframe 
-                    :src="isModalOpen ? modalContentUrl : ''" 
-                    class="w-full h-[90vh] sm:h-[85vh]" 
-                    frameborder="0">
-                </iframe>
+    <!-- Modal for Application Review (unchanged) -->
+    <div x-show="isModalOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="display: none;">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="isModalOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" @click.away="isModalOpen = false" class="relative transform overflow-hidden rounded-lg bg-gray-50 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
+                    <iframe :src="isModalOpen ? modalContentUrl : ''" class="w-full h-[90vh] sm:h-[85vh]" frameborder="0"></iframe>
+                </div>
             </div>
         </div>
     </div>

@@ -8,20 +8,20 @@
     <div>
         <h3 class="text-base font-semibold leading-6 text-gray-900">At a Glance</h3>
         <dl class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <!-- Managed Companies KPI -->
             <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
                 <dt class="truncate text-sm font-medium text-gray-500">Managed Companies</dt>
                 <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ dashboard_data.get('managed_companies_count', 0) }}</dd>
             </div>
-            <!-- Open Offers KPI -->
             <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
                 <dt class="truncate text-sm font-medium text-gray-500">Open Job Offers</dt>
                 <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ dashboard_data.get('open_offers_count', 0) }}</dd>
             </div>
-            <!-- Pending Applicants KPI -->
+            <!-- KPI UPDATED to link to new pipeline -->
             <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-                <dt class="truncate text-sm font-medium text-gray-500">New Applicants to Review</dt>
-                <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">{{ dashboard_data.get('pending_applicants_count', 0) }}</dd>
+                <dt class="truncate text-sm font-medium text-gray-500">
+                    <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="hover:underline">Candidates Awaiting Scheduling</a>
+                </dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">{{ dashboard_data.get('pending_interview_scheduling_count', 0) }}</dd>
             </div>
         </dl>
     </div>
@@ -44,11 +44,7 @@
                                 <p class="text-sm text-gray-500">{{ company.OpenJobs }} open job(s)</p>
                             </div>
                         </div>
-                        <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" 
-                           class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm
-                                  transition-all duration-200 ease-in-out
-                                  hover:bg-indigo-700 hover:-translate-y-0.5 hover:shadow-lg
-                                  active:scale-95 active:shadow-sm">
+                        <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
                             Manage →
                         </a>
                     </li>
@@ -58,7 +54,6 @@
                 </ul>
             </div>
         </div>
-
         <!-- Right Column: Recent Activity -->
         <div class="lg:col-span-1">
             <div class="bg-white shadow-lg rounded-lg">
@@ -68,14 +63,14 @@
                 <ul class="divide-y divide-gray-200">
                     {% for applicant in dashboard_data.recent_applicants %}
                     <li class="p-4 hover:bg-gray-50">
+                        {# Corrected Link: now opens the review modal directly #}
                         <p class="font-medium text-gray-800">
-                            <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=applicant.CandidateID) }}" class="hover:underline" target="_blank">
+                            <a href="#" @click.prevent="$dispatch('open-review-modal', { id: {{ applicant.ApplicationID }} })" class="hover:underline">
                                 {{ applicant.FirstName }} {{ applicant.LastName }}
                             </a>
                         </p>
                         <p class="text-sm text-gray-600">
                             Applied for <span class="font-semibold">{{ applicant.JobTitle }}</span>
-                            {# --- THIS IS THE CORRECTED PART --- #}
                             at <span class="font-semibold text-indigo-600">{{ applicant.CompanyName }}</span>
                         </p>
                         <p class="text-xs text-gray-400 mt-1">
