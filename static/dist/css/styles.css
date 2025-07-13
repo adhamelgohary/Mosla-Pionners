@@ -2203,10 +2203,6 @@ html[data-theme="dark"] {
   list-style-position: outside;
 }
 
-.list-decimal {
-  list-style-type: decimal;
-}
-
 .list-disc {
   list-style-type: disc;
 }
@@ -3059,10 +3055,6 @@ html[data-theme="dark"] {
 
 .pl-5 {
   padding-left: 1.25rem;
-}
-
-.pl-6 {
-  padding-left: 1.5rem;
 }
 
 .pl-8 {
@@ -4813,11 +4805,6 @@ body {
 .dark\:hover\:text-red-300:hover:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(252 165 165 / var(--tw-text-opacity, 1));
-}
-
-.dark\:hover\:text-red-400:hover:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
 }
 
 .dark\:hover\:brightness-110:hover:where([data-theme="dark"], [data-theme="dark"] *) {
