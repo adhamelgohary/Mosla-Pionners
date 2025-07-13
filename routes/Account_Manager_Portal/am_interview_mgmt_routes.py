@@ -23,7 +23,8 @@ def manage_company_schedule(company_id):
     
     conn = get_db_connection()
     slot_to_edit = None
-    
+    schedules = [] # Initialize here so it's always defined.
+
     try:
         cursor = conn.cursor(dictionary=True)
         
@@ -49,36 +50,44 @@ def manage_company_schedule(company_id):
 
         # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
-            conn.start_transaction()
             action = request.form.get('action')
             
-            if action == 'delete':
-                schedule_id = request.form.get('schedule_id')
-                cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
-                flash("Schedule slot deleted successfully.", "success")
-            else:
-                day_of_week = request.form.get('day_of_week')
-                start_time = request.form.get('start_time')
-                end_time = request.form.get('end_time')
-
-                if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
-                    flash("Invalid schedule details provided. End time must be after start time.", "danger")
-                else:
-                    if action == 'add':
-                        cursor.execute("""
-                            INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
-                            VALUES (%s, %s, %s, %s)
-                        """, (company_id, day_of_week, start_time, end_time))
-                        flash("New interview availability added successfully.", "success")
-                    elif action == 'edit':
-                        schedule_id = request.form.get('schedule_id')
-                        cursor.execute("""
-                            UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
-                            WHERE ScheduleID = %s AND CompanyID = %s
-                        """, (day_of_week, start_time, end_time, schedule_id, company_id))
-                        flash("Schedule slot updated successfully.", "success")
+            # Start the transaction *before* any database modifications
+            conn.start_transaction()
             
-            conn.commit()
+            try:
+                if action == 'delete':
+                    schedule_id = request.form.get('schedule_id')
+                    cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
+                    flash("Schedule slot deleted successfully.", "success")
+                else:
+                    day_of_week = request.form.get('day_of_week')
+                    start_time = request.form.get('start_time')
+                    end_time = request.form.get('end_time')
+
+                    if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
+                        flash("Invalid schedule details provided. End time must be after start time.", "danger")
+                    else:
+                        if action == 'add':
+                            cursor.execute("""
+                                INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+                                VALUES (%s, %s, %s, %s)
+                            """, (company_id, day_of_week, start_time, end_time))
+                            flash("New interview availability added successfully.", "success")
+                        elif action == 'edit':
+                            schedule_id = request.form.get('schedule_id')
+                            cursor.execute("""
+                                UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
+                                WHERE ScheduleID = %s AND CompanyID = %s
+                            """, (day_of_week, start_time, end_time, schedule_id, company_id))
+                            flash("Schedule slot updated successfully.", "success")
+            
+                conn.commit()
+            except Exception as e:
+                conn.rollback() # Rollback in case of any database error.
+                current_app.logger.error(f"Database operation failed: {e}", exc_info=True)
+                flash("An error occurred while processing your request. Please try again.", "danger")
+                
             return redirect(url_for('.manage_company_schedule', company_id=company_id))
 
         # --- DATA FOR LISTING (GET) ---
