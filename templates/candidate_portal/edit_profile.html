@@ -2,7 +2,6 @@
 
 {% block title %}{{ title }} - Candidate Portal{% endblock %}
 
-{# Reusable macro for a standard form text/number/date input field #}
 {% macro form_field(label, name, value, type='text', placeholder='', required=False, extra_attrs='') %}
 <div class="sm:col-span-3">
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
@@ -13,7 +12,6 @@
 </div>
 {% endmacro %}
 
-{# Reusable macro for a select dropdown field #}
 {% macro select_field(label, name, options, selected_value, required=False) %}
 <div class="sm:col-span-3">
     <label for="{{ name }}" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-200">{{ label }}</label>
@@ -52,13 +50,8 @@
                         {{ form_field('Phone Number', 'phone_number', form_data.PhoneNumber) }}
                         {{ form_field('Date of Birth', 'date_of_birth', form_data.DateOfBirth.strftime('%Y-%m-%d') if form_data.DateOfBirth, type='date') }}
                         
-                        {# --- THIS IS THE CHANGE --- #}
-                        {# Define the options for the simplified nationality dropdown #}
-                        {% set nationality_options = [
-                            ('Egyptian', 'Egyptian'), 
-                            ('Foreigner', 'Foreigner')
-                        ] %}
-                        {# Use the select_field macro to create the dropdown #}
+                        {# --- THIS IS THE UPDATED NATIONALITY FIELD --- #}
+                        {% set nationality_options = [('Egyptian', 'Egyptian'), ('Foreigner', 'Foreigner')] %}
                         {{ select_field('Nationality', 'nationality', nationality_options, form_data.Nationality) }}
 
                         <div class="col-span-full">
@@ -92,7 +85,7 @@
                              <div class="mt-2">
                                  <select name="languages" id="languages" multiple class="block w-full rounded-md border-0 py-1.5 bg-white dark:bg-gray-900/80 text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-500 sm:text-sm sm:leading-6 transition h-32">
                                      {% set lang_options = ['English', 'Spanish', 'Portuguese', 'German', 'Arabic', 'French'] %}
-                                     {% set selected_langs = form_data.Languages if form_data.Languages else [] %}
+                                     {% set selected_langs = form_data.Languages or [] %}
                                      {% for lang in lang_options %}
                                      <option value="{{ lang }}" {% if lang in selected_langs %}selected{% endif %}>{{ lang }}</option>
                                      {% endfor %}

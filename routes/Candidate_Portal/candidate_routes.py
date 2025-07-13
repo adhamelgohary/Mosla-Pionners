@@ -1,14 +1,11 @@
 # routes/Candidate_Portal/candidate_routes.py
-
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from db import get_db_connection
-from utils.directory_configs import save_file_from_config # For CV uploads
+from utils.directory_configs import save_file_from_config
 from datetime import datetime, timedelta, time
-import mysql.connector
 import os
 
-# Define the Blueprint for the candidate portal
 candidate_bp = Blueprint('candidate_bp', __name__,
                          url_prefix='/candidate',
                          template_folder='../../../templates')
@@ -16,14 +13,15 @@ candidate_bp = Blueprint('candidate_bp', __name__,
 def get_candidate_id(user_id):
     """Helper to get CandidateID from UserID, returns None if not found."""
     conn = get_db_connection()
-    cursor = conn.cursor()
     try:
+        cursor = conn.cursor()
         cursor.execute("SELECT CandidateID FROM Candidates WHERE UserID = %s", (user_id,))
         result = cursor.fetchone()
         return result[0] if result else None
     finally:
-        cursor.close()
-        conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 @candidate_bp.route('/dashboard')
 @login_required
@@ -37,42 +35,28 @@ def dashboard():
         return redirect(url_for('public_routes_bp.home_page'))
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
     try:
-        # Fetch full candidate profile - query is fine as c.* gets the new structure
-        cursor.execute("""
-            SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL
-            FROM Candidates c
-            JOIN Users u ON c.UserID = u.UserID
-            WHERE c.CandidateID = %s
-        """, (candidate_id,))
+        cursor = conn.cursor(dictionary=True)
+        # Fetch full candidate profile
+        cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         candidate_profile = cursor.fetchone()
-
-        cursor.execute("""
-            SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB 
-            FROM CandidateCVs 
-            WHERE CandidateID = %s 
-            ORDER BY IsPrimary DESC, UploadedAt DESC
-        """, (candidate_id,))
+        
+        # Fetch CVs
+        cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC", (candidate_id,))
         cv_list = cursor.fetchall()
 
-        # Fetch Applications - query is fine as it doesn't depend on Candidates table structure
-        cursor.execute("""
-            SELECT ja.ApplicationID, ja.Status, jo.Title, comp.CompanyName
-            FROM JobApplications ja
-            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
-            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
-            WHERE ja.CandidateID = %s ORDER BY ja.ApplicationDate DESC
-        """, (candidate_id,))
+        # Fetch Applications
+        cursor.execute("SELECT ja.ApplicationID, ja.Status, jo.Title, comp.CompanyName FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE ja.CandidateID = %s ORDER BY ja.ApplicationDate DESC", (candidate_id,))
         applied_jobs = cursor.fetchall()
 
     except Exception as e:
         flash("An error occurred while loading your profile.", "danger")
-        current_app.logger.error(f"Error fetching candidate dashboard for UserID {current_user.id}: {e}")
+        current_app.logger.error(f"Error fetching candidate dashboard for UserID {current_user.id}: {e}", exc_info=True)
         return redirect(url_for('public_routes_bp.home_page'))
     finally:
-        cursor.close()
-        conn.close()
+        if 'conn' in locals() and conn.is_connected():
+            cursor.close()
+            conn.close()
             
     return render_template('candidate_portal/dashboard.html',
                            title="My Dashboard",
@@ -86,7 +70,6 @@ def dashboard():
 def edit_profile():
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         abort(403)
-
     candidate_id = get_candidate_id(current_user.id)
     if not candidate_id:
         flash("Candidate profile not found.", "danger")
@@ -95,10 +78,11 @@ def edit_profile():
     if request.method == 'POST':
         form = request.form
         files = request.files
-        
         conn = get_db_connection()
-        cursor = conn.cursor()
         try:
+            cursor = conn.cursor()
+            conn.start_transaction()
+
             profile_pic_path = None
             if 'profile_picture' in files and files['profile_picture'].filename:
                 profile_pic_path = save_file_from_config(files['profile_picture'], f'candidate_profile_pics/{candidate_id}')
@@ -114,29 +98,19 @@ def edit_profile():
 
             dob_str = form.get('date_of_birth')
             date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date() if dob_str else None
-
-            # Handle multi-select for languages
             languages_list = request.form.getlist('languages')
             languages_db_val = ','.join(languages_list) if languages_list else None
 
-            # --- QUERY & PARAMS UPDATED ---
             candidate_params = {
-                'LinkedInProfileURL': form.get('linkedin_url') or None,
-                'Nationality': form.get('nationality') or None,
-                'EducationalStatus': form.get('educational_status') or None,
-                'DateOfBirth': date_of_birth,
-                'Languages': languages_db_val,
-                'LanguageLevel': form.get('language_level') or None,
+                'LinkedInProfileURL': form.get('linkedin_url') or None, 'Nationality': form.get('nationality') or None,
+                'EducationalStatus': form.get('educational_status') or None, 'DateOfBirth': date_of_birth,
+                'Languages': languages_db_val, 'LanguageLevel': form.get('language_level') or None,
                 'CandidateID': candidate_id
             }
             cursor.execute("""
-                UPDATE Candidates SET 
-                    LinkedInProfileURL = %(LinkedInProfileURL)s, 
-                    Nationality = %(Nationality)s, 
-                    EducationalStatus = %(EducationalStatus)s, 
-                    DateOfBirth = %(DateOfBirth)s,
-                    Languages = %(Languages)s,
-                    LanguageLevel = %(LanguageLevel)s
+                UPDATE Candidates SET LinkedInProfileURL = %(LinkedInProfileURL)s, Nationality = %(Nationality)s, 
+                EducationalStatus = %(EducationalStatus)s, DateOfBirth = %(DateOfBirth)s,
+                Languages = %(Languages)s, LanguageLevel = %(LanguageLevel)s
                 WHERE CandidateID = %(CandidateID)s
             """, candidate_params)
 
@@ -144,32 +118,28 @@ def edit_profile():
             flash("Profile updated successfully!", "success")
             return redirect(url_for('.dashboard'))
         except Exception as e:
-            conn.rollback()
+            if conn: conn.rollback()
             flash("An error occurred while updating your profile.", "danger")
             current_app.logger.error(f"Error updating candidate profile for UserID {current_user.id}: {e}", exc_info=True)
         finally:
-            cursor.close()
-            conn.close()
+            if conn: conn.close()
 
-    # GET Request: Fetch data for the form
     conn_get = get_db_connection()
-    cursor_get = conn_get.cursor(dictionary=True)
     try:
-        cursor_get.execute("""
-            SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL
-            FROM Candidates c JOIN Users u ON c.UserID = u.UserID
-            WHERE c.CandidateID = %s
-        """, (candidate_id,))
+        cursor_get = conn_get.cursor(dictionary=True)
+        cursor_get.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         form_data = cursor_get.fetchone()
+        if form_data.get('Languages') and isinstance(form_data['Languages'], (bytes, str)):
+             form_data['Languages'] = form_data['Languages'].split(',')
     finally:
-        cursor_get.close()
-        conn_get.close()
+        if conn_get: conn_get.close()
 
     if not form_data:
         flash("Could not load profile data for editing.", "danger")
         return redirect(url_for('.dashboard'))
         
     return render_template('candidate_portal/edit_profile.html', title="Edit My Profile", form_data=form_data)
+
 
 
 # --- CV Management and Scheduling Routes (No changes needed) ---
@@ -284,65 +254,69 @@ def set_primary_cv(cv_id):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-@candidate_bp.route('/application/<int:application_id>/schedule', methods=['GET', 'POST'])
+# --- NEW Interview Scheduling Route for Candidate ---
+@candidate_bp.route('/application/<int:application_id>/schedule-interview', methods=['GET', 'POST'])
 @login_required
 def schedule_interview(application_id):
-    # This function is unchanged
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         abort(403)
+    
     candidate_id = get_candidate_id(current_user.id)
+    if not candidate_id:
+        abort(403)
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
-            SELECT ja.ApplicationID, ja.Status, jo.OfferID, jo.Title, c.CompanyID, c.CompanyName
+            SELECT ja.ApplicationID, ja.Status, jo.Title, c.CompanyID, c.CompanyName
             FROM JobApplications ja
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
             JOIN Companies c ON jo.CompanyID = c.CompanyID
             WHERE ja.ApplicationID = %s AND ja.CandidateID = %s
         """, (application_id, candidate_id))
         application = cursor.fetchone()
+
         if not application:
-            abort(404) 
+            abort(404, "Application not found or you are not authorized to view it.")
+        
         if application['Status'] != 'Shortlisted':
-            flash("This interview has already been scheduled or is not available for scheduling.", "warning")
+            flash("This application is no longer eligible for interview scheduling.", "warning")
             return redirect(url_for('.dashboard'))
+
         if request.method == 'POST':
             selected_slot_str = request.form.get('interview_slot')
             if not selected_slot_str:
-                flash("Please select an interview slot.", "danger")
+                flash("Please select a valid interview slot.", "danger")
                 return redirect(url_for('.schedule_interview', application_id=application_id))
+
             scheduled_dt = datetime.fromisoformat(selected_slot_str)
-            cursor.execute("START TRANSACTION;")
-            cursor.execute("""
-                SELECT i.InterviewID FROM Interviews i
-                JOIN JobApplications ja ON i.ApplicationID = ja.ApplicationID
-                JOIN JobOffers jo ON ja.OfferID = jo.OfferID
-                WHERE jo.CompanyID = %s AND i.ScheduledDateTime = %s
-            """, (application['CompanyID'], scheduled_dt))
+            
+            conn.start_transaction()
+            # Race condition check: Ensure the slot hasn't been taken since the page loaded
+            cursor.execute("SELECT InterviewID FROM Interviews WHERE ScheduledDateTime = %s FOR UPDATE", (scheduled_dt,))
             if cursor.fetchone():
-                cursor.execute("ROLLBACK;")
-                flash("Sorry, that slot was just taken. Please select another.", "danger")
+                conn.rollback()
+                flash("Sorry, that time slot was just booked by another candidate. Please choose another.", "warning")
                 return redirect(url_for('.schedule_interview', application_id=application_id))
-            cursor.execute("""
-                INSERT INTO Interviews (ApplicationID, ScheduledDateTime, Status) VALUES (%s, %s, 'Scheduled')
-            """, (application_id, scheduled_dt))
+            
+            cursor.execute("INSERT INTO Interviews (ApplicationID, ScheduledDateTime) VALUES (%s, %s)", (application_id, scheduled_dt))
             cursor.execute("UPDATE JobApplications SET Status = 'Interview Scheduled' WHERE ApplicationID = %s", (application_id,))
-            cursor.execute("COMMIT;")
+            conn.commit()
+
             flash(f"Your interview has been successfully scheduled for {scheduled_dt.strftime('%A, %B %d at %I:%M %p')}.", "success")
             return redirect(url_for('.dashboard'))
+
+        # --- Slot Generation Logic for GET request ---
         cursor.execute("SELECT DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules WHERE CompanyID = %s AND IsActive = 1", (application['CompanyID'],))
         company_schedules = cursor.fetchall()
-        cursor.execute("""
-            SELECT i.ScheduledDateTime FROM Interviews i
-            JOIN JobApplications ja ON i.ApplicationID = ja.ApplicationID
-            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
-            WHERE jo.CompanyID = %s AND i.ScheduledDateTime >= CURDATE()
-        """, (application['CompanyID'],))
+
+        cursor.execute("SELECT ScheduledDateTime FROM Interviews i JOIN JobApplications ja ON i.ApplicationID = ja.ApplicationID JOIN JobOffers jo ON ja.OfferID = jo.OfferID WHERE jo.CompanyID = %s AND i.ScheduledDateTime >= CURDATE()", (application['CompanyID'],))
         booked_slots = {row['ScheduledDateTime'] for row in cursor.fetchall()}
-        available_slots = {}
+        
+        available_slots = []
         today = datetime.today()
-        for day_offset in range(14):
+        for day_offset in range(1, 15): # Start from tomorrow for 14 days
             current_day = today + timedelta(days=day_offset)
             day_name = current_day.strftime('%A')
             for schedule in company_schedules:
@@ -350,23 +324,29 @@ def schedule_interview(application_id):
                     slot_time = datetime.combine(current_day, schedule['StartTime'])
                     end_time = datetime.combine(current_day, schedule['EndTime'])
                     while slot_time < end_time:
-                        if slot_time > datetime.now() and slot_time not in booked_slots:
-                            date_str = current_day.strftime('%Y-%m-%d')
-                            if date_str not in available_slots:
-                                available_slots[date_str] = []
-                            available_slots[date_str].append(slot_time)
-                        slot_time += timedelta(hours=1)
+                        if slot_time not in booked_slots:
+                            available_slots.append(slot_time)
+                        slot_time += timedelta(minutes=30) # 30-minute increments
+
+        # Group slots by day for a nicer UI
+        grouped_slots = {}
+        for slot in sorted(available_slots):
+            day_key = slot.strftime('%A, %B %d')
+            if day_key not in grouped_slots:
+                grouped_slots[day_key] = []
+            grouped_slots[day_key].append(slot)
+
     except Exception as e:
-        if 'cursor' in locals() and cursor.connection.in_transaction:
-            cursor.execute("ROLLBACK;")
-        current_app.logger.error(f"Error scheduling interview for application {application_id}: {e}", exc_info=True)
-        flash("An error occurred while loading the scheduling page.", "danger")
+        if 'conn' in locals() and conn.is_connected() and conn.in_transaction:
+            conn.rollback()
+        current_app.logger.error(f"Error in candidate interview scheduling for AppID {application_id}: {e}", exc_info=True)
+        flash("An unexpected error occurred while loading the scheduling page.", "danger")
         return redirect(url_for('.dashboard'))
     finally:
-        if conn and conn.is_connected():
-            cursor.close()
+        if 'conn' in locals() and conn.is_connected():
             conn.close()
+            
     return render_template('candidate_portal/schedule_interview.html',
                            title="Schedule Your Interview",
                            application=application,
-                           available_slots=available_slots)
+                           grouped_slots=grouped_slots)

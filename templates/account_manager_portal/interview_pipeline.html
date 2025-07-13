@@ -1,0 +1,71 @@
+{# templates/account_manager_portal/interview_pipeline.html #}
+{% extends "account_manager_portal/account_manager_base.html" %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-xl font-semibold text-gray-900">Interview Pipeline</h1>
+            <p class="mt-2 text-sm text-gray-700">A prioritized list of candidates awaiting scheduling and those with upcoming interviews.</p>
+        </div>
+    </div>
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Candidate</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Applied For</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Interview Details</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Current Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% if pipeline_apps %}
+                                {% for app in pipeline_apps %}
+                                <tr class="{% if app.Status == 'Shortlisted' %}bg-yellow-50{% endif %}">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                        <div class="font-medium text-gray-900">{{ app.FirstName }} {{ app.LastName }}</div>
+                                        <div class="text-gray-500">{{ app.Email }}</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="font-medium text-gray-900">{{ app.OfferTitle }}</div>
+                                        <div class="text-gray-500">{{ app.CompanyName }}</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                        {% if app.InterviewID %}
+                                            <div class="font-medium text-gray-900">{{ app.ScheduledDateTime.strftime('%A, %d %b %Y') }}</div>
+                                            <div class="text-gray-500">{{ app.ScheduledDateTime.strftime('%I:%M %p') }}</div>
+                                        {% else %}
+                                            <div class="font-medium text-yellow-800">Awaiting Candidate</div>
+                                            <div class="text-xs text-yellow-700">Candidate needs to select a time.</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                        {% if app.Status == 'Interview Scheduled' %}
+                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-blue-50 text-blue-700 ring-blue-600/20">Interview Scheduled</span>
+                                        {% elif app.Status == 'Shortlisted' %}
+                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-yellow-50 text-yellow-800 ring-yellow-600/20">Pending Selection</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
+                                        You have no shortlisted candidates in the interview pipeline.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

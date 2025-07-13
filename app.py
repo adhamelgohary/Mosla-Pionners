@@ -36,6 +36,7 @@ from routes.Website.courses_page_routes import courses_page_bp
 from routes.Agency_Staff_Portal.candidate_details_routes import staff_candidate_bp
 from routes.Account_Manager_Portal.am_offer_mgmt_routes import am_offer_mgmt_bp
 from routes.Account_Manager_Portal.am_schedule_mgmt_routes import am_schedule_mgmt_bp
+from routes.Account_Manager_Portal.am_interview_mgmt_routes import am_interview_mgmt_bp
 
 from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 
@@ -114,6 +115,7 @@ app.register_blueprint(account_manager_bp, url_prefix='/account-manager-portal')
 app.register_blueprint(recruiter_bp, url_prefix='/recruiter-portal')
 app.register_blueprint(am_offer_mgmt_bp, url_prefix='/account-manager-portal/offer-management')
 app.register_blueprint(am_schedule_mgmt_bp, url_prefix='/account-manager-portal/schedule-management')
+app.register_blueprint(am_interview_mgmt_bp, url_prefix='/account-manager-portal/interview-management')
 app.register_blueprint(admin_bp)
 app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
