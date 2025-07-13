@@ -1,108 +1,115 @@
-{# templates/account_manager_portal/application_review_modal.html #}
-{% extends "base_empty.html" %}
+{# templates/account_manager_portal/manage_company_schedule.html #}
+{% extends "account_manager_portal/account_manager_base.html" %}
 
-{% block title %}Review Application{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% macro format_timedelta_as_time(td) %}
+    {%- if td -%}
+        {%- set hours, remainder = td.seconds // 3600, td.seconds % 3600 -%}
+        {%- set minutes, seconds = remainder // 60, remainder % 60 -%}
+        {# Create a dummy time object for formatting #}
+        {%- set dummy_time = (datetime.datetime.min + td).time() -%}
+        {{- dummy_time.strftime('%I:%M %p') -}}
+    {%- endif -%}
+{% endmacro %}
+
 
 {% block content %}
-<div class="bg-gray-50">
-    <!-- Modal Header -->
-    <div class="sticky top-0 z-10 bg-gray-50/70 p-4 sm:p-6 backdrop-blur-sm border-b border-gray-200">
-        <h2 class="text-xl font-bold text-gray-900">{{ review_data.candidate_profile.FirstName }} {{ review_data.candidate_profile.LastName }}</h2>
-        <p class="text-sm text-gray-600">
-            Application for <span class="font-semibold">{{ review_data.application.OfferTitle }}</span>
-        </p>
+<div class="max-w-7xl mx-auto">
+    <div class="mb-8">
+        <a href="{{ url_for('am_offer_mgmt_bp.list_companies_for_offers') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700 mb-2 inline-block">
+            ← Back to Offer Management
+        </a>
+        <h1 class="text-2xl font-bold tracking-tight text-gray-900">{{ title }}</h1>
+        <p class="mt-1 text-sm text-gray-600">Define the general weekly availability for this company's interviews. Candidates will be able to book 30-minute slots within these times.</p>
     </div>
 
-    <div class="p-4 sm:p-6 space-y-6">
-        <!-- Section: Application Materials -->
-        <div>
-            <h3 class="text-lg font-medium text-gray-900">Application Materials</h3>
-            <div class="mt-4 space-y-6">
-                <div class="bg-white p-4 rounded-lg shadow-sm border">
-                    <h4 class="font-semibold text-gray-800 mb-2">Candidate's Motivation</h4>
-                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ review_data.application.NotesByCandidate or 'No answer provided.' }}</p>
-                </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Add/Edit Form Column -->
+        <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                
+                {# --- DYNAMIC FORM: Points to different routes for ADD vs EDIT --- #}
+                {% if slot_to_edit %}
+                    <h3 class="text-xl font-semibold mb-4 text-gray-900">Edit Slot</h3>
+                    <form method="POST" action="{{ url_for('.edit_schedule', schedule_id=slot_to_edit.ScheduleID) }}">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="day_of_week" class="block text-sm font-medium text-gray-700">Day of the Week</label>
+                                <select id="day_of_week" name="day_of_week" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                    <option {% if day == slot_to_edit.DayOfWeek %}selected{% endif %}>{{ day }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
+                                <input type="time" id="start_time" name="start_time" value="{{ slot_to_edit.StartTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700">End Time</label>
+                                <input type="time" id="end_time" name="end_time" value="{{ slot_to_edit.EndTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div class="flex items-center gap-x-4">
+                                <a href="{{ url_for('.view_schedules', company_id=company.CompanyID) }}" class="flex-1 text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</a>
+                                <button type="submit" class="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Update Slot</button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <h3 class="text-xl font-semibold mb-4 text-gray-900">Add New Slot</h3>
+                    <form method="POST" action="{{ url_for('.add_schedule', company_id=company.CompanyID) }}">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="day_of_week" class="block text-sm font-medium text-gray-700">Day of the Week</label>
+                                <select id="day_of_week" name="day_of_week" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
+                                <input type="time" id="start_time" name="start_time" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="end_time" class="block text-sm font-medium text-gray-700">End Time</label>
+                                <input type="time" id="end_time" name="end_time" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Add Slot</button>
+                        </div>
+                    </form>
+                {% endif %}
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-lg shadow-sm border">
-                        <h4 class="font-semibold text-gray-800 mb-3">Submitted CV</h4>
-                        {% if review_data.cv %}
-                            <a href="{{ url_for('static', filename=review_data.cv.CVFileUrl) }}" target="_blank" class="flex items-center gap-3 p-3 bg-gray-50 hover:bg-indigo-50 rounded-md border border-gray-200">
-                                <i class="bi bi-file-earmark-pdf-fill text-2xl text-red-500"></i>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">{{ review_data.cv.CVTitle or review_data.cv.OriginalFileName }}</p>
-                                    <p class="text-xs text-gray-500">Click to view in new tab</p>
-                                </div>
-                            </a>
-                        {% else %}
-                            <p class="text-sm text-gray-500 italic">No CV found for this application.</p>
-                        {% endif %}
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border">
-                        <h4 class="font-semibold text-gray-800 mb-3">Voice Introduction</h4>
-                        {% if review_data.voice_note %}
-                            <audio controls class="w-full"><source src="{{ url_for('static', filename=review_data.voice_note.VoiceNoteURL) }}"></audio>
-                        {% else %}
-                            <p class="text-sm text-gray-500 italic">No voice note found for this application.</p>
-                        {% endif %}
-                    </div>
-                </div>
             </div>
         </div>
 
-        <!-- Section: Full Candidate Profile -->
-        <div>
-            <h3 class="text-lg font-medium text-gray-900">Candidate Profile Details</h3>
-            <div class="mt-4 bg-white p-4 rounded-lg shadow-sm border">
-                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    {% set profile = review_data.candidate_profile %}
-                    <div><dt class="font-medium text-gray-500">Full Name</dt><dd class="mt-1 text-gray-900">{{ profile.FirstName }} {{ profile.LastName }}</dd></div>
-                    <div><dt class="font-medium text-gray-500">Email Address</dt><dd class="mt-1 text-gray-900">{{ profile.Email }}</dd></div>
-                    <div><dt class="font-medium text-gray-500">Phone</dt><dd class="mt-1 text-gray-900">{{ profile.PhoneNumber or 'N/A' }}</dd></div>
-                    <div><dt class="font-medium text-gray-500">Date of Birth</dt><dd class="mt-1 text-gray-900">{{ profile.DateOfBirth.strftime('%d %B %Y') if profile.DateOfBirth else 'N/A' }}</dd></div>
-                    <div><dt class="font-medium text-gray-500">Nationality</dt><dd class="mt-1 text-gray-900">{{ profile.Nationality or 'N/A' }}</dd></div>
-                    <div><dt class="font-medium text-gray-500">Educational Status</dt><dd class="mt-1 text-gray-900">{{ profile.EducationalStatus or 'N/A' }}</dd></div>
-                </dl>
+        <!-- Existing Schedules List -->
+        <div class="lg:col-span-2">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="text-xl font-semibold mb-4 text-gray-900">Current Availability</h3>
+                {% if schedules %}
+                <ul class="divide-y divide-gray-200">
+                    {% for schedule in schedules %}
+                    <li class="py-3 flex justify-between items-center gap-4">
+                        <div>
+                            <p class="font-semibold text-gray-800">{{ schedule.DayOfWeek }}</p>
+                            <p class="text-sm text-gray-600">{{ schedule.start_time_formatted }} - {{ schedule.end_time_formatted }}</p>
+                        </div>
+                        <div class="flex items-center gap-x-4">
+                            <a href="{{ url_for('.edit_schedule', schedule_id=schedule.ScheduleID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Edit</a>
+                            
+                            <form method="POST" action="{{ url_for('.delete_schedule', schedule_id=schedule.ScheduleID) }}" onsubmit="return confirm('Are you sure you want to delete this slot?');">
+                                <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>
+                            </form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-center text-gray-500 py-6">No interview schedules have been defined for this company yet.</p>
+                {% endif %}
             </div>
         </div>
     </div>
-
-    <!-- Modal Footer with Decision Form (Sticky) -->
-    <!-- Modal Footer with Decision Form (Sticky) -->
-<div class="sticky bottom-0 z-10 bg-gray-50/70 p-4 backdrop-blur-sm border-t border-gray-200">
-    
-    {# --- THIS IS THE CORRECTED FORM AND SCRIPT --- #}
-    
-    <form id="decisionForm" method="POST" action="{{ url_for('account_manager_bp.update_application_status', application_id=review_data.application.ApplicationID) }}">
-        <input type="hidden" name="manager_staff_id" value="{{ manager_staff_id }}">
-        <input type="hidden" name="offer_id" value="{{ review_data.application.OfferID }}">
-        {# The action ('approve' or 'reject') will be set by the javascript function #}
-        <input type="hidden" name="action" id="decisionAction">
-
-        <div>
-            <label for="feedback_notes" class="block text-sm font-medium leading-6 text-gray-900">Feedback / Notes for Decision</label>
-            <div class="mt-2">
-                <textarea rows="3" name="feedback_notes" id="feedback_notes" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></textarea>
-            </div>
-            <p class="mt-2 text-xs text-gray-500">This feedback will be saved to the application record.</p>
-        </div>
-        
-        <div class="mt-4 flex justify-end items-center gap-3">
-            {# Notice the type="button" and the new onclick attribute #}
-            <button type="button" onclick="submitDecision('reject')" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Reject</button>
-            <button type="button" onclick="submitDecision('approve')" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Shortlist</button>
-        </div>
-    </form>
 </div>
-
-{# Add this script at the end of the content block #}
-<script>
-    function submitDecision(action) {
-        // Step 1: Set the value of the hidden input
-        document.getElementById('decisionAction').value = action;
-        
-        // Step 2: Submit the form
-        document.getElementById('decisionForm').submit();
-    }
-</script>
 {% endblock %}

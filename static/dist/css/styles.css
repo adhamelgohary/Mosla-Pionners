@@ -1654,10 +1654,6 @@ html[data-theme="dark"] {
   right: 0px;
 }
 
-.top-0 {
-  top: 0px;
-}
-
 .isolate {
   isolation: isolate;
 }
@@ -2691,10 +2687,6 @@ html[data-theme="dark"] {
 
 .bg-gray-50\/50 {
   background-color: rgb(249 250 251 / 0.5);
-}
-
-.bg-gray-50\/70 {
-  background-color: rgb(249 250 251 / 0.7);
 }
 
 .bg-gray-500 {
@@ -3855,11 +3847,6 @@ body {
 .hover\:bg-green-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(21 128 61 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-indigo-50:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(238 242 255 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-indigo-500:hover {
