@@ -50,36 +50,35 @@
             <div class="border-t border-gray-200 pt-8">
                  <h3 class="text-lg font-medium text-gray-900">Candidate Requirements</h3>
                  <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-2">
-                        <label for="required_language" class="block text-sm font-medium text-gray-700">Language</label>
-                        <select id="required_language" name="required_language" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="english" {% if form_data.get('required_language') == 'english' %}selected{% endif %}>English</option>
-                            <option value="german" {% if form_data.get('required_language') == 'german' %}selected{% endif %}>German</option>
-                            <option value="arabic" {% if form_data.get('required_language') == 'arabic' %}selected{% endif %}>Arabic</option>
-                            <option value="french" {% if form_data.get('required_language') == 'french' %}selected{% endif %}>French</option>
-                            <option value="spanish" {% if form_data.get('required_language') == 'spanish' %}selected{% endif %}>Spanish</option>
-                            <option value="other" {% if form_data.get('required_language') == 'other' %}selected{% endif %}>Other</option>
-                        </select>
+                    <div class="sm:col-span-3">
+                        <label for="required_languages" class="block text-sm font-medium text-gray-700">Languages</label>
+                        <fieldset class="mt-2">
+                            <div class="space-y-2">
+                                {% set checked_languages = form_data.get('required_languages', []) %}
+                                {% for lang in form_options.RequiredLanguages %}
+                                <div class="flex items-center">
+                                    <input id="lang-{{ lang|lower }}" name="required_languages" type="checkbox" value="{{ lang }}" {% if lang in checked_languages %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                    <label for="lang-{{ lang|lower }}" class="ml-3 block text-sm text-gray-900">{{ lang }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
                     </div>
-                    <div class="sm:col-span-2">
-                        <label for="english-level" class="block text-sm font-medium text-gray-700">Level</label>
-                        <select id="english-level" name="english-level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    <div class="sm:col-span-3">
+                        <label for="required_level" class="block text-sm font-medium text-gray-700">Language Level</label>
+                        <select id="required_level" name="required_level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                             <option value="">N/A</option>
-                            <option value="b1" {% if form_data.get('english-level') == 'b1' %}selected{% endif %}>B1</option>
-                            <option value="b1+" {% if form_data.get('english-level') == 'b1+' %}selected{% endif %}>B1+</option>
-                            <option value="b2" {% if form_data.get('english-level') == 'b2' %}selected{% endif %}>B2</option>
-                            <option value="b2+" {% if form_data.get('english-level') == 'b2+' %}selected{% endif %}>B2+</option>
-                            <option value="c1" {% if form_data.get('english-level') == 'c1' %}selected{% endif %}>C1</option>
-                            <option value="c2" {% if form_data.get('english-level') == 'c2' %}selected{% endif %}>C2</option>
+                            {% for level in form_options.RequiredLevel %}
+                            <option value="{{ level }}" {% if form_data.get('required_level') == level %}selected{% endif %}>{{ level|upper }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="sm:col-span-2">
                         <label for="grad-status" class="block text-sm font-medium text-gray-700">Graduation Status</label>
                         <select id="grad-status" name="grad-status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="grad" {% if form_data.get('grad-status') == 'grad' %}selected{% endif %}>Graduate</option>
-                            <option value="ungrad" {% if form_data.get('grad-status') == 'ungrad' %}selected{% endif %}>Undergraduate</option>
-                            <option value="dropout" {% if form_data.get('grad-status') == 'dropout' %}selected{% endif %}>Dropout</option>
-                            <option value="gap_year" {% if form_data.get('grad-status') == 'gap_year' %}selected{% endif %}>Gap Year</option>
+                            {% for status in form_options.GraduationStatusRequirement %}
+                            <option value="{{ status }}" {% if form_data.get('grad-status') == status %}selected{% endif %}>{{ status|replace('_', ' ')|title }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="sm:col-span-2">
@@ -90,9 +89,9 @@
                     <div class="sm:col-span-2">
                         <label for="nationality" class="block text-sm font-medium text-gray-700">Nationality</label>
                         <select id="nationality" name="nationality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="any" {% if form_data.get('nationality') == 'any' %}selected{% endif %}>Any</option>
-                            <option value="egyptian" {% if form_data.get('nationality') == 'egyptian' %}selected{% endif %}>Egyptian Only</option>
-                            <option value="foreigner" {% if form_data.get('nationality') == 'foreigner' %}selected{% endif %}>Foreigner</option>
+                           {% for nat in form_options.Nationality %}
+                           <option value="{{ nat }}" {% if form_data.get('nationality') == nat %}selected{% endif %}>{{ nat }}</option>
+                           {% endfor %}
                         </select>
                     </div>
                  </div>
@@ -110,15 +109,17 @@
                     <div class="sm:col-span-2">
                         <label for="hiring_cadence" class="block text-sm font-medium text-gray-700">Hiring Cadence</label>
                         <select id="hiring_cadence" name="hiring_cadence" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="month" {% if form_data.get('hiring_cadence') == 'month' %}selected{% endif %}>Per Month</option>
-                            <option value="batch" {% if form_data.get('hiring_cadence') == 'batch' %}selected{% endif %}>In a Batch</option>
+                            {% for cadence in form_options.HiringCadence %}
+                            <option value="{{ cadence }}" {% if form_data.get('hiring_cadence') == cadence %}selected{% endif %}>{{ cadence|replace('_', ' ')|title }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div class="sm:col-span-2">
                         <label for="hiring_plan" class="block text-sm font-medium text-gray-700">Hiring Plan</label>
                         <select id="hiring_plan" name="hiring_plan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="long-term" {% if form_data.get('hiring_plan') == 'long-term' %}selected{% endif %}>Long-term</option>
-                            <option value="short-term" {% if form_data.get('hiring_plan') == 'short-term' %}selected{% endif %}>Short-term</option>
+                           {% for plan in form_options.HiringPlan %}
+                           <option value="{{ plan }}" {% if form_data.get('hiring_plan') == plan %}selected{% endif %}>{{ plan|replace('-', ' ')|title }}</option>
+                           {% endfor %}
                         </select>
                     </div>
                     <div class="sm:col-span-3">
@@ -146,25 +147,36 @@
                  <div class="mt-6 space-y-6">
                     <div>
                         <label class="text-sm font-medium text-gray-700">Work Location Type</label>
-                        <div class="mt-2 flex items-center gap-x-4">
-                            <label class="inline-flex items-center"><input type="radio" name="work_location" value="site" {% if form_data.get('work_location') == 'site' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">On-site</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="work_location" value="wfh" {% if form_data.get('work_location') == 'wfh' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Work From Home</span></label>
+                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                            {% for loc_type in form_options.WorkLocationType %}
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="work_location" value="{{ loc_type }}" {% if form_data.get('work_location') == loc_type %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                <span class="ml-2">{{ loc_type|replace('wfh', 'Work From Home')|replace('site', 'On-site') }}</span>
+                            </label>
+                            {% endfor %}
                         </div>
                     </div>
                     <div>
                         <label class="text-sm font-medium text-gray-700">Shift Type</label>
-                        <div class="mt-2 flex items-center gap-x-4">
-                            <label class="inline-flex items-center"><input type="radio" name="shift_type" value="fixed" {% if form_data.get('shift_type') == 'fixed' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Fixed</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="shift_type" value="rotational" {% if form_data.get('shift_type') == 'rotational' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Rotational</span></label>
+                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                            {% for s_type in form_options.ShiftType %}
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="shift_type" value="{{ s_type }}" {% if form_data.get('shift_type') == s_type %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                <span class="ml-2">{{ s_type|title }}</span>
+                            </label>
+                             {% endfor %}
                         </div>
                     </div>
                     <fieldset>
                         <legend class="text-sm font-medium text-gray-700">Available Shifts</legend>
                         <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
-                            {% set shifts = form_data.get('available_shifts', []) %}
-                            <div class="flex items-center"><input id="shift-morning" name="available_shifts" type="checkbox" value="morning" {% if 'morning' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-morning" class="ml-3 block text-sm text-gray-900">Morning</label></div>
-                            <div class="flex items-center"><input id="shift-night" name="available_shifts" type="checkbox" value="night" {% if 'night' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-night" class="ml-3 block text-sm text-gray-900">Night</label></div>
-                            <div class="flex items-center"><input id="shift-overnight" name="available_shifts" type="checkbox" value="overnight" {% if 'overnight' in shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="shift-overnight" class="ml-3 block text-sm text-gray-900">Overnight</label></div>
+                            {% set checked_shifts = form_data.get('available_shifts', []) %}
+                            {% for shift in form_options.AvailableShifts %}
+                            <div class="flex items-center">
+                                <input id="shift-{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in checked_shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                <label for="shift-{{ shift }}" class="ml-3 block text-sm text-gray-900">{{ shift|title }}</label>
+                            </div>
+                            {% endfor %}
                         </div>
                     </fieldset>
                  </div>
@@ -177,10 +189,13 @@
                     <fieldset>
                         <legend class="text-sm font-medium text-gray-700">Benefits Package</legend>
                         <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
-                            {% set benefits = form_data.get('benefits', []) %}
-                            <div class="flex items-center"><input id="benefit-training" name="benefits" type="checkbox" value="paid_training" {% if 'paid_training' in benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="benefit-training" class="ml-3 block text-sm text-gray-900">Paid Training</label></div>
-                            <div class="flex items-center"><input id="benefit-social" name="benefits" type="checkbox" value="social_insurance" {% if 'social_insurance' in benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="benefit-social" class="ml-3 block text-sm text-gray-900">Social Insurance</label></div>
-                            <div class="flex items-center"><input id="benefit-medical" name="benefits" type="checkbox" value="medical_insurance" {% if 'medical_insurance' in benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"><label for="benefit-medical" class="ml-3 block text-sm text-gray-900">Medical Insurance</label></div>
+                            {% set checked_benefits = form_data.get('benefits_checkboxes', []) %}
+                            {% for benefit in form_options.benefits_checkboxes %}
+                            <div class="flex items-center">
+                                <input id="benefit-{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" {% if benefit in checked_benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                <label for="benefit-{{ loop.index }}" class="ml-3 block text-sm text-gray-900">{{ benefit|replace('_', ' ')|title }}</label>
+                            </div>
+                            {% endfor %}
                         </div>
                     </fieldset>
                     <div>
@@ -193,8 +208,9 @@
                             <label for="transport_type" class="text-sm font-medium text-gray-700">Transportation Type</label>
                             <select id="transport_type" name="transport_type" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                                 <option value="">Select if provided...</option>
-                                <option value="d2d" {% if form_data.get('transport_type') == 'd2d' %}selected{% endif %}>Door to Door</option>
-                                <option value="pickup" {% if form_data.get('transport_type') == 'pickup' %}selected{% endif %}>Pickup Points</option>
+                                {% for key, value in form_options.transportation_options_map.items() %}
+                                <option value="{{ key }}" {% if form_data.get('transport_type') == key %}selected{% endif %}>{{ value|replace('Transportation ', '') }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                     </div>
@@ -206,10 +222,9 @@
                 <h3 class="text-lg font-medium text-gray-900">Offer Status</h3>
                 <div class="mt-4">
                     <select name="status" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                        <option value="Open" {% if form_data.get('Status') == 'Open' %}selected{% endif %}>Open</option>
-                        <option value="Closed" {% if form_data.get('Status') == 'Closed' %}selected{% endif %}>Closed</option>
-                        <option value="Filled" {% if form_data.get('Status') == 'Filled' %}selected{% endif %}>Filled</option>
-                        <option value="OnHold" {% if form_data.get('Status') == 'OnHold' %}selected{% endif %}>On Hold</option>
+                        {% for status in form_options.Status %}
+                        <option value="{{ status }}" {% if form_data.get('status') == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
@@ -217,9 +232,9 @@
 
         </div>
 
-        <div class="pt-8 border-t border-gray-200 mt-8 flex justify-end gap-3">
-            <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</a>
-            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">{{ action_verb }} Offer</button>
+        <div class="pt-8 mt-8 border-t border-gray-200 flex justify-end gap-x-3">
+            <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Cancel</a>
+            <button type="submit" class="inline-flex justify-center rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors">{{ action_verb }} Offer</button>
         </div>
     </form>
 </div>
