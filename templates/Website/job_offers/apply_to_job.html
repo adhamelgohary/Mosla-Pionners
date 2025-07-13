@@ -95,12 +95,11 @@
                                         </div>
                                     </div>
                                     <div id="audio-playback-area" class="hidden pt-4 border-t border-border/50 space-y-3">
-                                        <p class="text-sm font-medium text-text">Listen to your recording:</p>
+                                        <p class="text-sm font-medium text-text">Your recording is ready:</p>
                                         <audio id="audioPreview" controls class="w-full"></audio>
-                                        <!-- CHANGE: Styled "Delete" button -->
-                                        <button type="button" id="deleteRecordingButton" class="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-gray-900 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 transition-colors">
+                                        <button type="button" id="deleteRecordingButton" class="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent border border-gray-300 rounded-full hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
                                             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.046A12.705 12.705 0 0115.682 15L14.5 14.5a.75.75 0 00-1.061 1.061l1.5 1.5a.75.75 0 001.06 0l1.5-1.5a.75.75 0 00-1.06-1.06l-1.092 1.092a11.208 11.208 0 00-9.287-9.044l-.046.149a.75.75 0 001.482.23l.468-2.365A2.75 2.75 0 008.75 1zM10 5.5a.75.75 0 01.75.75v6.5a.75.75 0 01-1.5 0v-6.5A.75.75 0 0110 5.5z" clip-rule="evenodd" /></svg>
-                                            Delete and re-record
+                                            Re-record
                                         </button>
                                     </div>
                                     <div id="recorder-error" class="hidden mt-2 text-sm text-red-600 dark:text-red-500"></div>
@@ -114,6 +113,42 @@
                                     </div>
                                     <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note_file"></p>
                                 </div>
+
+                                <!-- RESTORED: Detailed instructions accordion -->
+                                <details class="mt-4">
+                                    <summary class="cursor-pointer text-sm font-medium text-primary hover:text-primary-darker flex items-center gap-2">
+                                        <svg class="accordion-arrow w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                                        Need help recording or uploading? Click here.
+                                    </summary>
+                                    <div class="mt-3 pl-6 border-l-2 border-border/50 text-sm text-text-muted space-y-4">
+                                        <div>
+                                            <h4 class="font-semibold text-text">Recommended Apps:</h4>
+                                            <ul class="list-disc list-outside pl-5 mt-1">
+                                                <li><strong class="text-text">iOS (iPhone):</strong> Use the built-in <strong class="text-text">"Voice Memos"</strong> app.</li>
+                                                <li><strong class="text-text">Android:</strong> Use the built-in <strong class="text-text">"Recorder"</strong> or "Voice Recorder" app.</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-text">Steps to Record & Upload:</h4>
+                                            <ol class="list-decimal list-outside pl-5 mt-1 space-y-2">
+                                                <li><strong>Record Your Audio:</strong> Open the recommended app on your phone, press record, and speak clearly into your phone's microphone for 60-90 seconds.</li>
+                                                <li><strong>Save & Find Your File (iOS):</strong>
+                                                    <ul class="list-disc list-outside pl-5 mt-1">
+                                                        <li>After recording, tap "Done" and name your file (e.g., "My Application Intro").</li>
+                                                        <li>Tap the "..." (more options) button on your recording.</li>
+                                                        <li>Select <strong class="text-text">"Save to Files"</strong> and choose a location you'll remember, like "On My iPhone" or "iCloud Drive".</li>
+                                                    </ul>
+                                                </li>
+                                                <li><strong>Save & Find Your File (Android):</strong>
+                                                     <ul class="list-disc list-outside pl-5 mt-1">
+                                                        <li>Stop the recording and save it. It's usually saved automatically in a "Recordings" or "Sounds" folder inside your phone's internal storage.</li>
+                                                    </ul>
+                                                </li>
+                                                <li><strong>Upload to the Form:</strong> On this page, tap the "Choose File" button above and navigate to where you saved your audio file to select it.</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
 
                             <div class="bg-background/50 p-4 rounded-lg border border-border">
@@ -185,7 +220,6 @@
             return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         };
 
-        // CHANGE: Simplified and more robust UI state management
         const updateUI = (state) => {
             recorderError.classList.add('hidden');
             if (state === 'idle') {
@@ -203,7 +237,6 @@
                 recordingStatus.classList.remove('hidden');
                 playbackArea.classList.add('hidden');
             } else if (state === 'preview') {
-                // In preview mode, hide the main controls completely
                 recorderControls.classList.add('hidden');
                 recordingStatus.classList.add('hidden');
                 playbackArea.classList.remove('hidden');
@@ -214,6 +247,7 @@
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = null;
             timerEl.textContent = '00:00';
+            // FIX: Stop the microphone stream ONLY when resetting.
             if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
             audioChunks = [];
             recordedBlob = null;
@@ -222,6 +256,7 @@
         };
 
         recordButton.addEventListener('click', async () => {
+            // Ensure any previous state is fully reset before starting.
             resetRecorder();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showError('Recording is not supported by your browser.');
@@ -245,7 +280,7 @@
                     timerInterval = null;
                     recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     audioPreview.src = URL.createObjectURL(recordedBlob);
-                    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+                    // DO NOT stop stream here. Stop it in resetRecorder.
                     updateUI('preview');
                 });
             } catch (err) {
