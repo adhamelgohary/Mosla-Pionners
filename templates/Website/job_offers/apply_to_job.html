@@ -207,6 +207,8 @@
         const voiceNoteFileInput = document.getElementById('voice_note_file');
 
         let mediaRecorder, audioChunks = [], recordedBlob = null, timerInterval = null, stream = null;
+        let recordingMimeType = ''; // SAFARI FIX: To store the determined MIME type
+        let recordingFileExtension = ''; // SAFARI FIX: To store the file extension
         const MAX_RECORDING_SECONDS = 90;
 
         const showError = (message) => {
@@ -260,31 +262,46 @@
                 return;
             }
             try {
+                // SAFARI FIX: Determine supported MIME type before recording
+                const supportedTypes = [
+                    'audio/mp4', // Preferred for Safari/iOS
+                    'audio/webm', // Preferred for Chrome/Firefox
+                    'audio/ogg'
+                ];
+                recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type));
+                
+                if (!recordingMimeType) {
+                    showError('No supported audio format found for recording.');
+                    return;
+                }
+                recordingFileExtension = recordingMimeType.split('/')[1];
+                
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 updateUI('recording');
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.start();
+                
+                const options = { mimeType: recordingMimeType };
+                mediaRecorder = new MediaRecorder(stream, options);
 
                 mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
                 
                 mediaRecorder.addEventListener("stop", () => {
-                    // This is the critical change for mobile compatibility
-                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    
-                    const reader = new FileReader();
-                    reader.readAsDataURL(recordedBlob); 
-                    reader.onloadend = function() {
-                        const base64data = reader.result;                
-                        audioPreview.src = base64data;
-                        updateUI('preview');
-                    }
-                    
                     // Stop the microphone stream now that we are done with it.
                     if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
                     if (timerInterval) clearInterval(timerInterval);
                     timerInterval = null;
+
+                    recordedBlob = new Blob(audioChunks, { type: recordingMimeType });
+                    
+                    // MOBILE FIX: Use FileReader to create a stable Data URL
+                    const reader = new FileReader();
+                    reader.readAsDataURL(recordedBlob); 
+                    reader.onloadend = function() {
+                        audioPreview.src = reader.result;                
+                        updateUI('preview');
+                    }
                 });
 
+                mediaRecorder.start();
                 let seconds = 0;
                 timerEl.textContent = formatTime(seconds);
                 timerInterval = setInterval(() => {
@@ -314,7 +331,11 @@
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(applicationForm);
-            if (recordedBlob) { formData.set('voice_note_file', recordedBlob, 'voice-introduction.webm'); }
+            if (recordedBlob) {
+                // SAFARI FIX: Use the correct file extension
+                const fileName = `voice-introduction.${recordingFileExtension}`;
+                formData.set('voice_note_file', recordedBlob, fileName); 
+            }
             
             const formErrorMessagesDiv = document.getElementById('formErrorMessages');
             const formErrorContent = document.getElementById('formErrorContent');
