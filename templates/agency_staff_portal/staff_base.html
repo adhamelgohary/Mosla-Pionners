@@ -26,19 +26,6 @@
                                 <!-- Main Dashboard Link -->
                                 <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Dashboard</a>
                                 
-                                <!-- Dedicated Portal Links -->
-                                {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'OperationsManager'] %}
-                                    <a href="{{ url_for('account_manager_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.blueprint == 'account_manager_bp' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">AM Portal</a>
-                                {% endif %}
-                                
-                                {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
-                                    <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.blueprint == 'recruiter_bp' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Recruiter Portal</a>
-                                {% endif %}
-
-                                {% if current_user.role_type in ['CEO', 'OperationsManager'] %}
-                                    <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Staff</a>
-                                {% endif %}
-                                
                                 <!-- Management Dropdown for other items -->
                                 <div class="relative" x-on:click.away="managementMenuOpen = false">
                                     <button @click="managementMenuOpen = !managementMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md text-gray-300 hover:bg-slate-700 hover:text-white" aria-expanded="false">
@@ -49,6 +36,7 @@
                                         <div class="py-1">
                                             {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses</a>{% endif %}
                                             {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Job Offers</a>{% endif %}
+                                            {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Staff</a>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -86,9 +74,9 @@
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-slate-900 text-white' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Dashboard</a>
-                    {% if current_user.role_type in ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('account_manager_bp.dashboard') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">AM Portal</a>{% endif %}
-                    {% if current_user.role_type in ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('recruiter_bp.dashboard') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Recruiter Portal</a>{% endif %}
                     {% if current_user.role_type in ['SalesManager', 'CEO', 'OperationsManager'] %}<a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Courses</a>{% endif %}
+                    {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Job Offers</a>{% endif %}
+                    {% if current_user.role_type in ['CEO', 'OperationsManager'] %}<a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="text-gray-300 hover:bg-slate-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Manage Staff</a>{% endif %}
                 </div>
                 <div class="border-t border-gray-700 pb-3 pt-4">
                     <div class="flex items-center px-5">

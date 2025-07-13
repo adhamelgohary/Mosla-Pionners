@@ -7,7 +7,7 @@ import datetime
 import decimal
 import mysql.connector
 
-JOB_OFFER_REVIEW_ROLES = ['CEO', 'OperationsManager']
+JOB_OFFER_REVIEW_ROLES = ['CEO']
 CLIENT_CONTACT_ROLE_NAME = 'ClientContact'
 
 job_offer_mgmt_bp = Blueprint('job_offer_mgmt_bp', __name__,
@@ -74,6 +74,8 @@ def client_submit_job_offer():
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor()
+                # Note: This table still uses the old column names, which is fine as it's a staging table.
+                # The mapping happens when an admin approves it.
                 sql = """INSERT INTO ClientSubmittedJobOffers (
                              CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract,
                              RequiredLanguage, EnglishLevelRequirement, CandidatesNeeded, HiringCadence, WorkLocationType,
@@ -212,7 +214,12 @@ def staff_direct_create_job_offer():
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
-        form_data['benefits'] = request.form.getlist('benefits')
+        benefits_list = request.form.getlist('benefits')
+        if form_data.get('transportation') == 'yes':
+            if form_data.get('transport_type') == 'd2d': benefits_list.append('Transportation (Door to Door)')
+            elif form_data.get('transport_type') == 'pickup': benefits_list.append('Transportation (Pickup Points)')
+        
+        form_data['benefits'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         errors = validate_job_offer_data(form_data, is_staff_creation=True)
 
@@ -223,15 +230,16 @@ def staff_direct_create_job_offer():
                 cursor = conn_insert.cursor()
                 sql = """INSERT INTO JobOffers (
                             CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
-                            MaxAge, HasContract, GraduationStatusRequirement, NationalityRequirement, RequiredLanguage, EnglishLevelRequirement,
+                            MaxAge, HasContract, GraduationStatusRequirement, Nationality, RequiredLanguages, RequiredLevel,
                             CandidatesNeeded, HiringCadence, WorkLocationType, ShiftType, AvailableShifts,
-                            Benefits, IsTransportationProvided, TransportationType, Status, ClosingDate, DatePosted
+                            BenefitsIncluded, Status, ClosingDate, DatePosted
                          ) VALUES (
                             %(company_id)s, %(posted_by_id)s, %(category_id)s, %(title)s, %(location)s, %(salary)s, %(payment_term)s, %(hiring_plan)s,
-                            %(max_age)s, %(has_contract)s, %(grad_status)s, %(nationality)s, %(required_language)s, %(english_level)s,
+                            %(max_age)s, %(has_contract)s, %(grad_status)s, %(nationality)s, %(required_languages)s, %(required_level)s,
                             %(candidates_needed)s, %(hiring_cadence)s, %(work_location)s, %(shift_type)s, %(available_shifts)s,
-                            %(benefits)s, %(transport_provided)s, %(transport_type)s, %(status)s, %(closing_date)s, NOW()
+                            %(benefits)s, %(status)s, %(closing_date)s, NOW()
                          )"""
+                nationality_mapping = {'egyptian': 'Egyptians Only', 'any': 'Foreigners & Egyptians', 'foreigner': 'Foreigners & Egyptians'}
                 params = {
                     "company_id": form_data.get('company_id'), "posted_by_id": current_user.specific_role_id,
                     "category_id": form_data.get('category_id'), "title": form_data.get('position-title'),
@@ -240,14 +248,12 @@ def staff_direct_create_job_offer():
                     "payment_term": form_data.get('payment_term'), "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": form_data.get('max_age') or None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status": form_data.get('grad-status'), "nationality": form_data.get('nationality'),
-                    "required_language": form_data.get('required_language'), "english_level": form_data.get('english-level'),
+                    "grad_status": form_data.get('grad-status'), "nationality": nationality_mapping.get(form_data.get('nationality'), 'Foreigners & Egyptians'),
+                    "required_languages": form_data.get('required_language'), "required_level": form_data.get('english-level'),
                     "candidates_needed": form_data.get('candidate-count'), "hiring_cadence": form_data.get('hiring_cadence'),
                     "work_location": form_data.get('work_location'), "shift_type": form_data.get('shift_type'),
                     "available_shifts": ",".join(form_data['available_shifts']) if form_data['available_shifts'] else None,
                     "benefits": ",".join(form_data['benefits']) if form_data['benefits'] else None,
-                    "transport_provided": 1 if form_data.get('transportation') == 'yes' else 0,
-                    "transport_type": form_data.get('transport_type') if form_data.get('transportation') == 'yes' else None,
                     "status": "Open", "closing_date": form_data.get('closing_date') or None
                 }
                 cursor.execute(sql, params)
@@ -285,7 +291,12 @@ def edit_live_job_offer(offer_id):
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
-        form_data['benefits'] = request.form.getlist('benefits')
+        benefits_list = request.form.getlist('benefits')
+        if form_data.get('transportation') == 'yes':
+            if form_data.get('transport_type') == 'd2d': benefits_list.append('Transportation (Door to Door)')
+            elif form_data.get('transport_type') == 'pickup': benefits_list.append('Transportation (Pickup Points)')
+
+        form_data['benefits'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         original_title_hidden = request.form.get('original_title_hidden', form_data.get('position-title', 'Job Offer'))
         errors = validate_job_offer_data(form_data, is_staff_creation=True)
@@ -296,11 +307,11 @@ def edit_live_job_offer(offer_id):
                 cursor = conn_update.cursor()
                 sql = """UPDATE JobOffers SET
                             CompanyID=%(company_id)s, CategoryID=%(category_id)s, Title=%(title)s, Location=%(location)s, NetSalary=%(salary)s, PaymentTerm=%(payment_term)s, HiringPlan=%(hiring_plan)s,
-                            MaxAge=%(max_age)s, HasContract=%(has_contract)s, GraduationStatusRequirement=%(grad_status)s, NationalityRequirement=%(nationality)s, RequiredLanguage=%(required_language)s, EnglishLevelRequirement=%(english_level)s,
+                            MaxAge=%(max_age)s, HasContract=%(has_contract)s, GraduationStatusRequirement=%(grad_status)s, Nationality=%(nationality)s, RequiredLanguages=%(required_languages)s, RequiredLevel=%(required_level)s,
                             CandidatesNeeded=%(candidates_needed)s, HiringCadence=%(hiring_cadence)s, WorkLocationType=%(work_location)s, ShiftType=%(shift_type)s, AvailableShifts=%(available_shifts)s,
-                            Benefits=%(benefits)s, IsTransportationProvided=%(transport_provided)s, TransportationType=%(transport_type)s,
-                            Status=%(status)s, ClosingDate=%(closing_date)s, UpdatedAt=NOW()
+                            BenefitsIncluded=%(benefits)s, Status=%(status)s, ClosingDate=%(closing_date)s, UpdatedAt=NOW()
                          WHERE OfferID=%(offer_id)s"""
+                nationality_mapping = {'egyptian': 'Egyptians Only', 'any': 'Foreigners & Egyptians', 'foreigner': 'Foreigners & Egyptians'}
                 params = {
                     "company_id": form_data.get('company_id'), "category_id": form_data.get('category_id'),
                     "title": form_data.get('position-title'), "location": form_data.get('location'),
@@ -308,14 +319,12 @@ def edit_live_job_offer(offer_id):
                     "payment_term": form_data.get('payment_term'), "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": form_data.get('max_age') or None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status": form_data.get('grad-status'), "nationality": form_data.get('nationality'),
-                    "required_language": form_data.get('required_language'), "english_level": form_data.get('english-level'),
+                    "grad_status": form_data.get('grad-status'), "nationality": nationality_mapping.get(form_data.get('nationality'), 'Foreigners & Egyptians'),
+                    "required_languages": form_data.get('required_language'), "required_level": form_data.get('english-level'),
                     "candidates_needed": form_data.get('candidate-count'), "hiring_cadence": form_data.get('hiring_cadence'),
                     "work_location": form_data.get('work_location'), "shift_type": form_data.get('shift_type'),
                     "available_shifts": ",".join(form_data['available_shifts']) if form_data['available_shifts'] else None,
                     "benefits": ",".join(form_data['benefits']) if form_data['benefits'] else None,
-                    "transport_provided": 1 if form_data.get('transportation') == 'yes' else 0,
-                    "transport_type": form_data.get('transport_type') if form_data.get('transportation') == 'yes' else None,
                     "status": form_data.get('status', 'Open'), "closing_date": form_data.get('closing_date') or None,
                     "offer_id": offer_id
                 }
@@ -341,14 +350,13 @@ def edit_live_job_offer(offer_id):
                 data = cursor.fetchone()
                 if data:
                     form_data = data.copy()
-                    # Map all DB fields to form field names
                     form_data['company_id'] = data.get('CompanyID')
                     form_data['category_id'] = data.get('CategoryID')
                     form_data['position-title'] = data.get('Title')
                     form_data['location'] = data.get('Location')
                     form_data['max_age'] = data.get('MaxAge')
-                    form_data['required_language'] = data.get('RequiredLanguage')
-                    form_data['english-level'] = data.get('EnglishLevelRequirement')
+                    form_data['required_language'] = data.get('RequiredLanguages')
+                    form_data['english-level'] = data.get('RequiredLevel')
                     form_data['candidate-count'] = data.get('CandidatesNeeded')
                     form_data['hiring_cadence'] = data.get('HiringCadence')
                     form_data['grad-status'] = data.get('GraduationStatusRequirement')
@@ -356,20 +364,30 @@ def edit_live_job_offer(offer_id):
                     form_data['hiring_plan'] = data.get('HiringPlan')
                     form_data['work_location'] = data.get('WorkLocationType')
                     form_data['shift_type'] = data.get('ShiftType')
-                    form_data['nationality'] = data.get('NationalityRequirement')
                     form_data['has_contract'] = 'yes' if data.get('HasContract') else 'no'
+                    if data.get('Nationality') == 'Egyptians Only': form_data['nationality'] = 'egyptian'
+                    else: form_data['nationality'] = 'any'
                     
-                    # === FIX STARTS HERE ===
-                    available_shifts_data = data.get('AvailableShifts')
-                    form_data['available_shifts'] = list(available_shifts_data) if available_shifts_data else []
+                    available_shifts_str = data.get('AvailableShifts', '')
+                    form_data['available_shifts'] = available_shifts_str.split(',') if available_shifts_str else []
                     
-                    benefits_data = data.get('Benefits')
-                    form_data['benefits'] = list(benefits_data) if benefits_data else []
-                    # === FIX ENDS HERE ===
+                    benefits_str = data.get('BenefitsIncluded', '')
+                    benefits_list = benefits_str.split(',') if benefits_str else []
+                    
+                    final_benefits_for_checkboxes = []
+                    form_data['transportation'] = 'no'
+                    for benefit in benefits_list:
+                        if benefit == 'Transportation (Door to Door)':
+                            form_data['transportation'] = 'yes'
+                            form_data['transport_type'] = 'd2d'
+                        elif benefit == 'Transportation (Pickup Points)':
+                            form_data['transportation'] = 'yes'
+                            form_data['transport_type'] = 'pickup'
+                        elif benefit:
+                            final_benefits_for_checkboxes.append(benefit)
+                    form_data['benefits'] = final_benefits_for_checkboxes
                     
                     form_data['salary'] = str(data['NetSalary']) if data.get('NetSalary') is not None else ''
-                    form_data['transportation'] = 'yes' if data.get('IsTransportationProvided') else 'no'
-                    form_data['transport_type'] = data.get('TransportationType')
                     form_data['closing_date'] = data['ClosingDate'].isoformat() if data.get('ClosingDate') and isinstance(data['ClosingDate'], datetime.date) else ''
                     original_title_hidden = data.get('Title', "Job Offer")
                 else:
@@ -431,13 +449,10 @@ def list_review_client_submissions():
         """)
         submissions = cursor.fetchall()
         for sub in submissions: 
-            # === FIX STARTS HERE ===
-            benefits_data = sub.get('Benefits')
-            sub['Benefits_list'] = list(benefits_data) if benefits_data else []
-            
-            shifts_data = sub.get('AvailableShifts')
-            sub['AvailableShifts_list'] = list(shifts_data) if shifts_data else []
-            # === FIX ENDS HERE ===
+            benefits_str = sub.get('Benefits', '')
+            sub['Benefits_list'] = benefits_str.split(',') if benefits_str else []
+            shifts_str = sub.get('AvailableShifts', '')
+            sub['AvailableShifts_list'] = shifts_str.split(',') if shifts_str else []
         
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories_for_dropdown = cursor.fetchall()
@@ -482,26 +497,33 @@ def review_client_submission_action(submission_id):
         if action == 'approve':
             sql_live = """INSERT INTO JobOffers (
                             CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
-                            MaxAge, HasContract, GraduationStatusRequirement, NationalityRequirement, RequiredLanguage, EnglishLevelRequirement,
+                            MaxAge, HasContract, GraduationStatusRequirement, Nationality, RequiredLanguages, RequiredLevel,
                             CandidatesNeeded, HiringCadence, WorkLocationType, ShiftType, AvailableShifts,
-                            Benefits, IsTransportationProvided, TransportationType, Status, ClosingDate, DatePosted
+                            BenefitsIncluded, Status, ClosingDate, DatePosted
                           ) VALUES (
                             %(CompanyID)s, %(PostedByStaffID)s, %(SelectedCategoryID)s, %(Title)s, %(Location)s, %(NetSalary)s, %(PaymentTerm)s, %(HiringPlan)s,
-                            %(MaxAge)s, %(HasContract)s, %(GraduationStatusRequirement)s, %(NationalityRequirement)s, %(RequiredLanguage)s, %(EnglishLevelRequirement)s,
+                            %(MaxAge)s, %(HasContract)s, %(GraduationStatusRequirement)s, %(Nationality)s, %(RequiredLanguages)s, %(RequiredLevel)s,
                             %(CandidatesNeeded)s, %(HiringCadence)s, %(WorkLocationType)s, %(ShiftType)s, %(AvailableShifts)s,
-                            %(Benefits)s, %(IsTransportationProvided)s, %(TransportationType)s, 'Open', %(ClosingDate)s, NOW()
+                            %(Benefits)s, 'Open', %(ClosingDate)s, NOW()
                           )"""
             params_live = sub.copy()
-            params_live.update({"PostedByStaffID": current_user.specific_role_id, "SelectedCategoryID": category_id_on_approval})
+            # Map old submission columns to new live table columns
+            nationality_mapping = {'egyptian': 'Egyptians Only', 'any': 'Foreigners & Egyptians', 'foreigner': 'Foreigners & Egyptians'}
             
-            # --- FIX STARTS HERE: Convert sets to strings for the database ---
-            if 'Benefits' in params_live and isinstance(params_live['Benefits'], set):
-                params_live['Benefits'] = ",".join(params_live['Benefits'])
-                
-            if 'AvailableShifts' in params_live and isinstance(params_live['AvailableShifts'], set):
-                params_live['AvailableShifts'] = ",".join(params_live['AvailableShifts'])
-            # --- FIX ENDS HERE ---
+            benefits_from_sub = params_live.get('Benefits', '').split(',') if params_live.get('Benefits') else []
+            if params_live.get('IsTransportationProvided'):
+                if params_live.get('TransportationType') == 'd2d': benefits_from_sub.append('Transportation (Door to Door)')
+                elif params_live.get('TransportationType') == 'pickup': benefits_from_sub.append('Transportation (Pickup Points)')
 
+            params_live.update({
+                "PostedByStaffID": current_user.specific_role_id, 
+                "SelectedCategoryID": category_id_on_approval,
+                "Nationality": nationality_mapping.get(sub.get('NationalityRequirement'), 'Foreigners & Egyptians'),
+                "RequiredLanguages": sub.get('RequiredLanguage'),
+                "RequiredLevel": sub.get('EnglishLevelRequirement'),
+                "Benefits": ",".join(filter(None, benefits_from_sub)) # Join final list
+            })
+            
             cursor.execute(sql_live, params_live)
             live_offer_id = cursor.lastrowid
             
@@ -547,13 +569,10 @@ def view_live_job_offer_detail(offer_id):
         """, (offer_id,))
         offer = cursor.fetchone()
         if offer: 
-            # === FIX STARTS HERE ===
-            benefits_data = offer.get('Benefits')
-            offer['Benefits_list'] = list(benefits_data) if benefits_data else []
-
-            shifts_data = offer.get('AvailableShifts')
-            offer['AvailableShifts_list'] = list(shifts_data) if shifts_data else []
-            # === FIX ENDS HERE ===
+            benefits_str = offer.get('BenefitsIncluded', '')
+            offer['Benefits_list'] = benefits_str.split(',') if benefits_str else []
+            shifts_str = offer.get('AvailableShifts', '')
+            offer['AvailableShifts_list'] = shifts_str.split(',') if shifts_str else []
     except Exception as e:
         current_app.logger.error(f"Error fetching live offer detail {offer_id}: {e}", exc_info=True)
         flash("Could not load offer details.", "danger")
