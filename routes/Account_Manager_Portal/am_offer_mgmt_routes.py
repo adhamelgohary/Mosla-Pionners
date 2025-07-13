@@ -6,8 +6,8 @@ from db import get_db_connection
 import decimal
 import datetime
 
-# Roles that can manage offers within the AM portal
-AM_OFFER_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'OperationsManager']
+# Roles that can manage offers within the AM portal, adapted from schema
+AM_OFFER_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'OperationsManager', 'Admin']
 
 am_offer_mgmt_bp = Blueprint('am_offer_mgmt_bp', __name__,
                              template_folder='../../../templates',
@@ -99,8 +99,6 @@ def add_offer():
     errors = {}
     form_data = {}
     company = None
-    
-    # Check if we are adding for a specific company from the list view
     preselected_company_id = request.args.get('company_id', type=int)
 
     conn_data = get_db_connection()
@@ -124,7 +122,9 @@ def add_offer():
             conn_tx = get_db_connection()
             try:
                 cursor = conn_tx.cursor()
-                company_id = form_data.get('company_id') # From hidden input if pre-selected
+                conn_tx.start_transaction()
+                
+                company_id = form_data.get('company_id')
                 if not company_id:
                     if form_data.get('company_selection_mode') == 'new':
                         new_company_name = form_data.get('new_company_name').strip()
@@ -132,32 +132,31 @@ def add_offer():
                         if cursor.fetchone():
                             errors['new_company_name'] = f"A company named '{new_company_name}' already exists."
                             raise ValueError("Duplicate company name")
-                        cursor.execute("INSERT INTO Companies (CompanyName, ManagedByStaffID) VALUES (%s, %s)", 
-                                       (new_company_name, current_user.specific_role_id))
+                        # Note: In a real app, you might want more details for a new company
+                        cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (new_company_name,))
                         company_id = cursor.lastrowid
                     else:
                         company_id = form_data.get('selected_company_id')
 
-                # Prepare parameters for SQL, providing defaults for optional fields to avoid IntegrityError
                 params = {
                     "company_id": company_id,
-                    "posted_by_id": current_user.specific_role_id,
+                    "posted_by_id": getattr(current_user, 'specific_role_id', None),
                     "category_id": form_data.get('category_id'),
                     "title": form_data.get('title'),
                     "location": form_data.get('location'),
                     "net_salary": decimal.Decimal(form_data['net_salary']) if form_data.get('net_salary') else None,
                     "payment_term": form_data.get('payment_term', 'Monthly'),
-                    "hiring_plan": form_data.get('hiring_plan', 'Ongoing'),
+                    "hiring_plan": form_data.get('hiring_plan', 'long-term'),
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status": form_data.get('grad_status', 'Any'),
+                    "grad_status_req": form_data.get('grad_status_req') or None, # Mapped from form
                     "languages_type": form_data.get('languages_type'),
                     "required_languages": ",".join(form_data.get('required_languages', [])),
                     "required_level": form_data.get('required_level'),
                     "candidates_needed": int(form_data.get('candidates_needed', 1)),
-                    "hiring_cadence": form_data.get('hiring_cadence', 'As needed'),
-                    "work_location": form_data.get('work_location', 'On-site'),
-                    "shift_type": form_data.get('shift_type', 'Fixed'),
+                    "hiring_cadence": form_data.get('hiring_cadence', 'month'),
+                    "work_location_type": form_data.get('work_location_type'), # Mapped from form
+                    "shift_type": form_data.get('shift_type', 'fixed'),
                     "available_shifts": ",".join(form_data.get('available_shifts', [])),
                     "benefits_included": ",".join(form_data.get('benefits_included', [])),
                     "interview_type": form_data.get('interview_type'),
@@ -170,13 +169,13 @@ def add_offer():
                         CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
                         MaxAge, HasContract, GraduationStatusRequirement, LanguagesType, RequiredLanguages, RequiredLevel,
                         CandidatesNeeded, HiringCadence, WorkLocationType, ShiftType, AvailableShifts,
-                        BenefitsIncluded, InterviewType, Nationality, Status, ClosingDate
+                        BenefitsIncluded, InterviewType, Nationality, Status, ClosingDate, DatePosted
                     ) VALUES (
                         %(company_id)s, %(posted_by_id)s, %(category_id)s, %(title)s, %(location)s, %(net_salary)s, 
-                        %(payment_term)s, %(hiring_plan)s, %(max_age)s, %(has_contract)s, %(grad_status)s,
+                        %(payment_term)s, %(hiring_plan)s, %(max_age)s, %(has_contract)s, %(grad_status_req)s,
                         %(languages_type)s, %(required_languages)s, %(required_level)s, %(candidates_needed)s, 
-                        %(hiring_cadence)s, %(work_location)s, %(shift_type)s, %(available_shifts)s, 
-                        %(benefits_included)s, %(interview_type)s, %(nationality)s, 'Open', %(closing_date)s
+                        %(hiring_cadence)s, %(work_location_type)s, %(shift_type)s, %(available_shifts)s, 
+                        %(benefits_included)s, %(interview_type)s, %(nationality)s, 'Open', %(closing_date)s, NOW()
                     )
                 """
                 cursor.execute(sql, params)
@@ -184,7 +183,7 @@ def add_offer():
                 flash(f"New job offer for '{form_data.get('title')}' created successfully!", "success")
                 return redirect(url_for('.list_offers_for_company', company_id=company_id))
 
-            except ValueError as ve: # Handles the duplicate company name check
+            except ValueError as ve: 
                 if conn_tx: conn_tx.rollback()
             except Exception as e:
                 if conn_tx: conn_tx.rollback()
@@ -193,7 +192,6 @@ def add_offer():
             finally:
                 if conn_tx and conn_tx.is_connected(): conn_tx.close()
     
-    # For GET requests, pre-fill company if ID is in URL
     if preselected_company_id:
         form_data['company_id'] = preselected_company_id
 
@@ -234,7 +232,8 @@ def edit_offer(offer_id):
             conn_update = get_db_connection()
             try:
                 cursor_update = conn_update.cursor()
-                # Prepare parameters for SQL update
+                conn_update.start_transaction()
+                
                 params = {
                     "category_id": form_data.get('category_id'), "title": form_data.get('title').strip(),
                     "location": form_data.get('location'),
@@ -242,12 +241,15 @@ def edit_offer(offer_id):
                     "payment_term": form_data.get('payment_term'), "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status": form_data.get('grad_status'), "languages_type": form_data.get('languages_type'),
+                    "grad_status_req": form_data.get('grad_status_req') or None,
+                    "languages_type": form_data.get('languages_type'),
                     "required_languages": ",".join(form_data.get('required_languages', [])),
                     "required_level": form_data.get('required_level'),
                     "candidates_needed": int(form_data.get('candidates_needed', 1)),
-                    "hiring_cadence": form_data.get('hiring_cadence'), "work_location": form_data.get('work_location'),
-                    "shift_type": form_data.get('shift_type'), "available_shifts": ",".join(form_data.get('available_shifts', [])),
+                    "hiring_cadence": form_data.get('hiring_cadence'),
+                    "work_location_type": form_data.get('work_location_type'),
+                    "shift_type": form_data.get('shift_type'),
+                    "available_shifts": ",".join(form_data.get('available_shifts', [])),
                     "benefits_included": ",".join(form_data.get('benefits_included', [])),
                     "interview_type": form_data.get('interview_type'), "nationality": form_data.get('nationality'),
                     "status": form_data.get('status', 'Open'),
@@ -256,9 +258,9 @@ def edit_offer(offer_id):
                 sql = """
                     UPDATE JobOffers SET
                         CategoryID=%(category_id)s, Title=%(title)s, Location=%(location)s, NetSalary=%(net_salary)s, PaymentTerm=%(payment_term)s, HiringPlan=%(hiring_plan)s,
-                        MaxAge=%(max_age)s, HasContract=%(has_contract)s, GraduationStatusRequirement=%(grad_status)s, LanguagesType=%(languages_type)s, 
+                        MaxAge=%(max_age)s, HasContract=%(has_contract)s, GraduationStatusRequirement=%(grad_status_req)s, LanguagesType=%(languages_type)s, 
                         RequiredLanguages=%(required_languages)s, RequiredLevel=%(required_level)s, CandidatesNeeded=%(candidates_needed)s, 
-                        HiringCadence=%(hiring_cadence)s, WorkLocationType=%(work_location)s, ShiftType=%(shift_type)s, 
+                        HiringCadence=%(hiring_cadence)s, WorkLocationType=%(work_location_type)s, ShiftType=%(shift_type)s, 
                         AvailableShifts=%(available_shifts)s, BenefitsIncluded=%(benefits_included)s, InterviewType=%(interview_type)s, 
                         Nationality=%(nationality)s, Status=%(status)s, ClosingDate=%(closing_date)s, UpdatedAt=NOW()
                     WHERE OfferID = %(offer_id)s
@@ -279,10 +281,11 @@ def edit_offer(offer_id):
     else: # GET request, populate form from DB
         form_data_for_template = offer_data
         for key in ['RequiredLanguages', 'BenefitsIncluded', 'AvailableShifts']:
-            template_key = key.lower().replace('d', '_d', 1) # e.g., RequiredLanguages -> required_languages
             value = offer_data.get(key)
+            # Create a simplified key for the template e.g., 'required_languages'
+            template_key = key.lower().replace('d', '_d', 1) 
             if isinstance(value, (bytes, str)):
-                form_data_for_template[template_key] = value.split(',') if value else []
+                form_data_for_template[template_key] = [v.strip() for v in value.split(',') if v.strip()]
             elif isinstance(value, set):
                  form_data_for_template[template_key] = list(value)
             else:
@@ -303,7 +306,6 @@ def edit_offer(offer_id):
 @am_offer_mgmt_bp.route('/offer/<int:offer_id>/action', methods=['POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
 def handle_offer_action(offer_id):
-    """Handles actions for a job offer: activate, deactivate, and delete."""
     action = request.form.get('action')
     company_id_redirect = request.form.get('company_id')
     if not company_id_redirect:
@@ -313,6 +315,7 @@ def handle_offer_action(offer_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+        conn.start_transaction()
         if action == 'activate':
             cursor.execute("UPDATE JobOffers SET Status = 'Open', UpdatedAt = NOW() WHERE OfferID = %s", (offer_id,))
             flash("Job offer has been activated.", "success")

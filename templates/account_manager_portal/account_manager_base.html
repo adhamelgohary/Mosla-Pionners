@@ -36,6 +36,12 @@
                                     My Portfolio
                                 </a>
                                 
+                                <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" 
+                                   class="px-3 py-2 rounded-md text-sm font-medium 
+                                          {% if 'interview_pipeline' in request.endpoint %}bg-slate-900 text-white{% else %}text-gray-300 hover:bg-slate-700 hover:text-white{% endif %}">
+                                    Interview Pipeline
+                                </a>
+                                
                                 {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder', 'OperationsManager'] %}
                                 {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
                                 <a href="{{ url_for('account_manager_bp.my_staff') }}" class="{{ 'bg-slate-900 text-white' if request.endpoint == 'account_manager_bp.my_staff' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">
