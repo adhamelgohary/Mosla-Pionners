@@ -25,8 +25,7 @@ def check_candidate_role():
 @login_required
 def job_offers_list():
     """
-    Displays a personalized job board for the logged-in candidate,
-    filtering offers based on a hierarchy: Nationality, Language, Level, and Education.
+    Displays a personalized job board for the logged-in candidate.
     """
     role_redirect = check_candidate_role()
     if role_redirect:
@@ -39,26 +38,16 @@ def job_offers_list():
     
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # --- Step 1: Fetch candidate's full profile for filtering ---
-        cursor.execute("""
-            SELECT Nationality, Languages, LanguageLevel, EducationalStatus 
-            FROM Candidates 
-            WHERE UserID = %s
-        """, (current_user.id,))
+        cursor.execute("SELECT Nationality, Languages, LanguageLevel, EducationalStatus FROM Candidates WHERE UserID = %s", (current_user.id,))
         candidate_profile = cursor.fetchone()
         
         if not candidate_profile:
             flash("Your candidate profile could not be found. Please complete your profile to see relevant jobs.", "danger")
             return redirect(url_for('candidate_bp.dashboard'))
 
-        # --- Step 2: Build the personalized SQL query ---
         base_sql = """
-            SELECT 
-                jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, jo.RequiredLevel,
-                jo.NetSalary, jo.DatePosted,
-                c.CompanyName, c.CompanyLogoURL,
-                jc.CategoryName
+            SELECT jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, jo.RequiredLevel,
+                   jo.NetSalary, jo.DatePosted, c.CompanyName, c.CompanyLogoURL, jc.CategoryName
             FROM JobOffers jo
             JOIN Companies c ON jo.CompanyID = c.CompanyID
             LEFT JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
@@ -67,62 +56,37 @@ def job_offers_list():
         params = []
         conditions = []
 
-        # --- Hierarchical Personalized Filtering Logic ---
-
-        # Filter 1: Nationality
         candidate_nationality = candidate_profile.get('Nationality')
         if candidate_nationality == 'Egyptian':
-            # Egyptians can see jobs for 'Egyptians Only' or 'Foreigners & Egyptians'
             conditions.append("jo.Nationality IN ('Egyptians Only', 'Foreigners & Egyptians')")
         elif candidate_nationality == 'Foreigner':
-            # Foreigners can only see jobs for 'Foreigners & Egyptians'
             conditions.append("jo.Nationality = 'Foreigners & Egyptians'")
-        # If candidate nationality is not set, we don't apply this filter.
 
-        # Filter 2: Languages
-        candidate_langs = candidate_profile.get('Languages') # This is a Python set
+        candidate_langs = candidate_profile.get('Languages')
         if candidate_langs:
-            # Match if the job requires AT LEAST ONE of the candidate's languages.
-            # FIND_IN_SET is used because jo.RequiredLanguages is a SET type, stored as a string.
-            lang_conditions = []
-            for lang in candidate_langs:
-                lang_conditions.append("FIND_IN_SET(%s, jo.RequiredLanguages)")
-                params.append(lang)
+            lang_conditions = [ "FIND_IN_SET(%s, jo.RequiredLanguages)" for _ in candidate_langs ]
+            params.extend(list(candidate_langs))
             if lang_conditions:
                  conditions.append(f"({' OR '.join(lang_conditions)})")
 
-        # Filter 3: Language Level
         candidate_level = candidate_profile.get('LanguageLevel')
         if candidate_level:
-            # Map levels to numeric values for easy comparison (higher is better)
-            level_map_sql = """
-                CASE jo.RequiredLevel 
-                    WHEN 'C2' THEN 6 WHEN 'C1' THEN 5 WHEN 'B2+' THEN 4
-                    WHEN 'B2' THEN 3 WHEN 'B1+' THEN 2 WHEN 'B1' THEN 1
-                    ELSE 0 
-                END
-            """
+            level_map_sql = "CASE jo.RequiredLevel WHEN 'C2' THEN 6 WHEN 'C1' THEN 5 WHEN 'B2+' THEN 4 WHEN 'B2' THEN 3 WHEN 'B1+' THEN 2 WHEN 'B1' THEN 1 ELSE 0 END"
             candidate_level_map = {'C2': 6, 'C1': 5, 'B2+': 4, 'B2': 3, 'B1+': 2, 'B1': 1}
             candidate_level_value = candidate_level_map.get(candidate_level, 0)
-            
-            # Show jobs where required level is less than or equal to candidate's level
             conditions.append(f"({level_map_sql} <= %s)")
             params.append(candidate_level_value)
 
-        # Filter 4: Educational Status
         edu_status = candidate_profile.get('EducationalStatus')
         if edu_status in ['grad', 'ungrad', 'dropout', 'gap_year']:
-             # Show jobs that match the candidate's status, or have no requirement
              conditions.append("(jo.GraduationStatusRequirement = %s OR jo.GraduationStatusRequirement IS NULL)")
              params.append(edu_status)
 
-        # Filter 5: Standard Search Term (Title, Company, etc.)
         if search_term:
             conditions.append("(jo.Title LIKE %s OR c.CompanyName LIKE %s OR jc.CategoryName LIKE %s)")
             search_like = f"%{search_term}%"
             params.extend([search_like, search_like, search_like])
         
-        # --- Step 3: Execute Final Query ---
         sql = base_sql
         if conditions:
             sql += " AND " + " AND ".join(conditions)
@@ -145,9 +109,6 @@ def job_offers_list():
                            candidate_profile=candidate_profile,
                            search_term=search_term)
 
-
-# ... (The rest of the file remains unchanged)
-# The routes job_detail, apply_to_job, validate_referral_code_api, and submit_application_form are correct.
 
 @job_board_bp.route('/offer/<int:offer_id>')
 @job_board_bp.route('/offer/<int:offer_id>/<job_title_slug>')
@@ -229,7 +190,6 @@ def apply_to_job(offer_id):
 @job_board_bp.route('/api/validate-referral-code', methods=['POST'])
 @login_required 
 def validate_referral_code_api():
-    # This function is unchanged
     if not request.is_json:
         return jsonify({'status': 'error', 'message': 'Invalid request format: JSON expected.'}), 400
     data = request.get_json()
@@ -257,9 +217,10 @@ def validate_referral_code_api():
 @job_board_bp.route('/offer/<int:offer_id>/submit', methods=['POST'])
 @login_required
 def submit_application_form(offer_id):
-    # This function is unchanged
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         return jsonify({'status': 'error', 'message': 'Access denied: Only candidates can apply.'}), 403
+    
+    # --- Form Data Extraction (No change) ---
     full_name = request.form.get('full_name', '').strip()
     email = request.form.get('email', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
@@ -267,6 +228,8 @@ def submit_application_form(offer_id):
     candidate_questions = request.form.get('candidateQuestions', '').strip()
     cv_file = request.files.get('cv_file')
     voice_note_file = request.files.get('voice_note_file')
+    
+    # --- Validation (No change) ---
     errors = {}
     if not full_name: errors['full_name'] = "Full name is required."
     if not email: errors['email'] = "Email is required."
@@ -274,6 +237,7 @@ def submit_application_form(offer_id):
     if not candidate_questions: errors['candidateQuestions'] = "Please answer why you are interested in this role."
     if not cv_file or not cv_file.filename: errors['cv_file'] = "CV upload is required."
     if not voice_note_file or not voice_note_file.filename: errors['voice_note_file'] = "Voice note upload is required."
+    
     referring_staff_id, referring_staff_team_lead_id = None, None
     if referral_code_input:
         try:
@@ -289,32 +253,63 @@ def submit_application_form(offer_id):
         except Exception as e:
             current_app.logger.error(f"Error checking referral code '{referral_code_input}': {e}", exc_info=True)
             errors['referral_code'] = "Error validating referral code."
+            
     if errors:
         return jsonify({'status': 'error', 'message': 'Please correct the errors below.', 'errors': errors}), 400
+    
+    # --- Database Interaction ---
     conn = None
     try:
         conn = get_db_connection()
         conn.start_transaction()
         cursor = conn.cursor()
+        
         cursor.execute("SELECT CandidateID FROM Candidates WHERE UserID = %s", (current_user.id,))
         candidate_result = cursor.fetchone()
         if not candidate_result:
             raise Exception(f"Candidate profile not found for UserID {current_user.id}")
         candidate_id = candidate_result[0]
-        cv_db_path = save_file_from_config(cv_file, f'candidate_cvs/{candidate_id}')
-        voice_note_db_path = save_file_from_config(voice_note_file, f'candidate_applications/voice/{candidate_id}')
+        
+        # --- File Saving with Updated Logic ---
+        # Define allowed extensions for each file type
+        allowed_cv_extensions = {'pdf', 'doc', 'docx'}
+        allowed_voice_extensions = {'mp3', 'm4a', 'wav', 'webm', 'ogg', 'mp4'}
+
+        cv_db_path = save_file_from_config(
+            cv_file, 
+            f'candidate_cvs/{candidate_id}', 
+            allowed_extensions=allowed_cv_extensions
+        )
+        voice_note_db_path = save_file_from_config(
+            voice_note_file, 
+            f'candidate_applications/voice/{candidate_id}', 
+            allowed_extensions=allowed_voice_extensions
+        )
+
         if not cv_db_path or not voice_note_db_path:
-             raise Exception("Failed to save one or more files.")
+             raise Exception("Failed to save one or more files. Check server logs for details.")
+        
+        # --- Database Inserts (No change) ---
         cursor.execute("INSERT INTO JobApplications (OfferID, CandidateID, ApplicationDate, Status, NotesByCandidate, ReferringStaffID, ReferringStaffTeamLeadID) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                       (offer_id, candidate_id, datetime.now(), 'Submitted', candidate_questions, referring_staff_id, referring_staff_team_lead_id))
+                       (offer_id, candidate_id, datetime.datetime.now(), 'Submitted', candidate_questions, referring_staff_id, referring_staff_team_lead_id))
+        
         cursor.execute("UPDATE CandidateCVs SET IsPrimary = 0 WHERE CandidateID = %s", (candidate_id,))
+        
         cursor.execute("INSERT INTO CandidateCVs (CandidateID, CVFileUrl, OriginalFileName, IsPrimary, CVTitle) VALUES (%s, %s, %s, 1, %s)",
                        (candidate_id, cv_db_path, secure_filename(cv_file.filename), f"CV for Offer {offer_id}"))
+        
         cursor.execute("INSERT INTO CandidateVoiceNotes (CandidateID, VoiceNoteURL, Title, Purpose) VALUES (%s, %s, %s, %s)",
                        (candidate_id, voice_note_db_path, secure_filename(voice_note_file.filename), "Job Application"))
+        
         conn.commit()
+        
         flash("Your application has been submitted successfully!", "success") 
         return jsonify({'status': 'success', 'message': 'Application submitted!', 'redirect_url': url_for('.job_offers_list')}), 200
+
+    except ValueError as ve: # Catch the specific "File type not allowed" error
+        if conn: conn.rollback()
+        current_app.logger.warning(f"File validation error for UserID {current_user.id}: {ve}")
+        return jsonify({'status': 'error', 'message': str(ve)}), 400
     except Exception as e:
         if conn: conn.rollback()
         current_app.logger.error(f"Error submitting application for OfferID {offer_id} by UserID {current_user.id}: {e}", exc_info=True)
