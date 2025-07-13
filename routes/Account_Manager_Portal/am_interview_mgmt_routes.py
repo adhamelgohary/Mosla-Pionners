@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
+import datetime
 
 AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
 
@@ -15,11 +16,14 @@ am_interview_mgmt_bp = Blueprint('am_interview_mgmt_bp', __name__,
 def manage_company_schedule(company_id):
     """
     Manages general interview availability (days and times) for a specific company.
+    Supports Adding, Editing, and Deleting schedule slots.
     """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id: abort(403)
     
     conn = get_db_connection()
+    slot_to_edit = None
+    
     try:
         cursor = conn.cursor(dictionary=True)
         
@@ -27,12 +31,28 @@ def manage_company_schedule(company_id):
         cursor.execute("SELECT CompanyID, CompanyName FROM Companies WHERE CompanyID = %s AND ManagedByStaffID = %s", (company_id, staff_id))
         company = cursor.fetchone()
         if not company:
-            flash("Company not found or you are not authorized to manage it.", "danger")
-            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+            # Add a check for senior managers viewing a subordinate's company
+            is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager']
+            if is_senior_manager:
+                 cursor.execute("SELECT CompanyID, CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
+                 company = cursor.fetchone()
+            if not company:
+                flash("Company not found or you are not authorized to manage it.", "danger")
+                return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
 
+        # --- EDIT WORKFLOW (GET) ---
+        # If an edit_id is passed in the URL, fetch that specific slot to pre-fill the form.
+        edit_id = request.args.get('edit_id', type=int)
+        if edit_id:
+            cursor.execute("SELECT * FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (edit_id, company_id))
+            slot_to_edit = cursor.fetchone()
+
+        # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
             conn.start_transaction()
-            if request.form.get('action') == 'delete':
+            action = request.form.get('action')
+            
+            if action == 'delete':
                 schedule_id = request.form.get('schedule_id')
                 cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
                 flash("Schedule slot deleted successfully.", "success")
@@ -40,20 +60,28 @@ def manage_company_schedule(company_id):
                 day_of_week = request.form.get('day_of_week')
                 start_time = request.form.get('start_time')
                 end_time = request.form.get('end_time')
-                
+
                 if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
                     flash("Invalid schedule details provided. End time must be after start time.", "danger")
                 else:
-                    cursor.execute("""
-                        INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
-                        VALUES (%s, %s, %s, %s)
-                    """, (company_id, day_of_week, start_time, end_time))
-                    flash("New interview availability added successfully.", "success")
+                    if action == 'add':
+                        cursor.execute("""
+                            INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+                            VALUES (%s, %s, %s, %s)
+                        """, (company_id, day_of_week, start_time, end_time))
+                        flash("New interview availability added successfully.", "success")
+                    elif action == 'edit':
+                        schedule_id = request.form.get('schedule_id')
+                        cursor.execute("""
+                            UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
+                            WHERE ScheduleID = %s AND CompanyID = %s
+                        """, (day_of_week, start_time, end_time, schedule_id, company_id))
+                        flash("Schedule slot updated successfully.", "success")
             
             conn.commit()
             return redirect(url_for('.manage_company_schedule', company_id=company_id))
 
-        # GET request: fetch existing schedules
+        # --- DATA FOR LISTING (GET) ---
         cursor.execute("""
             SELECT ScheduleID, DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules 
             WHERE CompanyID = %s 
@@ -74,4 +102,5 @@ def manage_company_schedule(company_id):
     return render_template('account_manager_portal/manage_company_schedule.html',
                            title=f"Interview Availability for {company['CompanyName']}",
                            company=company,
-                           schedules=schedules)
+                           schedules=schedules,
+                           slot_to_edit=slot_to_edit)

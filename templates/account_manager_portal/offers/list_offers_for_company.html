@@ -9,14 +9,23 @@
     <div class="sm:flex sm:items-center sm:justify-between">
         <div class="sm:flex-auto">
             <h1 class="text-xl font-semibold text-gray-900">Offers for {{ company.CompanyName }}</h1>
-            <p class="mt-2 text-sm text-gray-700">Manage all job offers associated with this company.</p>
+            <p class="mt-2 text-sm text-gray-700">Manage all job offers and interview settings for this company.</p>
         </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            {# CORRECTED LINK: Points to the unified add_offer route, passing company_id as a query param #}
-            <a href="{{ url_for('.add_offer', company_id=company.CompanyID) }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+        
+        {# --- THIS IS THE UPDATED PART --- #}
+        <div class="mt-4 sm:ml-16 sm:mt-0 flex flex-col sm:flex-row sm:flex-none gap-3">
+            <!-- Button to manage interview availability -->
+            <a href="{{ url_for('am_interview_mgmt_bp.manage_company_schedule', company_id=company.CompanyID) }}" 
+               class="block rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                Manage Interview Availability
+            </a>
+            <!-- Button to add a new offer for this specific company -->
+            <a href="{{ url_for('am_offer_mgmt_bp.add_offer', company_id=company.CompanyID) }}" 
+               class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                 Add New Offer
             </a>
         </div>
+        {# --- END OF UPDATED PART --- #}
     </div>
 
     <!-- Filter Tabs -->
@@ -60,12 +69,9 @@
                                 </td>
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                     <div class="flex items-center justify-end gap-x-4">
-                                        {# NEW: Edit button #}
-                                        <a href="{{ url_for('.edit_offer', offer_id=offer.OfferID) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        <a href="{{ url_for('am_offer_mgmt_bp.edit_offer', offer_id=offer.OfferID) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
                                         <span class="text-gray-300">|</span>
-                                        
-                                        {# Action buttons #}
-                                        <form method="POST" action="{{ url_for('.handle_offer_action', offer_id=offer.OfferID) }}" class="inline">
+                                        <form method="POST" action="{{ url_for('am_offer_mgmt_bp.handle_offer_action', offer_id=offer.OfferID) }}" class="inline">
                                             <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
                                             {% if offer.Status == 'Open' %}
                                                 <input type="hidden" name="action" value="deactivate">
@@ -76,7 +82,7 @@
                                             {% endif %}
                                         </form>
                                         <span class="text-gray-300">|</span>
-                                        <form method="POST" action="{{ url_for('.handle_offer_action', offer_id=offer.OfferID) }}" onsubmit="return confirm('Are you sure you want to permanently delete this offer? This action cannot be undone.');" class="inline">
+                                        <form method="POST" action="{{ url_for('am_offer_mgmt_bp.handle_offer_action', offer_id=offer.OfferID) }}" onsubmit="return confirm('Are you sure you want to permanently delete this offer? This action cannot be undone.');" class="inline">
                                             <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
                                             <input type="hidden" name="action" value="delete">
                                             <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
