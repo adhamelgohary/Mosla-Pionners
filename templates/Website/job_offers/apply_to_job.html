@@ -114,7 +114,7 @@
                                     <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note_file"></p>
                                 </div>
 
-                                <!-- RESTORED: Detailed instructions accordion -->
+                                <!-- Detailed instructions accordion -->
                                 <details class="mt-4">
                                     <summary class="cursor-pointer text-sm font-medium text-primary hover:text-primary-darker flex items-center gap-2">
                                         <svg class="accordion-arrow w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
@@ -228,8 +228,7 @@
                 stopButton.classList.add('hidden');
                 recordingStatus.classList.add('hidden');
                 playbackArea.classList.add('hidden');
-                if (audioPreview.src) URL.revokeObjectURL(audioPreview.src);
-                audioPreview.src = null;
+                if (audioPreview.src) { audioPreview.src = ""; }
             } else if (state === 'recording') {
                 recorderControls.classList.remove('hidden');
                 recordButton.classList.add('hidden');
@@ -247,7 +246,6 @@
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = null;
             timerEl.textContent = '00:00';
-            // FIX: Stop the microphone stream ONLY when resetting.
             if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
             audioChunks = [];
             recordedBlob = null;
@@ -256,7 +254,6 @@
         };
 
         recordButton.addEventListener('click', async () => {
-            // Ensure any previous state is fully reset before starting.
             resetRecorder();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 showError('Recording is not supported by your browser.');
@@ -267,6 +264,27 @@
                 updateUI('recording');
                 mediaRecorder = new MediaRecorder(stream);
                 mediaRecorder.start();
+
+                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+                
+                mediaRecorder.addEventListener("stop", () => {
+                    // This is the critical change for mobile compatibility
+                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    
+                    const reader = new FileReader();
+                    reader.readAsDataURL(recordedBlob); 
+                    reader.onloadend = function() {
+                        const base64data = reader.result;                
+                        audioPreview.src = base64data;
+                        updateUI('preview');
+                    }
+                    
+                    // Stop the microphone stream now that we are done with it.
+                    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = null;
+                });
+
                 let seconds = 0;
                 timerEl.textContent = formatTime(seconds);
                 timerInterval = setInterval(() => {
@@ -274,16 +292,9 @@
                     timerEl.textContent = formatTime(seconds);
                     if (seconds >= MAX_RECORDING_SECONDS) { stopButton.click(); }
                 }, 1000);
-                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
-                mediaRecorder.addEventListener("stop", () => {
-                    if (timerInterval) clearInterval(timerInterval);
-                    timerInterval = null;
-                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    audioPreview.src = URL.createObjectURL(recordedBlob);
-                    // DO NOT stop stream here. Stop it in resetRecorder.
-                    updateUI('preview');
-                });
+
             } catch (err) {
+                console.error("Error accessing media devices.", err);
                 showError('Microphone access was denied. Please enable it in your browser settings.');
                 resetRecorder();
             }
