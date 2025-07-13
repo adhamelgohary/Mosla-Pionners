@@ -24,28 +24,27 @@ def manage_company_schedule(company_id):
     conn = get_db_connection()
     slot_to_edit = None
     schedules = []
+    company = None
 
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Verify user is authorized for this company
-        cursor.execute("SELECT CompanyID, CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
+        # --- Authorization Check ---
+        # Fetch company details to check ownership
+        cursor.execute("SELECT CompanyID, CompanyName, ManagedByStaffID FROM Companies WHERE CompanyID = %s", (company_id,))
         company = cursor.fetchone()
         
-        # This check is important. Let's make it robust for senior managers.
         is_owner = company and company.get('ManagedByStaffID') == staff_id
         is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder', 'Admin']
         
         if not (is_owner or is_senior_manager):
             flash("Company not found or you are not authorized to manage it.", "danger")
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
-
-        # Fetch the company name again in case a senior manager is viewing it
-        if not is_owner and is_senior_manager:
-            cursor.execute("SELECT CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
-            company_details_for_title = cursor.fetchone()
-            if company_details_for_title:
-                company['CompanyName'] = company_details_for_title['CompanyName']
+        
+        if not company:
+            # This case handles if the company ID is invalid entirely
+            flash("Company not found.", "danger")
+            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
 
         # --- EDIT WORKFLOW (GET) ---
         edit_id = request.args.get('edit_id', type=int)
@@ -55,42 +54,50 @@ def manage_company_schedule(company_id):
 
         # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
-            action = request.form.get('action')
-            
-            # REMOVED: conn.start_transaction() - this was the source of the error.
-            # The database connection likely has autocommit=True, which is standard for web apps.
-            # Each execute() call will be its own transaction.
-            
-            if action == 'delete':
-                schedule_id = request.form.get('schedule_id')
-                cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
-                flash("Schedule slot deleted successfully.", "success")
-            else:
-                day_of_week = request.form.get('day_of_week')
-                start_time = request.form.get('start_time')
-                end_time = request.form.get('end_time')
+            # This entire block is now wrapped in a try/except for transaction safety
+            try:
+                conn.start_transaction()
+                action = request.form.get('action')
+                
+                if action == 'delete':
+                    schedule_id = request.form.get('schedule_id')
+                    cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
+                    flash("Schedule slot deleted successfully.", "success")
+                else: # Handles 'add' and 'edit'
+                    day_of_week = request.form.get('day_of_week')
+                    start_time = request.form.get('start_time')
+                    end_time = request.form.get('end_time')
 
-                if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
-                    flash("Invalid schedule details provided. End time must be after start time.", "danger")
-                else:
-                    if action == 'add':
-                        cursor.execute("""
-                            INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
-                            VALUES (%s, %s, %s, %s)
-                        """, (company_id, day_of_week, start_time, end_time))
-                        flash("New interview availability added successfully.", "success")
-                    elif action == 'edit':
-                        schedule_id = request.form.get('schedule_id')
-                        cursor.execute("""
-                            UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
-                            WHERE ScheduleID = %s AND CompanyID = %s
-                        """, (day_of_week, start_time, end_time, schedule_id, company_id))
-                        flash("Schedule slot updated successfully.", "success")
+                    if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
+                        flash("Invalid schedule details provided. End time must be after start time.", "danger")
+                        # We must rollback here because we started a transaction
+                        conn.rollback()
+                    else:
+                        if action == 'add':
+                            cursor.execute("""
+                                INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+                                VALUES (%s, %s, %s, %s)
+                            """, (company_id, day_of_week, start_time, end_time))
+                            flash("New interview availability added successfully.", "success")
+                        elif action == 'edit':
+                            schedule_id = request.form.get('schedule_id')
+                            cursor.execute("""
+                                UPDATE CompanyInterviewSchedules SET DayOfWeek = %s, StartTime = %s, EndTime = %s
+                                WHERE ScheduleID = %s AND CompanyID = %s
+                            """, (day_of_week, start_time, end_time, schedule_id, company_id))
+                            flash("Schedule slot updated successfully.", "success")
+                
+                # If we reach here without an error, commit the transaction.
+                conn.commit()
+            except Exception as e:
+                # If any error occurs during the DB operations, roll back.
+                if conn: conn.rollback()
+                current_app.logger.error(f"Database operation failed for company {company_id}: {e}", exc_info=True)
+                flash("An error occurred while processing your request. Please try again.", "danger")
             
-            # REMOVED: conn.commit()
             return redirect(url_for('.manage_company_schedule', company_id=company_id))
 
-        # --- DATA FOR LISTING (GET) ---
+        # --- DATA FOR LISTING (GET request) ---
         cursor.execute("""
             SELECT ScheduleID, DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules 
             WHERE CompanyID = %s 
@@ -100,9 +107,10 @@ def manage_company_schedule(company_id):
         schedules = cursor.fetchall()
         
     except Exception as e:
-        # No rollback needed as we are not using manual transactions
         current_app.logger.error(f"Error managing schedule for company {company_id}: {e}", exc_info=True)
         flash("An unexpected server error occurred.", "danger")
+        # Ensure we redirect safely even if the initial load fails
+        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
     finally:
         if 'conn' in locals() and conn and conn.is_connected():
             cursor.close()
