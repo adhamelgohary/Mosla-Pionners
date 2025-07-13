@@ -30,7 +30,6 @@ def manage_company_schedule(company_id):
         cursor = conn.cursor(dictionary=True)
         
         # --- Authorization Check ---
-        # Fetch company details to check ownership
         cursor.execute("SELECT CompanyID, CompanyName, ManagedByStaffID FROM Companies WHERE CompanyID = %s", (company_id,))
         company = cursor.fetchone()
         
@@ -42,7 +41,6 @@ def manage_company_schedule(company_id):
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
         
         if not company:
-            # This case handles if the company ID is invalid entirely
             flash("Company not found.", "danger")
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
 
@@ -54,9 +52,17 @@ def manage_company_schedule(company_id):
 
         # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
-            # This entire block is now wrapped in a try/except for transaction safety
             try:
+                # --- THE DEFINITIVE FIX ---
+                # Before starting a new transaction, check if one is already active from the connection pool.
+                # If so, roll it back to clean the state. This is a robust way to prevent the error.
+                if conn.in_transaction:
+                    current_app.logger.warning(f"Connection for company {company_id} had a lingering transaction. Rolling back.")
+                    conn.rollback()
+                
                 conn.start_transaction()
+                # --- END OF FIX ---
+                
                 action = request.form.get('action')
                 
                 if action == 'delete':
@@ -70,8 +76,6 @@ def manage_company_schedule(company_id):
 
                     if not all([day_of_week, start_time, end_time]) or start_time >= end_time:
                         flash("Invalid schedule details provided. End time must be after start time.", "danger")
-                        # We must rollback here because we started a transaction
-                        conn.rollback()
                     else:
                         if action == 'add':
                             cursor.execute("""
@@ -87,11 +91,10 @@ def manage_company_schedule(company_id):
                             """, (day_of_week, start_time, end_time, schedule_id, company_id))
                             flash("Schedule slot updated successfully.", "success")
                 
-                # If we reach here without an error, commit the transaction.
                 conn.commit()
             except Exception as e:
-                # If any error occurs during the DB operations, roll back.
-                if conn: conn.rollback()
+                if conn and conn.in_transaction: 
+                    conn.rollback()
                 current_app.logger.error(f"Database operation failed for company {company_id}: {e}", exc_info=True)
                 flash("An error occurred while processing your request. Please try again.", "danger")
             
@@ -109,7 +112,6 @@ def manage_company_schedule(company_id):
     except Exception as e:
         current_app.logger.error(f"Error managing schedule for company {company_id}: {e}", exc_info=True)
         flash("An unexpected server error occurred.", "danger")
-        # Ensure we redirect safely even if the initial load fails
         return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
     finally:
         if 'conn' in locals() and conn and conn.is_connected():
