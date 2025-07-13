@@ -5,7 +5,7 @@ from utils.decorators import login_required_with_role
 from db import get_db_connection
 import datetime
 
-AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
+AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager', 'Admin']
 
 am_interview_mgmt_bp = Blueprint('am_interview_mgmt_bp', __name__,
                                  template_folder='../../../templates',
@@ -29,21 +29,21 @@ def manage_company_schedule(company_id):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- Authorization Check ---
+        # --- Simplified Authorization Check ---
         cursor.execute("SELECT CompanyID, CompanyName, ManagedByStaffID FROM Companies WHERE CompanyID = %s", (company_id,))
         company = cursor.fetchone()
-        
-        is_owner = company and company.get('ManagedByStaffID') == staff_id
-        is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder', 'Admin']
-        
-        if not (is_owner or is_senior_manager):
-            flash("Company not found or you are not authorized to manage it.", "danger")
-            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
         
         if not company:
             flash("Company not found.", "danger")
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
 
+        is_owner = company.get('ManagedByStaffID') == staff_id
+        is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder', 'Admin']
+        
+        if not (is_owner or is_senior_manager):
+            flash("You are not authorized to manage this company's schedule.", "danger")
+            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        
         # --- EDIT WORKFLOW (GET) ---
         edit_id = request.args.get('edit_id', type=int)
         if edit_id:
@@ -52,24 +52,22 @@ def manage_company_schedule(company_id):
 
         # --- FORM SUBMISSION (POST) ---
         if request.method == 'POST':
+            action = request.form.get('action')
+            
+            # Start transaction only when we are sure we are writing to the DB
             try:
-                # --- THE DEFINITIVE FIX ---
-                # Before starting a new transaction, check if one is already active from the connection pool.
-                # If so, roll it back to clean the state. This is a robust way to prevent the error.
                 if conn.in_transaction:
                     current_app.logger.warning(f"Connection for company {company_id} had a lingering transaction. Rolling back.")
                     conn.rollback()
                 
                 conn.start_transaction()
-                # --- END OF FIX ---
-                
-                action = request.form.get('action')
                 
                 if action == 'delete':
                     schedule_id = request.form.get('schedule_id')
                     cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s AND CompanyID = %s", (schedule_id, company_id))
                     flash("Schedule slot deleted successfully.", "success")
-                else: # Handles 'add' and 'edit'
+                
+                elif action in ['add', 'edit']:
                     day_of_week = request.form.get('day_of_week')
                     start_time = request.form.get('start_time')
                     end_time = request.form.get('end_time')
@@ -92,6 +90,7 @@ def manage_company_schedule(company_id):
                             flash("Schedule slot updated successfully.", "success")
                 
                 conn.commit()
+
             except Exception as e:
                 if conn and conn.in_transaction: 
                     conn.rollback()
@@ -103,7 +102,7 @@ def manage_company_schedule(company_id):
         # --- DATA FOR LISTING (GET request) ---
         cursor.execute("""
             SELECT ScheduleID, DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules 
-            WHERE CompanyID = %s 
+            WHERE CompanyID = %s AND IsActive = 1
             ORDER BY FIELD(DayOfWeek, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), StartTime
             """, (company_id,)
         )
