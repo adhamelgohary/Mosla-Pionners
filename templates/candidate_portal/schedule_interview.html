@@ -12,7 +12,8 @@
                 Congratulations! You've been shortlisted for the <span class="font-semibold">{{ application.Title }}</span> position at <span class="font-semibold">{{ application.CompanyName }}</span>. Please select an available time slot below for your interview.
             </p>
 
-            <form method="POST" action="{{ url_for('candidate_bp.schedule_interview', application_id=application.ApplicationID) }}" class="mt-8">
+            {# --- UPDATED FORM ACTION --- #}
+            <form method="POST" action="{{ url_for('candidate_bp.book_interview_slot', application_id=application.ApplicationID) }}" class="mt-8">
                 {% if grouped_slots %}
                     <div class="space-y-6">
                         {% for day, slots in grouped_slots.items() %}

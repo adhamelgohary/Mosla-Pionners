@@ -254,9 +254,13 @@ def set_primary_cv(cv_id):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-@candidate_bp.route('/application/<int:application_id>/schedule-interview', methods=['GET', 'POST'])
+@candidate_bp.route('/application/<int:application_id>/schedule', methods=['GET'])
 @login_required
-def schedule_interview(application_id):
+def view_interview_slots(application_id):
+    """
+    Displays the page with available interview slots for the candidate.
+    This function only handles GET requests.
+    """
     if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
         abort(403)
     
@@ -267,6 +271,7 @@ def schedule_interview(application_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        # Verify application ownership and status
         cursor.execute("""
             SELECT ja.ApplicationID, ja.Status, jo.Title, c.CompanyID, c.CompanyName
             FROM JobApplications ja
@@ -280,32 +285,10 @@ def schedule_interview(application_id):
             abort(404, "Application not found or you are not authorized to view it.")
         
         if application['Status'] != 'Shortlisted':
-            flash("This application is no longer eligible for interview scheduling.", "warning")
+            flash("This application is not currently eligible for interview scheduling.", "warning")
             return redirect(url_for('.dashboard'))
 
-        if request.method == 'POST':
-            selected_slot_str = request.form.get('interview_slot')
-            if not selected_slot_str:
-                flash("Please select a valid interview slot.", "danger")
-                return redirect(url_for('.schedule_interview', application_id=application_id))
-
-            scheduled_dt = datetime.fromisoformat(selected_slot_str)
-            
-            conn.start_transaction()
-            cursor.execute("SELECT InterviewID FROM Interviews WHERE ScheduledDateTime = %s FOR UPDATE", (scheduled_dt,))
-            if cursor.fetchone():
-                conn.rollback()
-                flash("Sorry, that time slot was just booked by another candidate. Please choose another.", "warning")
-                return redirect(url_for('.schedule_interview', application_id=application_id))
-            
-            cursor.execute("INSERT INTO Interviews (ApplicationID, ScheduledDateTime) VALUES (%s, %s)", (application_id, scheduled_dt))
-            cursor.execute("UPDATE JobApplications SET Status = 'Interview Scheduled' WHERE ApplicationID = %s", (application_id,))
-            conn.commit()
-
-            flash(f"Your interview has been successfully scheduled for {scheduled_dt.strftime('%A, %B %d at %I:%M %p')}.", "success")
-            return redirect(url_for('.dashboard'))
-
-        # --- Slot Generation Logic (Corrected) ---
+        # Slot Generation Logic
         cursor.execute("SELECT DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules WHERE CompanyID = %s AND IsActive = 1", (application['CompanyID'],))
         company_schedules = cursor.fetchall()
 
@@ -319,15 +302,12 @@ def schedule_interview(application_id):
             day_name = current_day.strftime('%A')
             for schedule in company_schedules:
                 if schedule['DayOfWeek'] == day_name:
-                    # --- THE FIX: Convert timedelta to time before combining ---
                     start_timedelta = schedule['StartTime']
                     end_timedelta = schedule['EndTime']
                     
-                    # Create a dummy datetime to convert timedelta to a time object
                     start_time_obj = (datetime.min + start_timedelta).time()
                     end_time_obj = (datetime.min + end_timedelta).time()
                     
-                    # Now combine with the correct data types
                     slot_time = datetime.combine(current_day.date(), start_time_obj)
                     end_time = datetime.combine(current_day.date(), end_time_obj)
                     
@@ -336,7 +316,7 @@ def schedule_interview(application_id):
                             available_slots.append(slot_time)
                         slot_time += timedelta(minutes=30)
 
-        # Group slots by day for a nicer UI
+        # Group slots for the UI
         grouped_slots = {}
         for slot in sorted(available_slots):
             day_key = slot.strftime('%A, %B %d')
@@ -345,9 +325,7 @@ def schedule_interview(application_id):
             grouped_slots[day_key].append(slot)
 
     except Exception as e:
-        if 'conn' in locals() and conn.is_connected() and conn.in_transaction:
-            conn.rollback()
-        current_app.logger.error(f"Error in candidate interview scheduling for AppID {application_id}: {e}", exc_info=True)
+        current_app.logger.error(f"Error viewing interview slots for AppID {application_id}: {e}", exc_info=True)
         flash("An unexpected error occurred while loading the scheduling page.", "danger")
         return redirect(url_for('.dashboard'))
     finally:
@@ -358,3 +336,58 @@ def schedule_interview(application_id):
                            title="Schedule Your Interview",
                            application=application,
                            grouped_slots=grouped_slots)
+
+
+@candidate_bp.route('/application/<int:application_id>/book', methods=['POST'])
+@login_required
+def book_interview_slot(application_id):
+    """
+    Handles the form submission for booking a chosen interview slot.
+    This function only handles POST requests.
+    """
+    if not (hasattr(current_user, 'role_type') and current_user.role_type == 'Candidate'):
+        abort(403)
+    
+    candidate_id = get_candidate_id(current_user.id)
+    if not candidate_id:
+        abort(403)
+
+    selected_slot_str = request.form.get('interview_slot')
+    if not selected_slot_str:
+        flash("Please select a valid interview slot.", "danger")
+        return redirect(url_for('.view_interview_slots', application_id=application_id))
+
+    scheduled_dt = datetime.fromisoformat(selected_slot_str)
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Re-verify ownership and status before booking
+        cursor.execute("SELECT ja.Status, jo.CompanyID FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID WHERE ja.ApplicationID = %s AND ja.CandidateID = %s", (application_id, candidate_id))
+        application = cursor.fetchone()
+        if not application or application['Status'] != 'Shortlisted':
+            flash("This application cannot be scheduled at this time.", "warning")
+            return redirect(url_for('.dashboard'))
+
+        # Check for race condition: Is the slot still available?
+        cursor.execute("SELECT InterviewID FROM Interviews WHERE ScheduledDateTime = %s", (scheduled_dt,))
+        if cursor.fetchone():
+            flash("Sorry, that time slot was just booked by another candidate. Please choose another.", "warning")
+            return redirect(url_for('.view_interview_slots', application_id=application_id))
+        
+        # All checks passed, perform the booking
+        cursor.execute("INSERT INTO Interviews (ApplicationID, ScheduledDateTime) VALUES (%s, %s)", (application_id, scheduled_dt))
+        cursor.execute("UPDATE JobApplications SET Status = 'Interview Scheduled' WHERE ApplicationID = %s", (application_id,))
+        conn.commit() # Commit the two changes together
+
+        flash(f"Your interview has been successfully scheduled for {scheduled_dt.strftime('%A, %B %d at %I:%M %p')}.", "success")
+        return redirect(url_for('.dashboard'))
+
+    except Exception as e:
+        if 'conn' in locals() and conn: conn.rollback()
+        current_app.logger.error(f"Error booking interview for AppID {application_id}: {e}", exc_info=True)
+        flash("A critical error occurred while booking your interview. Please try again.", "danger")
+        return redirect(url_for('.view_interview_slots', application_id=application_id))
+    finally:
+        if 'conn' in locals() and conn and conn.is_connected():
+            conn.close()

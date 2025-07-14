@@ -63,9 +63,8 @@
                                 <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ app.Title }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">at {{ app.CompanyName }}</p>
                             </div>
-                            {# --- THIS IS THE UPDATED PART --- #}
                             {% if app.Status == 'Shortlisted' %}
-                                <a href="{{ url_for('candidate_bp.schedule_interview', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-sm font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap animate-pulse">Schedule Interview</a>
+                                <a href="{{ url_for('candidate_bp.view_interview_slots', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-sm font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap animate-pulse">Schedule Interview</a>
                             {% elif app.Status == 'Interview Scheduled' %}
                                 <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300">Interview Scheduled</span>
                             {% else %}
