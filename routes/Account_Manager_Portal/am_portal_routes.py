@@ -1,6 +1,9 @@
 # routes/Account_Manager_Portal/am_portal_routes.py
 import datetime
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
+import io
+import csv
+
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort , make_response
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
@@ -253,3 +256,82 @@ def review_application_details(application_id):
     finally:
         if conn and conn.is_connected(): conn.close()
     return render_template('account_manager_portal/application_review_modal.html', review_data=review_data, manager_staff_id=staff_id)
+
+
+@account_manager_bp.route('/interview-pipeline/export-scheduled')
+@login_required_with_role(AM_PORTAL_ACCESS_ROLES)
+def export_scheduled_interviews():
+    """
+    Generates and returns a CSV file of all candidates with a status of 'Interview Scheduled'.
+    """
+    staff_id = getattr(current_user, 'specific_role_id', None)
+    if not staff_id:
+        flash("Your staff profile ID could not be found.", "danger")
+        return redirect(url_for('.interview_pipeline'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # This query fetches all necessary details for the spreadsheet
+        sql = """
+            SELECT
+                ja.ApplicationID,
+                u.FirstName,
+                u.LastName,
+                u.Email,
+                u.PhoneNumber,
+                jo.Title AS OfferTitle,
+                comp.CompanyName,
+                i.ScheduledDateTime
+            FROM JobApplications ja
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
+            JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
+            WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
+            ORDER BY i.ScheduledDateTime;
+        """
+        cursor.execute(sql, (staff_id,))
+        scheduled_interviews = cursor.fetchall()
+
+        if not scheduled_interviews:
+            flash("No scheduled interviews to export.", "warning")
+            return redirect(url_for('.interview_pipeline'))
+        
+        # Use io.StringIO to create an in-memory text buffer
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Write the header row
+        headers = [
+            'Application ID', 'First Name', 'Last Name', 'Email', 'Phone Number',
+            'Job Title', 'Company', 'Interview Date', 'Interview Time'
+        ]
+        writer.writerow(headers)
+
+        # Write the data rows
+        for interview in scheduled_interviews:
+            writer.writerow([
+                interview['ApplicationID'],
+                interview['FirstName'],
+                interview['LastName'],
+                interview['Email'],
+                interview.get('PhoneNumber', 'N/A'),
+                interview['OfferTitle'],
+                interview['CompanyName'],
+                interview['ScheduledDateTime'].strftime('%Y-%m-%d'),
+                interview['ScheduledDateTime'].strftime('%I:%M %p')
+            ])
+        
+        # Prepare the response
+        output.seek(0)
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = "attachment; filename=scheduled_interviews.csv"
+        response.headers["Content-type"] = "text/csv"
+        return response
+
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
