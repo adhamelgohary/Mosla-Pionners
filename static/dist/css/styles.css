@@ -3058,6 +3058,10 @@ html[data-theme="dark"] {
   padding-left: 2rem;
 }
 
+.pr-10 {
+  padding-right: 2.5rem;
+}
+
 .pr-2 {
   padding-right: 0.5rem;
 }
@@ -4199,6 +4203,10 @@ body {
 
   .sm\:ml-16 {
     margin-left: 4rem;
+  }
+
+  .sm\:ml-4 {
+    margin-left: 1rem;
   }
 
   .sm\:mt-0 {

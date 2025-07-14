@@ -80,6 +80,7 @@ def dashboard():
             
     return render_template('account_manager_portal/dashboard.html', title="Account Manager Dashboard", dashboard_data=dashboard_data)
 
+
 @account_manager_bp.route('/interview-pipeline')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def interview_pipeline():
@@ -89,10 +90,13 @@ def interview_pipeline():
         return redirect(url_for('.dashboard'))
     conn = get_db_connection()
     pipeline_apps = []
+    companies_with_scheduled_interviews = []
     try:
         cursor = conn.cursor(dictionary=True)
+        # Main query to get all pipeline applications
         sql = """
-            SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, jo.Title as OfferTitle, comp.CompanyName,
+            SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, u.Email, 
+                   jo.Title as OfferTitle, comp.CompanyName, comp.CompanyID,
                    i.InterviewID, i.ScheduledDateTime, i.Status as InterviewStatus
             FROM JobApplications ja
             JOIN Candidates c ON ja.CandidateID = c.CandidateID
@@ -105,11 +109,29 @@ def interview_pipeline():
         """
         cursor.execute(sql, (staff_id,))
         pipeline_apps = cursor.fetchall()
+        
+        # New query to get a unique list of companies for the filter dropdown
+        if pipeline_apps:
+            company_filter_sql = """
+                SELECT DISTINCT comp.CompanyID, comp.CompanyName
+                FROM JobApplications ja
+                JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+                JOIN Companies comp ON jo.CompanyID = comp.CompanyID
+                WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
+                ORDER BY comp.CompanyName;
+            """
+            cursor.execute(company_filter_sql, (staff_id,))
+            companies_with_scheduled_interviews = cursor.fetchall()
+
     finally:
         if conn and conn.is_connected(): conn.close()
             
-    return render_template('account_manager_portal/interview_pipeline.html', title="Interview Pipeline", pipeline_apps=pipeline_apps)
-
+    return render_template('account_manager_portal/interview_pipeline.html', 
+                           title="Interview Pipeline", 
+                           pipeline_apps=pipeline_apps,
+                           companies_with_scheduled_interviews=companies_with_scheduled_interviews)
+    
+    
 @account_manager_bp.route('/my-staff')
 @login_required_with_role(STAFF_MANAGEMENT_ROLES)
 def my_staff():
@@ -258,28 +280,28 @@ def review_application_details(application_id):
     return render_template('account_manager_portal/application_review_modal.html', review_data=review_data, manager_staff_id=staff_id)
 
 
-@account_manager_bp.route('/interview-pipeline/export-scheduled')
+# In am_portal_routes.py, replace the old export_scheduled_interviews function with this one.
+
+@account_manager_bp.route('/interview-pipeline/export-scheduled') # URL remains the same
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def export_scheduled_interviews():
-    """
-    Generates and returns a CSV file of all candidates with a status of 'Interview Scheduled'.
-    """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
-        flash("Your staff profile ID could not be found.", "danger")
-        return redirect(url_for('.interview_pipeline'))
+        abort(403)
+        
+    # Get the company_id from the form submission (e.g., /export-scheduled?company_id=5)
+    company_id_filter = request.args.get('company_id')
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # This query fetches all necessary details for the spreadsheet
+        
+        # Base SQL query with all the required candidate fields
         sql = """
             SELECT
-                ja.ApplicationID,
-                u.FirstName,
-                u.LastName,
-                u.Email,
-                u.PhoneNumber,
+                u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.RegistrationDate,
+                c.LinkedInProfileURL, c.DateOfBirth, c.Nationality AS CandidateNationality, 
+                c.Languages, c.LanguageLevel, c.EducationalStatus, c.Gender,
                 jo.Title AS OfferTitle,
                 comp.CompanyName,
                 i.ScheduledDateTime
@@ -290,44 +312,65 @@ def export_scheduled_interviews():
             JOIN Companies comp ON jo.CompanyID = comp.CompanyID
             JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
             WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
-            ORDER BY i.ScheduledDateTime;
         """
-        cursor.execute(sql, (staff_id,))
+        params = [staff_id]
+
+        # Dynamically add the company filter if one was selected
+        if company_id_filter and company_id_filter.isdigit():
+            sql += " AND comp.CompanyID = %s"
+            params.append(int(company_id_filter))
+
+        sql += " ORDER BY comp.CompanyName, i.ScheduledDateTime;"
+
+        cursor.execute(sql, tuple(params))
         scheduled_interviews = cursor.fetchall()
 
         if not scheduled_interviews:
-            flash("No scheduled interviews to export.", "warning")
+            flash("No scheduled interviews found for the selected criteria.", "warning")
             return redirect(url_for('.interview_pipeline'))
         
-        # Use io.StringIO to create an in-memory text buffer
         output = io.StringIO()
         writer = csv.writer(output)
 
-        # Write the header row
+        # Updated header row - no IDs, more descriptive names
         headers = [
-            'Application ID', 'First Name', 'Last Name', 'Email', 'Phone Number',
-            'Job Title', 'Company', 'Interview Date', 'Interview Time'
+            'First Name', 'Last Name', 'Email', 'Phone Number', 'Gender', 'Date of Birth', 
+            'Candidate Nationality', 'Educational Status', 'Languages', 'Language Level', 
+            'LinkedIn Profile', 'Registered On', 'Company', 'Applying for Job', 
+            'Interview Date', 'Interview Time'
         ]
         writer.writerow(headers)
 
-        # Write the data rows
+        # Write data rows
         for interview in scheduled_interviews:
             writer.writerow([
-                interview['ApplicationID'],
                 interview['FirstName'],
                 interview['LastName'],
                 interview['Email'],
                 interview.get('PhoneNumber', 'N/A'),
-                interview['OfferTitle'],
+                interview.get('Gender', 'N/A'),
+                interview['DateOfBirth'].strftime('%Y-%m-%d') if interview.get('DateOfBirth') else 'N/A',
+                interview.get('CandidateNationality', 'N/A'),
+                interview.get('EducationalStatus', 'N/A'),
+                interview.get('Languages', 'N/A'),
+                interview.get('LanguageLevel', 'N/A'),
+                interview.get('LinkedInProfileURL', 'N/A'),
+                interview['RegistrationDate'].strftime('%Y-%m-%d') if interview.get('RegistrationDate') else 'N/A',
                 interview['CompanyName'],
+                interview['OfferTitle'],
                 interview['ScheduledDateTime'].strftime('%Y-%m-%d'),
                 interview['ScheduledDateTime'].strftime('%I:%M %p')
             ])
         
-        # Prepare the response
         output.seek(0)
+        filename = "scheduled_interviews.csv"
+        if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
+             # Make filename more specific if filtered
+             company_name_slug = scheduled_interviews[0]['CompanyName'].replace(' ', '_').lower()
+             filename = f"interviews_{company_name_slug}.csv"
+
         response = make_response(output.getvalue())
-        response.headers["Content-Disposition"] = "attachment; filename=scheduled_interviews.csv"
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         response.headers["Content-type"] = "text/csv"
         return response
 
