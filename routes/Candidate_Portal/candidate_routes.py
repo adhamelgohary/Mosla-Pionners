@@ -1,4 +1,3 @@
-# routes/Candidate_Portal/candidate_routes.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from db import get_db_connection
@@ -41,12 +40,23 @@ def dashboard():
         cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         candidate_profile = cursor.fetchone()
         
-        # Fetch CVs
         cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC", (candidate_id,))
         cv_list = cursor.fetchall()
 
-        # Fetch Applications
-        cursor.execute("SELECT ja.ApplicationID, ja.Status, jo.Title, comp.CompanyName FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE ja.CandidateID = %s ORDER BY ja.ApplicationDate DESC", (candidate_id,))
+        # --- UPDATED QUERY to fetch interview details ---
+        cursor.execute("""
+            SELECT 
+                ja.ApplicationID, ja.Status, 
+                jo.Title, 
+                comp.CompanyName,
+                i.ScheduledDateTime
+            FROM JobApplications ja
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
+            LEFT JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
+            WHERE ja.CandidateID = %s 
+            ORDER BY ja.ApplicationDate DESC
+        """, (candidate_id,))
         applied_jobs = cursor.fetchall()
 
     except Exception as e:
@@ -63,7 +73,7 @@ def dashboard():
                            candidate=candidate_profile,
                            cv_list=cv_list,
                            applied_jobs=applied_jobs)
-
+    
 
 @candidate_bp.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
