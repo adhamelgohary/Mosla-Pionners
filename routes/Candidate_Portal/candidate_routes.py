@@ -254,7 +254,6 @@ def set_primary_cv(cv_id):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-# --- NEW Interview Scheduling Route for Candidate ---
 @candidate_bp.route('/application/<int:application_id>/schedule-interview', methods=['GET', 'POST'])
 @login_required
 def schedule_interview(application_id):
@@ -293,7 +292,6 @@ def schedule_interview(application_id):
             scheduled_dt = datetime.fromisoformat(selected_slot_str)
             
             conn.start_transaction()
-            # Race condition check: Ensure the slot hasn't been taken since the page loaded
             cursor.execute("SELECT InterviewID FROM Interviews WHERE ScheduledDateTime = %s FOR UPDATE", (scheduled_dt,))
             if cursor.fetchone():
                 conn.rollback()
@@ -307,7 +305,7 @@ def schedule_interview(application_id):
             flash(f"Your interview has been successfully scheduled for {scheduled_dt.strftime('%A, %B %d at %I:%M %p')}.", "success")
             return redirect(url_for('.dashboard'))
 
-        # --- Slot Generation Logic for GET request ---
+        # --- Slot Generation Logic (Corrected) ---
         cursor.execute("SELECT DayOfWeek, StartTime, EndTime FROM CompanyInterviewSchedules WHERE CompanyID = %s AND IsActive = 1", (application['CompanyID'],))
         company_schedules = cursor.fetchall()
 
@@ -316,17 +314,27 @@ def schedule_interview(application_id):
         
         available_slots = []
         today = datetime.today()
-        for day_offset in range(1, 15): # Start from tomorrow for 14 days
+        for day_offset in range(1, 15):
             current_day = today + timedelta(days=day_offset)
             day_name = current_day.strftime('%A')
             for schedule in company_schedules:
                 if schedule['DayOfWeek'] == day_name:
-                    slot_time = datetime.combine(current_day, schedule['StartTime'])
-                    end_time = datetime.combine(current_day, schedule['EndTime'])
+                    # --- THE FIX: Convert timedelta to time before combining ---
+                    start_timedelta = schedule['StartTime']
+                    end_timedelta = schedule['EndTime']
+                    
+                    # Create a dummy datetime to convert timedelta to a time object
+                    start_time_obj = (datetime.min + start_timedelta).time()
+                    end_time_obj = (datetime.min + end_timedelta).time()
+                    
+                    # Now combine with the correct data types
+                    slot_time = datetime.combine(current_day.date(), start_time_obj)
+                    end_time = datetime.combine(current_day.date(), end_time_obj)
+                    
                     while slot_time < end_time:
-                        if slot_time not in booked_slots:
+                        if slot_time > datetime.now() and slot_time not in booked_slots:
                             available_slots.append(slot_time)
-                        slot_time += timedelta(minutes=30) # 30-minute increments
+                        slot_time += timedelta(minutes=30)
 
         # Group slots by day for a nicer UI
         grouped_slots = {}
@@ -343,7 +351,7 @@ def schedule_interview(application_id):
         flash("An unexpected error occurred while loading the scheduling page.", "danger")
         return redirect(url_for('.dashboard'))
     finally:
-        if 'conn' in locals() and conn.is_connected():
+        if 'conn' in locals() and conn and conn.is_connected():
             conn.close()
             
     return render_template('candidate_portal/schedule_interview.html',
