@@ -11,7 +11,16 @@ am_interview_mgmt_bp = Blueprint('am_interview_mgmt_bp', __name__,
                                  template_folder='../../../templates',
                                  url_prefix='/am-portal/company-schedules')
 
-# --- Helper Function ---
+# --- Helper functions ---
+
+def format_timedelta_for_display(td):
+    """Helper function to format a timedelta object into a 12-hour time string (e.g., '02:30 PM')."""
+    if not isinstance(td, datetime.timedelta):
+        return ""
+    # Create a dummy datetime object at the beginning of a day, then add the timedelta
+    dummy_dt = datetime.datetime.min + td
+    return dummy_dt.strftime("%I:%M %p")
+
 def check_auth_and_get_company(company_id, staff_id):
     """A helper to authorize the user and fetch company details."""
     conn = get_db_connection()
@@ -32,7 +41,7 @@ def check_auth_and_get_company(company_id, staff_id):
     
     return conn, cursor, company
 
-# --- VIEW Route (GET) ---
+# --- View Route (GET) ---
 @am_interview_mgmt_bp.route('/manage/<int:company_id>', methods=['GET'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def view_schedules(company_id):
@@ -53,10 +62,13 @@ def view_schedules(company_id):
             """, (company_id,)
         )
         schedules_raw = cursor.fetchall()
+        
+        # Pre-format the time strings before sending to the template
         for sched in schedules_raw:
-            sched['start_time_formatted'] = (datetime.datetime.min + sched['StartTime']).strftime('%I:%M %p')
-            sched['end_time_formatted'] = (datetime.datetime.min + sched['EndTime']).strftime('%I:%M %p')
+            sched['start_time_formatted'] = format_timedelta_for_display(sched.get('StartTime'))
+            sched['end_time_formatted'] = format_timedelta_for_display(sched.get('EndTime'))
             schedules.append(sched)
+
     finally:
         if conn and conn.is_connected():
             cursor.close()
@@ -66,6 +78,7 @@ def view_schedules(company_id):
                            title=f"Interview Availability for {company['CompanyName']}",
                            company=company,
                            schedules=schedules)
+
 
 # --- ADD Route (POST) ---
 @am_interview_mgmt_bp.route('/add/<int:company_id>', methods=['POST'])
