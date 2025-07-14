@@ -3,11 +3,19 @@
 
 {% block page_title %}{{ title }}{% endblock %}
 
+{# Helper macro to format timedelta objects, which is robust #}
+{% macro format_timedelta_as_time(td) %}
+    {%- if td -%}
+        {%- set dummy_time = (datetime.datetime.min + td).time() -%}
+        {{- dummy_time.strftime('%I:%M %p') -}}
+    {%- endif -%}
+{% endmacro %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <div class="mb-8">
-        <a href="{{ url_for('am_offer_mgmt_bp.list_companies_for_offers') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700 mb-2 inline-block">
-            ← Back to Offer Management
+        <a href="{{ url_for('am_offer_mgmt_bp.list_offers_for_company', company_id=company.CompanyID) }}" class="text-sm font-medium text-gray-500 hover:text-gray-700 mb-2 inline-block">
+            ← Back to Offers for {{ company.CompanyName }}
         </a>
         <h1 class="text-2xl font-bold tracking-tight text-gray-900">{{ title }}</h1>
         <p class="mt-1 text-sm text-gray-600">Define the general weekly availability for this company's interviews. Candidates will be able to book 30-minute slots within these times.</p>
@@ -18,12 +26,11 @@
         <div class="lg:col-span-1">
             <div class="bg-white p-6 rounded-lg shadow-sm border">
                 
-                {# DYNAMIC FORM: Shows "Edit" or "Add" state #}
+                {# --- DYNAMIC FORM: Points to different routes for ADD vs EDIT --- #}
                 {% if slot_to_edit %}
                     <h3 class="text-xl font-semibold mb-4 text-gray-900">Edit Slot</h3>
-                    <form method="POST" action="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}">
-                        <input type="hidden" name="action" value="edit">
-                        <input type="hidden" name="schedule_id" value="{{ slot_to_edit.ScheduleID }}">
+                    {# THIS FORM ACTION IS NOW CORRECT #}
+                    <form method="POST" action="{{ url_for('.edit_schedule', schedule_id=slot_to_edit.ScheduleID) }}">
                         <div class="space-y-4">
                             <div>
                                 <label for="day_of_week" class="block text-sm font-medium text-gray-700">Day of the Week</label>
@@ -35,7 +42,6 @@
                             </div>
                             <div>
                                 <label for="start_time" class="block text-sm font-medium text-gray-700">Start Time</label>
-                                {# The value is now a simple string slice, as timedelta objects stringify to HH:MM:SS #}
                                 <input type="time" id="start_time" name="start_time" value="{{ slot_to_edit.StartTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div>
@@ -43,15 +49,16 @@
                                 <input type="time" id="end_time" name="end_time" value="{{ slot_to_edit.EndTime|string|slice(0, 5) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div class="flex items-center gap-x-4">
-                                <a href="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}" class="flex-1 text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</a>
+                                {# THIS CANCEL LINK IS NOW CORRECT #}
+                                <a href="{{ url_for('.view_schedules', company_id=company.CompanyID) }}" class="flex-1 text-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</a>
                                 <button type="submit" class="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">Update Slot</button>
                             </div>
                         </div>
                     </form>
                 {% else %}
                     <h3 class="text-xl font-semibold mb-4 text-gray-900">Add New Slot</h3>
-                    <form method="POST" action="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}">
-                        <input type="hidden" name="action" value="add">
+                    {# THIS FORM ACTION IS NOW CORRECT #}
+                    <form method="POST" action="{{ url_for('.add_schedule', company_id=company.CompanyID) }}">
                         <div class="space-y-4">
                             <div>
                                 <label for="day_of_week" class="block text-sm font-medium text-gray-700">Day of the Week</label>
@@ -85,15 +92,15 @@
                     <li class="py-3 flex justify-between items-center gap-4">
                         <div>
                             <p class="font-semibold text-gray-800">{{ schedule.DayOfWeek }}</p>
-                            {# THE FIX: Use the pre-formatted time strings from the Python route #}
                             <p class="text-sm text-gray-600">{{ schedule.start_time_formatted }} - {{ schedule.end_time_formatted }}</p>
                         </div>
                         <div class="flex items-center gap-x-4">
-                            <a href="{{ url_for('.manage_company_schedule', company_id=company.CompanyID, edit_id=schedule.ScheduleID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Edit</a>
+                            {# THIS EDIT LINK IS NOW CORRECT #}
+                            <a href="{{ url_for('.edit_schedule', schedule_id=schedule.ScheduleID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Edit</a>
                             
-                            <form method="POST" action="{{ url_for('.manage_company_schedule', company_id=company.CompanyID) }}" onsubmit="return confirm('Are you sure you want to delete this slot?');">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="schedule_id" value="{{ schedule.ScheduleID }}">
+                            {# THIS DELETE FORM ACTION IS NOW CORRECT #}
+                            <form method="POST" action="{{ url_for('.delete_schedule', schedule_id=schedule.ScheduleID) }}" onsubmit="return confirm('Are you sure you want to delete this slot?');">
+                                <input type="hidden" name="company_id" value="{{ company.CompanyID }}">
                                 <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>
                             </form>
                         </div>
@@ -107,4 +114,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+    {# This makes the `time` object from python's datetime module available to the macro #}
+    {%- set datetime = modules.datetime -%}
+    {%- set time = modules.datetime.time -%}
 {% endblock %}
