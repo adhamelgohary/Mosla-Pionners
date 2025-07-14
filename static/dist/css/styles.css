@@ -1753,6 +1753,10 @@ html[data-theme="dark"] {
   margin-right: -0.5rem;
 }
 
+.-mr-3 {
+  margin-right: -0.75rem;
+}
+
 .-mr-px {
   margin-right: -1px;
 }
@@ -2254,8 +2258,8 @@ html[data-theme="dark"] {
   justify-content: space-between;
 }
 
-.gap-1\.5 {
-  gap: 0.375rem;
+.gap-1 {
+  gap: 0.25rem;
 }
 
 .gap-2 {
@@ -3888,6 +3892,11 @@ body {
   background-color: rgb(21 128 61 / var(--tw-bg-opacity, 1));
 }
 
+.hover\:text-blue-600:hover {
+  --tw-text-opacity: 1;
+  color: rgb(37 99 235 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-danger-900:hover {
   --tw-text-opacity: 1;
   color: rgb(127 29 29 / var(--tw-text-opacity, 1));
@@ -3935,6 +3944,11 @@ body {
 
 .hover\:text-primary-darker:hover {
   color: var(--primary-color-darker);
+}
+
+.hover\:text-red-600:hover {
+  --tw-text-opacity: 1;
+  color: rgb(220 38 38 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-red-700:hover {
@@ -4457,6 +4471,14 @@ body {
     grid-column: span 3 / span 3;
   }
 
+  .lg\:row-span-1 {
+    grid-row: span 1 / span 1;
+  }
+
+  .lg\:row-span-2 {
+    grid-row: span 2 / span 2;
+  }
+
   .lg\:-mx-8 {
     margin-left: -2rem;
     margin-right: -2rem;
@@ -4472,6 +4494,14 @@ body {
 
   .lg\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lg\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .lg\:grid-rows-\[auto_auto\] {
+    grid-template-rows: auto auto;
   }
 
   .lg\:p-10 {
@@ -4585,11 +4615,6 @@ body {
 .dark\:text-blue-300:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(147 197 253 / var(--tw-text-opacity, 1));
-}
-
-.dark\:text-blue-400:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(96 165 250 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-danger-300:where([data-theme="dark"], [data-theme="dark"] *) {
@@ -4743,6 +4768,11 @@ body {
   background-color: rgb(127 29 29 / 0.5);
 }
 
+.dark\:hover\:text-blue-400:hover:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-text-opacity: 1;
+  color: rgb(96 165 250 / var(--tw-text-opacity, 1));
+}
+
 .dark\:hover\:text-gray-200:hover:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity, 1));
@@ -4756,6 +4786,11 @@ body {
 .dark\:hover\:text-red-300:hover:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(252 165 165 / var(--tw-text-opacity, 1));
+}
+
+.dark\:hover\:text-red-400:hover:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity, 1));
 }
 
 .dark\:hover\:brightness-110:hover:where([data-theme="dark"], [data-theme="dark"] *) {
