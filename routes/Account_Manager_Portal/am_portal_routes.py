@@ -282,8 +282,6 @@ def review_application_details(application_id):
     return render_template('account_manager_portal/application_review_modal.html', review_data=review_data, manager_staff_id=staff_id)
 
 
-# In am_portal_routes.py
-
 @account_manager_bp.route('/interview-pipeline/export-scheduled')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def export_scheduled_interviews():

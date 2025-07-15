@@ -19,7 +19,6 @@ from routes.Auth.login_routes import login_bp, init_login_manager
 from routes.Auth.register_routes import register_bp
 from routes.Agency_Staff_Portal.dashboard_routes import managerial_dashboard_bp
 from routes.Agency_Staff_Portal.course_mgmt_routes import course_mgmt_bp
-from routes.Admin_Portal.admin_routes import admin_bp
 from routes.Agency_Staff_Portal.announcement_mgmt_routes import announcement_bp
 from routes.Agency_Staff_Portal.job_offer_mgmt_routes import job_offer_mgmt_bp
 from routes.Agency_Staff_Portal.employee_mgmt_routes import employee_mgmt_bp
@@ -35,7 +34,6 @@ from routes.Account_Manager_Portal.company_assignment_routes import company_assi
 from routes.Client_Portal.dashboard_routes import client_dashboard_bp
 from routes.Client_Portal.offer_routes import client_offers_bp
 from routes.Website.courses_page_routes import courses_page_bp
-from routes.Agency_Staff_Portal.candidate_details_routes import staff_candidate_bp
 from routes.Account_Manager_Portal.am_offer_mgmt_routes import am_offer_mgmt_bp
 from routes.Account_Manager_Portal.am_schedule_mgmt_routes import am_schedule_mgmt_bp
 from routes.Account_Manager_Portal.am_interview_mgmt_routes import am_interview_mgmt_bp
@@ -112,7 +110,6 @@ app.register_blueprint(leaderboard_bp, url_prefix='/staff-portal/leaderboard')
 app.register_blueprint(company_assignment_bp, url_prefix='/staff-portal/company-assignments')
 app.register_blueprint(staff_perf_bp)
 app.register_blueprint(reporting_bp)
-app.register_blueprint(staff_candidate_bp, url_prefix='/staff/candidate')
 app.register_blueprint(team_bp, url_prefix='/staff-management/team')
 app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
 app.register_blueprint(client_offers_bp, url_prefix='/client-portal')
@@ -121,7 +118,6 @@ app.register_blueprint(recruiter_bp, url_prefix='/recruiter-portal')
 app.register_blueprint(am_offer_mgmt_bp, url_prefix='/account-manager-portal/offer-management')
 app.register_blueprint(am_schedule_mgmt_bp, url_prefix='/account-manager-portal/schedule-management')
 app.register_blueprint(am_interview_mgmt_bp, url_prefix='/account-manager-portal/interview-management')
-app.register_blueprint(admin_bp)
 app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)

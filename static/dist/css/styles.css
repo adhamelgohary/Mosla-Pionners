@@ -1714,11 +1714,6 @@ html[data-theme="dark"] {
   margin-bottom: 0.5rem;
 }
 
-.my-3 {
-  margin-top: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
 .my-4 {
   margin-top: 1rem;
   margin-bottom: 1rem;
@@ -1765,14 +1760,6 @@ html[data-theme="dark"] {
   margin-top: -1px;
 }
 
-.mb-0 {
-  margin-bottom: 0px;
-}
-
-.mb-1 {
-  margin-bottom: 0.25rem;
-}
-
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -1791,10 +1778,6 @@ html[data-theme="dark"] {
 
 .mb-8 {
   margin-bottom: 2rem;
-}
-
-.me-3 {
-  margin-inline-end: 0.75rem;
 }
 
 .ml-1 {
@@ -1831,10 +1814,6 @@ html[data-theme="dark"] {
 
 .mr-4 {
   margin-right: 1rem;
-}
-
-.ms-2 {
-  margin-inline-start: 0.5rem;
 }
 
 .mt-0\.5 {
@@ -3807,6 +3786,10 @@ body {
 
 .placeholder\:text-text-muted::placeholder {
   color: var(--text-muted);
+}
+
+.last\:border-b-0:last-child {
+  border-bottom-width: 0px;
 }
 
 .hover\:-translate-y-1:hover {
