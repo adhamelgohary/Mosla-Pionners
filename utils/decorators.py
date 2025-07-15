@@ -20,9 +20,13 @@ JOB_OFFER_MANAGEMENT_ROLES = ['CEO', 'OperationsManager']
 COURSE_MANAGEMENT_ROLES_DECORATOR = ['SalesManager', 'CEO', 'OperationsManager']
 SALES_MANAGER_SPECIFIC_ROLES = ['SalesManager', 'CEO', 'OperationsManager']
 
-# --- NEW/UPDATED ROLE LISTS FOR STAFF MANAGEMENT ---
-LEADER_ROLES = ['SourcingTeamLead', 'UnitManager', 'SeniorAccountManager', 'OperationsManager', 'CEO']
-EXECUTIVE_ROLES = ['CEO', 'OperationsManager']
+# --- NEW: Central Authority for Managerial Access ---
+# This is the single source of truth for who can access the new portal.
+MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder']
+
+# --- You can now also update EXECUTIVE_ROLES if you wish, or just use the new list ---
+EXECUTIVE_ROLES = ['CEO', 'OperationsManager', 'Founder'] # OM might still be exec but not see the portal
+LEADER_ROLES = ['CEO', 'Founder', 'OperationsManager', 'HeadSourcingTeamLead', 'HeadAccountManager', 'SeniorAccountManager', 'SalesManager']
 
 # --- CORE DECORATOR ---
 def login_required_with_role(allowed_roles, insufficient_role_redirect='public_routes_bp.home_page'):

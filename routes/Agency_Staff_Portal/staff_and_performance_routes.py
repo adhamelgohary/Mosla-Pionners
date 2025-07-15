@@ -1,0 +1,317 @@
+# routes/Managerial_Portal/staff_and_performance_routes.py
+
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask_login import current_user
+# --- UPDATED IMPORT: The single source of truth for portal access ---
+from utils.decorators import login_required_with_role, MANAGERIAL_PORTAL_ROLES
+from db import get_db_connection
+from werkzeug.security import generate_password_hash
+import mysql.connector
+import random
+import re
+
+# This blueprint is a unified module for all staff, team, and performance management.
+# It is only accessible to users with roles in MANAGERIAL_PORTAL_ROLES.
+staff_perf_bp = Blueprint('staff_perf_bp', __name__,
+                          template_folder='../../../templates',
+                          url_prefix='/managerial/staff-performance')
+
+
+# --- Helper Functions (from original employee_mgmt_routes.py) ---
+# These helpers are still useful for data integrity checks.
+
+def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
+    """Prevents creating a reporting loop."""
+    if staff_to_change_id == new_leader_staff_id: return False
+    if not new_leader_staff_id: return True # Assigning "no leader" is always valid
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        current_id_in_chain = new_leader_staff_id
+        for _ in range(10):  # Check up to 10 levels deep to prevent infinite loops
+            if not current_id_in_chain: return True
+            cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (current_id_in_chain,))
+            result = cursor.fetchone()
+            if not result or not result[0]: return True
+            parent_id = result[0]
+            if parent_id == staff_to_change_id: return False # Loop detected
+            current_id_in_chain = parent_id
+        return True
+    finally:
+        if cursor: cursor.close()
+        if conn and conn.is_connected(): conn.close()
+
+def check_email_exists_in_db(email, conn):
+    """Checks if an email already exists using an existing connection."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT UserID FROM Users WHERE Email = %s", (email,))
+    exists = cursor.fetchone() is not None
+    cursor.close()
+    return exists
+
+
+# --- Staff Management Views (from original employee_mgmt_routes.py) ---
+
+@staff_perf_bp.route('/')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def list_all_staff():
+    """Main view: Displays a list of all staff members."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.IsActive, s.Role,
+               leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
+        LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
+        ORDER BY u.IsActive DESC, s.Role, u.LastName, u.FirstName
+    """)
+    staff_list = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/list_all_staff.html',
+                           title="Manage All Staff",
+                           staff_list=staff_list)
+
+@staff_perf_bp.route('/add-staff', methods=['GET', 'POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def add_staff():
+    """Provides a form to add a new User and corresponding Staff entry."""
+    errors, form_data = {}, {}
+    
+    conn_data = get_db_connection()
+    cursor_data = conn_data.cursor()
+    cursor_data.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
+    enum_str = cursor_data.fetchone()[1]
+    possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
+    cursor_data.close()
+    conn_data.close()
+
+    if request.method == 'POST':
+        form_data = request.form.to_dict()
+        email = form_data.get('email', '').strip()
+        password = form_data.get('password', '')
+
+        if not form_data.get('first_name'): errors['first_name'] = 'First name is required.'
+        if not form_data.get('last_name'): errors['last_name'] = 'Last name is required.'
+        if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email): errors['email'] = 'A valid email is required.'
+        if len(password) < 8: errors['password'] = 'Password must be at least 8 characters long.'
+        if not form_data.get('role') in possible_roles: errors['role'] = 'A valid role must be selected.'
+
+        conn = get_db_connection()
+        try:
+            if not errors and check_email_exists_in_db(email, conn):
+                errors['email'] = 'This email is already in use.'
+
+            if not errors:
+                hashed_password = generate_password_hash(password)
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 1)",
+                               (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
+                user_id = cursor.lastrowid
+                cursor.execute("INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)",
+                               (user_id, form_data.get('role'), form_data.get('employee_id')))
+                conn.commit()
+                flash(f"Staff member '{form_data.get('first_name')}' created successfully!", "success")
+                return redirect(url_for('.list_all_staff'))
+        except Exception as e:
+            if conn: conn.rollback()
+            flash("An error occurred while creating the new staff member.", "danger")
+        finally:
+            if conn.is_connected(): conn.close()
+    
+    return render_template('agency_staff_portal/staff/add_staff.html',
+                           title="Add New Staff Member",
+                           errors=errors, form_data=form_data, possible_roles=possible_roles)
+
+@staff_perf_bp.route('/profile/<int:user_id_viewing>')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def view_staff_profile(user_id_viewing):
+    """Displays the detailed profile page for a specific staff member."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
+    user_profile_data = cursor.fetchone()
+
+    if not user_profile_data:
+        flash("Staff profile not found.", "danger"); return redirect(url_for('.list_all_staff'))
+    
+    # NOTE: The old `_can_manager_view_profile` check is no longer needed here,
+    # because the decorator `@login_required_with_role(MANAGERIAL_PORTAL_ROLES)`
+    # already guarantees that only the highest-level users can access this page.
+
+    cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
+    team_leaders = cursor.fetchall()
+    
+    cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
+    possible_roles = cursor.fetchone()['Type'].replace("enum('", "").replace("')", "").split("','")
+    
+    points_log, direct_reports = [], []
+    if user_profile_data.get('StaffID'):
+        cursor.execute("SELECT * FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
+        points_log = cursor.fetchall()
+        cursor.execute("SELECT u_report.UserID, u_report.FirstName, u_report.LastName, s_report.Role FROM Staff s_report JOIN Users u_report ON s_report.UserID = u_report.UserID WHERE s_report.ReportsToStaffID = %s", (user_profile_data['StaffID'],))
+        direct_reports = cursor.fetchall()
+    
+    conn.close()
+    return render_template('agency_staff_portal/staff/view_staff_profile.html',
+                           title=f"Profile: {user_profile_data['FirstName']}",
+                           user_profile=user_profile_data, team_leaders=team_leaders,
+                           points_log=points_log, possible_roles=possible_roles,
+                           direct_reports=direct_reports)
+
+
+# --- Staff Profile Action Routes ---
+
+@staff_perf_bp.route('/profile/<int:staff_id_to_edit>/update-role', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def update_role(staff_id_to_edit):
+    # All action routes are simple transactions, perfect for this portal.
+    user_id_redirect = request.form.get('user_id')
+    new_role = request.form.get('role')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_edit))
+    conn.commit()
+    conn.close()
+    flash("Staff role updated successfully.", "success")
+    return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
+
+@staff_perf_bp.route('/profile/<int:staff_id_to_edit>/update-leader', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def update_leader(staff_id_to_edit):
+    user_id_redirect = request.form.get('user_id')
+    new_leader_id_str = request.form.get('leader_id')
+    new_leader_id = int(new_leader_id_str) if new_leader_id_str else None
+
+    if not _is_valid_new_leader(staff_id_to_edit, new_leader_id):
+        flash("Invalid manager assignment: this would create a reporting loop.", "danger")
+    else:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Staff SET ReportsToStaffID = %s WHERE StaffID = %s", (new_leader_id, staff_id_to_edit))
+        conn.commit()
+        conn.close()
+        flash("Staff manager updated successfully.", "success")
+    return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
+
+@staff_perf_bp.route('/profile/<int:staff_id_award_points>/add-points', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def add_points(staff_id_award_points):
+    user_id_redirect = request.form.get('user_id')
+    try:
+        points = int(request.form.get('points'))
+        if request.form.get('action_type') == 'deduct': points = -points
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO StaffPointsLog (AwardedToStaffID, AwardedByStaffID, PointsAmount, ActivityType, Notes) VALUES (%s, %s, %s, %s, %s)",
+                       (staff_id_award_points, current_user.specific_role_id, points, 'ManualAdjustment', request.form.get('reason')))
+        cursor.execute("UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s", (points, staff_id_award_points))
+        conn.commit()
+        conn.close()
+        flash(f"{abs(points)} points processed successfully.", "success")
+    except ValueError:
+        flash("Invalid points value. Please enter a whole number.", "danger")
+    return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
+
+@staff_perf_bp.route('/profile/<int:target_staff_id>/generate-referral-code', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def generate_referral_code(target_staff_id):
+    user_id_redirect = request.form.get('user_id_redirect')
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT u.FirstName, s.ReferralCode FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (target_staff_id,))
+    staff = cursor.fetchone()
+    if staff.get('ReferralCode'):
+        flash("This user already has a referral code.", "info")
+    else:
+        base_name = staff['FirstName'].upper().replace(' ', '')[:5]
+        while True:
+            new_code = f"{base_name}{random.randint(100, 999)}"
+            cursor.execute("SELECT StaffID FROM Staff WHERE ReferralCode = %s", (new_code,))
+            if not cursor.fetchone(): break
+        cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (new_code, target_staff_id))
+        conn.commit()
+        flash(f"Referral code '{new_code}' generated successfully.", "success")
+    conn.close()
+    return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
+
+
+# --- Team Structure View (from original team_routes.py) ---
+
+@staff_perf_bp.route('/team-structure')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def global_team_overview():
+    """Displays a high-level overview of all teams and departments."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT s.StaffID, u.FirstName, u.LastName, s.Role,
+               leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
+        LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
+        ORDER BY LeaderFirstName, u.LastName
+    """)
+    staff_list = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/global_team_overview.html',
+                           title="Global Team Structure",
+                           staff_list=staff_list)
+
+
+# --- Leaderboard Views (from original leaderboard_routes.py) ---
+
+@staff_perf_bp.route('/leaderboard/performance')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def performance_leaderboard():
+    period = request.args.get('period', 'all_time')
+    title = "All-Time Performance Leaderboard"
+    sql = """
+        SELECT u.FirstName, u.LastName, s.Role, s.TotalPoints as Points
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        WHERE s.TotalPoints IS NOT NULL AND s.TotalPoints != 0
+        ORDER BY s.TotalPoints DESC LIMIT 20
+    """
+    if period == 'monthly':
+        title = "Top Performers (This Month)"
+        sql = """
+            SELECT u.FirstName, u.LastName, s.Role, SUM(spl.PointsAmount) as Points
+            FROM StaffPointsLog spl
+            JOIN Staff s ON spl.AwardedToStaffID = s.StaffID
+            JOIN Users u ON s.UserID = u.UserID
+            WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
+            GROUP BY u.UserID, u.FirstName, u.LastName, s.Role
+            HAVING SUM(spl.PointsAmount) != 0
+            ORDER BY Points DESC LIMIT 20
+        """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(sql)
+    leaders = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/leaderboard.html',
+                           title=title, leaders=leaders, current_period=period)
+
+@staff_perf_bp.route('/leaderboard/companies')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def company_leaderboard():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT c.CompanyName, c.CompanyLogoURL, COUNT(jo.OfferID) as FilledJobsCount
+        FROM Companies c
+        JOIN JobOffers jo ON c.CompanyID = jo.CompanyID
+        WHERE jo.Status = 'Filled'
+        GROUP BY c.CompanyID, c.CompanyName, c.CompanyLogoURL
+        ORDER BY FilledJobsCount DESC LIMIT 20
+    """)
+    top_companies = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/company_leaderboard.html',
+                           title="Top Partner Companies",
+                           subtitle="Ranked by number of successfully filled positions.",
+                           top_companies=top_companies)
