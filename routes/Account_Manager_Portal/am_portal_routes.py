@@ -282,6 +282,8 @@ def review_application_details(application_id):
     return render_template('account_manager_portal/application_review_modal.html', review_data=review_data, manager_staff_id=staff_id)
 
 
+# In am_portal_routes.py
+
 @account_manager_bp.route('/interview-pipeline/export-scheduled')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def export_scheduled_interviews():
@@ -294,7 +296,7 @@ def export_scheduled_interviews():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # The SQL query remains the same as before
+        # The SQL query remains the same
         sql = """
             SELECT
                 u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.RegistrationDate,
@@ -323,17 +325,14 @@ def export_scheduled_interviews():
             flash("No scheduled interviews found for the selected criteria.", "warning")
             return redirect(url_for('.interview_pipeline'))
         
-        # --- Start of Excel Generation Logic ---
         wb = Workbook()
         ws = wb.active
         ws.title = "Scheduled Interviews"
 
-        # Define styles
         header_font = Font(name='Calibri', bold=True, color='FFFFFF')
         header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
         center_alignment = Alignment(horizontal='center', vertical='center')
 
-        # Define the header row
         headers = [
             'First Name', 'Last Name', 'Email', 'Phone Number', 'Gender', 'Date of Birth', 
             'Candidate Nationality', 'Educational Status', 'Languages', 'Language Level', 
@@ -342,7 +341,6 @@ def export_scheduled_interviews():
         ]
         ws.append(headers)
 
-        # Apply styles to the header row
         for cell in ws[1]:
             cell.font = header_font
             cell.fill = header_fill
@@ -350,6 +348,10 @@ def export_scheduled_interviews():
         
         # Write the data rows
         for interview in scheduled_interviews:
+            # *** THIS IS THE FIX ***
+            # Convert the 'Languages' set to a comma-separated string
+            languages_str = ", ".join(sorted(interview['Languages'])) if interview.get('Languages') else 'N/A'
+
             row_data = [
                 interview['FirstName'],
                 interview['LastName'],
@@ -359,7 +361,7 @@ def export_scheduled_interviews():
                 interview['DateOfBirth'].strftime('%Y-%m-%d') if interview.get('DateOfBirth') else 'N/A',
                 interview.get('CandidateNationality', 'N/A'),
                 interview.get('EducationalStatus', 'N/A'),
-                interview.get('Languages', 'N/A'),
+                languages_str, # Use the converted string here
                 interview.get('LanguageLevel', 'N/A'),
                 interview.get('LinkedInProfileURL', 'N/A'),
                 interview['RegistrationDate'].strftime('%Y-%m-%d') if interview.get('RegistrationDate') else 'N/A',
@@ -370,10 +372,10 @@ def export_scheduled_interviews():
             ]
             ws.append(row_data)
 
-        # Auto-adjust column widths for better readability
+        # Auto-adjust column widths
         for col in ws.columns:
             max_length = 0
-            column = col[0].column_letter # Get the column name
+            column = col[0].column_letter
             for cell in col:
                 try:
                     if len(str(cell.value)) > max_length:
@@ -383,20 +385,15 @@ def export_scheduled_interviews():
             adjusted_width = (max_length + 2)
             ws.column_dimensions[column].width = adjusted_width
 
-        # Save the workbook to an in-memory buffer
-        # Use io.BytesIO because Excel files are binary
         buffer = io.BytesIO()
         wb.save(buffer)
         buffer.seek(0)
-        # --- End of Excel Generation Logic ---
 
-        # Determine filename
-        filename = "scheduled_interviews.xlsx" # Note the .xlsx extension
+        filename = "scheduled_interviews.xlsx"
         if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
              company_name_slug = scheduled_interviews[0]['CompanyName'].replace(' ', '_').lower()
              filename = f"interviews_{company_name_slug}.xlsx"
 
-        # Prepare the response with the correct MIME type for .xlsx files
         response = make_response(buffer.getvalue())
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
