@@ -1,6 +1,6 @@
 # routes/Agency_staff_portal/staff_and_performance_routes.py
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app , jsonify
 from flask_login import current_user
 # --- UPDATED IMPORT: The single source of truth for portal access ---
 from utils.decorators import login_required_with_role, MANAGERIAL_PORTAL_ROLES
@@ -232,23 +232,69 @@ def generate_referral_code(target_staff_id):
 @staff_perf_bp.route('/team-structure')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def global_team_overview():
-    """Displays a high-level overview of all teams and departments."""
+    """Renders the page that will display the org chart."""
+    return render_template('agency_staff_portal/staff/global_team_overview.html',
+                           title="Global Team Structure")
+
+@staff_perf_bp.route('/api/team-hierarchy')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def api_team_hierarchy():
+    """API endpoint that returns the staff data structured as a hierarchy for D3.js."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
+    # Fetch all staff members with their manager's ID
     cursor.execute("""
-        SELECT s.StaffID, u.FirstName, u.LastName, s.Role,
-               leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName
+        SELECT 
+            s.StaffID AS id, 
+            s.ReportsToStaffID AS parentId,
+            u.FirstName, 
+            u.LastName, 
+            s.Role,
+            u.ProfilePictureURL
         FROM Staff s
         JOIN Users u ON s.UserID = u.UserID
-        LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
-        LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
-        ORDER BY LeaderFirstName, u.LastName
+        WHERE u.IsActive = 1
     """)
-    staff_list = cursor.fetchall()
+    nodes = cursor.fetchall()
     conn.close()
-    return render_template('agency_staff_portal/staff/global_team_overview.html',
-                           title="Global Team Structure",
-                           staff_list=staff_list)
+
+    # The root of our organization chart
+    # This node's 'id' should be the parentId of the top-level leader (e.g., the CEO)
+    # or a unique value like 0 or None if the CEO has a NULL ReportsToStaffID.
+    # The name is what will be displayed for the root.
+    root_node = {
+        'id': None,  # Corresponds to a NULL ReportsToStaffID for the top leader
+        'parentId': 'root', # A virtual parent for the absolute root
+        'FirstName': 'Mosla',
+        'LastName': 'Pioneers',
+        'Role': 'Organization',
+        'ProfilePictureURL': url_for('static', filename='images/company-logo.png') # Optional: use a company logo
+    }
+    
+    # Combine the virtual root with the actual staff data
+    nodes.append(root_node)
+
+    # Convert the flat list into a hierarchical structure (tree)
+    # This is a standard algorithm for creating a tree from a parent-id list
+    node_map = {node['id']: node for node in nodes}
+    for node in nodes:
+        node['name'] = f"{node['FirstName']} {node['LastName']}" # D3 uses the 'name' key by default
+        parent_id = node.get('parentId')
+        if parent_id in node_map:
+            parent = node_map[parent_id]
+            if 'children' not in parent:
+                parent['children'] = []
+            parent['children'].append(node)
+
+    # Find the actual root of the tree (the one with the virtual parentId 'root')
+    hierarchy_data = None
+    for node in nodes:
+        if node.get('parentId') == 'root':
+            hierarchy_data = node
+            break
+
+    return jsonify(hierarchy_data)
 
 
 # --- Leaderboard Views ---

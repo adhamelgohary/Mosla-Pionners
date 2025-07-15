@@ -7,10 +7,191 @@
     <span>{{ title }}</span>
 {% endblock %}
 
+{# Add D3.js to the head of the document #}
+{% block head_scripts %}
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+{% endblock %}
+
 {% block staff_content %}
-<div class="text-center py-16">
-    <i class="bi bi-diagram-3-fill text-6xl text-gray-300"></i>
-    <h2 class="mt-4 text-2xl font-bold text-gray-800">Team Structure & Org Chart</h2>
-    <p class="mt-2 text-sm text-gray-500">This feature is coming soon. It will display a visual hierarchy of the entire team.</p>
+<div class="bg-white p-4 rounded-lg shadow-sm border">
+    <h2 class="text-xl font-bold text-gray-800">Interactive Organization Chart</h2>
+    <p class="mt-1 text-sm text-gray-500">Click on a node to expand or collapse its children. Pan and zoom to navigate.</p>
+
+    <!-- This is where the D3 chart will be rendered -->
+    <div id="org-chart-container" class="w-full h-[70vh] overflow-hidden cursor-move"></div>
 </div>
+
+<style>
+    /* Styling for the chart elements */
+    .node circle {
+        fill: #fff;
+        stroke: steelblue;
+        stroke-width: 3px;
+    }
+    .node .node-rect {
+        cursor: pointer;
+        stroke: #999;
+        stroke-width: 1px;
+    }
+    .node text {
+        font: 12px sans-serif;
+        text-anchor: middle;
+        dominant-baseline: middle;
+    }
+    .node .role-text {
+        font-size: 10px;
+        fill: #555;
+    }
+    .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 2px;
+    }
+    /* Simple fade-in animation */
+    .node, .link {
+        transition: opacity 0.5s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block staff_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('org-chart-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // Create the SVG container and enable zooming/panning
+    const svg = d3.select(container).append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom().on("zoom", function (event) {
+            g.attr("transform", event.transform);
+        }))
+        .append("g");
+
+    const g = svg.append("g");
+
+    // Fetch the hierarchical data from our new API endpoint
+    d3.json("{{ url_for('staff_perf_bp.api_team_hierarchy') }}").then(function(treeData) {
+        if (!treeData) {
+            container.innerHTML = '<div class="text-center py-16 text-gray-500">Could not load team data.</div>';
+            return;
+        }
+        
+        // Create a tree layout
+        const tree = d3.tree().nodeSize([170, 250]);
+        const root = d3.hierarchy(treeData, d => d.children);
+        
+        let i = 0; // Counter for unique node IDs
+
+        function update(source) {
+            const nodes = tree(root).descendants();
+            const links = root.links();
+
+            // Normalize for fixed-depth
+            nodes.forEach(d => { d.y = d.depth * 250; });
+            
+            // --- Nodes ---
+            const node = g.selectAll("g.node")
+                .data(nodes, d => d.id || (d.id = ++i));
+
+            // Enter new nodes at the parent's previous position.
+            const nodeEnter = node.enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${source.y0 || 0},${source.x0 || 0})`)
+                .on("click", (event, d) => {
+                    toggle(d);
+                    update(d);
+                });
+            
+            // Add a background rectangle for each node
+            nodeEnter.append("rect")
+                .attr("class", "node-rect")
+                .attr("width", 150)
+                .attr("height", 60)
+                .attr("x", -75)
+                .attr("y", -30)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .style("fill", d => d._children ? "#e0e7ff" : "#fff"); // Light indigo if collapsed
+
+            // Add the person's name
+            nodeEnter.append("text")
+                .attr("dy", "-5px")
+                .text(d => d.data.name)
+                .style("font-weight", "bold");
+
+            // Add the person's role
+            nodeEnter.append("text")
+                .attr("class", "role-text")
+                .attr("dy", "10px")
+                .text(d => d.data.Role);
+
+            // Transition nodes to their new position.
+            const nodeUpdate = node.merge(nodeEnter).transition().duration(500)
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+
+            nodeUpdate.select("rect")
+                .style("fill", d => d._children ? "#e0e7ff" : "#fff");
+
+            // Transition exiting nodes to the parent's new position.
+            const nodeExit = node.exit().transition().duration(500)
+                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .remove();
+            
+            // --- Links ---
+            const link = g.selectAll("path.link")
+                .data(links, d => d.target.id);
+                
+            const linkEnter = link.enter().insert("path", "g")
+                .attr("class", "link")
+                .attr("d", d => {
+                    const o = {x: source.x0 || 0, y: source.y0 || 0};
+                    return d3.linkHorizontal()({source: o, target: o});
+                });
+            
+            link.merge(linkEnter).transition().duration(500)
+                .attr("d", d3.linkHorizontal().x(d => d.y).y(d => d.x));
+
+            link.exit().transition().duration(500)
+                .attr("d", d => {
+                    const o = {x: source.x, y: source.y};
+                    return d3.linkHorizontal()({source: o, target: o});
+                })
+                .remove();
+
+            // Stash the old positions for transition.
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+        }
+        
+        // Function to toggle children on click.
+        function toggle(d) {
+            if (d.children) {
+                d._children = d.children;
+                d.children = null;
+            } else {
+                d.children = d._children;
+                d._children = null;
+            }
+        }
+        
+        // Collapse all nodes except the root and its direct children initially
+        root.children.forEach(child => {
+            if (child.children) {
+                child._children = child.children;
+                child.children = null;
+            }
+        });
+        
+        update(root);
+        
+        // Center the chart initially
+        g.attr('transform', `translate(${width / 4}, ${height / 2})`);
+    });
+});
+</script>
 {% endblock %}
