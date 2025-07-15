@@ -17,24 +17,22 @@ staff_perf_bp = Blueprint('staff_perf_bp', __name__,
                           url_prefix='/managerial/staff-performance')
 
 
-# --- Helper Functions (from original employee_mgmt_routes.py) ---
-# These helpers are still useful for data integrity checks.
-
+# --- Helper Functions for Data Integrity ---
 def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
     """Prevents creating a reporting loop."""
     if staff_to_change_id == new_leader_staff_id: return False
-    if not new_leader_staff_id: return True # Assigning "no leader" is always valid
+    if not new_leader_staff_id: return True
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
         current_id_in_chain = new_leader_staff_id
-        for _ in range(10):  # Check up to 10 levels deep to prevent infinite loops
+        for _ in range(10): 
             if not current_id_in_chain: return True
             cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (current_id_in_chain,))
             result = cursor.fetchone()
             if not result or not result[0]: return True
             parent_id = result[0]
-            if parent_id == staff_to_change_id: return False # Loop detected
+            if parent_id == staff_to_change_id: return False
             current_id_in_chain = parent_id
         return True
     finally:
@@ -50,7 +48,7 @@ def check_email_exists_in_db(email, conn):
     return exists
 
 
-# --- Staff Management Views (from original employee_mgmt_routes.py) ---
+# --- Staff Management Views ---
 
 @staff_perf_bp.route('/')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -78,7 +76,6 @@ def list_all_staff():
 def add_staff():
     """Provides a form to add a new User and corresponding Staff entry."""
     errors, form_data = {}, {}
-    
     conn_data = get_db_connection()
     cursor_data = conn_data.cursor()
     cursor_data.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
@@ -102,21 +99,18 @@ def add_staff():
         try:
             if not errors and check_email_exists_in_db(email, conn):
                 errors['email'] = 'This email is already in use.'
-
             if not errors:
                 hashed_password = generate_password_hash(password)
                 cursor = conn.cursor()
-                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 1)",
-                               (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
+                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 1)", (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
                 user_id = cursor.lastrowid
-                cursor.execute("INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)",
-                               (user_id, form_data.get('role'), form_data.get('employee_id')))
+                cursor.execute("INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)", (user_id, form_data.get('role'), form_data.get('employee_id')))
                 conn.commit()
                 flash(f"Staff member '{form_data.get('first_name')}' created successfully!", "success")
                 return redirect(url_for('.list_all_staff'))
         except Exception as e:
             if conn: conn.rollback()
-            flash("An error occurred while creating the new staff member.", "danger")
+            flash(f"An error occurred while creating the new staff member: {e}", "danger")
         finally:
             if conn.is_connected(): conn.close()
     
@@ -137,10 +131,6 @@ def view_staff_profile(user_id_viewing):
     if not user_profile_data:
         flash("Staff profile not found.", "danger"); return redirect(url_for('.list_all_staff'))
     
-    # NOTE: The old `_can_manager_view_profile` check is no longer needed here,
-    # because the decorator `@login_required_with_role(MANAGERIAL_PORTAL_ROLES)`
-    # already guarantees that only the highest-level users can access this page.
-
     cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
     team_leaders = cursor.fetchall()
     
@@ -167,7 +157,6 @@ def view_staff_profile(user_id_viewing):
 @staff_perf_bp.route('/profile/<int:staff_id_to_edit>/update-role', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def update_role(staff_id_to_edit):
-    # All action routes are simple transactions, perfect for this portal.
     user_id_redirect = request.form.get('user_id')
     new_role = request.form.get('role')
     conn = get_db_connection()
@@ -238,7 +227,7 @@ def generate_referral_code(target_staff_id):
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 
-# --- Team Structure View (from original team_routes.py) ---
+# --- Team Structure View ---
 
 @staff_perf_bp.route('/team-structure')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -262,7 +251,7 @@ def global_team_overview():
                            staff_list=staff_list)
 
 
-# --- Leaderboard Views (from original leaderboard_routes.py) ---
+# --- Leaderboard Views ---
 
 @staff_perf_bp.route('/leaderboard/performance')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)

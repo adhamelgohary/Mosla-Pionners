@@ -2,7 +2,11 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-people-fill text-gray-500"></i>
+    <span>{{ title }}</span>
+{% endblock %}
 
 {% block staff_content %}
 <div class="px-4 sm:px-6 lg:px-8">
@@ -12,7 +16,7 @@
             <p class="mt-2 text-sm text-gray-700">A comprehensive list of all active and inactive staff in the system.</p>
         </div>
         <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{{ url_for('employee_mgmt_bp.add_staff') }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                 Add New Staff
             </a>
         </div>
@@ -44,7 +48,7 @@
                             </td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.LeaderFirstName + ' ' + staff.LeaderLastName if staff.LeaderFirstName else 'N/A' }}</td>
                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                <a href="{{ url_for('employee_mgmt_bp.view_staff_profile', user_id_viewing=staff.UserID) }}" class="text-indigo-600 hover:text-indigo-900">Manage<span class="sr-only">, {{ staff.FirstName }} {{ staff.LastName }}</span></a>
+                                <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=staff.UserID) }}" class="text-indigo-600 hover:text-indigo-900">Manage<span class="sr-only">, {{ staff.FirstName }} {{ staff.LastName }}</span></a>
                             </td>
                         </tr>
                         {% endfor %}

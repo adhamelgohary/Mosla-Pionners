@@ -34,9 +34,11 @@
                                     </button>
                                     <div x-show="managementMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
                                         <div class="py-1">
+                                            <!-- *** UPDATED LINKS *** -->
                                             <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Staff</a>
                                             <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Team Structure</a>
                                             <a href="{{ url_for('staff_perf_bp.performance_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Performance Leaderboard</a>
+                                            <a href="{{ url_for('staff_perf_bp.company_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Company Leaderboard</a>
                                         </div>
                                     </div>
                                 </div>
@@ -44,7 +46,6 @@
                                 <!-- Operations Links -->
                                 <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('job_offer_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Job Offers</a>
                                 
-                                <!-- NEW: Courses Dropdown -->
                                 <div class="relative" x-on:click.away="coursesMenuOpen = false">
                                      <button @click="coursesMenuOpen = !coursesMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('course_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
                                         <span>Courses</span>
@@ -61,7 +62,6 @@
 
                                 <a href="{{ url_for('announcement_bp.list_announcements') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('announcement_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Announcements</a>
 
-                                <!-- UPDATED: Reports Dropdown -->
                                 <div class="relative" x-on:click.away="reportsMenuOpen = false">
                                      <button @click="reportsMenuOpen = !reportsMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('reporting_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
                                         <span>Reports</span>
@@ -78,7 +78,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Profile Dropdown (Desktop) -->
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
                             <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
@@ -89,6 +88,7 @@
                                     </button>
                                 </div>
                                 <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                    <!-- *** UPDATED LINK *** -->
                                     <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Profile</a>
                                     <a href="{{ url_for('public_routes_bp.home_page') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" target="_blank">Main Site</a>
                                     <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
@@ -96,7 +96,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Mobile menu button -->
                     <div class="-mr-2 flex md:hidden">
                         <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                             <span class="sr-only">Open main menu</span>
@@ -109,6 +108,7 @@
             <!-- Mobile menu -->
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2">
+                    <!-- *** UPDATED LINKS *** -->
                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Job Offers</a>
@@ -125,6 +125,7 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
+                        <!-- *** UPDATED LINK *** -->
                         <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=current_user.id) }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">My Profile</a>
                         <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Logout</a>
                     </div>
