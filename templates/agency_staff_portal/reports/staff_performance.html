@@ -1,0 +1,98 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-clipboard-data-fill text-gray-500"></i>
+    <span>Staff Performance Report</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 py-6 sm:px-0">
+    <!-- Filter Section -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-6 border">
+        <h3 class="text-lg font-medium text-gray-800 mb-4">Filter Report</h3>
+        <form method="GET" action="{{ url_for('reporting_bp.staff_performance_report') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                <input type="date" name="start_date" id="start_date" value="{{ start_date or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
+                <input type="date" name="end_date" id="end_date" value="{{ end_date or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Staff Role</label>
+                <select name="role" id="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <option value="">All Roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role }}" {% if role == selected_role %}selected{% endif %}>{{ role }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex space-x-2">
+                <button type="submit" class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <i class="bi bi-funnel-fill mr-2"></i> Filter
+                </button>
+                <a href="{{ url_for('reporting_bp.staff_performance_report') }}" class="w-full inline-flex justify-center items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Actions and Summary -->
+    <div class="flex justify-between items-center mb-4">
+        <p class="text-sm text-gray-600">
+            Displaying <span class="font-bold">{{ report_data|length }}</span> staff members.
+        </p>
+        <a href="{{ url_for('reporting_bp.staff_performance_report', start_date=start_date, end_date=end_date, role=selected_role, format='csv') }}" class="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700">
+            <i class="bi bi-file-earmark-spreadsheet-fill mr-2"></i> Download CSV
+        </a>
+    </div>
+
+    <!-- Report Table -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow border">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Apps Referred</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hires</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Rate</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Offers Posted</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Points Earned</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% if report_data %}
+                    {% for row in report_data %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.StaffName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.Role }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{{ row.TotalApplicationsReferred }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold text-center">{{ row.TotalHires }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            {% if row.TotalApplicationsReferred > 0 %}
+                                {{ "%.2f"|format((row.TotalHires / row.TotalApplicationsReferred) * 100) }}%
+                            {% else %}
+                                0.00%
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{{ row.TotalOffersPosted }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold text-center">{{ row.TotalPoints }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500">
+                        No performance data found for the selected criteria.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
