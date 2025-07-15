@@ -8,6 +8,11 @@
     <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
         <i class="bi bi-list-ul -ml-1 mr-2"></i> View & Manage All Offers
     </a>
+        <!-- *** NEW BUTTON *** -->
+    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+        <i class="bi bi-people -ml-1 mr-2"></i> View All Applications
+    </a>
+    
     <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
         <i class="bi bi-plus-circle -ml-1 mr-2"></i> Create New Offer
     </a>

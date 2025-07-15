@@ -1,5 +1,5 @@
 # routes/Agency_Staff_Portal/job_offer_mgmt_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, make_response
 from flask_login import current_user
 from utils.decorators import login_required_with_role, EXECUTIVE_ROLES
 from db import get_db_connection
@@ -7,6 +7,13 @@ import datetime
 import decimal
 import mysql.connector
 import re
+import io
+import csv
+
+# Imports for styled Excel generation (as per previous request to keep it in-file)
+import openpyxl
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
 
 JOB_OFFER_REVIEW_ROLES = ['CEO']
 CLIENT_CONTACT_ROLE_NAME = 'ClientContact'
@@ -14,6 +21,65 @@ CLIENT_CONTACT_ROLE_NAME = 'ClientContact'
 job_offer_mgmt_bp = Blueprint('job_offer_mgmt_bp', __name__,
                               template_folder='../../../templates',
                               url_prefix='/job-offers')
+
+# --- Excel Helper Function (Copied from reports for self-containment) ---
+def _create_styled_excel(report_data, title, header_mapping):
+    """
+    Generates a styled Excel report using only OpenPyXL.
+    NOTE: In a larger application, this would be moved to a shared utils file.
+    """
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Report"
+    title_font = Font(name='Calibri', size=18, bold=True, color='1F2937')
+    header_font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
+    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    header_fill = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid')
+    
+    worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(header_mapping))
+    title_cell = worksheet.cell(row=1, column=1, value=title)
+    title_cell.font = title_font
+    title_cell.alignment = center_align
+    worksheet.row_dimensions[1].height = 30
+    
+    worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(header_mapping))
+    subtitle_cell = worksheet.cell(row=2, column=1, value=f"Report generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    subtitle_cell.font = Font(italic=True, color='6B7280')
+    subtitle_cell.alignment = center_align
+    worksheet.row_dimensions[2].height = 20
+    
+    headers = list(header_mapping.keys())
+    for col_num, header_title in enumerate(headers, 1):
+        cell = worksheet.cell(row=4, column=col_num, value=header_title)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+    worksheet.row_dimensions[4].height = 20
+    
+    data_keys = list(header_mapping.values())
+    for row_num, row_data in enumerate(report_data, 5):
+        for col_num, key in enumerate(data_keys, 1):
+            cell_value = row_data.get(key, 'N/A')
+            if isinstance(cell_value, (datetime.datetime, datetime.date)):
+                cell_value = cell_value.strftime('%Y-%m-%d')
+            worksheet.cell(row=row_num, column=col_num, value=cell_value).alignment = left_align
+    
+    column_widths = {}
+    for col_num, header_title in enumerate(headers, 1):
+        column_widths[col_num] = len(header_title)
+    for row_data in report_data:
+        for col_num, key in enumerate(data_keys, 1):
+            cell_len = len(str(row_data.get(key, '')))
+            if cell_len > column_widths[col_num]:
+                column_widths[col_num] = cell_len
+    for col_num, width in column_widths.items():
+        worksheet.column_dimensions[get_column_letter(col_num)].width = width + 4
+        
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return output
 
 def get_column_options(cursor, table_name, column_name):
     """
@@ -654,3 +720,119 @@ def view_live_job_offer_detail(offer_id):
     if not offer: 
         flash('Job offer not found.', 'danger'); return redirect(url_for('.list_all_job_offers'))
     return render_template('agency_staff_portal/job_offers/view_live_job_offer_detail.html', title=f"Job Offer Details", offer=offer)
+
+
+# --- NEW ROUTE TO LIST ALL APPLICATIONS ---
+@job_offer_mgmt_bp.route('/applications')
+@login_required_with_role(EXECUTIVE_ROLES)
+def list_all_applications():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get filters from URL
+    selected_company_id = request.args.get('company_id', type=int)
+    selected_offer_id = request.args.get('offer_id', type=int)
+    export_format = request.args.get('format')
+
+    # Fetch data for filter dropdowns
+    cursor.execute("SELECT CompanyID, CompanyName FROM Companies ORDER BY CompanyName")
+    companies = cursor.fetchall()
+    cursor.execute("SELECT OfferID, Title FROM JobOffers ORDER BY Title")
+    job_offers = cursor.fetchall()
+    
+    # Base query
+    sql = """
+        SELECT
+            u.FirstName,
+            u.LastName,
+            ja.ApplicationDate,
+            jo.Title AS JobTitle,
+            c.CompanyName,
+            ja.Status,
+            cand.CandidateID
+        FROM JobApplications ja
+        JOIN Candidates cand ON ja.CandidateID = cand.CandidateID
+        JOIN Users u ON cand.UserID = u.UserID
+        JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+        JOIN Companies c ON jo.CompanyID = c.CompanyID
+    """
+    
+    # Apply filters
+    conditions = []
+    params = []
+    if selected_company_id:
+        conditions.append("c.CompanyID = %s")
+        params.append(selected_company_id)
+    if selected_offer_id:
+        conditions.append("jo.OfferID = %s")
+        params.append(selected_offer_id)
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+    
+    sql += " ORDER BY ja.ApplicationDate DESC"
+    
+    cursor.execute(sql, tuple(params))
+    applications = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Handle Exports
+    if export_format:
+        if not applications:
+            flash("No data to export for the selected filters.", "warning")
+            return redirect(url_for('.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id))
+        
+        # EXCEL Export
+        if export_format == 'xlsx':
+            header_map = {
+                'Candidate Name': 'FullName', # We'll create this key
+                'Application Date': 'ApplicationDate',
+                'Job Title': 'JobTitle',
+                'Company': 'CompanyName',
+                'Status': 'Status'
+            }
+            # Pre-process data for full name
+            excel_data = []
+            for app in applications:
+                new_app = app.copy()
+                new_app['FullName'] = f"{app['FirstName']} {app['LastName']}"
+                excel_data.append(new_app)
+            
+            excel_file = _create_styled_excel(excel_data, "All Job Applications", header_map)
+            response = make_response(excel_file.read())
+            filename = f"all_applications_{datetime.date.today()}.xlsx"
+            response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+            response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            return response
+
+        # CSV Export
+        if export_format == 'csv':
+            output = io.StringIO()
+            # Prepare data for CSV
+            csv_data = []
+            for app in applications:
+                csv_data.append({
+                    'Candidate Name': f"{app['FirstName']} {app['LastName']}",
+                    'Application Date': app['ApplicationDate'].strftime('%Y-%m-%d') if app['ApplicationDate'] else '',
+                    'Job Title': app['JobTitle'],
+                    'Company': app['CompanyName'],
+                    'Status': app['Status']
+                })
+            writer = csv.DictWriter(output, fieldnames=csv_data[0].keys())
+            writer.writeheader()
+            writer.writerows(csv_data)
+            output.seek(0)
+            
+            response = make_response(output.read())
+            response.headers["Content-Disposition"] = f"attachment; filename=all_applications_{datetime.date.today()}.csv"
+            response.headers["Content-type"] = "text/csv"
+            return response
+
+    return render_template('agency_staff_portal/job_offers/list_all_applications.html',
+                           title="All Job Applications",
+                           applications=applications,
+                           companies=companies,
+                           job_offers=job_offers,
+                           selected_company_id=selected_company_id,
+                           selected_offer_id=selected_offer_id)
