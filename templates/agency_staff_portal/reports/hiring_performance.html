@@ -37,9 +37,30 @@
         <p class="text-sm text-gray-600">
             Displaying <span class="font-bold">{{ report_data|length }}</span> job offers.
         </p>
-        <a href="{{ url_for('reporting_bp.hiring_performance_report', start_date=start_date, end_date=end_date, format='csv') }}" class="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700">
-            <i class="bi bi-file-earmark-spreadsheet-fill mr-2"></i> Download CSV
-        </a>
+        <div class="relative inline-block text-left">
+            <div>
+                <button type="button" id="download-menu-button" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm ring-1 ring-inset ring-green-700 hover:bg-green-700" aria-expanded="false" aria-haspopup="true">
+                    <i class="bi bi-download mr-2"></i>
+                    Download
+                    <svg class="-mr-1 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        
+            <div id="download-menu" class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" aria-labelledby="download-menu-button" tabindex="-1">
+                <div class="py-1" role="none">
+                    <a href="{{ url_for(request.endpoint, start_date=start_date, end_date=end_date, format='xlsx') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem" tabindex="-1">
+                        <i class="bi bi-file-earmark-spreadsheet-fill text-green-600 mr-3"></i>
+                        Styled Report (.xlsx)
+                    </a>
+                    <a href="{{ url_for(request.endpoint, start_date=start_date, end_date=end_date, format='csv') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem" tabindex="-1">
+                        <i class="bi bi-filetype-csv text-gray-500 mr-3"></i>
+                        Plain Data (.csv)
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Report Table -->
@@ -85,4 +106,22 @@
         </table>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const button = document.getElementById('download-menu-button');
+        const menu = document.getElementById('download-menu');
+        if (button && menu) {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                menu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (event) => {
+                if (!button.contains(event.target) && !menu.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
