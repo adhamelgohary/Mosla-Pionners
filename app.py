@@ -17,7 +17,7 @@ from utils.template_helpers import register_template_helpers
 # --- Import Blueprints ---
 from routes.Auth.login_routes import login_bp, init_login_manager
 from routes.Auth.register_routes import register_bp
-from routes.Agency_Staff_Portal.dashboard_routes import staff_dashboard_bp
+from routes.Agency_Staff_Portal.dashboard_routes import managerial_dashboard_bp
 from routes.Agency_Staff_Portal.course_mgmt_routes import course_mgmt_bp
 from routes.Admin_Portal.admin_routes import admin_bp
 from routes.Agency_Staff_Portal.announcement_mgmt_routes import announcement_bp
@@ -103,7 +103,7 @@ init_login_manager(app) # Initialize Flask-Login
 # (No changes needed in this section)
 app.register_blueprint(login_bp, url_prefix='/auth')
 app.register_blueprint(register_bp, url_prefix='/auth')
-app.register_blueprint(staff_dashboard_bp, url_prefix='/staff-portal')
+app.register_blueprint(managerial_dashboard_bp, url_prefix='/staff-portal')
 app.register_blueprint(course_mgmt_bp, url_prefix='/staff-portal/courses')
 app.register_blueprint(announcement_bp, url_prefix='/staff-portal/announcements')
 app.register_blueprint(job_offer_mgmt_bp, url_prefix='/staff-portal/job-offers')
