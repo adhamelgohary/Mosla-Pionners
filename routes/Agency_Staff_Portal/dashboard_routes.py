@@ -55,7 +55,7 @@ def main_dashboard():
     conn.close()
                 
     return render_template(
-        'agency_staff_portal/dashboard.html', # <-- NEW TEMPLATE PATH
+        'agency_staff_portal/staff_dashboard.html', # <-- NEW TEMPLATE PATH
         title='Managerial Dashboard',
         dashboard_stats=dashboard_stats,
         manual_announcements=manual_announcements
