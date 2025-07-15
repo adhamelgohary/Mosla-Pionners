@@ -25,11 +25,9 @@ def hiring_performance_report():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Get date filters from URL (e.g., /hiring-performance?start_date=...&end_date=...)
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     
-    # Build query with optional date filters
     params = []
     sql = """
         SELECT 
@@ -66,25 +64,24 @@ def hiring_performance_report():
 
     # Handle CSV Download Request
     if request.args.get('format') == 'csv':
+        # *** FIX STARTS HERE ***
+        # Check if there is data before attempting to create a CSV
         if not report_data:
-            flash("No data to export.", "warning")
-            # Redirect to the page without the format parameter
+            flash("No data to export for the selected filters.", "warning")
+            # Re-render the page with the empty state and the message
             return render_template('agency_staff_portal/reports/hiring_performance.html',
                            title="Hiring Performance Report",
                            report_data=[],
                            start_date=start_date_str,
                            end_date=end_date_str)
+        # *** FIX ENDS HERE ***
 
         output = io.StringIO()
-        writer = csv.writer(output)
+        # Use DictWriter for a more robust CSV creation
+        writer = csv.DictWriter(output, fieldnames=report_data[0].keys())
         
-        # Write header
-        headers = report_data[0].keys() if report_data else []
-        writer.writerow(headers)
-        
-        # Write data
-        for row in report_data:
-            writer.writerow(row.values())
+        writer.writeheader()
+        writer.writerows(report_data)
         
         output.seek(0)
         
@@ -98,6 +95,7 @@ def hiring_performance_report():
                            report_data=report_data,
                            start_date=start_date_str,
                            end_date=end_date_str)
+
 
 @reporting_bp.route('/staff-performance', methods=['GET'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -118,16 +116,33 @@ def staff_performance_report():
     # Build the main query with date and role filters
     params = []
     
-    # --- Date filtering sub-clauses ---
+    date_conditions = []
+    if start_date_str:
+        date_conditions.append("ja.ApplicationDate >= %s")
+        params.append(start_date_str)
+    if end_date_str:
+        date_conditions.append("ja.ApplicationDate <= %s")
+        params.append(end_date_str)
+
     app_date_filter = ""
-    offer_date_filter = ""
-    points_date_filter = ""
-    if start_date_str and end_date_str:
-        app_date_filter = "WHERE ja.ApplicationDate BETWEEN %s AND %s"
-        offer_date_filter = "WHERE jo.DatePosted BETWEEN %s AND %s"
-        points_date_filter = "WHERE spl.AwardDate BETWEEN %s AND %s"
-        # Add params multiple times for each subquery
-        params.extend([start_date_str, end_date_str, start_date_str, end_date_str, start_date_str, end_date_str, start_date_str, end_date_str])
+    if date_conditions:
+        app_date_filter = "WHERE " + " AND ".join(date_conditions)
+
+    # Re-use params for other subqueries
+    offer_params = params[:]
+    points_params = params[:]
+
+    offer_date_conditions = []
+    if start_date_str: offer_date_conditions.append("jo.DatePosted >= %s")
+    if end_date_str: offer_date_conditions.append("jo.DatePosted <= %s")
+    offer_date_filter = "WHERE " + " AND ".join(offer_date_conditions) if offer_date_conditions else ""
+    
+    points_date_conditions = []
+    if start_date_str: points_date_conditions.append("spl.AwardDate >= %s")
+    if end_date_str: points_date_conditions.append("spl.AwardDate <= %s")
+    points_date_filter = "WHERE " + " AND ".join(points_date_conditions) if points_date_conditions else ""
+    
+    sql_params = params + params + offer_params + points_params
 
     # --- Main SQL query using subqueries for aggregation ---
     sql = f"""
@@ -143,14 +158,13 @@ def staff_performance_report():
         JOIN Users u ON s.UserID = u.UserID
         LEFT JOIN (
             SELECT ReferringStaffID, COUNT(ApplicationID) as TotalReferred
-            FROM JobApplications ja
-            {app_date_filter}
+            FROM JobApplications ja {app_date_filter}
             GROUP BY ReferringStaffID
         ) as ja_referred ON s.StaffID = ja_referred.ReferringStaffID
         LEFT JOIN (
             SELECT ReferringStaffID, COUNT(ApplicationID) as TotalHired
             FROM JobApplications ja
-            WHERE ja.Status = 'Hired' {'AND ja.ApplicationDate BETWEEN %s AND %s' if start_date_str and end_date_str else ''}
+            WHERE ja.Status = 'Hired' {'AND ' + ' AND '.join(date_conditions) if date_conditions else ''}
             GROUP BY ReferringStaffID
         ) as ja_hired ON s.StaffID = ja_hired.ReferringStaffID
         LEFT JOIN (
@@ -171,11 +185,11 @@ def staff_performance_report():
     role_condition = ""
     if selected_role:
         role_condition = "WHERE s.Role = %s"
-        params.append(selected_role)
+        sql_params.append(selected_role)
     
     sql += f" {role_condition} ORDER BY StaffName;"
 
-    cursor.execute(sql, tuple(params))
+    cursor.execute(sql, tuple(sql_params))
     report_data = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -184,14 +198,12 @@ def staff_performance_report():
     if request.args.get('format') == 'csv':
         if not report_data:
             flash("No data to export for the selected filters.", "warning")
-            # Redirect or render empty state
             return render_template('agency_staff_portal/reports/staff_performance.html',
                            title="Staff Performance Report",
                            report_data=[], roles=roles, start_date=start_date_str,
                            end_date=end_date_str, selected_role=selected_role)
 
         output = io.StringIO()
-        # Add a Hire Rate column to the CSV data
         csv_data = []
         for row in report_data:
             new_row = dict(row)
