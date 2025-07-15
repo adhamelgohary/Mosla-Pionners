@@ -8,8 +8,10 @@ import decimal
 import mysql.connector
 
 # These roles should match the ENUM values in your Staff.Role column
+# These roles should match the ENUM values in your Staff.Role column
 COURSE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'OperationsManager']
 COURSE_DASHBOARD_VIEW_ROLES = ['SalesManager', 'CEO', 'OperationsManager', 'HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager', 'SeniorAccountManager', 'AccountManager']
+
 
 course_mgmt_bp = Blueprint('course_mgmt_bp', __name__,
                            url_prefix='/courses')
@@ -243,7 +245,12 @@ def delete_course(course_id):
 @course_mgmt_bp.route('/dashboard')
 @login_required_with_role(COURSE_DASHBOARD_VIEW_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
 def courses_dashboard_page():
-    dashboard_data = { 'total_sales_revenue': decimal.Decimal('0.00'), 'potential_course_value': decimal.Decimal('0.00'), 'ongoing_students': 0, 'graduated_students': 0, 'active_courses': 0, 'total_enrollments': 0, 'default_currency': 'EGP' }
+    dashboard_data = {
+        'total_sales_revenue': decimal.Decimal('0.00'), 'potential_course_value': decimal.Decimal('0.00'), 
+        'ongoing_students': 0, 'graduated_students': 0, 'active_courses': 0, 'total_enrollments': 0, 
+        'pending_applications': 0, # <-- NEW KPI
+        'default_currency': 'EGP'
+    }
     conn = None
     try:
         conn = get_db_connection()
@@ -270,10 +277,87 @@ def courses_dashboard_page():
         # KPI 5: Total Enrollments
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status NOT IN ('DroppedOut', 'Cancelled', 'Applied')")
         res = cursor.fetchone(); dashboard_data['total_enrollments'] = res.get('count', 0) if res else 0
+        # *** NEW KPI 6: Pending Applications ***
+        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Applied'")
+        res = cursor.fetchone(); dashboard_data['pending_applications'] = res.get('count', 0) if res else 0
     except Exception as e:
+        current_app.logger.error(f"Error fetching course dashboard data: {e}", exc_info=True)
         flash("Could not load all dashboard data.", "warning")
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
     return render_template('agency_staff_portal/courses/courses_dashboard.html', title='Courses Dashboard', dashboard_data=dashboard_data)
+
+
+@course_mgmt_bp.route('/enrollment-requests')
+@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+def manage_enrollment_requests():
+    applications = []
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT 
+                ce.EnrollmentID,
+                ce.EnrollmentDate AS ApplicationDate,
+                c.CourseName,
+                u.FirstName AS CandidateFirstName,
+                u.LastName AS CandidateLastName,
+                u.Email AS CandidateEmail
+            FROM CourseEnrollments ce
+            JOIN Courses c ON ce.CourseID = c.CourseID
+            JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            WHERE ce.Status = 'Applied'
+            ORDER BY ce.EnrollmentDate ASC
+        """
+        cursor.execute(sql)
+        applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching enrollment requests: {e}", exc_info=True)
+        flash("Could not load enrollment requests.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return render_template('agency_staff_portal/courses/manage_enrollments.html', 
+                           title='Manage Enrollment Requests', 
+                           applications=applications)
+
+# *** NEW ROUTE: Update Enrollment Status ***
+@course_mgmt_bp.route('/enrollment/update-status/<int:enrollment_id>', methods=['POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+def update_enrollment_status(enrollment_id):
+    new_status = request.form.get('status')
+    allowed_statuses = ['Enrolled', 'PendingPayment', 'Cancelled']
+    
+    if not new_status or new_status not in allowed_statuses:
+        flash("Invalid status update provided.", "danger")
+        return redirect(url_for('.manage_enrollment_requests'))
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = "UPDATE CourseEnrollments SET Status = %s, UpdatedAt = NOW() WHERE EnrollmentID = %s AND Status = 'Applied'"
+        cursor.execute(sql, (new_status, enrollment_id))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            flash(f"Enrollment status successfully updated to '{new_status}'.", "success")
+        else:
+            flash("Could not update status. The application may have been processed by another manager.", "warning")
+
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error updating enrollment status for ID {enrollment_id}: {e}", exc_info=True)
+        flash("A database error occurred while updating the status.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return redirect(url_for('.manage_enrollment_requests'))

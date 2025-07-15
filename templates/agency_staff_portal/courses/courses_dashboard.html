@@ -27,12 +27,18 @@
 </div>
 {% endmacro %}
 
-<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"> {# Changed to lg:grid-cols-4 #}
     {{ stat_card('Total Sales Revenue', "{:,.2f}".format(dashboard_data.total_sales_revenue if dashboard_data.total_sales_revenue is not none else 0), dashboard_data.default_currency ~ ' (from confirmed enrollments)', 'green') }}
-    {{ stat_card('Active Courses', dashboard_data.active_courses|default(0), 'Currently listed & available', 'info', 'View All Courses', url_for('course_mgmt_bp.list_courses')) }}
-    {{ stat_card('Total Enrollments', dashboard_data.total_enrollments|default(0), 'Engaged candidates (active/completed)', 'indigo') }}
+    
+    <!-- NEW KPI CARD FOR PENDING APPLICATIONS -->
+    {{ stat_card('Pending Applications', dashboard_data.pending_applications|default(0), 'Awaiting confirmation', 'yellow', 'Review Now', url_for('course_mgmt_bp.manage_enrollment_requests')) }}
+
     {{ stat_card('Ongoing Students', dashboard_data.ongoing_students|default(0), 'Currently in progress', 'amber') }}
     {{ stat_card('Graduated Students', dashboard_data.graduated_students|default(0), 'Successfully completed courses', 'primary') }}
+    
+    <!-- These can be moved or kept depending on priority -->
+    {{ stat_card('Active Courses', dashboard_data.active_courses|default(0), 'Currently listed & available', 'info', 'View All Courses', url_for('course_mgmt_bp.list_courses')) }}
+    {{ stat_card('Total Enrollments', dashboard_data.total_enrollments|default(0), 'Engaged candidates (active/completed)', 'indigo') }}
     {{ stat_card('Potential Course Value', "{:,.2f}".format(dashboard_data.potential_course_value if dashboard_data.potential_course_value is not none else 0), dashboard_data.default_currency ~ ' (from all active courses)', 'gray') }}
 </div>
 {% endblock %}
