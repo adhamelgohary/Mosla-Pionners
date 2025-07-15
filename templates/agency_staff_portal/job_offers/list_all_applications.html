@@ -26,9 +26,7 @@
                 <label for="offer_id" class="block text-sm font-medium text-gray-700">Job Offer</label>
                 <select name="offer_id" id="offer_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     <option value="">All Job Offers</option>
-                     {% for offer in job_offers %}
-                    <option value="{{ offer.OfferID }}" {% if offer.OfferID == selected_offer_id %}selected{% endif %}>{{ offer.Title }}</option>
-                    {% endfor %}
+                     {# Options will be populated by JavaScript #}
                 </select>
             </div>
             <div class="flex space-x-2 md:col-span-2">
@@ -65,6 +63,7 @@
 
     <!-- Applications Table -->
     <div class="overflow-x-auto bg-white rounded-lg shadow border">
+        <!-- ... Table remains unchanged ... -->
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -109,4 +108,60 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block staff_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const companySelect = document.getElementById('company_id');
+    const offerSelect = document.getElementById('offer_id');
+    
+    // Store the initially selected offer ID to re-select it after fetching
+    const initiallySelectedOfferId = "{{ selected_offer_id or '' }}";
+
+    function fetchAndPopulateOffers(companyId) {
+        // Determine which API endpoint to call
+        const url = companyId 
+            ? `{{ url_for('job_offer_mgmt_bp.api_get_offers_for_company', company_id=0) }}`.replace('0', companyId)
+            : `{{ url_for('job_offer_mgmt_bp.api_get_all_offers') }}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Clear existing options
+                offerSelect.innerHTML = '<option value="">All Job Offers</option>';
+                
+                // Populate with new options from the API response
+                data.offers.forEach(offer => {
+                    const option = document.createElement('option');
+                    option.value = offer.OfferID;
+                    option.textContent = offer.Title;
+                    
+                    // If this offer was the one originally selected, mark it as selected
+                    if (offer.OfferID == initiallySelectedOfferId) {
+                        option.selected = true;
+                    }
+                    
+                    offerSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching job offers:', error);
+                offerSelect.innerHTML = '<option value="">Could not load offers</option>';
+            });
+    }
+
+    // Add event listener for when the company selection changes
+    companySelect.addEventListener('change', function() {
+        const selectedCompanyId = this.value;
+        fetchAndPopulateOffers(selectedCompanyId);
+    });
+
+    // --- Initial population on page load ---
+    // This is crucial for when the page reloads after a filter is applied.
+    // It ensures the offer dropdown is correctly populated and the selection is maintained.
+    const initialCompanyId = companySelect.value;
+    fetchAndPopulateOffers(initialCompanyId);
+});
+</script>
 {% endblock %}

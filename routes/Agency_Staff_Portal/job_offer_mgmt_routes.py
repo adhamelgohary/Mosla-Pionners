@@ -81,6 +81,7 @@ def _create_styled_excel(report_data, title, header_mapping):
     output.seek(0)
     return output
 
+
 def get_column_options(cursor, table_name, column_name):
     """
     Dynamically fetches the allowed values for an ENUM or SET column from the database schema.
@@ -217,6 +218,30 @@ def client_submit_job_offer():
             flash("Please correct the errors in the form before submitting.", "warning")
     return redirect(url_for('client_portal_bp.dashboard'))
 
+
+@job_offer_mgmt_bp.route('/api/offers-for-company/<int:company_id>')
+@login_required_with_role(EXECUTIVE_ROLES)
+def api_get_offers_for_company(company_id):
+    """API endpoint to fetch job offers for a specific company."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT OfferID, Title FROM JobOffers WHERE CompanyID = %s ORDER BY Title", (company_id,))
+    offers = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return {'offers': offers}
+
+@job_offer_mgmt_bp.route('/api/all-offers')
+@login_required_with_role(EXECUTIVE_ROLES)
+def api_get_all_offers():
+    """API endpoint to fetch all job offers."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT OfferID, Title FROM JobOffers ORDER BY Title")
+    offers = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return {'offers': offers}
 
 @job_offer_mgmt_bp.route('/dashboard')
 @login_required_with_role(JOB_OFFER_REVIEW_ROLES)
