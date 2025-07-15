@@ -19,12 +19,12 @@
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="text-slate-900 font-bold text-lg">Managerial Portal</a>
+                            <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="text-slate-900 font-bold text-lg">Managerial Portal</a>
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-4">
                                 <!-- Main Dashboard Link -->
-                                <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Dashboard</a>
+                                <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Dashboard</a>
                                 
                                 <!-- Staff & Performance Dropdown -->
                                 <div class="relative" x-on:click.away="managementMenuOpen = false">
@@ -96,7 +96,7 @@
             <!-- Mobile menu -->
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2">
-                    <a href="{{ url_for('staff_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
+                    <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Job Offers</a>
                     <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Courses</a>
