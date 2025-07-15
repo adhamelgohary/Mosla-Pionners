@@ -23,6 +23,7 @@ from routes.Agency_Staff_Portal.announcement_mgmt_routes import announcement_bp
 from routes.Agency_Staff_Portal.job_offer_mgmt_routes import job_offer_mgmt_bp
 from routes.Agency_Staff_Portal.employee_mgmt_routes import employee_mgmt_bp
 from routes.Agency_Staff_Portal.leaderboard_routes import leaderboard_bp
+from routes.Agency_Staff_Portal.staff_candidate_routes import staff_candidate_bp
 from routes.Agency_Staff_Portal.team_routes import team_bp
 from routes.Agency_Staff_Portal.reporting_routes import reporting_bp
 from routes.Agency_Staff_Portal.staff_and_performance_routes import staff_perf_bp
@@ -108,6 +109,7 @@ app.register_blueprint(job_offer_mgmt_bp, url_prefix='/staff-portal/job-offers')
 app.register_blueprint(employee_mgmt_bp, url_prefix='/staff-portal/employees')
 app.register_blueprint(leaderboard_bp, url_prefix='/staff-portal/leaderboard')
 app.register_blueprint(company_assignment_bp, url_prefix='/staff-portal/company-assignments')
+app.register_blueprint(staff_candidate_bp, url_prefix='/staff-portal/candidates')
 app.register_blueprint(staff_perf_bp)
 app.register_blueprint(reporting_bp)
 app.register_blueprint(team_bp, url_prefix='/staff-management/team')
