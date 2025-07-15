@@ -56,3 +56,4 @@ Werkzeug==3.0.4
 WTForms==3.2.1
 zopfli==0.2.3.post1
 humanize==4.6.0
+openpyxl==3.0.10

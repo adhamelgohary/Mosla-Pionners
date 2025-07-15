@@ -7,6 +7,8 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
+from openpyxl import Workbook # <-- Add this
+from openpyxl.styles import Font, PatternFill, Alignment # <-- Add this for styling
 
 # --- Roles are defined once for clarity, matching the new schema ---
 AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
@@ -280,23 +282,19 @@ def review_application_details(application_id):
     return render_template('account_manager_portal/application_review_modal.html', review_data=review_data, manager_staff_id=staff_id)
 
 
-# In am_portal_routes.py, replace the old export_scheduled_interviews function with this one.
-
-@account_manager_bp.route('/interview-pipeline/export-scheduled') # URL remains the same
+@account_manager_bp.route('/interview-pipeline/export-scheduled')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def export_scheduled_interviews():
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
         abort(403)
         
-    # Get the company_id from the form submission (e.g., /export-scheduled?company_id=5)
     company_id_filter = request.args.get('company_id')
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # Base SQL query with all the required candidate fields
+        # The SQL query remains the same as before
         sql = """
             SELECT
                 u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.RegistrationDate,
@@ -314,14 +312,10 @@ def export_scheduled_interviews():
             WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
         """
         params = [staff_id]
-
-        # Dynamically add the company filter if one was selected
         if company_id_filter and company_id_filter.isdigit():
             sql += " AND comp.CompanyID = %s"
             params.append(int(company_id_filter))
-
         sql += " ORDER BY comp.CompanyName, i.ScheduledDateTime;"
-
         cursor.execute(sql, tuple(params))
         scheduled_interviews = cursor.fetchall()
 
@@ -329,21 +323,34 @@ def export_scheduled_interviews():
             flash("No scheduled interviews found for the selected criteria.", "warning")
             return redirect(url_for('.interview_pipeline'))
         
-        output = io.StringIO()
-        writer = csv.writer(output)
+        # --- Start of Excel Generation Logic ---
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Scheduled Interviews"
 
-        # Updated header row - no IDs, more descriptive names
+        # Define styles
+        header_font = Font(name='Calibri', bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+        center_alignment = Alignment(horizontal='center', vertical='center')
+
+        # Define the header row
         headers = [
             'First Name', 'Last Name', 'Email', 'Phone Number', 'Gender', 'Date of Birth', 
             'Candidate Nationality', 'Educational Status', 'Languages', 'Language Level', 
             'LinkedIn Profile', 'Registered On', 'Company', 'Applying for Job', 
             'Interview Date', 'Interview Time'
         ]
-        writer.writerow(headers)
+        ws.append(headers)
 
-        # Write data rows
+        # Apply styles to the header row
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_alignment
+        
+        # Write the data rows
         for interview in scheduled_interviews:
-            writer.writerow([
+            row_data = [
                 interview['FirstName'],
                 interview['LastName'],
                 interview['Email'],
@@ -360,18 +367,39 @@ def export_scheduled_interviews():
                 interview['OfferTitle'],
                 interview['ScheduledDateTime'].strftime('%Y-%m-%d'),
                 interview['ScheduledDateTime'].strftime('%I:%M %p')
-            ])
-        
-        output.seek(0)
-        filename = "scheduled_interviews.csv"
-        if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
-             # Make filename more specific if filtered
-             company_name_slug = scheduled_interviews[0]['CompanyName'].replace(' ', '_').lower()
-             filename = f"interviews_{company_name_slug}.csv"
+            ]
+            ws.append(row_data)
 
-        response = make_response(output.getvalue())
+        # Auto-adjust column widths for better readability
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter # Get the column name
+            for cell in col:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            ws.column_dimensions[column].width = adjusted_width
+
+        # Save the workbook to an in-memory buffer
+        # Use io.BytesIO because Excel files are binary
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        # --- End of Excel Generation Logic ---
+
+        # Determine filename
+        filename = "scheduled_interviews.xlsx" # Note the .xlsx extension
+        if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
+             company_name_slug = scheduled_interviews[0]['CompanyName'].replace(' ', '_').lower()
+             filename = f"interviews_{company_name_slug}.xlsx"
+
+        # Prepare the response with the correct MIME type for .xlsx files
+        response = make_response(buffer.getvalue())
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        response.headers["Content-type"] = "text/csv"
+        response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return response
 
     finally:
