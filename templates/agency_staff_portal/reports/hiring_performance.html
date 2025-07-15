@@ -1,67 +1,88 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{% block content %}
-<div class="container-fluid mt-4">
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">{{ title }}</h4>
-            <a href="{{ url_for('.hiring_performance_report', start_date=start_date, end_date=end_date, format='csv') }}" class="btn btn-sm btn-outline-success">
-                <i class="fas fa-file-csv"></i> Download as CSV
-            </a>
-        </div>
-        <div class="card-body">
-            <!-- Filter Form -->
-            <form method="get" class="mb-4 p-3 border rounded bg-light">
-                <div class="row align-items-end">
-                    <div class="col-md-4">
-                        <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date or '' }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label for="end_date" class="form-label">End Date</label>
-                        <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date or '' }}">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
-                    </div>
-                     <div class="col-md-2">
-                        <a href="{{ url_for('.hiring_performance_report') }}" class="btn btn-secondary w-100">Clear</a>
-                    </div>
-                </div>
-            </form>
+{% block staff_title %}{{ title }}{% endblock %}
 
-            <!-- Report Table -->
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Job Title</th>
-                            <th>Company</th>
-                            <th>Status</th>
-                            <th>Date Posted</th>
-                            <th>Applicants</th>
-                            <th>Time to Fill (Days)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in report_data %}
-                        <tr>
-                            <td>{{ row.Title }}</td>
-                            <td>{{ row.CompanyName }}</td>
-                            <td><span class="badge bg-{{ 'success' if row.Status == 'Filled' else 'info' if row.Status == 'Open' else 'secondary' }}">{{ row.Status }}</span></td>
-                            <td>{{ row.DatePosted.strftime('%Y-%m-%d') if row.DatePosted }}</td>
-                            <td>{{ row.TotalApplicants }}</td>
-                            <td>{{ row.TimeToFill if row.TimeToFill is not none else 'N/A' }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center">No data available for the selected period.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+{% block staff_page_title %}
+    <i class="bi bi-person-check-fill text-gray-500"></i>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 py-6 sm:px-0">
+    <!-- Filter Section -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-6 border">
+        <h3 class="text-lg font-medium text-gray-800 mb-4">Filter Report</h3>
+        <form method="GET" action="{{ url_for('reporting_bp.hiring_performance_report') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                <input type="date" name="start_date" id="start_date" value="{{ start_date or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
             </div>
-        </div>
+            <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
+                <input type="date" name="end_date" id="end_date" value="{{ end_date or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            </div>
+            <div class="flex space-x-2 md:col-span-2">
+                <button type="submit" class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <i class="bi bi-funnel-fill mr-2"></i> Filter
+                </button>
+                <a href="{{ url_for('reporting_bp.hiring_performance_report') }}" class="w-full inline-flex justify-center items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Actions and Summary -->
+    <div class="flex justify-between items-center mb-4">
+        <p class="text-sm text-gray-600">
+            Displaying <span class="font-bold">{{ report_data|length }}</span> job offers.
+        </p>
+        <a href="{{ url_for('reporting_bp.hiring_performance_report', start_date=start_date, end_date=end_date, format='csv') }}" class="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700">
+            <i class="bi bi-file-earmark-spreadsheet-fill mr-2"></i> Download CSV
+        </a>
+    </div>
+
+    <!-- Report Table -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow border">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Applicants</th>
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Time to Fill (Days)</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% if report_data %}
+                    {% for row in report_data %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ row.Title }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.CompanyName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                           <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if row.Status == 'Filled' %} bg-green-100 text-green-800 
+                                {% elif row.Status == 'Open' %} bg-blue-100 text-blue-800
+                                {% else %} bg-gray-100 text-gray-800 {% endif %}">
+                                {{ row.Status }}
+                           </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.DatePosted.strftime('%Y-%m-%d') if row.DatePosted }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{{ row.TotalApplicants }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{{ row.TimeToFill if row.TimeToFill is not none else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                        No hiring performance data found for the selected criteria.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
