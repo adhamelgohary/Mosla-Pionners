@@ -43,13 +43,13 @@ def main_dashboard():
     
             # --- The announcement query remains ---
     cursor.execute("""
-        SELECT sa.Title, sa.Content, sa.Priority, sa.CreatedAt, 
-                u.FirstName as PosterFirstName
-        FROM SystemAnnouncements sa
-        LEFT JOIN Users u ON sa.UserID = u.UserID
-        WHERE sa.IsActive = 1 AND (sa.DisplayUntil IS NULL OR sa.DisplayUntil >= NOW())
-        ORDER BY FIELD(sa.Priority, 'Urgent', 'High', 'Normal'), sa.CreatedAt DESC LIMIT 5
-    """)
+            SELECT sa.Title, sa.Content, sa.Priority, sa.CreatedAt, 
+                   u.FirstName as PosterFirstName
+            FROM SystemAnnouncements sa
+            LEFT JOIN Users u ON sa.PostedByUserID = u.UserID  -- <<< CORRECTED
+            WHERE sa.IsActive = 1 AND (sa.DisplayUntil IS NULL OR sa.DisplayUntil >= NOW())
+            ORDER BY FIELD(sa.Priority, 'Urgent', 'High', 'Normal'), sa.CreatedAt DESC LIMIT 5
+        """)
     manual_announcements = cursor.fetchall()
     
     conn.close()
