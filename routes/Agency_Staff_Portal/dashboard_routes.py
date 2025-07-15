@@ -41,11 +41,12 @@ def main_dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE CreatedAt >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)")
     dashboard_stats['new_clients_agency_month'] = cursor.fetchone()['count']
     
-    # --- Fetch Announcements (Only for AllStaff/AllUsers, as CEOs see everything) ---
-    cursor.execute("""3
-        SELECT sa.Title, sa.Content, sa.Priority, sa.CreatedAt, u.FirstName as PosterFirstName
+            # --- The announcement query remains ---
+    cursor.execute("""
+        SELECT sa.Title, sa.Content, sa.Priority, sa.CreatedAt, 
+                u.FirstName as PosterFirstName
         FROM SystemAnnouncements sa
-        LEFT JOIN Users u ON sa.PostedByUserID = u.UserID
+        LEFT JOIN Users u ON sa.UserID = u.UserID
         WHERE sa.IsActive = 1 AND (sa.DisplayUntil IS NULL OR sa.DisplayUntil >= NOW())
         ORDER BY FIELD(sa.Priority, 'Urgent', 'High', 'Normal'), sa.CreatedAt DESC LIMIT 5
     """)
