@@ -1,4 +1,4 @@
-# routes/Managerial_Portal/dashboard_routes.py  <-- RENAME AND MOVE FILE
+# routes/Agency_staff_portal/dashboard_routes.py  <-- RENAME AND MOVE FILE
 
 from flask import Blueprint, flash, render_template, current_app
 from flask_login import current_user
@@ -42,7 +42,7 @@ def main_dashboard():
     dashboard_stats['new_clients_agency_month'] = cursor.fetchone()['count']
     
     # --- Fetch Announcements (Only for AllStaff/AllUsers, as CEOs see everything) ---
-    cursor.execute("""
+    cursor.execute("""3
         SELECT sa.Title, sa.Content, sa.Priority, sa.CreatedAt, u.FirstName as PosterFirstName
         FROM SystemAnnouncements sa
         LEFT JOIN Users u ON sa.PostedByUserID = u.UserID
@@ -54,7 +54,7 @@ def main_dashboard():
     conn.close()
                 
     return render_template(
-        'managerial_portal/dashboard.html', # <-- NEW TEMPLATE PATH
+        'agency_staff_portal/dashboard.html', # <-- NEW TEMPLATE PATH
         title='Managerial Dashboard',
         dashboard_stats=dashboard_stats,
         manual_announcements=manual_announcements

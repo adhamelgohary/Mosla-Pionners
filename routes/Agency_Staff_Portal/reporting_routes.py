@@ -1,4 +1,4 @@
-# routes/Managerial_Portal/reporting_routes.py
+# routes/Agency_staff_portal/reporting_routes.py
 
 from flask import Blueprint, render_template, request, flash, url_for, current_app, make_response
 from utils.decorators import login_required_with_role, MANAGERIAL_PORTAL_ROLES
@@ -15,7 +15,7 @@ reporting_bp = Blueprint('reporting_bp', __name__,
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def reporting_hub():
     """Main dashboard for all available reports."""
-    return render_template('managerial_portal/reporting_hub.html', title="Reporting Hub")
+    return render_template('agency_staff_portal/reporting_hub.html', title="Reporting Hub")
 
 
 @reporting_bp.route('/hiring-performance', methods=['GET'])
@@ -83,7 +83,7 @@ def hiring_performance_report():
         response.headers["Content-type"] = "text/csv"
         return response
 
-    return render_template('managerial_portal/reports/hiring_performance.html',
+    return render_template('agency_staff_portal/reports/hiring_performance.html',
                            title="Hiring Performance Report",
                            report_data=report_data,
                            start_date=start_date_str,
