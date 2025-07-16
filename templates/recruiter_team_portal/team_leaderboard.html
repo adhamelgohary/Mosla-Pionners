@@ -4,11 +4,17 @@
 {% block recruiter_title %}{{ title }}{% endblock %}
 {% block recruiter_page_title %}{{ title }}{% endblock %}
 
+{% block head_extra %}
+    {{ super() }}
+    <!-- Add ApexCharts.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+{% endblock %}
+
 {% block recruiter_content %}
 <div class="px-4 sm:px-0">
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
-            <p class="mt-1 text-sm text-gray-600">See how you and your colleagues stack up based on key performance metrics.</p>
+            <p class="mt-1 text-sm text-gray-600">A dynamic ranking of the top sourcing team performers.</p>
         </div>
         <div class="mt-4 sm:mt-0">
             <form method="GET" action="{{ url_for('.team_leaderboard') }}">
@@ -23,63 +29,93 @@
         </div>
     </div>
 
-    <!-- Leaderboard Table -->
-    <div class="mt-8 flow-root">
-        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6" style="width: 5%;">Rank</th>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Recruiter</th>
-                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Referrals</th>
-                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Hires</th>
-                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Referrals (Month)</th>
-                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Hires (Month)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
-                            {% for staff in leaderboard_data %}
-                            <tr class="transition-colors hover:bg-gray-50 {% if staff.StaffID == current_user.specific_role_id %}bg-indigo-50{% endif %}">
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 text-center">
-                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full 
-                                        {% if loop.index == 1 %}bg-amber-400 text-white
-                                        {% elif loop.index == 2 %}bg-slate-400 text-white
-                                        {% elif loop.index == 3 %}bg-orange-400 text-white
-                                        {% else %}bg-gray-200 text-gray-700
-                                        {% endif %} font-bold">
-                                        {{ loop.index }}
-                                    </span>
-                                </td>
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                                    <div class="flex items-center">
-                                        <div class="h-10 w-10 flex-shrink-0">
-                                            <img class="h-10 w-10 rounded-full object-cover" src="{{ staff.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="">
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="font-medium text-gray-900">{{ staff.FirstName }} {{ staff.LastName }}</div>
-                                            <div class="text-gray-500 text-xs">{{ staff.Role }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-700 font-bold text-center">{{ staff.referrals_all_time }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-green-600 font-bold text-center">{{ staff.hires_all_time }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-700 font-semibold text-center">{{ staff.referrals_monthly }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-green-600 font-semibold text-center">{{ staff.hires_monthly }}</td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
-                                    No performance data available to build the leaderboard.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    <!-- Leaderboard Chart Container -->
+    <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border">
+        <div id="leaderboard-chart"></div>
     </div>
 </div>
+{% endblock %}
+
+{% block recruiter_content %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const leaderboardData = {{ leaderboard_data|tojson }};
+    const sortKey = "{{ current_sort }}";
+
+    // Determine which data key to use for the series based on the current sort
+    let seriesDataKey, seriesName;
+    if (sortKey === 'hires_all_time') {
+        seriesDataKey = 'hires_all_time';
+        seriesName = 'Total Hires';
+    } else if (sortKey === 'referrals_monthly') {
+        seriesDataKey = 'referrals_monthly';
+        seriesName = 'Monthly Referrals';
+    } else if (sortKey === 'hires_monthly') {
+        seriesDataKey = 'hires_monthly';
+        seriesName = 'Monthly Hires';
+    } else {
+        seriesDataKey = 'referrals_all_time';
+        seriesName = 'Total Referrals';
+    }
+
+    const leaderboardOptions = {
+        series: [{
+            name: seriesName,
+            data: leaderboardData.map(item => item[seriesDataKey])
+        }],
+        chart: {
+            type: 'bar',
+            height: 350 + (leaderboardData.length * 20), // Dynamic height
+            toolbar: { show: false }
+        },
+        plotOptions: {
+            bar: {
+                borderRadius: 4,
+                horizontal: true,
+                distributed: true, // This gives each bar a different color
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: function (val, opt) {
+                return val
+            },
+            style: {
+                fontSize: '12px',
+                fontWeight: 'bold',
+                colors: ["#fff"]
+            }
+        },
+        xaxis: {
+            categories: leaderboardData.map(item => `${item.FirstName} ${item.LastName}`),
+        },
+        legend: {
+            show: false // Hide legend since we use distributed colors
+        },
+        colors: [ // A palette of colors for the bars
+            '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
+            '#F43F5E', '#F97316', '#F59E0B', '#84CC16', '#10B981'
+        ],
+        tooltip: {
+            y: {
+                formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
+                    const data = leaderboardData[dataPointIndex];
+                    return `
+                        <div><b>${seriesName}: ${value}</b></div>
+                        <div>Total Referrals: ${data.referrals_all_time}</div>
+                        <div>Total Hires: ${data.hires_all_time}</div>
+                    `;
+                },
+                title: {
+                    formatter: (seriesName) => ''
+                }
+            }
+        }
+    };
+
+    const leaderboardChart = new ApexCharts(document.querySelector("#leaderboard-chart"), leaderboardOptions);
+    leaderboardChart.render();
+});
+</script>
 {% endblock %}

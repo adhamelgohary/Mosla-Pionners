@@ -1,5 +1,5 @@
 # routes/Recruiter_Team_Portal/recruiter_routes.py
-from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request
+from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request , jsonify
 from flask_login import login_required, current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
@@ -22,7 +22,7 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
-    """ The main dashboard for the Recruiter Portal. """
+    """ The main dashboard for the Recruiter Portal with advanced visualizations. """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
         flash("Your staff profile could not be found.", "danger")
@@ -32,29 +32,34 @@ def dashboard():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-
-        # --- UPDATED: Fetching data for the Referral Funnel ---
-        funnel_sql = """
-            SELECT 
-                Status, 
-                COUNT(ApplicationID) as count
-            FROM JobApplications
-            WHERE ReferringStaffID = %s
-            GROUP BY Status
-        """
+        
+        # --- 1. Data for Status Donut Chart & Funnel ---
+        funnel_sql = "SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID = %s GROUP BY Status"
         cursor.execute(funnel_sql, (staff_id,))
         funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
-
-        # Define the funnel stages in logical order
+        
         kpis['funnel'] = {
             'Applied': funnel_data.get('Applied', 0) + funnel_data.get('Submitted', 0),
             'Shortlisted': funnel_data.get('Shortlisted', 0),
             'Interview Scheduled': funnel_data.get('Interview Scheduled', 0),
             'Hired': funnel_data.get('Hired', 0)
         }
-        kpis['total_referrals'] = sum(kpis['funnel'].values()) + funnel_data.get('Rejected', 0) + funnel_data.get('On Hold', 0)
-        kpis['rejected_count'] = funnel_data.get('Rejected', 0)
-
+        kpis['status_breakdown_for_chart'] = funnel_data
+        kpis['total_referrals'] = sum(funnel_data.values())
+        
+        # --- 2. Data for Monthly Performance Bar Chart (Last 6 Months) ---
+        monthly_sql = """
+            SELECT 
+                DATE_FORMAT(ApplicationDate, '%%Y-%%m') AS month,
+                COUNT(ApplicationID) as total_referrals,
+                SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as total_hires
+            FROM JobApplications
+            WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            GROUP BY month
+            ORDER BY month ASC
+        """
+        cursor.execute(monthly_sql, (staff_id,))
+        kpis['monthly_performance'] = cursor.fetchall()
 
     except Exception as e:
         current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {staff_id}: {e}", exc_info=True)
