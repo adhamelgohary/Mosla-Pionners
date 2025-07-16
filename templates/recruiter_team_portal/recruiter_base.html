@@ -29,6 +29,8 @@
                                 <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Dashboard</a>
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                                 
+                                <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
+        
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
                                     <a href="{{ url_for('recruiter_bp.my_team_performance') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_performance' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Team</a>
                                 {% endif %}

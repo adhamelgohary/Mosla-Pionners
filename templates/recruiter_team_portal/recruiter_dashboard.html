@@ -5,41 +5,68 @@
 {% block recruiter_page_title %}{{ title }}{% endblock %}
 
 {% block recruiter_content %}
-<div class="px-4 sm:px-0">
+<div class="px-4 sm:px-0 mb-8">
     <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
-    <p class="mt-1 text-sm text-gray-600">This is your dedicated portal for tracking referral performance.</p>
+    <p class="mt-1 text-sm text-gray-600">Track your referral pipeline and see how you stack up on the leaderboard.</p>
 </div>
 
-<!-- KPI Cards -->
-<dl class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt>
-            <div class="absolute rounded-md bg-indigo-500 p-3">
-                <i class="bi bi-calendar-month text-white h-6 w-6"></i>
+<!-- Referral Funnel Visualization -->
+<div class="bg-white p-6 rounded-lg shadow-sm border mb-8">
+    <h3 class="text-lg font-semibold text-gray-900">My All-Time Referral Funnel</h3>
+    <p class="text-sm text-gray-500 mt-1">A breakdown of all candidates you've referred.</p>
+    <div class="mt-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-px bg-gray-200 rounded-lg overflow-hidden">
+            {% set funnel = kpis.get('funnel', {}) %}
+            {% set total = kpis.get('total_referrals', 0) %}
+            
+            <div class="bg-white p-4 text-center">
+                <p class="text-sm font-medium text-gray-500">Total Referrals</p>
+                <p class="mt-1 text-3xl font-bold text-indigo-600">{{ total }}</p>
             </div>
-            <p class="ml-16 truncate text-sm font-medium text-gray-500">My Referrals (This Month)</p>
-        </dt>
-        <dd class="ml-16 flex items-baseline">
-            <p class="text-2xl font-semibold text-gray-900">{{ kpis.get('my_referred_applications_month', 0) }}</p>
-        </dd>
-    </div>
-
-    <div class="relative overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt>
-            <div class="absolute rounded-md bg-purple-500 p-3">
-                <i class="bi bi-bar-chart-line-fill text-white h-6 w-6"></i>
+            <div class="bg-white p-4 text-center">
+                <p class="text-sm font-medium text-gray-500">Shortlisted</p>
+                <p class="mt-1 text-3xl font-bold text-purple-600">{{ funnel.get('Shortlisted', 0) }}</p>
+                {% if total > 0 %}<p class="text-xs text-gray-400">{{ "%.1f"|format(funnel.get('Shortlisted', 0) * 100 / total) }}% conversion</p>{% endif %}
             </div>
-            <p class="ml-16 truncate text-sm font-medium text-gray-500">All-Time Referrals</p>
-        </dt>
-        <dd class="ml-16 flex items-baseline">
-            <p class="text-2xl font-semibold text-gray-900">{{ kpis.get('my_referred_applications_all_time', 0) }}</p>
-        </dd>
+            <div class="bg-white p-4 text-center">
+                <p class="text-sm font-medium text-gray-500">Interviewing</p>
+                <p class="mt-1 text-3xl font-bold text-blue-600">{{ funnel.get('Interview Scheduled', 0) }}</p>
+                {% if funnel.get('Shortlisted', 0) > 0 %}<p class="text-xs text-gray-400">{{ "%.1f"|format(funnel.get('Interview Scheduled', 0) * 100 / funnel.get('Shortlisted', 0)) }}% conversion</p>{% endif %}
+            </div>
+            <div class="bg-white p-4 text-center">
+                <p class="text-sm font-medium text-gray-500">Hired</p>
+                <p class="mt-1 text-3xl font-bold text-green-600">{{ funnel.get('Hired', 0) }}</p>
+                {% if total > 0 %}<p class="text-xs text-gray-400">{{ "%.1f"|format(funnel.get('Hired', 0) * 100 / total) }}% overall success</p>{% endif %}
+            </div>
+        </div>
+        <div class="text-right mt-2 text-sm text-red-500">
+            Rejected: {{ kpis.get('rejected_count', 0) }}
+        </div>
     </div>
-</dl>
+</div>
 
-<div class="mt-8">
-    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="text-base font-semibold text-indigo-600 hover:text-indigo-500">
-        View Detailed Referral List <span aria-hidden="true">→</span>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-indigo-500 rounded-lg p-3">
+                <i class="bi bi-card-list text-2xl text-white"></i>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">View My Referrals</h4>
+                <p class="text-sm text-gray-500">See a detailed list of every application.</p>
+            </div>
+        </div>
+    </a>
+    <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 bg-amber-500 rounded-lg p-3">
+                <i class="bi bi-trophy-fill text-2xl text-white"></i>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Team Leaderboard</h4>
+                <p class="text-sm text-gray-500">Check the rankings and top performers.</p>
+            </div>
+        </div>
     </a>
 </div>
 {% endblock %}

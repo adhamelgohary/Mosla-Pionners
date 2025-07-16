@@ -26,28 +26,35 @@ def dashboard():
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id:
         flash("Your staff profile could not be found.", "danger")
-        return redirect(url_for('staff_dashboard_bp.main_dashboard'))
+        return redirect(url_for('staff_perf_bp.list_all_staff'))
 
     kpis = {}
-    conn = None
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # KPI: My Referred Applications (This Calendar Month)
-        cursor.execute(
-            """SELECT COUNT(ApplicationID) AS count 
-               FROM JobApplications 
-               WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_FORMAT(NOW(), '%Y-%m-01')""",
-            (staff_id,)
-        )
-        res = cursor.fetchone()
-        kpis['my_referred_applications_month'] = res['count'] if res else 0
+        # --- UPDATED: Fetching data for the Referral Funnel ---
+        funnel_sql = """
+            SELECT 
+                Status, 
+                COUNT(ApplicationID) as count
+            FROM JobApplications
+            WHERE ReferringStaffID = %s
+            GROUP BY Status
+        """
+        cursor.execute(funnel_sql, (staff_id,))
+        funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
 
-        # KPI: All-time referrals
-        cursor.execute("SELECT COUNT(ApplicationID) AS count FROM JobApplications WHERE ReferringStaffID = %s", (staff_id,))
-        res = cursor.fetchone()
-        kpis['my_referred_applications_all_time'] = res['count'] if res else 0
+        # Define the funnel stages in logical order
+        kpis['funnel'] = {
+            'Applied': funnel_data.get('Applied', 0) + funnel_data.get('Submitted', 0),
+            'Shortlisted': funnel_data.get('Shortlisted', 0),
+            'Interview Scheduled': funnel_data.get('Interview Scheduled', 0),
+            'Hired': funnel_data.get('Hired', 0)
+        }
+        kpis['total_referrals'] = sum(kpis['funnel'].values()) + funnel_data.get('Rejected', 0) + funnel_data.get('On Hold', 0)
+        kpis['rejected_count'] = funnel_data.get('Rejected', 0)
+
 
     except Exception as e:
         current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {staff_id}: {e}", exc_info=True)
@@ -194,3 +201,53 @@ def my_team_performance():
     return render_template('recruiter_team_portal/my_team.html',
                            title="My Team's Referral Performance",
                            team_members=team_members)
+    
+@recruiter_bp.route('/leaderboard')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def team_leaderboard():
+    """ Displays a leaderboard for all sourcing staff. """
+    sort_by = request.args.get('sort_by', 'referrals_all_time') # Default sort
+    
+    # Base query to get all sourcing staff and their core stats
+    sql = """
+        SELECT 
+            s.StaffID,
+            u.FirstName,
+            u.LastName,
+            u.ProfilePictureURL,
+            s.Role,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as referrals_all_time,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as hires_all_time,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as referrals_monthly,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired' AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as hires_monthly
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
+    """
+
+    # Dynamically set the ORDER BY clause based on user selection
+    if sort_by == 'hires_all_time':
+        sql += " ORDER BY hires_all_time DESC, referrals_all_time DESC"
+        title = "Leaderboard: All-Time Hires"
+    elif sort_by == 'referrals_monthly':
+        sql += " ORDER BY referrals_monthly DESC, hires_monthly DESC"
+        title = "Leaderboard: Referrals This Month"
+    elif sort_by == 'hires_monthly':
+        sql += " ORDER BY hires_monthly DESC, referrals_monthly DESC"
+        title = "Leaderboard: Hires This Month"
+    else: # Default case
+        sort_by = 'referrals_all_time'
+        sql += " ORDER BY referrals_all_time DESC, hires_all_time DESC"
+        title = "Leaderboard: All-Time Referrals"
+        
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(sql)
+    leaderboard_data = cursor.fetchall()
+    conn.close()
+
+    return render_template('recruiter_team_portal/team_leaderboard.html',
+                           title=title,
+                           leaderboard_data=leaderboard_data,
+                           current_sort=sort_by)
+    

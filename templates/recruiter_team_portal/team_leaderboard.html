@@ -1,0 +1,85 @@
+{# templates/recruiter_team_portal/team_leaderboard.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}{{ title }}{% endblock %}
+
+{% block recruiter_content %}
+<div class="px-4 sm:px-0">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <p class="mt-1 text-sm text-gray-600">See how you and your colleagues stack up based on key performance metrics.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <form method="GET" action="{{ url_for('.team_leaderboard') }}">
+                <label for="sort_by" class="sr-only">Sort by</label>
+                <select name="sort_by" id="sort_by" onchange="this.form.submit()" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <option value="referrals_all_time" {% if current_sort == 'referrals_all_time' %}selected{% endif %}>Sort by All-Time Referrals</option>
+                    <option value="hires_all_time" {% if current_sort == 'hires_all_time' %}selected{% endif %}>Sort by All-Time Hires</option>
+                    <option value="referrals_monthly" {% if current_sort == 'referrals_monthly' %}selected{% endif %}>Sort by Referrals (This Month)</option>
+                    <option value="hires_monthly" {% if current_sort == 'hires_monthly' %}selected{% endif %}>Sort by Hires (This Month)</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6" style="width: 5%;">Rank</th>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Recruiter</th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Referrals</th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Hires</th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Referrals (Month)</th>
+                                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Hires (Month)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for staff in leaderboard_data %}
+                            <tr class="transition-colors hover:bg-gray-50 {% if staff.StaffID == current_user.specific_role_id %}bg-indigo-50{% endif %}">
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 text-center">
+                                    <span class="inline-flex items-center justify-center h-8 w-8 rounded-full 
+                                        {% if loop.index == 1 %}bg-amber-400 text-white
+                                        {% elif loop.index == 2 %}bg-slate-400 text-white
+                                        {% elif loop.index == 3 %}bg-orange-400 text-white
+                                        {% else %}bg-gray-200 text-gray-700
+                                        {% endif %} font-bold">
+                                        {{ loop.index }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 flex-shrink-0">
+                                            <img class="h-10 w-10 rounded-full object-cover" src="{{ staff.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="">
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="font-medium text-gray-900">{{ staff.FirstName }} {{ staff.LastName }}</div>
+                                            <div class="text-gray-500 text-xs">{{ staff.Role }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-700 font-bold text-center">{{ staff.referrals_all_time }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-green-600 font-bold text-center">{{ staff.hires_all_time }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-700 font-semibold text-center">{{ staff.referrals_monthly }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-green-600 font-semibold text-center">{{ staff.hires_monthly }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                                    No performance data available to build the leaderboard.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
