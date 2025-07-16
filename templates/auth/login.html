@@ -67,7 +67,7 @@
 
             {% if errors.get('form') %}<div class="alert alert-danger">{{ errors.get('form') }}</div>{% endif %}
 
-            <form method="POST" action="{{ url_for('login_bp.login', next=request.args.get('next', '')) }}">
+            <form method="POST" action="{{ url_for('login_bp.login') }}">
                 
                 <div class="input-group">
                     <span class="icon">
@@ -102,7 +102,7 @@
                 <button type="submit" class="login-button">Sign In</button>
             </form>
             <div class="signup-link">
-                <p>Don't have an account? <a href="{{ url_for('register_bp.register_options', next=request.args.get('next', '')) }}">Sign Up</a></p>
+                <p>Don't have an account? <a href="{{ url_for('register_bp.register_options') }}">Sign Up</a></p>
             </div>
         </div>
     </div>

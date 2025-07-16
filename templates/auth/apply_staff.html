@@ -58,7 +58,7 @@
                 {% endif %}
             {% endwith %}
             
-            <form method="POST" action="{{ url_for('register_bp.apply_to_be_staff', next=request.args.get('next', '')) }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ url_for('register_bp.apply_to_be_staff') }}" enctype="multipart/form-data">
                 
                 <div class="input-group">
                     <span class="icon">
@@ -149,7 +149,7 @@
                 <button type="submit" class="login-button">Submit Application</button>
             </form>
             <div class="signup-link">
-                <p>Already registered or looking for other options? <a href="{{ url_for('login_bp.login', next=request.args.get('next', '')) }}">Log In</a> or <a href="{{ url_for('register_bp.register_options', next=request.args.get('next', '')) }}">Back to Register Options</a></p>
+                <p>Already registered or looking for other options? <a href="{{ url_for('login_bp.login') }}">Log In</a> or <a href="{{ url_for('register_bp.register_options') }}">Back to Register Options</a></p>
             </div>
         </div>
     </div>
