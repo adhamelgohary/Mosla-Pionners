@@ -3,12 +3,15 @@ import datetime
 import io
 import csv
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort , make_response
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort, make_response
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
-from openpyxl import Workbook # <-- Add this
-from openpyxl.styles import Font, PatternFill, Alignment # <-- Add this for styling
+
+# --- Excel Styling Imports ---
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.utils import get_column_letter
 
 # --- Roles are defined once for clarity, matching the new schema ---
 AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
@@ -18,6 +21,70 @@ MANAGEABLE_STAFF_ROLES = ['AccountManager', 'SeniorAccountManager']
 account_manager_bp = Blueprint('account_manager_bp', __name__,
                                template_folder='../../../templates',
                                url_prefix='/am-portal')
+
+# --- NEW: Reusable Styled Excel Helper Function ---
+def _create_styled_excel(report_data, title, header_mapping):
+    """
+    Generates a styled Excel report using only OpenPyXL, matching the managerial portal style.
+    """
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Report"
+
+    # --- Define Styles (Consistent with other reports) ---
+    title_font = Font(name='Calibri', size=18, bold=True, color='1F2937')
+    header_font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
+    center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    header_fill = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid') # Indigo
+
+    # --- Add and Style Title & Subtitle ---
+    worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(header_mapping))
+    title_cell = worksheet.cell(row=1, column=1, value=title)
+    title_cell.font = title_font
+    title_cell.alignment = center_align
+    worksheet.row_dimensions[1].height = 30
+
+    worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(header_mapping))
+    subtitle_cell = worksheet.cell(row=2, column=1, value=f"Report generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    subtitle_cell.font = Font(italic=True, color='6B7280')
+    subtitle_cell.alignment = center_align
+    worksheet.row_dimensions[2].height = 20
+
+    # --- Write and Style Headers ---
+    headers = list(header_mapping.keys())
+    for col_num, header_title in enumerate(headers, 1):
+        cell = worksheet.cell(row=4, column=col_num, value=header_title)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+    worksheet.row_dimensions[4].height = 20
+
+    # --- Write Data Cell by Cell ---
+    data_keys = list(header_mapping.values())
+    for row_num, row_data in enumerate(report_data, 5):
+        for col_num, key in enumerate(data_keys, 1):
+            cell_value = row_data.get(key, 'N/A')
+            if isinstance(cell_value, (datetime.datetime, datetime.date)):
+                cell_value = cell_value.strftime('%Y-%m-%d')
+            worksheet.cell(row=row_num, column=col_num, value=cell_value).alignment = left_align
+
+    # --- Adjust Column Widths ---
+    column_widths = {}
+    for col_num, header_title in enumerate(headers, 1):
+        column_widths[col_num] = len(str(header_title))
+    for row_data in report_data:
+        for col_num, key in enumerate(data_keys, 1):
+            cell_len = len(str(row_data.get(key, '')))
+            if cell_len > column_widths.get(col_num, 0):
+                column_widths[col_num] = cell_len
+    for col_num, width in column_widths.items():
+        worksheet.column_dimensions[get_column_letter(col_num)].width = width + 4
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return output
 
 def _is_user_authorized_for_application(staff_id, application_id):
     """Checks if a staff member can action a specific application, including hierarchy."""
@@ -294,7 +361,6 @@ def export_scheduled_interviews():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # The SQL query remains the same
         sql = """
             SELECT
                 u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.RegistrationDate,
@@ -323,76 +389,40 @@ def export_scheduled_interviews():
             flash("No scheduled interviews found for the selected criteria.", "warning")
             return redirect(url_for('.interview_pipeline'))
         
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Scheduled Interviews"
-
-        header_font = Font(name='Calibri', bold=True, color='FFFFFF')
-        header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
-        center_alignment = Alignment(horizontal='center', vertical='center')
-
-        headers = [
-            'First Name', 'Last Name', 'Email', 'Phone Number', 'Gender', 'Date of Birth', 
-            'Candidate Nationality', 'Educational Status', 'Languages', 'Language Level', 
-            'LinkedIn Profile', 'Registered On', 'Company', 'Applying for Job', 
-            'Interview Date', 'Interview Time'
-        ]
-        ws.append(headers)
-
-        for cell in ws[1]:
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = center_alignment
+        # --- REFACTORED EXPORT LOGIC ---
         
-        # Write the data rows
+        # 1. Define the mapping from styled header name to data key
+        header_map = {
+            'First Name': 'FirstName', 'Last Name': 'LastName', 'Email': 'Email', 'Phone': 'PhoneNumber',
+            'Gender': 'Gender', 'DOB': 'DateOfBirth', 'Nationality': 'CandidateNationality', 
+            'Education': 'EducationalStatus', 'Languages': 'LanguagesStr', 'Lang. Level': 'LanguageLevel', 
+            'LinkedIn': 'LinkedInProfileURL', 'Registered On': 'RegistrationDate', 'Company': 'CompanyName', 
+            'Applying For': 'OfferTitle', 'Interview Date': 'InterviewDateStr', 'Interview Time': 'InterviewTimeStr'
+        }
+        
+        # 2. Pre-process the data to match the keys in header_map
+        excel_data = []
         for interview in scheduled_interviews:
-            # *** THIS IS THE FIX ***
-            # Convert the 'Languages' set to a comma-separated string
-            languages_str = ", ".join(sorted(interview['Languages'])) if interview.get('Languages') else 'N/A'
+            new_row = interview.copy()
+            new_row['LanguagesStr'] = ", ".join(sorted(interview['Languages'])) if interview.get('Languages') else 'N/A'
+            new_row['InterviewDateStr'] = interview['ScheduledDateTime'].strftime('%Y-%m-%d')
+            new_row['InterviewTimeStr'] = interview['ScheduledDateTime'].strftime('%I:%M %p')
+            excel_data.append(new_row)
 
-            row_data = [
-                interview['FirstName'],
-                interview['LastName'],
-                interview['Email'],
-                interview.get('PhoneNumber', 'N/A'),
-                interview.get('Gender', 'N/A'),
-                interview['DateOfBirth'].strftime('%Y-%m-%d') if interview.get('DateOfBirth') else 'N/A',
-                interview.get('CandidateNationality', 'N/A'),
-                interview.get('EducationalStatus', 'N/A'),
-                languages_str, # Use the converted string here
-                interview.get('LanguageLevel', 'N/A'),
-                interview.get('LinkedInProfileURL', 'N/A'),
-                interview['RegistrationDate'].strftime('%Y-%m-%d') if interview.get('RegistrationDate') else 'N/A',
-                interview['CompanyName'],
-                interview['OfferTitle'],
-                interview['ScheduledDateTime'].strftime('%Y-%m-%d'),
-                interview['ScheduledDateTime'].strftime('%I:%M %p')
-            ]
-            ws.append(row_data)
+        # 3. Call the helper function
+        report_title = "Scheduled Interviews"
+        if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
+             report_title = f"Scheduled Interviews for {scheduled_interviews[0]['CompanyName']}"
+        
+        excel_file = _create_styled_excel(excel_data, report_title, header_map)
 
-        # Auto-adjust column widths
-        for col in ws.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            ws.column_dimensions[column].width = adjusted_width
-
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        buffer.seek(0)
-
+        # 4. Create the response
         filename = "scheduled_interviews.xlsx"
         if company_id_filter and company_id_filter.isdigit() and scheduled_interviews:
              company_name_slug = scheduled_interviews[0]['CompanyName'].replace(' ', '_').lower()
              filename = f"interviews_{company_name_slug}.xlsx"
 
-        response = make_response(buffer.getvalue())
+        response = make_response(excel_file.read())
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return response
