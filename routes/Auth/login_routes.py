@@ -152,7 +152,7 @@ def login():
             return redirect(url_for('account_manager_bp.portal_home'))
         elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
             # *** UPDATED: Point to the correct main staff dashboard ***
-            return redirect(url_for('staff_dashboard_bp.main_dashboard'))
+            return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
         elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
         elif role == 'Candidate':
@@ -204,7 +204,7 @@ def login():
 
                     elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
                         # *** UPDATED: Point to the correct main staff dashboard ***
-                        return redirect(url_for('staff_dashboard_bp.main_dashboard'))
+                        return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
                         
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
