@@ -1,5 +1,5 @@
 # routes/Recruiter_Team_Portal/recruiter_routes.py
-from flask import Blueprint, render_template, flash, redirect, url_for, current_app, request
+from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request
 from flask_login import login_required, current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
@@ -61,45 +61,60 @@ def dashboard():
                            title="Recruiter Dashboard", 
                            kpis=kpis)
 
-@recruiter_bp.route('/my-referrals')
+@recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
-def my_referred_applications():
-    """ Displays a list of all job applications submitted using the recruiter's referral code. """
+def review_referred_application(application_id):
+    """
+    Provides a read-only view of an application's details, specifically for recruiters.
+    This ensures recruiters can't perform AM actions but can see the details.
+    """
     staff_id = getattr(current_user, 'specific_role_id', None)
-    if not staff_id:
-        flash("Your staff profile ID could not be found.", "danger")
-        return redirect(url_for('.dashboard'))
-
-    conn = None
-    referred_applications = []
+    if not staff_id: abort(403)
+    
+    conn = get_db_connection()
+    review_data = {}
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        sql = """
-            SELECT ja.ApplicationID, ja.ApplicationDate, ja.Status, c.CandidateID,
-                   u.FirstName, u.LastName, u.Email, u.ProfilePictureURL, jo.Title AS JobTitle, comp.CompanyName
+        # Verify this recruiter is authorized to see this application
+        cursor.execute("SELECT ReferringStaffID FROM JobApplications WHERE ApplicationID = %s", (application_id,))
+        app_check = cursor.fetchone()
+        if not app_check or app_check.get('ReferringStaffID') != staff_id:
+            abort(403)
+
+        # Fetch all the details for the modal
+        cursor.execute("""
+            SELECT ja.ApplicationID, ja.NotesByCandidate, ja.ApplicationDate, ja.NotesByStaff,
+                   c.CandidateID, jo.OfferID, jo.Title as OfferTitle, comp.CompanyName
             FROM JobApplications ja
             JOIN Candidates c ON ja.CandidateID = c.CandidateID
-            JOIN Users u ON c.UserID = u.UserID
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
             JOIN Companies comp ON jo.CompanyID = comp.CompanyID
-            WHERE ja.ReferringStaffID = %s
-            ORDER BY ja.ApplicationDate DESC;
-        """
-        cursor.execute(sql, (staff_id,))
-        referred_applications = cursor.fetchall()
-    except Exception as e:
-        current_app.logger.error(f"Error fetching referred apps for StaffID {staff_id}: {e}", exc_info=True)
-        flash("An error occurred while loading your referred applications.", "danger")
+            WHERE ja.ApplicationID = %s
+        """, (application_id,))
+        app_info = cursor.fetchone()
+        if not app_info: abort(404, "Application not found.")
+        
+        review_data['application'] = app_info
+        candidate_id = app_info['CandidateID']
+
+        cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL, u.RegistrationDate FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
+        review_data['candidate_profile'] = cursor.fetchone()
+        
+        if review_data['candidate_profile'] and isinstance(review_data['candidate_profile'].get('Languages'), str):
+            review_data['candidate_profile']['Languages'] = review_data['candidate_profile']['Languages'].split(',')
+
+        cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC LIMIT 1", (candidate_id,))
+        review_data['cv'] = cursor.fetchone()
+        
     finally:
         if conn and conn.is_connected():
-            if 'cursor' in locals(): cursor.close()
+            cursor.close()
             conn.close()
-    
-    return render_template('recruiter_team_portal/my_referred_applications.html',
-                           title="My Referred Applications",
-                           applications=referred_applications)
 
+    # We can reuse the AM portal's modal template, but pass a flag to disable actions.
+    return render_template('account_manager_portal/application_review_modal.html', 
+                           review_data=review_data, 
+                           is_recruiter_view=True) # Pass a flag to the template
 # --- NEW: `my_team` logic is now moved here ---
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
