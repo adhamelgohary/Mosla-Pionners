@@ -13,7 +13,7 @@ login_manager = LoginManager()
 
 # --- ROLE CONSTANTS (Unchanged) ---
 RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead']
-ACCOUNT_MANAGER_ROLES = ['AccountManager', 'SeniorAccountManager']
+ACCOUNT_MANAGER_ROLES = ['AccountManager', 'SeniorAccountManager' , 'HeadAccountManager']
 LEADER_ROLES = ['HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager']
 EXECUTIVE_ROLES = ['OperationsManager', 'CEO', 'Founder']
 OTHER_STAFF_ROLES = ['SalesManager', 'Admin']
@@ -152,10 +152,10 @@ def login():
             return redirect(url_for('recruiter_bp.dashboard'))
         elif role in ACCOUNT_MANAGER_ROLES:
             return redirect(url_for('account_manager_bp.portal_home'))
-        elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
+        elif role in (EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
             # *** FIX IS HERE ***
             # Point to the correct, consolidated staff management page
-            return redirect(url_for('staff_perf_bp.list_all_staff'))
+            return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
         elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
         elif role == 'Candidate':
@@ -200,10 +200,10 @@ def login():
                     elif role in ACCOUNT_MANAGER_ROLES:
                         return redirect(url_for('account_manager_bp.portal_home'))
 
-                    elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
+                    elif role in (EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
                         # *** AND THE FIX IS HERE TOO ***
                         # Point to the correct, consolidated staff management page
-                        return redirect(url_for('staff_perf_bp.list_all_staff'))
+                        return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
                         
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
