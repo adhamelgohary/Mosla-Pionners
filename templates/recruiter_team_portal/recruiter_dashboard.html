@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 {% endblock %}
 
+{# *** CORRECTED: ONLY ONE 'recruiter_content' BLOCK *** #}
 {% block recruiter_content %}
 <div class="px-4 sm:px-0 mb-8">
     <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
@@ -73,10 +74,7 @@
     </a>
 </div>
 
-{% endblock %}
-
-{% block recruiter_content %}
-{{ super() }}
+{# The script is now placed inside the single content block #}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // --- Donut Chart for Application Status ---
@@ -84,42 +82,51 @@ document.addEventListener('DOMContentLoaded', function () {
     const statusLabels = Object.keys(statusData);
     const statusSeries = Object.values(statusData);
 
-    const donutOptions = {
-        series: statusSeries,
-        chart: { type: 'donut', height: 250 },
-        labels: statusLabels,
-        colors: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#8B5CF6'], // Indigo, Green, Amber, Red, Gray, Purple
-        legend: { position: 'bottom' },
-        responsive: [{
-            breakpoint: 480,
-            options: { chart: { width: 200 }, legend: { position: 'bottom' } }
-        }]
-    };
-    const donutChart = new ApexCharts(document.querySelector("#status-donut-chart"), donutOptions);
-    donutChart.render();
+    if (statusLabels.length > 0) {
+        const donutOptions = {
+            series: statusSeries,
+            chart: { type: 'donut', height: 250 },
+            labels: statusLabels,
+            colors: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#8B5CF6'], // Indigo, Green, Amber, Red, Gray, Purple
+            legend: { position: 'bottom' },
+            responsive: [{
+                breakpoint: 480,
+                options: { chart: { width: 200 }, legend: { position: 'bottom' } }
+            }]
+        };
+        const donutChart = new ApexCharts(document.querySelector("#status-donut-chart"), donutOptions);
+        donutChart.render();
+    } else {
+        document.querySelector("#status-donut-chart").innerHTML = '<div class="text-center text-gray-500 py-8">No status data to display.</div>';
+    }
+
 
     // --- Bar Chart for Monthly Performance ---
     const monthlyData = {{ kpis.get('monthly_performance', [])|tojson }};
-    const monthlyOptions = {
-        series: [{
-            name: 'Total Referrals',
-            data: monthlyData.map(item => item.total_referrals)
-        }, {
-            name: 'Hires',
-            data: monthlyData.map(item => item.total_hires)
-        }],
-        chart: { type: 'bar', height: 350, toolbar: { show: false } },
-        plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
-        dataLabels: { enabled: false },
-        stroke: { show: true, width: 2, colors: ['transparent'] },
-        xaxis: { categories: monthlyData.map(item => new Date(item.month + '-01').toLocaleString('default', { month: 'short' })) },
-        yaxis: { title: { text: 'Count' } },
-        fill: { opacity: 1 },
-        colors: ['#4F46E5', '#10B981'], // Indigo, Green
-        tooltip: { y: { formatter: function (val) { return val } } }
-    };
-    const barChart = new ApexCharts(document.querySelector("#monthly-performance-chart"), monthlyOptions);
-    barChart.render();
+    if (monthlyData.length > 0) {
+        const monthlyOptions = {
+            series: [{
+                name: 'Total Referrals',
+                data: monthlyData.map(item => item.total_referrals)
+            }, {
+                name: 'Hires',
+                data: monthlyData.map(item => item.total_hires)
+            }],
+            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
+            xaxis: { categories: monthlyData.map(item => new Date(item.month + '-01').toLocaleString('default', { month: 'short' })) },
+            yaxis: { title: { text: 'Count' } },
+            fill: { opacity: 1 },
+            colors: ['#4F46E5', '#10B981'], // Indigo, Green
+            tooltip: { y: { formatter: function (val) { return val } } }
+        };
+        const barChart = new ApexCharts(document.querySelector("#monthly-performance-chart"), monthlyOptions);
+        barChart.render();
+    } else {
+        document.querySelector("#monthly-performance-chart").innerHTML = '<div class="text-center text-gray-500 py-8">No monthly performance data yet.</div>';
+    }
 });
 </script>
 {% endblock %}
