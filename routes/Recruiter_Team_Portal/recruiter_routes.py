@@ -115,6 +115,46 @@ def review_referred_application(application_id):
     return render_template('account_manager_portal/application_review_modal.html', 
                            review_data=review_data, 
                            is_recruiter_view=True) # Pass a flag to the template
+    
+@recruiter_bp.route('/my-referrals')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def my_referred_applications():
+    """ Displays a list of all job applications submitted using the recruiter's referral code. """
+    staff_id = getattr(current_user, 'specific_role_id', None)
+    if not staff_id:
+        flash("Your staff profile ID could not be found.", "danger")
+        return redirect(url_for('.dashboard'))
+
+    conn = get_db_connection()
+    referred_applications = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT ja.ApplicationID, ja.ApplicationDate, ja.Status, c.CandidateID,
+                   u.FirstName, u.LastName, u.Email, u.ProfilePictureURL, jo.Title AS JobTitle, comp.CompanyName
+            FROM JobApplications ja
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
+            WHERE ja.ReferringStaffID = %s
+            ORDER BY ja.ApplicationDate DESC;
+        """
+        cursor.execute(sql, (staff_id,))
+        referred_applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching referred apps for StaffID {staff_id}: {e}", exc_info=True)
+        flash("An error occurred while loading your referred applications.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals(): cursor.close()
+            conn.close()
+    
+    return render_template('recruiter_team_portal/my_referred_applications.html',
+                           title="My Referred Applications",
+                           applications=referred_applications)
+    
+
 # --- NEW: `my_team` logic is now moved here ---
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
