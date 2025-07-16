@@ -141,18 +141,21 @@ def init_login_manager(app):
 # def is_safe_url(target):
 #     ...
 
+# In routes/Auth/login_routes.py
+
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # Redirection logic is unchanged here
+        # Redirection logic for already logged-in users
         role = current_user.role_type
         if role in RECRUITER_PORTAL_ROLES:
             return redirect(url_for('recruiter_bp.dashboard'))
         elif role in ACCOUNT_MANAGER_ROLES:
             return redirect(url_for('account_manager_bp.portal_home'))
         elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
-            # *** UPDATED: Point to the correct main staff dashboard ***
-            return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
+            # *** FIX IS HERE ***
+            # Point to the correct, consolidated staff management page
+            return redirect(url_for('staff_perf_bp.list_all_staff'))
         elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
         elif role == 'Candidate':
@@ -160,7 +163,6 @@ def login():
         return redirect(url_for('public_routes_bp.home_page'))
 
     errors, form_data = {}, {}
-
     if request.method == 'POST':
         form_data = request.form.to_dict()
         email = request.form.get('email', '').strip()
@@ -190,10 +192,6 @@ def login():
                             cursor_update.close()
                             conn_update.close()
                     
-                    # --- REMOVED `next` PARAMETER LOGIC ---
-                    # The code that checked for `request.args.get('next')` has been removed.
-                    # The application now proceeds directly to the role-based redirection below.
-
                     # --- UNAMBIGUOUS REDIRECTION LOGIC ---
                     role = user_obj.role_type
                     if role in RECRUITER_PORTAL_ROLES:
@@ -203,16 +201,16 @@ def login():
                         return redirect(url_for('account_manager_bp.portal_home'))
 
                     elif role in (LEADER_ROLES + EXECUTIVE_ROLES + OTHER_STAFF_ROLES):
-                        # *** UPDATED: Point to the correct main staff dashboard ***
-                        return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
+                        # *** AND THE FIX IS HERE TOO ***
+                        # Point to the correct, consolidated staff management page
+                        return redirect(url_for('staff_perf_bp.list_all_staff'))
                         
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
                     
                     elif role == 'Candidate':
-                        # The session logic for candidates remains useful for things like "apply now" flows
                         intended_destination = session.pop('candidate_intended_destination', None)
-                        if intended_destination: # A safe URL check can be added back here if needed for this specific case
+                        if intended_destination:
                             return redirect(intended_destination)
                         return redirect(url_for('candidate_bp.dashboard'))
                         
