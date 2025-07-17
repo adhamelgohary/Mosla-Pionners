@@ -21,6 +21,11 @@ DIVISION_LEADER_ROLES = ['HeadUnitManager', 'UnitManager', 'CEO', 'Founder']
 
 # Roles that can promote Team Leads to Unit Managers.
 PROMOTION_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
+
+
+# Roles that can manage the entire organization structure
+ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
+
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
                          template_folder='../../../templates')
@@ -450,3 +455,300 @@ def view_recruiter_profile(staff_id_viewing):
     return render_template('recruiter_team_portal/recruiter_profile.html',
                            title=f"Profile: {profile_data['info']['FirstName']}",
                            profile_data=profile_data)
+    
+# Add this code to your recruiter_routes.py file, perhaps after the transfer_recruiter function.
+
+@recruiter_bp.route('/manage/unassigned-staff')
+@login_required_with_role(DIVISION_LEADER_ROLES) # Only division leaders can see and assign staff
+def manage_unassigned_staff():
+    """
+    Displays a list of staff who are not yet assigned to a Sourcing Team Lead,
+    allowing high-level managers to place them into teams.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Find staff who are not in the main sourcing roles OR have no manager assigned.
+    # This acts as a pool of staff to be assigned.
+    cursor.execute("""
+        SELECT s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role NOT IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager')
+        OR s.ReportsToStaffID IS NULL
+    """)
+    unassigned_staff = cursor.fetchall()
+
+    # Get a list of all Sourcing Team Leads to assign staff to.
+    cursor.execute("""
+        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role = 'SourcingTeamLead'
+    """)
+    sourcing_team_leads = cursor.fetchall()
+    
+    conn.close()
+    
+    return render_template('recruiter_team_portal/unassigned_staff.html',
+                           title="Assign Staff to Teams",
+                           unassigned_staff=unassigned_staff,
+                           sourcing_team_leads=sourcing_team_leads)
+
+
+@recruiter_bp.route('/manage/assign-to-team/<int:staff_id_to_assign>', methods=['POST'])
+@login_required_with_role(DIVISION_LEADER_ROLES)
+def assign_staff_to_team(staff_id_to_assign):
+    """
+    Assigns a staff member to a SourcingTeamLead, officially making them a SourcingRecruiter.
+    """
+    new_leader_staff_id = request.form.get('new_leader_id')
+    redirect_url = url_for('.manage_unassigned_staff')
+
+    if not new_leader_staff_id:
+        flash("You must select a Team Leader to assign this staff member to.", "warning")
+        return redirect(redirect_url)
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # This action officially makes the person a SourcingRecruiter and assigns them a manager.
+        cursor.execute("""
+            UPDATE Staff SET 
+                Role = 'SourcingRecruiter',
+                ReportsToStaffID = %s 
+            WHERE StaffID = %s
+        """, (new_leader_staff_id, staff_id_to_assign))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            flash("Staff member successfully assigned to the new team as a Sourcing Recruiter.", "success")
+        else:
+            flash("Assignment failed. The staff member could not be found or updated.", "warning")
+            
+    except Exception as e:
+        current_app.logger.error(f"Error assigning staff {staff_id_to_assign}: {e}", exc_info=True)
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        if conn.is_connected(): conn.close()
+        
+    return redirect(redirect_url)
+
+# --- Organization Structure Management Routes ---
+
+@recruiter_bp.route('/organization')
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def organization_management():
+    """A central hub for managing Units, Teams, and their assignments."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Fetch all Units with their manager's info
+        cursor.execute("""
+            SELECT su.*, u.FirstName, u.LastName
+            FROM SourcingUnits su
+            LEFT JOIN Staff s ON su.UnitManagerStaffID = s.StaffID
+            LEFT JOIN Users u ON s.UserID = u.UserID
+            ORDER BY su.UnitName
+        """)
+        units = cursor.fetchall()
+
+        # Fetch all Teams with their lead's and unit's info
+        cursor.execute("""
+            SELECT st.*, 
+                   lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName,
+                   su.UnitName
+            FROM SourcingTeams st
+            LEFT JOIN Staff lead_staff ON st.TeamLeadStaffID = lead_staff.StaffID
+            LEFT JOIN Users lead_user ON lead_staff.UserID = lead_user.UserID
+            LEFT JOIN SourcingUnits su ON st.UnitID = su.UnitID
+            ORDER BY su.UnitName, st.TeamName
+        """)
+        teams = cursor.fetchall()
+        
+        # Fetch potential Unit Managers (TeamLeads and above)
+        cursor.execute("""
+            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role IN ('SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
+        """)
+        potential_managers = cursor.fetchall()
+
+        # Fetch potential Team Leads (can be existing leads or senior recruiters)
+        cursor.execute("""
+            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role IN ('SourcingTeamLead', 'SourcingRecruiter')
+        """)
+        potential_team_leads = cursor.fetchall()
+        
+        # Fetch unassigned recruiters to be placed into teams
+        cursor.execute("""
+            SELECT s.StaffID, u.FirstName, u.LastName
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL
+        """)
+        unassigned_recruiters = cursor.fetchall()
+
+    finally:
+        conn.close()
+
+    return render_template('recruiter_team_portal/organization_management.html',
+                           title="Organization Structure",
+                           units=units,
+                           teams=teams,
+                           potential_managers=potential_managers,
+                           potential_team_leads=potential_team_leads,
+                           unassigned_recruiters=unassigned_recruiters)
+
+
+@recruiter_bp.route('/organization/create-unit', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def create_unit():
+    unit_name = request.form.get('unit_name')
+    if not unit_name:
+        flash("Unit Name is required.", "danger")
+        return redirect(url_for('.organization_management'))
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO SourcingUnits (UnitName) VALUES (%s)", (unit_name,))
+        conn.commit()
+        flash(f"Unit '{unit_name}' created successfully.", "success")
+    except Exception as e:
+        flash(f"Error creating unit: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))
+
+
+@recruiter_bp.route('/organization/create-team', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def create_team():
+    team_name = request.form.get('team_name')
+    if not team_name:
+        flash("Team Name is required.", "danger")
+        return redirect(url_for('.organization_management'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO SourcingTeams (TeamName) VALUES (%s)", (team_name,))
+        conn.commit()
+        flash(f"Team '{team_name}' created successfully.", "success")
+    except Exception as e:
+        flash(f"Error creating team: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))
+
+
+@recruiter_bp.route('/organization/assign-unit-manager', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def assign_unit_manager():
+    unit_id = request.form.get('unit_id')
+    manager_staff_id = request.form.get('manager_staff_id')
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Assign manager to the unit
+        cursor.execute("UPDATE SourcingUnits SET UnitManagerStaffID = %s WHERE UnitID = %s", (manager_staff_id, unit_id))
+        # Update the staff member's role and clear their old team/reporting structure
+        cursor.execute("UPDATE Staff SET Role = 'UnitManager', TeamID = NULL, ReportsToStaffID = %s WHERE StaffID = %s", (current_user.specific_role_id, manager_staff_id))
+        conn.commit()
+        flash("Unit Manager assigned successfully.", "success")
+    except Exception as e:
+        flash(f"Error assigning manager: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))
+
+
+@recruiter_bp.route('/organization/assign-team-lead', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def assign_team_lead():
+    team_id = request.form.get('team_id')
+    lead_staff_id = request.form.get('lead_staff_id')
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Assign lead to the team
+        cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = %s WHERE TeamID = %s", (lead_staff_id, team_id))
+        # Update the staff member's role and make them part of the team they lead
+        cursor.execute("UPDATE Staff SET Role = 'SourcingTeamLead', TeamID = %s WHERE StaffID = %s", (team_id, lead_staff_id))
+        conn.commit()
+        flash("Team Lead assigned successfully.", "success")
+    except Exception as e:
+        flash(f"Error assigning team lead: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))
+
+
+@recruiter_bp.route('/organization/assign-team-to-unit', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def assign_team_to_unit():
+    team_id = request.form.get('team_id')
+    unit_id = request.form.get('unit_id')
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Get the Unit Manager's StaffID
+        cursor.execute("SELECT UnitManagerStaffID FROM SourcingUnits WHERE UnitID = %s", (unit_id,))
+        unit = cursor.fetchone()
+        if not unit or not unit['UnitManagerStaffID']:
+            flash("Cannot assign team. The selected unit does not have a manager.", "warning")
+            return redirect(url_for('.organization_management'))
+            
+        manager_staff_id = unit['UnitManagerStaffID']
+
+        # Assign team to unit
+        cursor.execute("UPDATE SourcingTeams SET UnitID = %s WHERE TeamID = %s", (unit_id, team_id))
+        # Update the team lead to report to the unit manager
+        cursor.execute("""
+            UPDATE Staff s
+            JOIN SourcingTeams st ON s.StaffID = st.TeamLeadStaffID
+            SET s.ReportsToStaffID = %s
+            WHERE st.TeamID = %s
+        """, (manager_staff_id, team_id))
+        conn.commit()
+        flash("Team assigned to unit successfully.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error assigning team to unit: {e}")
+        flash(f"Error assigning team to unit: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))
+
+
+@recruiter_bp.route('/organization/assign-recruiter-to-team', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def assign_recruiter_to_team():
+    recruiter_staff_id = request.form.get('recruiter_staff_id')
+    team_id = request.form.get('team_id')
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Get Team Lead's StaffID to set the reporting line
+        cursor.execute("SELECT TeamLeadStaffID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
+        team = cursor.fetchone()
+        if not team or not team['TeamLeadStaffID']:
+            flash("Cannot assign recruiter. The selected team does not have a lead.", "warning")
+            return redirect(url_for('.organization_management'))
+        
+        team_lead_staff_id = team['TeamLeadStaffID']
+        
+        # Assign the recruiter to the team and set their manager
+        cursor.execute("UPDATE Staff SET TeamID = %s, ReportsToStaffID = %s WHERE StaffID = %s", (team_id, team_lead_staff_id, recruiter_staff_id))
+        conn.commit()
+        flash("Recruiter successfully assigned to team.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error assigning recruiter to team: {e}")
+        flash(f"Error assigning recruiter: {e}", "danger")
+    finally:
+        conn.close()
+    return redirect(url_for('.organization_management'))

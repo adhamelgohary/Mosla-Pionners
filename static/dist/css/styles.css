@@ -1872,6 +1872,10 @@ html[data-theme="dark"] {
   margin-top: auto;
 }
 
+.-mr-0\.5 {
+  margin-right: -0.125rem;
+}
+
 .block {
   display: block;
 }
@@ -2434,6 +2438,11 @@ html[data-theme="dark"] {
 .divide-gray-300 > :not([hidden]) ~ :not([hidden]) {
   --tw-divide-opacity: 1;
   border-color: rgb(209 213 219 / var(--tw-divide-opacity, 1));
+}
+
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-opacity: 1;
+  border-color: rgb(243 244 246 / var(--tw-divide-opacity, 1));
 }
 
 .overflow-hidden {
@@ -4188,6 +4197,11 @@ body {
 .group:hover .group-hover\:text-primary {
   --tw-text-opacity: 1;
   color: rgb(var(--primary-color-rgb) / var(--tw-text-opacity, 1));
+}
+
+.group:hover .group-hover\:text-gray-500 {
+  --tw-text-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-text-opacity, 1));
 }
 
 .group:hover .group-hover\:opacity-100 {

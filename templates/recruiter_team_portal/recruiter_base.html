@@ -40,6 +40,12 @@
                                         {% endif %}
                                     </a>
                                 {% endif %}
+                                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+                                <a href="{{ url_for('recruiter_bp.organization_management') }}" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="bi bi-diagram-3-fill text-gray-400 group-hover:text-gray-500 mr-3 flex-shrink-0 h-6 w-6"></i>
+                                    Manage Organization
+                                </a>
+                                {% endif %} 
                             </div>
                         </div>
                     </div>
