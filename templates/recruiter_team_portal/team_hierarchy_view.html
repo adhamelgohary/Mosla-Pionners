@@ -1,3 +1,5 @@
+--- START OF FILE team_hierarchy_view.html ---
+
 {# templates/recruiter_team_portal/team_hierarchy_view.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
@@ -9,11 +11,7 @@
 {% endblock %}
 
 {% block recruiter_content %}
-{# --- Permission Flags --- #}
-{% set is_head_unit_manager_or_above = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'OperationsManager'] %}
-
-<!-- Main container with Alpine.js state for the modal -->
-<div x-data="{ isTransferModalOpen: false, transferTarget: {} }">
+<div x-data="{}">
     <!-- Breadcrumb Navigation -->
     {% if breadcrumbs %}
     <nav class="flex mb-6" aria-label="Breadcrumb">
@@ -37,11 +35,22 @@
     </nav>
     {% endif %}
 
-    <div class="px-4 sm:px-0">
-        <h2 class="text-xl font-bold text-gray-800">
-            Team Members reporting to {{ current_leader.FirstName }} {{ current_leader.LastName }}
-        </h2>
-        <p class="mt-1 text-sm text-gray-600">A performance overview of this team. Click on a team lead to drill down further.</p>
+    <div class="sm:flex sm:items-center sm:justify-between px-4 sm:px-0">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">
+                Team Members reporting to {{ current_leader.FirstName or current_leader.first_name }} {{ current_leader.LastName or current_leader.last_name }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-600">A performance overview of this team.</p>
+        </div>
+        {# Link to the real management page for authorized users #}
+        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <a href="{{ url_for('recruiter_bp.organization_management') }}" class="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                <i class="bi bi-diagram-3-fill -ml-0.5 h-5 w-5"></i>
+                Manage Organization
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     <div class="mt-8 flow-root">
@@ -52,9 +61,9 @@
                         <tr>
                             <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Team Member</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
-                            <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Direct Reports</th>
                             <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Hires</th>
-                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-center">Actions</th>
+                            <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Referrals</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-center">View Details</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
@@ -64,71 +73,34 @@
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                                     <div class="flex items-center">
                                         <div class="h-10 w-10 flex-shrink-0"><img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt=""></div>
-                                        <div class="ml-4"><div class="font-medium text-gray-900">{{ member.FirstName }} {{ member.LastName }}</div></div>
+                                        <div class="ml-4">
+                                            <div class="font-medium text-gray-900">{{ member.FirstName }} {{ member.LastName }}</div>
+                                            {# Display their specific unit or team name if available #}
+                                            <div class="text-xs text-gray-500">{{ member.UnitName or member.TeamName }}</div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ member.Role }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-700">{{ member.direct_reports_count }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-green-600 font-bold">{{ member.total_hires }}</td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-indigo-600 font-bold">{{ member.total_referrals }}</td>
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                    <div class="flex items-center justify-center gap-4">
-                                        <!-- Main Action Link -->
-                                        {% if member.direct_reports_count > 0 %}
-                                            <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Team">View Team →</a>
-                                        {% else %}
-                                            <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Performance Profile">View Profile</a>
-                                        {% endif %}
-                                        <!-- Management Tools -->
-                                        <div class="flex items-center justify-center gap-2 border-l pl-3">
-                                            <!-- Promote Button -->
-                                            {% if is_head_unit_manager_or_above and member.Role == 'SourcingTeamLead' %}
-                                                <form action="{{ url_for('recruiter_bp.promote_to_unit_manager', staff_id_to_promote=member.StaffID) }}" method="POST" onsubmit="return confirm('Promote this leader to Unit Manager?');">
-                                                    <button type="submit" class="text-green-600 hover:text-green-900" title="Promote to Unit Manager"><i class="bi bi-arrow-up-circle-fill"></i></button>
-                                                </form>
-                                            {% endif %}
-
-                                            <!-- Transfer Button -->
-                                            {% if (is_head_unit_manager_or_above or current_user.specific_role_id == member.ReportsToStaffID) and member.Role == 'SourcingRecruiter' %}
-                                                <button @click="isTransferModalOpen = true; transferTarget = {{ member|tojson }}" type="button" class="text-blue-600 hover:text-blue-900" title="Transfer Recruiter"><i class="bi bi-arrow-left-right"></i></button>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                                    {# The direct_reports_count now simply controls the link destination #}
+                                    {% if member.direct_reports_count > 0 %}
+                                        <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900">View Team →</a>
+                                    {% else %}
+                                        <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900">View Profile</a>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
-                            <tr><td colspan="5" class="text-center py-10 text-gray-500">This leader does not have any direct reports.</td></tr>
+                            <tr><td colspan="5" class="text-center py-10 text-gray-500">This leader does not have any direct reports in this structure.</td></tr>
                         {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    <!-- Transfer Recruiter Modal -->
-    <div x-show="isTransferModalOpen" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50" style="display: none;">
-        <div @click.away="isTransferModalOpen = false" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-medium leading-6 text-gray-900">Transfer <span x-text="transferTarget.FirstName + ' ' + transferTarget.LastName"></span></h3>
-            <form :action="'{{ url_for('recruiter_bp.transfer_recruiter', recruiter_staff_id=0) }}'.replace('0', transferTarget.StaffID)" method="POST" class="mt-4">
-                <input type="hidden" name="redirect_url" value="{{ request.url }}">
-                <div>
-                    <label for="new_leader_id" class="block text-sm font-medium text-gray-700">Select New Team Lead</label>
-                    <select id="new_leader_id" name="new_leader_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <option value="" disabled selected>-- Choose a new leader --</option>
-                        {% for leader in all_sourcing_team_leads %}
-                            {# Use Alpine to check against the target user's current manager #}
-                            <template x-if="leader.StaffID != transferTarget.ReportsToStaffID">
-                               <option :value="leader.StaffID" x-text="leader.FullName"></option>
-                            </template>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mt-6 flex justify-end gap-3">
-                    <button @click="isTransferModalOpen = false" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Confirm Transfer</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    {# Modal for transfer has been removed as it is no longer needed on this page #}
 </div>
 {% endblock %}

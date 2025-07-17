@@ -1,3 +1,5 @@
+--- START OF FILE recruiter_base.html ---
+
 {# templates/recruiter_team_portal/recruiter_base.html #}
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-100">
@@ -30,7 +32,7 @@
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                                 <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
         
-                                {# --- UPDATED: Simplified team view link logic --- #}
+                                {# --- Team View Link (Visible to all leaders) --- #}
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
                                     <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint in ['recruiter_bp.my_team_view', 'recruiter_bp.team_view'] else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                         {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
@@ -40,9 +42,10 @@
                                         {% endif %}
                                     </a>
                                 {% endif %}
+                                
+                                {# --- Organization Management Link (Restricted to top-level managers) --- #}
                                 {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                <a href="{{ url_for('recruiter_bp.organization_management') }}" class="text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                                    <i class="bi bi-diagram-3-fill text-gray-400 group-hover:text-gray-500 mr-3 flex-shrink-0 h-6 w-6"></i>
+                                <a href="{{ url_for('recruiter_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.organization_management' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                     Manage Organization
                                 </a>
                                 {% endif %} 
@@ -87,6 +90,9 @@
                                 My Team
                             {% endif %}
                         </a>
+                    {% endif %}
+                    {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+                        <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">

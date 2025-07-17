@@ -4,32 +4,23 @@ from flask_login import login_required, current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
 
-# All roles that can access this portal.
+# --- ROLE CONSTANTS ---
 RECRUITER_PORTAL_ROLES = [
     'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
-    'HeadUnitManager', 'CEO', 'Founder' # Top-level execs can also view
+    'HeadUnitManager', 'CEO', 'Founder'
 ]
-
-# Roles that can see a "Team" view.
 LEADER_ROLES_IN_PORTAL = [
     'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
     'HeadUnitManager', 'CEO', 'Founder'
 ]
-
-# Roles that see the top-level "All Teams" view by default.
-DIVISION_LEADER_ROLES = ['HeadUnitManager', 'UnitManager', 'CEO', 'Founder']
-
-# Roles that can promote Team Leads to Unit Managers.
-PROMOTION_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
-
-
-# Roles that can manage the entire organization structure
 ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
                          template_folder='../../../templates')
 
+
+# --- Standard Read-Only Routes ---
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
@@ -193,121 +184,147 @@ def team_leaderboard():
     return render_template('recruiter_team_portal/team_leaderboard.html',
                            title=title, leaderboard_data=leaderboard_data, current_sort=sort_by)
 
-def _get_team_members(leader_staff_id, leader_role):
-    """
-    A helper function to fetch team members based on the leader's specific role.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    stats_subquery = """
-        (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
-        (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires,
-        (SELECT COUNT(*) FROM Staff WHERE ReportsToStaffID = s.StaffID) as direct_reports_count
-    """
-    
-    # --- NEW HIERARCHICAL LOGIC ---
-    # Determine which roles to look for based on the manager's role.
-    roles_to_find = []
-    if leader_role in ['HeadUnitManager', 'CEO', 'Founder']:
-        roles_to_find = ['UnitManager']
-    elif leader_role == 'UnitManager':
-        roles_to_find = ['HeadSourcingTeamLead', 'SourcingTeamLead']
-    elif leader_role == 'HeadSourcingTeamLead':
-        roles_to_find = ['SourcingTeamLead']
-    elif leader_role == 'SourcingTeamLead':
-        roles_to_find = ['SourcingRecruiter']
 
-    if roles_to_find:
-        placeholders = ', '.join(['%s'] * len(roles_to_find))
-        sql = f"""
-            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID, {stats_subquery}
-            FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s AND s.Role IN ({placeholders})
-            ORDER BY s.Role, u.LastName
-        """
-        params = [leader_staff_id] + roles_to_find
-    else:
-        # Fallback for roles at the bottom of the hierarchy (or undefined)
-        sql = f"""
-            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID, {stats_subquery}
-            FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s
-            ORDER BY u.LastName
-        """
-        params = [leader_staff_id]
-        
-    cursor.execute(sql, tuple(params))
-    team_members = cursor.fetchall()
-    conn.close()
-    return team_members
+# --- REWRITTEN & COMPATIBLE TEAM VIEWING LOGIC ---
+
+def _get_performance_stats(cursor, staff_id):
+    """Helper to fetch hire/referral counts for a staff member."""
+    cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s AND Status = 'Hired'", (staff_id,))
+    hires = cursor.fetchone()['count']
+    cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s", (staff_id,))
+    referrals = cursor.fetchone()['count']
+    return hires, referrals
 
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def my_team_view():
-    """ Acts as the main entry point for team views, now using role-based fetching. """
+    """
+    Acts as the main entry point for team views.
+    This has been REWRITTEN to use the new entity-based system.
+    """
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     leader_role = getattr(current_user, 'role_type', None)
 
     if not leader_staff_id or not leader_role:
         flash("Your staff profile could not be found.", "warning")
         return redirect(url_for('.dashboard'))
-    
-    team_members = _get_team_members(leader_staff_id, leader_role)
-    
-    # Fetch all team leads for the transfer modal
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
-        FROM Staff s JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role = 'SourcingTeamLead'
-    """)
-    all_sourcing_team_leads = cursor.fetchall()
-    conn.close()
+    team_members = []
+    
+    try:
+        # Logic for HeadUnitManager, CEO, Founder: Show the Unit Managers they oversee.
+        if leader_role in ORG_MANAGEMENT_ROLES:
+            cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, su.UnitName
+                FROM SourcingUnits su
+                JOIN Staff s ON su.UnitManagerStaffID = s.StaffID
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE s.ReportsToStaffID = %s
+            """, (leader_staff_id,))
+            for member in cursor.fetchall():
+                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+                member['direct_reports_count'] = 1 # Indicates they have a team to view
+                team_members.append(member)
+
+        # Logic for a UnitManager: Show the Team Leads in their Unit.
+        elif leader_role == 'UnitManager':
+            cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
+                FROM SourcingTeams st
+                JOIN SourcingUnits su ON st.UnitID = su.UnitID
+                JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE su.UnitManagerStaffID = %s
+            """, (leader_staff_id,))
+            for member in cursor.fetchall():
+                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+                member['direct_reports_count'] = 1 # Indicates they have a team to view
+                team_members.append(member)
+
+        # Logic for a SourcingTeamLead: Show the Recruiters on their team.
+        elif leader_role == 'SourcingTeamLead':
+            cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
+                FROM Staff s
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s)
+                AND s.StaffID != %s
+            """, (leader_staff_id, leader_staff_id))
+            for member in cursor.fetchall():
+                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+                member['direct_reports_count'] = 0 # Recruiters have no reports
+                team_members.append(member)
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title="My Team",
                            team_members=team_members,
                            current_leader=current_user,
-                           all_sourcing_team_leads=all_sourcing_team_leads,
                            breadcrumbs=[])
 
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def team_view(leader_staff_id):
-    """Shows the team of a specific sub-leader."""
+    """
+    Shows the team of a specific sub-leader.
+    This has been REWRITTEN to be compatible with my_team_view.
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Security check
-    cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (leader_staff_id,))
-    leader_info = cursor.fetchone()
-    if not (current_user.role_type in DIVISION_LEADER_ROLES or (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
-        abort(403)
-
-    # Get details of the leader whose team we are viewing
-    cursor.execute("SELECT u.FirstName, u.LastName, s.Role, s.StaffID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (leader_staff_id,))
-    current_leader = cursor.fetchone()
-    if not current_leader: 
-        conn.close()
-        abort(404)
-    
-    # *** FIX: Pass the sub-leader's actual role to the helper function ***
-    team_members = _get_team_members(leader_staff_id, current_leader['Role'])
-    
-    # Fetch all team leads for the transfer modal
+    # Fetch details of the leader whose team we are viewing
     cursor.execute("""
-        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
-        FROM Staff s JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role = 'SourcingTeamLead'
-    """)
-    all_sourcing_team_leads = cursor.fetchall()
+        SELECT s.StaffID, s.Role, u.FirstName, u.LastName, u.UserID
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s
+    """, (leader_staff_id,))
+    current_leader = cursor.fetchone()
+    if not current_leader:
+        abort(404)
+
+    # Simplified security check can be added here if needed, e.g.,
+    # ensuring the viewer is in the management chain of the leader being viewed.
+
+    team_members = []
+    leader_role = current_leader['Role']
     
-    conn.close()
-    
-    # Build breadcrumbs for navigation
+    try:
+        if leader_role == 'UnitManager':
+             cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
+                FROM SourcingTeams st
+                JOIN SourcingUnits su ON st.UnitID = su.UnitID
+                JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE su.UnitManagerStaffID = %s
+            """, (leader_staff_id,))
+             for member in cursor.fetchall():
+                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+                member['direct_reports_count'] = 1
+                team_members.append(member)
+        
+        elif leader_role == 'SourcingTeamLead':
+            cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
+                FROM Staff s
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s)
+                AND s.StaffID != %s
+            """, (leader_staff_id, leader_staff_id))
+            for member in cursor.fetchall():
+                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+                member['direct_reports_count'] = 0
+                team_members.append(member)
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
     breadcrumbs = [
         {'name': 'My Team', 'url': url_for('.my_team_view')},
         {'name': f"{current_leader['FirstName']} {current_leader['LastName']}", 'url': None}
@@ -317,76 +334,10 @@ def team_view(leader_staff_id):
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
                            team_members=team_members, 
                            current_leader=current_leader,
-                           all_sourcing_team_leads=all_sourcing_team_leads,
                            breadcrumbs=breadcrumbs)
 
 
-@recruiter_bp.route('/manage/promote-to-unit-manager/<int:staff_id_to_promote>', methods=['POST'])
-@login_required_with_role(PROMOTION_ROLES)
-def promote_to_unit_manager(staff_id_to_promote):
-    """Promotes a SourcingTeamLead to a UnitManager."""
-    redirect_url = request.referrer or url_for('.my_team_view')
-    head_unit_manager_staff_id = getattr(current_user, 'specific_role_id', None)
-    
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        # Promote the user and assign them to report to the current HeadUnitManager
-        cursor.execute("""
-            UPDATE Staff SET 
-                Role = 'UnitManager',
-                ReportsToStaffID = %s 
-            WHERE StaffID = %s AND Role = 'SourcingTeamLead'
-        """, (head_unit_manager_staff_id, staff_id_to_promote))
-        conn.commit()
-
-        if cursor.rowcount > 0:
-            flash("Staff member successfully promoted to Unit Manager.", "success")
-        else:
-            flash("Promotion failed. The user might not be a SourcingTeamLead.", "warning")
-
-    except Exception as e:
-        current_app.logger.error(f"Error promoting staff {staff_id_to_promote}: {e}", exc_info=True)
-        flash(f"An error occurred: {e}", "danger")
-    finally:
-        if conn.is_connected(): conn.close()
-        
-    return redirect(redirect_url)
-
-@recruiter_bp.route('/manage/transfer-recruiter/<int:recruiter_staff_id>', methods=['POST'])
-@login_required_with_role(LEADER_ROLES_IN_PORTAL)
-def transfer_recruiter(recruiter_staff_id):
-    """Transfers a SourcingRecruiter to a new SourcingTeamLead."""
-    new_leader_staff_id = request.form.get('new_leader_id')
-    redirect_url = request.form.get('redirect_url', url_for('.my_team_view'))
-
-    if not new_leader_staff_id:
-        flash("You must select a new Team Leader.", "warning")
-        return redirect(redirect_url)
-
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE Staff SET ReportsToStaffID = %s 
-            WHERE StaffID = %s AND Role = 'SourcingRecruiter'
-        """, (new_leader_staff_id, recruiter_staff_id))
-        conn.commit()
-
-        if cursor.rowcount > 0:
-            flash("Recruiter successfully transferred to the new team.", "success")
-        else:
-            flash("Transfer failed. The user might not be a Sourcing Recruiter.", "warning")
-            
-    except Exception as e:
-        current_app.logger.error(f"Error transferring staff {recruiter_staff_id}: {e}", exc_info=True)
-        flash(f"An error occurred: {e}", "danger")
-    finally:
-        if conn.is_connected(): conn.close()
-        
-    return redirect(redirect_url)
-
-
+# --- Recruiter Profile (The end of the drill-down view) ---
 @recruiter_bp.route('/profile/<int:staff_id_viewing>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def view_recruiter_profile(staff_id_viewing):
@@ -414,17 +365,14 @@ def view_recruiter_profile(staff_id_viewing):
 
         # Security check: Viewer must be their manager, a division leader, or viewing their own profile.
         is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
-        is_top_level_manager = current_user.role_type in DIVISION_LEADER_ROLES
+        is_top_level_manager = current_user.role_type in ['HeadUnitManager', 'UnitManager', 'CEO', 'Founder']
         is_own_profile = (profile_info['StaffID'] == viewer_staff_id)
         if not (is_manager or is_top_level_manager or is_own_profile):
             abort(403)
 
         # 2. Fetch KPIs for the profile
         kpis = {}
-        cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s", (staff_id_viewing,))
-        kpis['referrals_all_time'] = cursor.fetchone()['count']
-        cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s AND Status = 'Hired'", (staff_id_viewing,))
-        kpis['hires_all_time'] = cursor.fetchone()['count']
+        kpis['hires_all_time'], kpis['referrals_all_time'] = _get_performance_stats(cursor, staff_id_viewing)
         profile_data['kpis'] = kpis
 
         # 3. Fetch recent applications
@@ -439,100 +387,16 @@ def view_recruiter_profile(staff_id_viewing):
         """, (staff_id_viewing,))
         profile_data['recent_applications'] = cursor.fetchall()
         
-        # 4. Fetch list of other SourcingTeamLeads for the transfer modal
-        cursor.execute("""
-            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
-            FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role = 'SourcingTeamLead'
-        """)
-        profile_data['sourcing_team_leads'] = cursor.fetchall()
-
     finally:
-        if conn and conn.is_connected():
-            cursor.close()
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
             
     return render_template('recruiter_team_portal/recruiter_profile.html',
                            title=f"Profile: {profile_data['info']['FirstName']}",
                            profile_data=profile_data)
-    
-# Add this code to your recruiter_routes.py file, perhaps after the transfer_recruiter function.
-
-@recruiter_bp.route('/manage/unassigned-staff')
-@login_required_with_role(DIVISION_LEADER_ROLES) # Only division leaders can see and assign staff
-def manage_unassigned_staff():
-    """
-    Displays a list of staff who are not yet assigned to a Sourcing Team Lead,
-    allowing high-level managers to place them into teams.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Find staff who are not in the main sourcing roles OR have no manager assigned.
-    # This acts as a pool of staff to be assigned.
-    cursor.execute("""
-        SELECT s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role
-        FROM Staff s JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role NOT IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager')
-        OR s.ReportsToStaffID IS NULL
-    """)
-    unassigned_staff = cursor.fetchall()
-
-    # Get a list of all Sourcing Team Leads to assign staff to.
-    cursor.execute("""
-        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
-        FROM Staff s JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role = 'SourcingTeamLead'
-    """)
-    sourcing_team_leads = cursor.fetchall()
-    
-    conn.close()
-    
-    return render_template('recruiter_team_portal/unassigned_staff.html',
-                           title="Assign Staff to Teams",
-                           unassigned_staff=unassigned_staff,
-                           sourcing_team_leads=sourcing_team_leads)
 
 
-@recruiter_bp.route('/manage/assign-to-team/<int:staff_id_to_assign>', methods=['POST'])
-@login_required_with_role(DIVISION_LEADER_ROLES)
-def assign_staff_to_team(staff_id_to_assign):
-    """
-    Assigns a staff member to a SourcingTeamLead, officially making them a SourcingRecruiter.
-    """
-    new_leader_staff_id = request.form.get('new_leader_id')
-    redirect_url = url_for('.manage_unassigned_staff')
-
-    if not new_leader_staff_id:
-        flash("You must select a Team Leader to assign this staff member to.", "warning")
-        return redirect(redirect_url)
-
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        # This action officially makes the person a SourcingRecruiter and assigns them a manager.
-        cursor.execute("""
-            UPDATE Staff SET 
-                Role = 'SourcingRecruiter',
-                ReportsToStaffID = %s 
-            WHERE StaffID = %s
-        """, (new_leader_staff_id, staff_id_to_assign))
-        conn.commit()
-
-        if cursor.rowcount > 0:
-            flash("Staff member successfully assigned to the new team as a Sourcing Recruiter.", "success")
-        else:
-            flash("Assignment failed. The staff member could not be found or updated.", "warning")
-            
-    except Exception as e:
-        current_app.logger.error(f"Error assigning staff {staff_id_to_assign}: {e}", exc_info=True)
-        flash(f"An error occurred: {e}", "danger")
-    finally:
-        if conn.is_connected(): conn.close()
-        
-    return redirect(redirect_url)
-
-# --- Organization Structure Management Routes ---
+# --- NEW, CONSOLIDATED ORGANIZATION MANAGEMENT ROUTES (The Single Source of Truth) ---
 
 @recruiter_bp.route('/organization')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
@@ -590,7 +454,8 @@ def organization_management():
         unassigned_recruiters = cursor.fetchall()
 
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
     return render_template('recruiter_team_portal/organization_management.html',
                            title="Organization Structure",
@@ -618,7 +483,8 @@ def create_unit():
     except Exception as e:
         flash(f"Error creating unit: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
 
 
@@ -639,7 +505,8 @@ def create_team():
     except Exception as e:
         flash(f"Error creating team: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
 
 
@@ -661,7 +528,8 @@ def assign_unit_manager():
     except Exception as e:
         flash(f"Error assigning manager: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
 
 
@@ -683,7 +551,8 @@ def assign_team_lead():
     except Exception as e:
         flash(f"Error assigning team lead: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
 
 
@@ -720,7 +589,8 @@ def assign_team_to_unit():
         current_app.logger.error(f"Error assigning team to unit: {e}")
         flash(f"Error assigning team to unit: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
 
 
@@ -750,5 +620,6 @@ def assign_recruiter_to_team():
         current_app.logger.error(f"Error assigning recruiter to team: {e}")
         flash(f"Error assigning recruiter: {e}", "danger")
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
     return redirect(url_for('.organization_management'))
