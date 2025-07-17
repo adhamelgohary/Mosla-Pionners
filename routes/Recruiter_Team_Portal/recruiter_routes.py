@@ -366,12 +366,11 @@ def transfer_recruiter(recruiter_staff_id):
     return redirect(redirect_url)
 
 
-@recruiter_bp.route('/profile/<int-staff_id_viewing>')
+@recruiter_bp.route('/profile/<int:staff_id_viewing>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def view_recruiter_profile(staff_id_viewing):
     """
-    Displays a dedicated performance and management profile for a member of the sourcing division,
-    kept entirely within the Recruiter Portal.
+    Displays a dedicated performance and management profile for a member of the sourcing division.
     """
     viewer_staff_id = getattr(current_user, 'specific_role_id', None)
     profile_data = {}
@@ -392,7 +391,7 @@ def view_recruiter_profile(staff_id_viewing):
             abort(404, "Staff member not found.")
         profile_data['info'] = profile_info
 
-        # Security check: Viewer must be a superior or viewing their own profile
+        # Security check
         is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
         is_top_level_manager = current_user.role_type in DIVISION_LEADER_ROLES
         is_own_profile = (profile_info['StaffID'] == viewer_staff_id)
