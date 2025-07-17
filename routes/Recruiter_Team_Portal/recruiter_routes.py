@@ -6,11 +6,11 @@ from db import get_db_connection
 
 # --- ROLE CONSTANTS ---
 RECRUITER_PORTAL_ROLES = [
-    'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
+    'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager',
     'HeadUnitManager', 'CEO', 'Founder'
 ]
 LEADER_ROLES_IN_PORTAL = [
-    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
+    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager',
     'HeadUnitManager', 'CEO', 'Founder'
 ]
 ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
@@ -25,7 +25,7 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
-    """ 
+    """
     The main dashboard for the Recruiter Portal with advanced, role-aware visualizations.
     The data displayed is aggregated based on the user's role and scope.
     """
@@ -38,9 +38,9 @@ def dashboard():
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     scoped_staff_ids = []
-    dashboard_title = "My Performance" # Default title
+    dashboard_title = "My Performance"  # Default title
 
     try:
         # --- Determine the scope of StaffIDs based on the user's role ---
@@ -48,7 +48,7 @@ def dashboard():
             dashboard_title = "Overall Sourcing Division Performance"
             # Get all staff in any sourcing role
             cursor.execute("""
-                SELECT StaffID FROM Staff 
+                SELECT StaffID FROM Staff
                 WHERE Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager')
             """)
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
@@ -81,33 +81,42 @@ def dashboard():
 
         # --- Fetch KPIs using the determined scope of StaffIDs ---
         kpis = {}
-        # Create placeholders for the IN clause
-        placeholders = ', '.join(['%s'] * len(scoped_staff_ids))
-        
-        funnel_sql = f"SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID IN ({placeholders}) GROUP BY Status"
-        cursor.execute(funnel_sql, tuple(scoped_staff_ids))
-        funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
-        
-        kpis['funnel'] = {
-            'Applied': funnel_data.get('Applied', 0) + funnel_data.get('Submitted', 0),
-            'Shortlisted': funnel_data.get('Shortlisted', 0),
-            'Interview Scheduled': funnel_data.get('Interview Scheduled', 0),
-            'Hired': funnel_data.get('Hired', 0)
-        }
-        kpis['status_breakdown_for_chart'] = funnel_data
-        kpis['total_referrals'] = sum(funnel_data.values())
-        
-        monthly_sql = f"""
-            SELECT 
-                DATE_FORMAT(ApplicationDate, '%%Y-%%m') AS month,
-                COUNT(ApplicationID) as total_referrals,
-                SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as total_hires
-            FROM JobApplications
-            WHERE ReferringStaffID IN ({placeholders}) AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY month ORDER BY month ASC
-        """
-        cursor.execute(monthly_sql, tuple(scoped_staff_ids))
-        kpis['monthly_performance'] = cursor.fetchall()
+        if scoped_staff_ids:
+            # Create placeholders for the IN clause
+            placeholders = ', '.join(['%s'] * len(scoped_staff_ids))
+
+            funnel_sql = f"SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID IN ({placeholders}) GROUP BY Status"
+            cursor.execute(funnel_sql, tuple(scoped_staff_ids))
+            funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
+
+            kpis['funnel'] = {
+                'Applied': funnel_data.get('Applied', 0) + funnel_data.get('Submitted', 0),
+                'Shortlisted': funnel_data.get('Shortlisted', 0),
+                'Interview Scheduled': funnel_data.get('Interview Scheduled', 0),
+                'Hired': funnel_data.get('Hired', 0)
+            }
+            kpis['status_breakdown_for_chart'] = funnel_data
+            kpis['total_referrals'] = sum(funnel_data.values())
+
+            monthly_sql = f"""
+                SELECT
+                    DATE_FORMAT(ApplicationDate, '%%Y-%%m') AS month,
+                    COUNT(ApplicationID) as total_referrals,
+                    SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as total_hires
+                FROM JobApplications
+                WHERE ReferringStaffID IN ({placeholders}) AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                GROUP BY month ORDER BY month ASC
+            """
+            cursor.execute(monthly_sql, tuple(scoped_staff_ids))
+            kpis['monthly_performance'] = cursor.fetchall()
+        else: # Default KPIs if no scope
+             kpis = {
+                'funnel': {'Applied': 0, 'Shortlisted': 0, 'Interview Scheduled': 0, 'Hired': 0},
+                'status_breakdown_for_chart': {},
+                'total_referrals': 0,
+                'monthly_performance': []
+            }
+
 
     except Exception as e:
         current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {user_staff_id}: {e}", exc_info=True)
@@ -116,7 +125,7 @@ def dashboard():
         if cursor: cursor.close()
         if conn: conn.close()
 
-    return render_template('recruiter_team_portal/recruiter_dashboard.html', 
+    return render_template('recruiter_team_portal/recruiter_dashboard.html',
                            title=dashboard_title, kpis=kpis)
 
 
@@ -126,14 +135,19 @@ def review_referred_application(application_id):
     """ Provides a read-only view of an application's details for recruiters. """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id: abort(403)
-    
+
     conn = get_db_connection()
     review_data = {}
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT ReferringStaffID FROM JobApplications WHERE ApplicationID = %s", (application_id,))
         app_check = cursor.fetchone()
-        if not app_check or app_check.get('ReferringStaffID') != staff_id:
+        
+        # Security Check: allow viewing if it's the recruiter's referral, or if the viewer is a manager
+        is_own_referral = app_check and app_check.get('ReferringStaffID') == staff_id
+        is_manager = current_user.role_type in LEADER_ROLES_IN_PORTAL
+
+        if not (is_own_referral or is_manager):
             abort(403)
 
         cursor.execute("""
@@ -147,27 +161,28 @@ def review_referred_application(application_id):
         """, (application_id,))
         app_info = cursor.fetchone()
         if not app_info: abort(404, "Application not found.")
-        
+
         review_data['application'] = app_info
         candidate_id = app_info['CandidateID']
 
         cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL, u.RegistrationDate FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         review_data['candidate_profile'] = cursor.fetchone()
-        
+
         if review_data['candidate_profile'] and isinstance(review_data['candidate_profile'].get('Languages'), str):
             review_data['candidate_profile']['Languages'] = review_data['candidate_profile']['Languages'].split(',')
 
         cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC LIMIT 1", (candidate_id,))
         review_data['cv'] = cursor.fetchone()
-        
+
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
 
-    return render_template('account_manager_portal/application_review_modal.html', 
+    return render_template('account_manager_portal/application_review_modal.html',
                            review_data=review_data, is_recruiter_view=True)
-    
+
+
 @recruiter_bp.route('/my-referrals')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def my_referred_applications():
@@ -198,10 +213,11 @@ def my_referred_applications():
         if conn and conn.is_connected():
             if 'cursor' in locals(): cursor.close()
             conn.close()
-    
+
     return render_template('recruiter_team_portal/my_referred_applications.html',
                            title="My Referred Applications", applications=referred_applications)
-    
+
+
 @recruiter_bp.route('/leaderboard')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def team_leaderboard():
@@ -224,7 +240,7 @@ def team_leaderboard():
         sql += " ORDER BY hires_monthly DESC, referrals_monthly DESC"; title = "Leaderboard: Hires This Month"
     else:
         sort_by = 'referrals_all_time'; sql += " ORDER BY referrals_all_time DESC, hires_all_time DESC"; title = "Leaderboard: All-Time Referrals"
-        
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(sql)
@@ -244,13 +260,60 @@ def _get_performance_stats(cursor, staff_id):
     referrals = cursor.fetchone()['count']
     return hires, referrals
 
+def _get_manager_context_data(cursor, user):
+    """Fetches role-specific management data for the logged-in user."""
+    context = {
+        "teams_in_unit": [],
+        "potential_team_leads": [],
+        "unassigned_recruiters": [],
+        "assignable_teams": []
+    }
+    
+    if user.role_type == 'UnitManager':
+        # Fetch teams within this manager's unit for the management panel
+        cursor.execute("""
+            SELECT st.*, u.FirstName as LeadFirstName, u.LastName as LeadLastName
+            FROM SourcingTeams st
+            LEFT JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
+            LEFT JOIN Users u ON s.UserID = u.UserID
+            WHERE st.UnitID = (SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s)
+        """, (user.specific_role_id,))
+        context['teams_in_unit'] = cursor.fetchall()
+        context['assignable_teams'] = context['teams_in_unit']
+
+        # Fetch potential team leads (recruiters AND existing leads) within the unit's scope.
+        cursor.execute("""
+            SELECT s.StaffID, u.FirstName, u.LastName, s.Role
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead') AND (
+                s.TeamID IN (
+                    SELECT TeamID FROM SourcingTeams WHERE UnitID = (
+                        SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s
+                    )
+                ) OR s.TeamID IS NULL
+            )
+        """, (user.specific_role_id,))
+        context['potential_team_leads'] = cursor.fetchall()
+        
+        # Fetch all unassigned recruiters
+        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+        context['unassigned_recruiters'] = cursor.fetchall()
+
+    elif user.role_type == 'SourcingTeamLead':
+        # Fetch unassigned recruiters for the assignment panel
+        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+        context['unassigned_recruiters'] = cursor.fetchall()
+        
+        # For a Team Lead, the only assignable team is their own
+        cursor.execute("SELECT * FROM SourcingTeams WHERE TeamLeadStaffID = %s", (user.specific_role_id,))
+        context['assignable_teams'] = cursor.fetchall()
+        
+    return context
+
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def my_team_view():
-    """
-    Acts as the main entry point for team views.
-    Now provides extra data for Unit Managers to manage their units.
-    """
+    """Acts as the main entry point for team views."""
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     leader_role = getattr(current_user, 'role_type', None)
 
@@ -261,16 +324,14 @@ def my_team_view():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    view_data = {
-        "team_members": [],
-        "teams_in_unit": [],
-        "potential_team_leads": [],
-        "unassigned_recruiters": [],
-        "assignable_teams": []
-    }
+    team_members = []
+    manager_context = {}
     
     try:
-        # Logic for HeadUnitManager, CEO, Founder: Show the Unit Managers they oversee.
+        # Get the context data for the logged-in user's role
+        manager_context = _get_manager_context_data(cursor, current_user)
+        
+        # Get the list of direct reports for the current page's subject (in this case, the logged-in user)
         if leader_role in ORG_MANAGEMENT_ROLES:
             cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, su.UnitName
@@ -279,12 +340,7 @@ def my_team_view():
                 JOIN Users u ON s.UserID = u.UserID
                 WHERE s.ReportsToStaffID = %s
             """, (leader_staff_id,))
-            for member in cursor.fetchall():
-                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 1 
-                view_data['team_members'].append(member)
-
-        # Logic for a UnitManager: Show the Team Leads in their Unit AND provide management tools.
+            team_members = cursor.fetchall()
         elif leader_role == 'UnitManager':
             cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
@@ -294,62 +350,18 @@ def my_team_view():
                 JOIN Users u ON s.UserID = u.UserID
                 WHERE su.UnitManagerStaffID = %s
             """, (leader_staff_id,))
-            for member in cursor.fetchall():
-                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 1
-                view_data['team_members'].append(member)
-            
-            # Fetch teams within this manager's unit for the management panel
-            cursor.execute("""
-                SELECT st.*, u.FirstName as LeadFirstName, u.LastName as LeadLastName
-                FROM SourcingTeams st
-                LEFT JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
-                LEFT JOIN Users u ON s.UserID = u.UserID
-                WHERE st.UnitID = (SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s)
-            """, (leader_staff_id,))
-            view_data['teams_in_unit'] = cursor.fetchall()
-            view_data['assignable_teams'] = view_data['teams_in_unit'] # For recruiter assignment dropdown
-
-            # MODIFIED QUERY: Fetch potential team leads (recruiters AND existing leads) within the unit's scope.
-            cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role
-                FROM Staff s JOIN Users u ON s.UserID = u.UserID
-                WHERE 
-                    s.Role IN ('SourcingRecruiter', 'SourcingTeamLead') AND (
-                        s.TeamID IN (
-                            SELECT TeamID FROM SourcingTeams WHERE UnitID = (
-                                SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s
-                            )
-                        ) OR s.TeamID IS NULL
-                    )
-            """, (leader_staff_id,))
-            view_data['potential_team_leads'] = cursor.fetchall()
-            
-            # Fetch unassigned recruiters
-            cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
-            view_data['unassigned_recruiters'] = cursor.fetchall()
-
-        # Logic for a SourcingTeamLead: Show the Recruiters on their team.
+            team_members = cursor.fetchall()
         elif leader_role == 'SourcingTeamLead':
             cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
-                FROM Staff s
-                JOIN Users u ON s.UserID = u.UserID
-                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s)
-                AND s.StaffID != %s
+                FROM Staff s JOIN Users u ON s.UserID = u.UserID
+                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s) AND s.StaffID != %s
             """, (leader_staff_id, leader_staff_id))
-            for member in cursor.fetchall():
-                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 0 
-                view_data['team_members'].append(member)
-            
-            # Fetch unassigned recruiters for the assignment panel
-            cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
-            view_data['unassigned_recruiters'] = cursor.fetchall()
-            
-            # For a Team Lead, the only assignable team is their own
-            cursor.execute("SELECT * FROM SourcingTeams WHERE TeamLeadStaffID = %s", (leader_staff_id,))
-            view_data['assignable_teams'] = cursor.fetchall()
+            team_members = cursor.fetchall()
+
+        for member in team_members:
+            member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+            member['direct_reports_count'] = 1 if member['Role'] in ['UnitManager', 'SourcingTeamLead'] else 0
 
     finally:
         if cursor: cursor.close()
@@ -357,45 +369,39 @@ def my_team_view():
 
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title="My Team",
-                           team_members=view_data['team_members'],
+                           team_members=team_members,
                            current_leader=current_user,
                            breadcrumbs=[],
-                           # Pass all the new data to the template
-                           teams_in_unit=view_data['teams_in_unit'],
-                           potential_team_leads=view_data['potential_team_leads'],
-                           unassigned_recruiters=view_data['unassigned_recruiters'],
-                           assignable_teams=view_data['assignable_teams'])
-
-
+                           **manager_context) # Unpack all management data into the template
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def team_view(leader_staff_id):
-    """
-    Shows the team of a specific sub-leader.
-    This has been REWRITTEN to be compatible with my_team_view.
-    """
+    """Shows the team of a specific sub-leader."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Fetch details of the leader whose team we are viewing
-    cursor.execute("""
-        SELECT s.StaffID, s.Role, u.FirstName, u.LastName, u.UserID
-        FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s
-    """, (leader_staff_id,))
-    current_leader = cursor.fetchone()
-    if not current_leader:
-        abort(404)
-
-    # Simplified security check can be added here if needed, e.g.,
-    # ensuring the viewer is in the management chain of the leader being viewed.
-
     team_members = []
-    leader_role = current_leader['Role']
-    
+    manager_context = {}
+    current_leader = None
+
     try:
+        # Fetch details of the leader whose team we are viewing
+        cursor.execute("""
+            SELECT s.StaffID, s.Role, u.FirstName, u.LastName, u.UserID
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s
+        """, (leader_staff_id,))
+        current_leader = cursor.fetchone()
+        if not current_leader:
+            abort(404)
+
+        # Get the management context for the LOGGED-IN user
+        manager_context = _get_manager_context_data(cursor, current_user)
+
+        # Get the list of direct reports for the page's subject (the sub-leader)
+        leader_role = current_leader['Role']
         if leader_role == 'UnitManager':
-             cursor.execute("""
+            cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
                 FROM SourcingTeams st
                 JOIN SourcingUnits su ON st.UnitID = su.UnitID
@@ -403,23 +409,19 @@ def team_view(leader_staff_id):
                 JOIN Users u ON s.UserID = u.UserID
                 WHERE su.UnitManagerStaffID = %s
             """, (leader_staff_id,))
-             for member in cursor.fetchall():
-                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 1
-                team_members.append(member)
-        
+            team_members = cursor.fetchall()
         elif leader_role == 'SourcingTeamLead':
             cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
                 FROM Staff s
                 JOIN Users u ON s.UserID = u.UserID
-                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s)
-                AND s.StaffID != %s
+                WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s) AND s.StaffID != %s
             """, (leader_staff_id, leader_staff_id))
-            for member in cursor.fetchall():
-                member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 0
-                team_members.append(member)
+            team_members = cursor.fetchall()
+        
+        for member in team_members:
+            member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
+            member['direct_reports_count'] = 1 if member['Role'] in ['UnitManager', 'SourcingTeamLead'] else 0
 
     finally:
         if cursor: cursor.close()
@@ -434,10 +436,9 @@ def team_view(leader_staff_id):
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
                            team_members=team_members, 
                            current_leader=current_leader,
-                           breadcrumbs=breadcrumbs)
+                           breadcrumbs=breadcrumbs,
+                           **manager_context) # Unpack all management data into the template
 
-
-# --- Recruiter Profile (The end of the drill-down view) ---
 @recruiter_bp.route('/profile/<int:staff_id_viewing>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def view_recruiter_profile(staff_id_viewing):
@@ -446,14 +447,14 @@ def view_recruiter_profile(staff_id_viewing):
     """
     viewer_staff_id = getattr(current_user, 'specific_role_id', None)
     profile_data = {}
-    
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     try:
         # 1. Fetch the profile's main info
         cursor.execute("""
-            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate, 
+            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate,
                    s.Role, s.ReportsToStaffID, s.TotalPoints, s.ReferralCode
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.StaffID = %s
@@ -486,11 +487,11 @@ def view_recruiter_profile(staff_id_viewing):
             ORDER BY ja.ApplicationDate DESC LIMIT 10
         """, (staff_id_viewing,))
         profile_data['recent_applications'] = cursor.fetchall()
-        
+
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-            
+
     return render_template('recruiter_team_portal/recruiter_profile.html',
                            title=f"Profile: {profile_data['info']['FirstName']}",
                            profile_data=profile_data)
@@ -504,7 +505,7 @@ def organization_management():
     """A central hub for managing Units, Teams, and their assignments."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     try:
         # Fetch all Units with their manager's info
         cursor.execute("""
@@ -518,7 +519,7 @@ def organization_management():
 
         # Fetch all Teams with their lead's and unit's info
         cursor.execute("""
-            SELECT st.*, 
+            SELECT st.*,
                    lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName,
                    su.UnitName
             FROM SourcingTeams st
@@ -528,7 +529,7 @@ def organization_management():
             ORDER BY su.UnitName, st.TeamName
         """)
         teams = cursor.fetchall()
-        
+
         # Fetch potential Unit Managers (TeamLeads and above)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
@@ -544,7 +545,7 @@ def organization_management():
             WHERE s.Role IN ('SourcingTeamLead', 'SourcingRecruiter')
         """)
         potential_team_leads = cursor.fetchall()
-        
+
         # Fetch unassigned recruiters to be placed into teams
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName
@@ -573,7 +574,7 @@ def create_unit():
     if not unit_name:
         flash("Unit Name is required.", "danger")
         return redirect(url_for('.organization_management'))
-    
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
@@ -606,11 +607,11 @@ def create_team():
             if not unit:
                 flash("Could not find your associated unit. Action denied.", "danger")
                 return redirect(url_for('.my_team_view'))
-            
+
             cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit['UnitID']))
         else: # Original logic for org managers
             cursor.execute("INSERT INTO SourcingTeams (TeamName) VALUES (%s)", (team_name,))
-        
+
         conn.commit()
         flash(f"Team '{team_name}' created successfully.", "success")
     except Exception as e:
@@ -626,7 +627,7 @@ def create_team():
 def assign_unit_manager():
     unit_id = request.form.get('unit_id')
     manager_staff_id = request.form.get('manager_staff_id')
-    
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
@@ -649,7 +650,7 @@ def assign_unit_manager():
 def assign_team_lead():
     team_id = request.form.get('team_id')
     lead_staff_id = request.form.get('lead_staff_id')
-    
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
@@ -693,7 +694,7 @@ def assign_team_to_unit():
         if not unit or not unit['UnitManagerStaffID']:
             flash("Cannot assign team. The selected unit does not have a manager.", "warning")
             return redirect(url_for('.organization_management'))
-            
+
         manager_staff_id = unit['UnitManagerStaffID']
 
         # Assign team to unit
@@ -728,14 +729,13 @@ def assign_recruiter_to_team():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
+
         # --- Security check: ensure the user has the right to assign to this specific team ---
-        # Top-level managers (HeadUnitManager, CEO, Founder) have universal power and bypass these checks.
         if viewer_role == 'UnitManager':
             # A Unit Manager can only assign to teams within their own unit.
             cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (viewer_staff_id,))
             manager_unit = cursor.fetchone()
-            
+
             cursor.execute("SELECT UnitID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
             target_team_unit = cursor.fetchone()
 
@@ -747,11 +747,11 @@ def assign_recruiter_to_team():
             # A Team Lead can only assign to their own team.
             cursor.execute("SELECT TeamID FROM Staff WHERE StaffID = %s", (viewer_staff_id,))
             leader_team = cursor.fetchone()
-            
+
             if not leader_team or str(leader_team['TeamID']) != str(team_id):
                 flash("You can only assign recruiters to your own team.", "danger")
                 return redirect(request.referrer or url_for('.organization_management'))
-        
+
         # --- Original logic continues if security checks pass ---
         # Get Team Lead's StaffID to set the reporting line
         cursor.execute("SELECT TeamLeadStaffID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
@@ -759,9 +759,9 @@ def assign_recruiter_to_team():
         if not team or not team['TeamLeadStaffID']:
             flash("Cannot assign recruiter. The selected team does not have a lead.", "warning")
             return redirect(request.referrer or url_for('.organization_management'))
-        
+
         team_lead_staff_id = team['TeamLeadStaffID']
-        
+
         # Assign the recruiter to the team and set their manager
         cursor.execute("UPDATE Staff SET TeamID = %s, ReportsToStaffID = %s WHERE StaffID = %s", (team_id, team_lead_staff_id, recruiter_staff_id))
         conn.commit()
