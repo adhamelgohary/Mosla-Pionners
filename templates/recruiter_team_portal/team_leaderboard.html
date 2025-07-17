@@ -1,3 +1,5 @@
+--- START OF FILE team_leaderboard.html (Corrected)---
+
 {# templates/recruiter_team_portal/team_leaderboard.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
@@ -10,33 +12,75 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 {% endblock %}
 
-{# *** CORRECTED: ONLY ONE 'recruiter_content' BLOCK *** #}
 {% block recruiter_content %}
-<div class="px-4 sm:px-0">
-    <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-            <p class="mt-1 text-sm text-gray-600">A dynamic ranking of the top sourcing team performers.</p>
-        </div>
-        <div class="mt-4 sm:mt-0">
-            <form method="GET" action="{{ url_for('.team_leaderboard') }}">
-                <label for="sort_by" class="sr-only">Sort by</label>
-                <select name="sort_by" id="sort_by" onchange="this.form.submit()" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="referrals_all_time" {% if current_sort == 'referrals_all_time' %}selected{% endif %}>Sort by All-Time Referrals</option>
-                    <option value="hires_all_time" {% if current_sort == 'hires_all_time' %}selected{% endif %}>Sort by All-Time Hires</option>
-                    <option value="referrals_monthly" {% if current_sort == 'referrals_monthly' %}selected{% endif %}>Sort by Referrals (This Month)</option>
-                    <option value="hires_monthly" {% if current_sort == 'hires_monthly' %}selected{% endif %}>Sort by Hires (This Month)</option>
-                </select>
-            </form>
+<div class="space-y-8">
+    <div class="px-4 sm:px-0">
+        <div class="sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="mt-1 text-sm text-gray-600">A dynamic ranking of the top sourcing team performers.</p>
+            </div>
+            <div class="mt-4 sm:mt-0">
+                <form method="GET" action="{{ url_for('.team_leaderboard') }}">
+                    <label for="sort_by" class="sr-only">Sort by</label>
+                    <select name="sort_by" id="sort_by" onchange="this.form.submit()" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="referrals_all_time" {% if current_sort == 'referrals_all_time' %}selected{% endif %}>Sort by All-Time Referrals</option>
+                        <option value="hires_all_time" {% if current_sort == 'hires_all_time' %}selected{% endif %}>Sort by All-Time Hires</option>
+                        <option value="referrals_monthly" {% if current_sort == 'referrals_monthly' %}selected{% endif %}>Sort by Referrals (This Month)</option>
+                        <option value="hires_monthly" {% if current_sort == 'hires_monthly' %}selected{% endif %}>Sort by Hires (This Month)</option>
+                    </select>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Leaderboard Chart Container -->
-    <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border">
-        <div id="leaderboard-chart"></div>
+    <div class="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 class="text-lg font-semibold text-gray-900">Top Performers Chart</h3>
+        <div id="leaderboard-chart" class="mt-4"></div>
+    </div>
+    
+    <!-- Leaderboard Table View -->
+    <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <h3 class="text-lg font-semibold text-gray-900 px-6 py-4 border-b">Full Leaderboard Rankings</h3>
+        <table class="min-w-full divide-y divide-gray-200">
+             <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="w-16 py-3.5 pl-4 pr-3 text-center text-sm font-semibold text-gray-900 sm:pl-6">Rank</th>
+                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Team Member</th>
+                    <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Referrals (Month)</th>
+                    <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Hires (Month)</th>
+                    <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">All-Time Referrals</th>
+                    <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">All-Time Hires</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for member in leaderboard_data %}
+                <tr class="hover:bg-gray-50">
+                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-center font-bold text-lg {{ 'text-yellow-500' if loop.index == 1 else 'text-gray-700' }} sm:pl-6">
+                        #{{ loop.index }}
+                    </td>
+                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 flex-shrink-0"><img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt=""></div>
+                            <div class="ml-4">
+                                <div class="font-medium text-gray-900">{{ member.FirstName }} {{ member.LastName }}</div>
+                                <div class="text-gray-500">{{ member.Role }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium {{ 'text-indigo-600' if current_sort == 'referrals_monthly' else 'text-gray-500' }}">{{ member.referrals_monthly }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-medium {{ 'text-green-600' if current_sort == 'hires_monthly' else 'text-gray-500' }}">{{ member.hires_monthly }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-bold {{ 'text-indigo-600' if current_sort == 'referrals_all_time' else 'text-gray-800' }}">{{ member.referrals_all_time }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-center text-sm font-bold {{ 'text-green-600' if current_sort == 'hires_all_time' else 'text-gray-800' }}">{{ member.hires_all_time }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-10 text-gray-500">No leaderboard data to display.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
-{# The script is now placed inside the single content block #}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const leaderboardData = {{ leaderboard_data|tojson }};
@@ -44,72 +88,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Determine which data key to use for the series based on the current sort
     let seriesDataKey, seriesName;
-    if (sortKey === 'hires_all_time') {
-        seriesDataKey = 'hires_all_time';
-        seriesName = 'Total Hires';
-    } else if (sortKey === 'referrals_monthly') {
-        seriesDataKey = 'referrals_monthly';
-        seriesName = 'Monthly Referrals';
-    } else if (sortKey === 'hires_monthly') {
-        seriesDataKey = 'hires_monthly';
-        seriesName = 'Monthly Hires';
-    } else {
-        seriesDataKey = 'referrals_all_time';
-        seriesName = 'Total Referrals';
-    }
+    if (sortKey === 'hires_all_time') { seriesDataKey = 'hires_all_time'; seriesName = 'Total Hires'; } 
+    else if (sortKey === 'referrals_monthly') { seriesDataKey = 'referrals_monthly'; seriesName = 'Monthly Referrals'; } 
+    else if (sortKey === 'hires_monthly') { seriesDataKey = 'hires_monthly'; seriesName = 'Monthly Hires'; } 
+    else { seriesDataKey = 'referrals_all_time'; seriesName = 'Total Referrals'; }
 
-    if (leaderboardData.length > 0) {
+    // Take top 10 for the chart for readability
+    const chartData = leaderboardData.slice(0, 10);
+
+    if (chartData.length > 0) {
         const leaderboardOptions = {
-            series: [{
-                name: seriesName,
-                data: leaderboardData.map(item => item[seriesDataKey])
-            }],
-            chart: {
-                type: 'bar',
-                height: 350 + (leaderboardData.length * 20), // Dynamic height
-                toolbar: { show: false }
-            },
-            plotOptions: {
-                bar: {
-                    borderRadius: 4,
-                    horizontal: true,
-                    distributed: true, // This gives each bar a different color
-                }
-            },
-            dataLabels: {
-                enabled: true,
-                formatter: function (val, opt) {
-                    return val
-                },
-                style: {
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    colors: ["#fff"]
-                }
-            },
-            xaxis: {
-                categories: leaderboardData.map(item => `${item.FirstName} ${item.LastName}`),
-            },
-            legend: {
-                show: false // Hide legend since we use distributed colors
-            },
-            colors: [ // A palette of colors for the bars
-                '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
-                '#F43F5E', '#F97316', '#F59E0B', '#84CC16', '#10B981'
-            ],
+            series: [{ name: seriesName, data: chartData.map(item => item[seriesDataKey]) }],
+            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
+            dataLabels: { enabled: true, style: { fontSize: '12px', fontWeight: 'bold', colors: ["#fff"] } },
+            xaxis: { categories: chartData.map(item => `${item.FirstName} ${item.LastName}`) },
+            legend: { show: false },
+            colors: ['#3B82F6','#6366F1','#8B5CF6','#A855F7','#EC4899','#F43F5E','#F97316','#F59E0B','#84CC16','#10B981'],
             tooltip: {
                 y: {
-                    formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
-                        const data = leaderboardData[dataPointIndex];
-                        return `
-                            <div><b>${seriesName}: ${value}</b></div>
-                            <div>Total Referrals: ${data.referrals_all_time}</div>
-                            <div>Total Hires: ${data.hires_all_time}</div>
-                        `;
+                    formatter: function(value, { dataPointIndex }) {
+                        const data = chartData[dataPointIndex];
+                        return `<div><b>${seriesName}: ${value}</b></div><div>Total Hires: ${data.hires_all_time}</div>`;
                     },
-                    title: {
-                        formatter: (seriesName) => ''
-                    }
+                    title: { formatter: () => '' }
                 }
             }
         };
