@@ -77,10 +77,9 @@
                                         {% if member.direct_reports_count > 0 %}
                                             <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Team">View Team →</a>
                                         {% else %}
-                                            <!-- *** UPDATED LINK to new profile page *** -->
-                                            <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-gray-500 hover:text-indigo-700" title="View Performance Profile">View Profile</a>
+                                            <!-- *** UPDATED LINK to new recruiter profile page *** -->
+                                            <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Performance Profile">View Profile</a>
                                         {% endif %}
-
                                         <!-- Management Tools -->
                                         <div class="flex items-center justify-center gap-2 border-l pl-3">
                                             <!-- Promote Button -->

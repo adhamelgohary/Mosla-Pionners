@@ -15,7 +15,7 @@
 
 {% block recruiter_content %}
 {# --- Permission Flags for easier conditional rendering --- #}
-{% set is_head_unit_manager_or_above = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'OperationsManager'] %}
+{% set is_head_unit_manager_or_above = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
 {% set is_viewing_own_profile = current_user.id == profile_data.info.UserID %}
 {% set can_manage_this_user = (is_head_unit_manager_or_above or current_user.specific_role_id == profile_data.info.ReportsToStaffID) and not is_viewing_own_profile %}
 
@@ -41,6 +41,10 @@
                             {{ "%.1f"|format(profile_data.kpis.hires_all_time * 100 / profile_data.kpis.referrals_all_time) }}%
                         {% else %}0.0%{% endif %}
                     </dd>
+                </div>
+                 <div class="flex items-center justify-between border-t pt-4 mt-4">
+                    <dt class="text-sm font-medium text-gray-500">Total Points</dt>
+                    <dd class="text-lg font-bold text-purple-600">{{ profile_data.info.TotalPoints or 0 }}</dd>
                 </div>
             </dl>
         </div>
@@ -68,11 +72,14 @@
             </div>
             {% endif %}
 
+            <!-- Link to Full Managerial Profile for highest level admins -->
+             {% if current_user.role_type in ['CEO', 'Founder'] %}
             <div class="mt-4 border-t pt-4">
                  <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=profile_data.info.UserID) }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
-                    <i class="bi bi-person-gear mr-2"></i> Full Management Profile
+                    <i class="bi bi-person-gear mr-2"></i> Advanced Mgt.
                 </a>
             </div>
+            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -366,11 +366,12 @@ def transfer_recruiter(recruiter_staff_id):
     return redirect(redirect_url)
 
 
-@recruiter_bp.route('/profile/<int:staff_id_viewing>')
+@recruiter_bp.route('/profile/<int-staff_id_viewing>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def view_recruiter_profile(staff_id_viewing):
     """
-    Displays a dedicated performance and management profile for a member of the sourcing division.
+    Displays a dedicated performance and management profile for a member of the sourcing division,
+    kept entirely within the Recruiter Portal.
     """
     viewer_staff_id = getattr(current_user, 'specific_role_id', None)
     profile_data = {}
@@ -381,7 +382,8 @@ def view_recruiter_profile(staff_id_viewing):
     try:
         # 1. Fetch the profile's main info
         cursor.execute("""
-            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID
+            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate, 
+                   s.Role, s.ReportsToStaffID, s.TotalPoints, s.ReferralCode
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.StaffID = %s
         """, (staff_id_viewing,))
@@ -390,11 +392,11 @@ def view_recruiter_profile(staff_id_viewing):
             abort(404, "Staff member not found.")
         profile_data['info'] = profile_info
 
-        # Security check: Make sure viewer is a manager of the person being viewed
-        # (This is simplified; a full recursive check would be more robust but this covers most cases)
+        # Security check: Viewer must be a superior or viewing their own profile
         is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
         is_top_level_manager = current_user.role_type in DIVISION_LEADER_ROLES
-        if not (is_manager or is_top_level_manager or profile_info['StaffID'] == viewer_staff_id):
+        is_own_profile = (profile_info['StaffID'] == viewer_staff_id)
+        if not (is_manager or is_top_level_manager or is_own_profile):
             abort(403)
 
         # 2. Fetch KPIs for the profile
