@@ -7,7 +7,7 @@ import decimal
 import datetime
 
 # Roles that can manage offers within the AM portal, adapted from schema
-AM_OFFER_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'OperationsManager', 'Admin']
+AM_OFFER_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder', 'Admin']
 
 am_offer_mgmt_bp = Blueprint('am_offer_mgmt_bp', __name__,
                              template_folder='../../../templates',

@@ -8,9 +8,9 @@ from db import get_db_connection
 import mysql.connector
 
 # --- Roles are defined here for clarity and security ---
-COMPANY_ASSIGNMENT_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'OperationsManager']
+COMPANY_ASSIGNMENT_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder']
 # This list now includes senior roles, allowing them to self-assign companies.
-ASSIGNABLE_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
+ASSIGNABLE_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder']
 
 # --- BLUEPRINT UPDATED for a cleaner, more specific template path ---
 company_assignment_bp = Blueprint('company_assignment_bp', __name__,

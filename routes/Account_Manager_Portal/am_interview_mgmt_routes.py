@@ -5,7 +5,7 @@ from utils.decorators import login_required_with_role
 from db import get_db_connection
 import datetime
 
-AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager', 'Admin']
+AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'Admin']
 
 am_interview_mgmt_bp = Blueprint('am_interview_mgmt_bp', __name__,
                                  template_folder='../../../templates',
@@ -33,7 +33,7 @@ def check_auth_and_get_company(company_id, staff_id):
         return None, None, None
 
     is_owner = company.get('ManagedByStaffID') == staff_id
-    is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder', 'Admin']
+    is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO' , 'Founder', 'Admin']
     
     if not (is_owner or is_senior_manager):
         flash("You are not authorized to manage this company's schedule.", "danger")
@@ -137,7 +137,7 @@ def edit_schedule(schedule_id):
         
         # Authorization check
         is_owner = slot_to_edit.get('ManagedByStaffID') == staff_id
-        is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder', 'Admin']
+        is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO' , 'Founder', 'Admin']
         if not (is_owner or is_senior_manager):
             flash("You are not authorized to edit this schedule.", "danger")
             return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))

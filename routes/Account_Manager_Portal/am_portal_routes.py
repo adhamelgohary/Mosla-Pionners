@@ -14,8 +14,8 @@ from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 
 # --- Roles are defined once for clarity, matching the new schema ---
-AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
-STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder', 'OperationsManager']
+AM_PORTAL_ACCESS_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager', 'CEO', 'Founder']
+STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder']
 MANAGEABLE_STAFF_ROLES = ['AccountManager', 'SeniorAccountManager']
 
 account_manager_bp = Blueprint('account_manager_bp', __name__,
@@ -228,7 +228,7 @@ def my_portfolio():
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def view_manager_portfolio(manager_staff_id):
     is_own_portfolio = hasattr(current_user, 'specific_role_id') and current_user.specific_role_id == manager_staff_id
-    if not is_own_portfolio and current_user.role_type not in ['HeadAccountManager', 'CEO', 'OperationsManager', 'Founder']:
+    if not is_own_portfolio and current_user.role_type not in ['HeadAccountManager', 'CEO', 'Founder', 'Founder']:
         abort(403, "You are not authorized to view this portfolio.")
     conn = get_db_connection()
     try:
