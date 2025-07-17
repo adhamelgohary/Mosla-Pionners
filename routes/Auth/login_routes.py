@@ -10,23 +10,13 @@ import mysql.connector
 login_bp = Blueprint('login_bp', __name__, template_folder='../../templates/auth')
 login_manager = LoginManager()
 
-# --- NEW, UNAMBIGUOUS ROLE CONSTANTS BASED ON YOUR REQUIREMENTS ---
-
-# 1. Users whose primary portal is the MAIN Managerial Dashboard
+# --- DEFINITIVE ROLE CONSTANTS FOR REDIRECTION ---
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder', 'SalesManager', 'Admin', 'OperationsManager']
-
-# 2. Users whose primary portal is the Account Manager Portal
 ACCOUNT_MANAGER_PORTAL_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
-
-# 3. Users whose primary portal is the Recruiter Portal
 RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager']
-
-# 4. Users for the Client Portal
 CLIENT_ROLES = ['ClientContact']
 
-
 class LoginUser(UserMixin):
-    # ... (this class does not need any changes) ...
     def __init__(self, user_id, email, first_name, last_name, is_active_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
         self.id = int(user_id)
         self.email = email
@@ -47,8 +37,6 @@ class LoginUser(UserMixin):
         if self.password_hash is None: return False
         return check_password_hash(self.password_hash, password_to_check)
 
-
-# ... (The helper functions like determine_user_identity, get_user_by_id, etc., remain unchanged) ...
 def determine_user_identity(user_id, db_connection):
     cursor = db_connection.cursor(dictionary=True)
     identity = {'role': "Unknown", 'id': None, 'company_id': None, 'reports_to_id': None}
@@ -57,13 +45,13 @@ def determine_user_identity(user_id, db_connection):
         if record := cursor.fetchone():
             identity['role'] = record['Role']
             identity['id'] = record['StaffID']
-            identity['reports_to_id'] = record['ReportsToStaffID']
+            identity['reports_to_id'] = record.get('ReportsToStaffID')
         else:
             cursor.execute("SELECT ContactID, CompanyID FROM CompanyContacts WHERE UserID = %s", (user_id,))
             if record := cursor.fetchone():
                 identity['role'] = "ClientContact"
                 identity['id'] = record['ContactID']
-                identity['company_id'] = record['CompanyID']
+                identity['company_id'] = record.get('CompanyID')
             else:
                 cursor.execute("SELECT CandidateID FROM Candidates WHERE UserID = %s", (user_id,))
                 if record := cursor.fetchone():
@@ -79,46 +67,57 @@ def determine_user_identity(user_id, db_connection):
 def get_user_by_id(user_id):
     conn = get_db_connection()
     if not conn: return None
-    user_obj = None
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Users WHERE UserID = %s", (user_id,))
+        cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE UserID = %s", (user_id,))
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
-            user_obj = LoginUser(
-                user_id=user_data['UserID'], email=user_data['Email'], first_name=user_data['FirstName'],
-                last_name=user_data['LastName'], is_active_status=user_data['IsActive'],
-                role_type=identity['role'], specific_role_id=identity['id'], company_id=identity['company_id'],
-                reports_to_id=identity['reports_to_id'], password_hash=user_data.get('PasswordHash')
-            )
+            # Create a dictionary of arguments to pass to the LoginUser constructor
+            user_args = {
+                'user_id': user_data['UserID'],
+                'email': user_data['Email'],
+                'first_name': user_data['FirstName'],
+                'last_name': user_data['LastName'],
+                'is_active_status': user_data['IsActive'],
+                'password_hash': user_data.get('PasswordHash'),
+                'role_type': identity['role'],
+                'specific_role_id': identity.get('id'),
+                'company_id': identity.get('company_id'),
+                'reports_to_id': identity.get('reports_to_id')
+            }
+            return LoginUser(**user_args)
     except Exception as e:
         current_app.logger.error(f"Error in get_user_by_id for {user_id}: {e}", exc_info=True)
     finally:
-        if 'cursor' in locals() and cursor: cursor.close()
-        if conn and conn.is_connected(): conn.close()
-    return user_obj
+        if conn: conn.close()
+    return None
 
 def get_user_by_email(email):
     conn = get_db_connection()
     if not conn: return None
-    user_obj = None
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Users WHERE Email = %s", (email,))
+        cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE Email = %s", (email,))
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
-            user_obj = LoginUser(
-                user_id=user_data['UserID'], email=user_data['Email'], first_name=user_data['FirstName'],
-                last_name=user_data['LastName'], is_active_status=user_data['IsActive'],
-                role_type=identity['role'], specific_role_id=identity['id'], company_id=identity['company_id'],
-                reports_to_id=identity['reports_to_id'], password_hash=user_data.get('PasswordHash')
-            )
+            user_args = {
+                'user_id': user_data['UserID'],
+                'email': user_data['Email'],
+                'first_name': user_data['FirstName'],
+                'last_name': user_data['LastName'],
+                'is_active_status': user_data['IsActive'],
+                'password_hash': user_data.get('PasswordHash'),
+                'role_type': identity['role'],
+                'specific_role_id': identity.get('id'),
+                'company_id': identity.get('company_id'),
+                'reports_to_id': identity.get('reports_to_id')
+            }
+            return LoginUser(**user_args)
     except Exception as e:
         current_app.logger.error(f"Error in get_user_by_email for {email}: {e}", exc_info=True)
     finally:
-        if 'cursor' in locals() and cursor: cursor.close()
-        if conn and conn.is_connected(): conn.close()
-    return user_obj
+        if conn: conn.close()
+    return None
 
 def is_valid_email_format(email):
     return email and re.match(r"[^@]+@[^@]+\.[^@]+", email)
@@ -133,16 +132,13 @@ def init_login_manager(app):
     app.config.setdefault('REMEMBER_COOKIE_SECURE', app.config.get('PREFERRED_URL_SCHEME') == 'https')
     app.config.setdefault('REMEMBER_COOKIE_HTTPONLY', True)
     app.config.setdefault('REMEMBER_COOKIE_SAMESITE', 'Lax')
-
     @login_manager.user_loader
     def load_user(user_id):
         return get_user_by_id(user_id)
 
-
 @login_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # Redirect based on the new, unambiguous role groups
         role = current_user.role_type
         if role in MANAGERIAL_PORTAL_ROLES:
             return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
@@ -172,7 +168,6 @@ def login():
                 if user_obj.is_active:
                     login_user(user_obj, remember=remember)
                     current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in successfully.")
-                    
                     try:
                         conn_update = get_db_connection()
                         cursor_update = conn_update.cursor()
@@ -183,26 +178,20 @@ def login():
                     except Exception as e_update:
                         current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
 
-                    # --- UPDATED, UNAMBIGUOUS REDIRECTION LOGIC ---
                     role = user_obj.role_type
                     if role in MANAGERIAL_PORTAL_ROLES:
                         return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
-                    
                     elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
                         return redirect(url_for('account_manager_bp.portal_home'))
-
                     elif role in RECRUITER_PORTAL_ROLES:
                         return redirect(url_for('recruiter_bp.dashboard'))
-                        
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
-                    
                     elif role == 'Candidate':
                         intended_destination = session.pop('candidate_intended_destination', None)
                         if intended_destination:
                             return redirect(intended_destination)
                         return redirect(url_for('candidate_bp.dashboard'))
-                        
                     else: 
                         current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
                         return redirect(url_for('public_routes_bp.home_page'))
