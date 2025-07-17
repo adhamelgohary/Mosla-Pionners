@@ -2608,6 +2608,11 @@ html[data-theme="dark"] {
   border-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
 }
 
+.border-indigo-700 {
+  --tw-border-opacity: 1;
+  border-color: rgb(67 56 202 / var(--tw-border-opacity, 1));
+}
+
 .border-primary\/50 {
   border-color: rgb(var(--primary-color-rgb) / 0.5);
 }
@@ -3303,6 +3308,11 @@ html[data-theme="dark"] {
 .text-indigo-100 {
   --tw-text-opacity: 1;
   color: rgb(224 231 255 / var(--tw-text-opacity, 1));
+}
+
+.text-indigo-200 {
+  --tw-text-opacity: 1;
+  color: rgb(199 210 254 / var(--tw-text-opacity, 1));
 }
 
 .text-indigo-500 {
@@ -4375,6 +4385,11 @@ body {
   .sm\:px-0 {
     padding-left: 0px;
     padding-right: 0px;
+  }
+
+  .sm\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   .sm\:px-6 {

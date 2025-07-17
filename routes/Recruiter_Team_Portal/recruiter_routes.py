@@ -11,9 +11,10 @@ RECRUITER_PORTAL_ROLES = [
 ]
 
 # Define roles that are considered "Leaders" within this portal and can see the "My Team" page
-LEADER_ROLES_IN_PORTAL = [
-    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'
-]
+# Update LEADER_ROLES_IN_PORTAL to just be the direct leaders
+LEADER_ROLES_IN_PORTAL = ['SourcingTeamLead', 'HeadSourcingTeamLead'] 
+# Define Unit Manager and above as "Division Leaders"
+DIVISION_LEADER_ROLES = ['UnitManager', 'CEO', 'OperationsManager']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
@@ -167,45 +168,64 @@ def my_referred_applications():
                            applications=referred_applications)
     
 
-# --- NEW: `my_team` logic is now moved here ---
+# --- UPDATED `my_team` logic ---
 @recruiter_bp.route('/my-team')
-@login_required_with_role(LEADER_ROLES_IN_PORTAL)
+@login_required_with_role(LEADER_ROLES_IN_PORTAL + DIVISION_LEADER_ROLES)
 def my_team_performance():
-    """ Displays team members for a logged-in sourcing leader. """
+    """ 
+    Displays team members. 
+    - For Sourcing/HeadSourcing Team Leads, it shows their direct reports.
+    - For Unit Managers and above, it shows ALL recruiters in the sourcing division.
+    """
+    user_role = current_user.role_type
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     if not leader_staff_id:
         flash("Your staff profile ID could not be found.", "warning")
         return redirect(url_for('.dashboard'))
 
-    conn = None
     team_members = []
+    is_global_view = user_role in DIVISION_LEADER_ROLES
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        # This query finds everyone who reports directly to this leader
-        # and counts their total referrals.
-        sql = """
-            SELECT 
-                u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
-                (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals
-            FROM Staff s
-            JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s
-            ORDER BY total_referrals DESC, u.LastName ASC
-        """
-        cursor.execute(sql, (leader_staff_id,))
+        if is_global_view:
+            # Unit Managers and above see ALL sourcing staff
+            title = "All Sourcing Team Performance"
+            sql = """
+                SELECT 
+                    u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
+                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
+                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires
+                FROM Staff s
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead')
+                ORDER BY total_hires DESC, total_referrals DESC, u.LastName ASC
+            """
+            cursor.execute(sql)
+        else:
+            # Team Leads see only their direct reports
+            title = "My Team's Referral Performance"
+            sql = """
+                SELECT 
+                    u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
+                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
+                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires
+                FROM Staff s
+                JOIN Users u ON s.UserID = u.UserID
+                WHERE s.ReportsToStaffID = %s
+                ORDER BY total_hires DESC, total_referrals DESC, u.LastName ASC
+            """
+            cursor.execute(sql, (leader_staff_id,))
+        
         team_members = cursor.fetchall()
-    except Exception as e:
-        current_app.logger.error(f"Error fetching team for leader StaffID {leader_staff_id}: {e}", exc_info=True)
-        flash("Could not load team information.", "danger")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals(): cursor.close()
-            conn.close()
+        if conn and conn.is_connected(): conn.close()
             
     return render_template('recruiter_team_portal/my_team.html',
-                           title="My Team's Referral Performance",
-                           team_members=team_members)
+                           title=title,
+                           team_members=team_members,
+                           is_global_view=is_global_view) # Pass this flag to the template
     
 @recruiter_bp.route('/leaderboard')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
