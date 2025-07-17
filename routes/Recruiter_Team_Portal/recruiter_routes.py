@@ -310,15 +310,18 @@ def my_team_view():
             view_data['teams_in_unit'] = cursor.fetchall()
             view_data['assignable_teams'] = view_data['teams_in_unit'] # For recruiter assignment dropdown
 
-            # Fetch potential team leads (unassigned recruiters or those in their unit)
+            # MODIFIED QUERY: Fetch potential team leads (recruiters AND existing leads) within the unit's scope.
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role
                 FROM Staff s JOIN Users u ON s.UserID = u.UserID
-                WHERE s.Role = 'SourcingRecruiter' AND 
-                      (s.TeamID IS NULL OR s.TeamID IN (
-                          SELECT TeamID FROM SourcingTeams WHERE UnitID = 
-                          (SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s)
-                      ))
+                WHERE 
+                    s.Role IN ('SourcingRecruiter', 'SourcingTeamLead') AND (
+                        s.TeamID IN (
+                            SELECT TeamID FROM SourcingTeams WHERE UnitID = (
+                                SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s
+                            )
+                        ) OR s.TeamID IS NULL
+                    )
             """, (leader_staff_id,))
             view_data['potential_team_leads'] = cursor.fetchall()
             
@@ -362,6 +365,7 @@ def my_team_view():
                            potential_team_leads=view_data['potential_team_leads'],
                            unassigned_recruiters=view_data['unassigned_recruiters'],
                            assignable_teams=view_data['assignable_teams'])
+
 
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')

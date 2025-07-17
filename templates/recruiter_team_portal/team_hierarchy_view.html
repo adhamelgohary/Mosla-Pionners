@@ -125,7 +125,9 @@
                                     <select name="lead_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
                                         <option value="" disabled selected>-- Assign a Lead --</option>
                                         {% for lead in potential_team_leads %}
-                                            <option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FirstName }} {{ lead.LastName }}</option>
+                                            <option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>
+                                                {{ lead.FirstName }} {{ lead.LastName }} ({{ lead.Role }})
+                                            </option>
                                         {% endfor %}
                                     </select>
                                     <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
