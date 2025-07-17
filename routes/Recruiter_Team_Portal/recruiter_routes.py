@@ -4,23 +4,23 @@ from flask_login import login_required, current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
 
-# --- CORRECTED ROLE CONSTANTS ---
-# Roles that can access this entire portal
+# All roles that can access this portal.
 RECRUITER_PORTAL_ROLES = [
-    'SourcingRecruiter', 'SourcingTeamLead','UnitManager', 
-    'CEO', 'HeadUnitManager'
+    'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
+    'HeadUnitManager', 'CEO', 'Founder' # Top-level execs can also view
 ]
 
-# --- UPDATED: Define new top-level management roles ---
-HEAD_UNIT_MANAGER_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
-
-# Roles that are considered "Leaders" and can see team views
+# Roles that can see a "Team" view.
 LEADER_ROLES_IN_PORTAL = [
-    'SourcingTeamLead', 'SourcingTeamLead', 'HeadUnitManager', 'CEO'
+    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
+    'HeadUnitManager', 'CEO', 'Founder'
 ]
-# Roles that see the top-level global view of all teams
-DIVISION_LEADER_ROLES = ['CEO', 'HeadUnitManager']
 
+# Roles that see the top-level "All Teams" view by default.
+DIVISION_LEADER_ROLES = ['HeadUnitManager', 'UnitManager', 'CEO', 'Founder']
+
+# Roles that can promote Team Leads to Unit Managers.
+PROMOTION_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
                          template_folder='../../../templates')
@@ -263,7 +263,7 @@ def team_view(leader_staff_id):
 
 
 @recruiter_bp.route('/manage/promote-to-unit-manager/<int:staff_id_to_promote>', methods=['POST'])
-@login_required_with_role(HEAD_UNIT_MANAGER_ROLES)
+@login_required_with_role(PROMOTION_ROLES)
 def promote_to_unit_manager(staff_id_to_promote):
     """Promotes a SourcingTeamLead to a UnitManager."""
     # Redirect back to the team view after the action
