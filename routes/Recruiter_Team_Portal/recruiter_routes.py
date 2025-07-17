@@ -11,6 +11,9 @@ RECRUITER_PORTAL_ROLES = [
     'CEO', 'OperationsManager'
 ]
 
+# --- UPDATED: Define new top-level management roles ---
+HEAD_UNIT_MANAGER_ROLES = ['HeadUnitManager', 'CEO', 'Founder', 'OperationsManager']
+
 # Roles that are considered "Leaders" and can see team views
 LEADER_ROLES_IN_PORTAL = [
     'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'
@@ -257,3 +260,71 @@ def team_view(leader_staff_id):
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
                            team_members=team_members, current_leader=current_leader,
                            breadcrumbs=breadcrumbs)
+
+
+@recruiter_bp.route('/manage/promote-to-unit-manager/<int:staff_id_to_promote>', methods=['POST'])
+@login_required_with_role(HEAD_UNIT_MANAGER_ROLES)
+def promote_to_unit_manager(staff_id_to_promote):
+    """Promotes a SourcingTeamLead to a UnitManager."""
+    # Redirect back to the team view after the action
+    redirect_url = url_for('.my_team_view')
+    head_unit_manager_staff_id = getattr(current_user, 'specific_role_id', None)
+    
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Promote the user and assign them to report to the current HeadUnitManager
+        cursor.execute("""
+            UPDATE Staff SET 
+                Role = 'UnitManager',
+                ReportsToStaffID = %s 
+            WHERE StaffID = %s AND Role = 'SourcingTeamLead'
+        """, (head_unit_manager_staff_id, staff_id_to_promote))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            flash("Staff member successfully promoted to Unit Manager.", "success")
+        else:
+            flash("Promotion failed. The user might not be a SourcingTeamLead.", "warning")
+
+    except Exception as e:
+        current_app.logger.error(f"Error promoting staff {staff_id_to_promote}: {e}", exc_info=True)
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        if conn.is_connected(): conn.close()
+        
+    return redirect(redirect_url)
+
+@recruiter_bp.route('/manage/transfer-recruiter/<int:recruiter_staff_id>', methods=['POST'])
+@login_required_with_role(LEADER_ROLES_IN_PORTAL) # Any leader in the portal can transfer
+def transfer_recruiter(recruiter_staff_id):
+    """Transfers a SourcingRecruiter to a new SourcingTeamLead."""
+    new_leader_staff_id = request.form.get('new_leader_id')
+    # Redirect back to the team view of the recruiter's FORMER manager for context
+    redirect_url = request.form.get('redirect_url', url_for('.my_team_view'))
+
+    if not new_leader_staff_id:
+        flash("You must select a new Team Leader.", "warning")
+        return redirect(redirect_url)
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Staff SET ReportsToStaffID = %s 
+            WHERE StaffID = %s AND Role = 'SourcingRecruiter'
+        """, (new_leader_staff_id, recruiter_staff_id))
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            flash("Recruiter successfully transferred to the new team.", "success")
+        else:
+            flash("Transfer failed. The user might not be a Sourcing Recruiter.", "warning")
+            
+    except Exception as e:
+        current_app.logger.error(f"Error transferring staff {recruiter_staff_id}: {e}", exc_info=True)
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        if conn.is_connected(): conn.close()
+        
+    return redirect(redirect_url)

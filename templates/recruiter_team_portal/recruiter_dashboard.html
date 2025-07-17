@@ -6,11 +6,10 @@
 
 {% block head_extra %}
     {{ super() }}
-    <!-- Add ApexCharts.js library -->
+    <!-- Add ApexCharts.js library for visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 {% endblock %}
 
-{# *** CORRECTED: ONLY ONE 'recruiter_content' BLOCK *** #}
 {% block recruiter_content %}
 <div class="px-4 sm:px-0 mb-8">
     <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
@@ -20,7 +19,7 @@
 <!-- Main Grid for Visualizations -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Left Column: Key Stats & Funnel -->
+    <!-- Left Column: Key Stats & Status Breakdown -->
     <div class="lg:col-span-1 space-y-6">
         <div class="bg-white p-6 rounded-lg shadow-sm border">
             <h3 class="text-lg font-semibold text-gray-900">All-Time Snapshot</h3>
@@ -47,7 +46,7 @@
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 class="text-lg font-semibold text-gray-900">Application Status</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Application Status Breakdown</h3>
             <div id="status-donut-chart" class="mt-4 -mb-4"></div>
         </div>
     </div>
@@ -59,22 +58,28 @@
     </div>
 </div>
 
+<!-- Navigation Links -->
 <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
         <div class="flex items-center">
             <div class="flex-shrink-0 bg-indigo-500 rounded-lg p-3"><i class="bi bi-card-list text-2xl text-white"></i></div>
-            <div class="ml-4"><h4 class="text-lg font-semibold text-gray-800">View My Referrals</h4><p class="text-sm text-gray-500">See a detailed list of every application.</p></div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">View My Referrals</h4>
+                <p class="text-sm text-gray-500">See a detailed list of every application.</p>
+            </div>
         </div>
     </a>
     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
         <div class="flex items-center">
             <div class="flex-shrink-0 bg-amber-500 rounded-lg p-3"><i class="bi bi-trophy-fill text-2xl text-white"></i></div>
-            <div class="ml-4"><h4 class="text-lg font-semibold text-gray-800">Team Leaderboard</h4><p class="text-sm text-gray-500">Check the rankings and top performers.</p></div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Team Leaderboard</h4>
+                <p class="text-sm text-gray-500">Check the rankings and top performers.</p>
+            </div>
         </div>
     </a>
 </div>
 
-{# The script is now placed inside the single content block #}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // --- Donut Chart for Application Status ---
@@ -87,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             series: statusSeries,
             chart: { type: 'donut', height: 250 },
             labels: statusLabels,
-            colors: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#6B7280', '#8B5CF6'], // Indigo, Green, Amber, Red, Gray, Purple
+            colors: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#6B7280', '#8B5CF6'], // Green, Amber, Blue, Red, Gray, Purple
             legend: { position: 'bottom' },
             responsive: [{
                 breakpoint: 480,
@@ -99,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
         document.querySelector("#status-donut-chart").innerHTML = '<div class="text-center text-gray-500 py-8">No status data to display.</div>';
     }
-
 
     // --- Bar Chart for Monthly Performance ---
     const monthlyData = {{ kpis.get('monthly_performance', [])|tojson }};
@@ -116,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function () {
             plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
             dataLabels: { enabled: false },
             stroke: { show: true, width: 2, colors: ['transparent'] },
-            xaxis: { categories: monthlyData.map(item => new Date(item.month + '-01').toLocaleString('default', { month: 'short' })) },
+            xaxis: { categories: monthlyData.map(item => new Date(item.month + '-02').toLocaleString('default', { month: 'short', year: 'numeric' })) },
             yaxis: { title: { text: 'Count' } },
             fill: { opacity: 1 },
             colors: ['#4F46E5', '#10B981'], // Indigo, Green
