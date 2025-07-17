@@ -38,7 +38,7 @@
             <h2 class="text-xl font-bold text-gray-800">
                 Team Members reporting to {{ current_leader.FirstName or current_leader.first_name }} {{ current_leader.LastName or current_leader.last_name }}
             </h2>
-            <p class="mt-1 text-sm text-gray-600">A performance overview of this team.</p>
+            <p class="mt-1 text-sm text-gray-600">A performance overview of this leader's direct reports.</p>
         </div>
         {# Link to the real management page for authorized users #}
         {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
@@ -51,6 +51,7 @@
         {% endif %}
     </div>
 
+    <!-- Main Team Member List -->
     <div class="mt-8 flow-root">
         <div class="inline-block min-w-full py-2 align-middle">
             <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
@@ -73,7 +74,6 @@
                                         <div class="h-10 w-10 flex-shrink-0"><img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt=""></div>
                                         <div class="ml-4">
                                             <div class="font-medium text-gray-900">{{ member.FirstName }} {{ member.LastName }}</div>
-                                            {# Display their specific unit or team name if available #}
                                             <div class="text-xs text-gray-500">{{ member.UnitName or member.TeamName }}</div>
                                         </div>
                                     </div>
@@ -82,7 +82,6 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-green-600 font-bold">{{ member.total_hires }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-indigo-600 font-bold">{{ member.total_referrals }}</td>
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                    {# The direct_reports_count now simply controls the link destination #}
                                     {% if member.direct_reports_count > 0 %}
                                         <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900">View Team →</a>
                                     {% else %}
@@ -99,6 +98,112 @@
             </div>
         </div>
     </div>
-    {# Modal for transfer has been removed as it is no longer needed on this page #}
+    
+    <!-- === UNIT MANAGEMENT PANEL (FOR UNIT MANAGERS) === -->
+    {% if current_user.role_type == 'UnitManager' %}
+    <div class="mt-12 space-y-10">
+        <!-- Section 1: Manage Teams -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border">
+            <div class="sm:flex sm:items-center sm:justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">Manage Teams in Your Unit</h2>
+                <form action="{{ url_for('recruiter_bp.create_team') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
+                    <input type="text" name="team_name" required placeholder="New Team Name" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Team</button>
+                </form>
+            </div>
+            <div class="mt-4 flow-root">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Team Name</th><th class="py-2 text-left text-sm font-medium text-gray-500">Team Lead</th><th class="py-2 text-left text-sm font-medium text-gray-500 w-1/2">Assign Lead</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for team in teams_in_unit %}
+                        <tr>
+                            <td class="py-3 font-medium">{{ team.TeamName }}</td>
+                            <td class="py-3">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</td>
+                            <td class="py-3">
+                                <form action="{{ url_for('recruiter_bp.assign_team_lead') }}" method="POST" class="flex gap-2 items-center">
+                                    <input type="hidden" name="team_id" value="{{ team.TeamID }}">
+                                    <select name="lead_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
+                                        <option value="" disabled selected>-- Assign a Lead --</option>
+                                        {% for lead in potential_team_leads %}
+                                            <option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FirstName }} {{ lead.LastName }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="3" class="text-center py-4 text-gray-500">No teams created in this unit yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Assign Recruiters -->
+        {% if unassigned_recruiters %}
+        <div class="bg-white p-6 rounded-lg shadow-sm border">
+            <h2 class="text-xl font-semibold text-gray-900">Assign Unassigned Recruiters</h2>
+            <p class="text-sm text-gray-600 mt-1">Place the following recruiters into a team within your unit.</p>
+            <div class="mt-4 flow-root">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Recruiter Name</th><th class="py-2 text-left text-sm font-medium text-gray-500 w-1/2">Actions</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for recruiter in unassigned_recruiters %}
+                        <tr>
+                            <td class="py-3 font-medium">{{ recruiter.FirstName }} {{ recruiter.LastName }}</td>
+                            <td class="py-3">
+                                <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
+                                    <input type="hidden" name="recruiter_staff_id" value="{{ recruiter.StaffID }}">
+                                    <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
+                                        <option value="" disabled selected>-- Assign to Team --</option>
+                                        {% for team in teams_in_unit %}
+                                            <option value="{{ team.TeamID }}">{{ team.TeamName }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- === RECRUITER ASSIGNMENT PANEL (FOR TEAM LEADS) === -->
+    {% if current_user.role_type == 'SourcingTeamLead' and unassigned_recruiters %}
+    <div class="mt-12 bg-white p-6 rounded-lg shadow-sm border">
+        <h2 class="text-xl font-semibold text-gray-900">Assign Recruiters to Your Team</h2>
+        <div class="mt-4 flow-root">
+             <table class="min-w-full divide-y divide-gray-200">
+                <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Recruiter Name</th><th class="py-2 text-left text-sm font-medium text-gray-500 w-1/2">Actions</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for recruiter in unassigned_recruiters %}
+                    <tr>
+                        <td class="py-3 font-medium">{{ recruiter.FirstName }} {{ recruiter.LastName }}</td>
+                        <td class="py-3">
+                            <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
+                                <input type="hidden" name="recruiter_staff_id" value="{{ recruiter.StaffID }}">
+                                <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
+                                    {# This list is pre-filtered by the backend to only show the lead's own team #}
+                                    {% for team in assignable_teams %}
+                                        <option value="{{ team.TeamID }}">{{ team.TeamName }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

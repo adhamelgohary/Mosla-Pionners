@@ -14,6 +14,8 @@ LEADER_ROLES_IN_PORTAL = [
     'HeadUnitManager', 'CEO', 'Founder'
 ]
 ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
+TEAM_ASSIGNMENT_ROLES = ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder']
+UNIT_AND_ORG_MANAGEMENT_ROLES = ['UnitManager', 'HeadUnitManager', 'CEO', 'Founder']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
@@ -247,7 +249,7 @@ def _get_performance_stats(cursor, staff_id):
 def my_team_view():
     """
     Acts as the main entry point for team views.
-    This has been REWRITTEN to use the new entity-based system.
+    Now provides extra data for Unit Managers to manage their units.
     """
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     leader_role = getattr(current_user, 'role_type', None)
@@ -258,7 +260,14 @@ def my_team_view():
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    team_members = []
+    
+    view_data = {
+        "team_members": [],
+        "teams_in_unit": [],
+        "potential_team_leads": [],
+        "unassigned_recruiters": [],
+        "assignable_teams": []
+    }
     
     try:
         # Logic for HeadUnitManager, CEO, Founder: Show the Unit Managers they oversee.
@@ -272,10 +281,10 @@ def my_team_view():
             """, (leader_staff_id,))
             for member in cursor.fetchall():
                 member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 1 # Indicates they have a team to view
-                team_members.append(member)
+                member['direct_reports_count'] = 1 
+                view_data['team_members'].append(member)
 
-        # Logic for a UnitManager: Show the Team Leads in their Unit.
+        # Logic for a UnitManager: Show the Team Leads in their Unit AND provide management tools.
         elif leader_role == 'UnitManager':
             cursor.execute("""
                 SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
@@ -287,8 +296,35 @@ def my_team_view():
             """, (leader_staff_id,))
             for member in cursor.fetchall():
                 member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 1 # Indicates they have a team to view
-                team_members.append(member)
+                member['direct_reports_count'] = 1
+                view_data['team_members'].append(member)
+            
+            # Fetch teams within this manager's unit for the management panel
+            cursor.execute("""
+                SELECT st.*, u.FirstName as LeadFirstName, u.LastName as LeadLastName
+                FROM SourcingTeams st
+                LEFT JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
+                LEFT JOIN Users u ON s.UserID = u.UserID
+                WHERE st.UnitID = (SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s)
+            """, (leader_staff_id,))
+            view_data['teams_in_unit'] = cursor.fetchall()
+            view_data['assignable_teams'] = view_data['teams_in_unit'] # For recruiter assignment dropdown
+
+            # Fetch potential team leads (unassigned recruiters or those in their unit)
+            cursor.execute("""
+                SELECT s.StaffID, u.FirstName, u.LastName
+                FROM Staff s JOIN Users u ON s.UserID = u.UserID
+                WHERE s.Role = 'SourcingRecruiter' AND 
+                      (s.TeamID IS NULL OR s.TeamID IN (
+                          SELECT TeamID FROM SourcingTeams WHERE UnitID = 
+                          (SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s)
+                      ))
+            """, (leader_staff_id,))
+            view_data['potential_team_leads'] = cursor.fetchall()
+            
+            # Fetch unassigned recruiters
+            cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+            view_data['unassigned_recruiters'] = cursor.fetchall()
 
         # Logic for a SourcingTeamLead: Show the Recruiters on their team.
         elif leader_role == 'SourcingTeamLead':
@@ -301,8 +337,16 @@ def my_team_view():
             """, (leader_staff_id, leader_staff_id))
             for member in cursor.fetchall():
                 member['total_hires'], member['total_referrals'] = _get_performance_stats(cursor, member['StaffID'])
-                member['direct_reports_count'] = 0 # Recruiters have no reports
-                team_members.append(member)
+                member['direct_reports_count'] = 0 
+                view_data['team_members'].append(member)
+            
+            # Fetch unassigned recruiters for the assignment panel
+            cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+            view_data['unassigned_recruiters'] = cursor.fetchall()
+            
+            # For a Team Lead, the only assignable team is their own
+            cursor.execute("SELECT * FROM SourcingTeams WHERE TeamLeadStaffID = %s", (leader_staff_id,))
+            view_data['assignable_teams'] = cursor.fetchall()
 
     finally:
         if cursor: cursor.close()
@@ -310,9 +354,14 @@ def my_team_view():
 
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title="My Team",
-                           team_members=team_members,
+                           team_members=view_data['team_members'],
                            current_leader=current_user,
-                           breadcrumbs=[])
+                           breadcrumbs=[],
+                           # Pass all the new data to the template
+                           teams_in_unit=view_data['teams_in_unit'],
+                           potential_team_leads=view_data['potential_team_leads'],
+                           unassigned_recruiters=view_data['unassigned_recruiters'],
+                           assignable_teams=view_data['assignable_teams'])
 
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')
@@ -536,17 +585,28 @@ def create_unit():
 
 
 @recruiter_bp.route('/organization/create-team', methods=['POST'])
-@login_required_with_role(ORG_MANAGEMENT_ROLES)
+@login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES)
 def create_team():
     team_name = request.form.get('team_name')
     if not team_name:
         flash("Team Name is required.", "danger")
-        return redirect(url_for('.organization_management'))
+        return redirect(request.referrer or url_for('.organization_management'))
 
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO SourcingTeams (TeamName) VALUES (%s)", (team_name,))
+        cursor = conn.cursor(dictionary=True)
+        # If a Unit Manager is creating a team, auto-assign it to their unit
+        if current_user.role_type == 'UnitManager':
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (current_user.specific_role_id,))
+            unit = cursor.fetchone()
+            if not unit:
+                flash("Could not find your associated unit. Action denied.", "danger")
+                return redirect(url_for('.my_team_view'))
+            
+            cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit['UnitID']))
+        else: # Original logic for org managers
+            cursor.execute("INSERT INTO SourcingTeams (TeamName) VALUES (%s)", (team_name,))
+        
         conn.commit()
         flash(f"Team '{team_name}' created successfully.", "success")
     except Exception as e:
@@ -554,7 +614,7 @@ def create_team():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-    return redirect(url_for('.organization_management'))
+    return redirect(request.referrer or url_for('.organization_management'))
 
 
 @recruiter_bp.route('/organization/assign-unit-manager', methods=['POST'])
@@ -581,14 +641,25 @@ def assign_unit_manager():
 
 
 @recruiter_bp.route('/organization/assign-team-lead', methods=['POST'])
-@login_required_with_role(ORG_MANAGEMENT_ROLES)
+@login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES)
 def assign_team_lead():
     team_id = request.form.get('team_id')
     lead_staff_id = request.form.get('lead_staff_id')
     
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+
+        # Security check for Unit Managers
+        if current_user.role_type == 'UnitManager':
+            cursor.execute("SELECT su.UnitID FROM SourcingUnits su WHERE su.UnitManagerStaffID = %s", (current_user.specific_role_id,))
+            manager_unit = cursor.fetchone()
+            cursor.execute("SELECT st.UnitID FROM SourcingTeams st WHERE st.TeamID = %s", (team_id,))
+            team_unit = cursor.fetchone()
+
+            if not manager_unit or not team_unit or manager_unit['UnitID'] != team_unit['UnitID']:
+                abort(403, "You can only assign leads to teams within your own unit.")
+
         # Assign lead to the team
         cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = %s WHERE TeamID = %s", (lead_staff_id, team_id))
         # Update the staff member's role and make them part of the team they lead
@@ -600,7 +671,7 @@ def assign_team_lead():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-    return redirect(url_for('.organization_management'))
+    return redirect(request.referrer or url_for('.organization_management'))
 
 
 @recruiter_bp.route('/organization/assign-team-to-unit', methods=['POST'])
@@ -642,20 +713,48 @@ def assign_team_to_unit():
 
 
 @recruiter_bp.route('/organization/assign-recruiter-to-team', methods=['POST'])
-@login_required_with_role(ORG_MANAGEMENT_ROLES)
+@login_required_with_role(TEAM_ASSIGNMENT_ROLES)
 def assign_recruiter_to_team():
     recruiter_staff_id = request.form.get('recruiter_staff_id')
     team_id = request.form.get('team_id')
 
+    viewer_staff_id = getattr(current_user, 'specific_role_id', None)
+    viewer_role = getattr(current_user, 'role_type', None)
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # --- Security check: ensure the user has the right to assign to this specific team ---
+        # Top-level managers (HeadUnitManager, CEO, Founder) have universal power and bypass these checks.
+        if viewer_role == 'UnitManager':
+            # A Unit Manager can only assign to teams within their own unit.
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (viewer_staff_id,))
+            manager_unit = cursor.fetchone()
+            
+            cursor.execute("SELECT UnitID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
+            target_team_unit = cursor.fetchone()
+
+            if not manager_unit or not target_team_unit or manager_unit['UnitID'] != target_team_unit['UnitID']:
+                flash("You can only assign recruiters to teams within your unit.", "danger")
+                return redirect(request.referrer or url_for('.organization_management'))
+
+        elif viewer_role == 'SourcingTeamLead':
+            # A Team Lead can only assign to their own team.
+            cursor.execute("SELECT TeamID FROM Staff WHERE StaffID = %s", (viewer_staff_id,))
+            leader_team = cursor.fetchone()
+            
+            if not leader_team or str(leader_team['TeamID']) != str(team_id):
+                flash("You can only assign recruiters to your own team.", "danger")
+                return redirect(request.referrer or url_for('.organization_management'))
+        
+        # --- Original logic continues if security checks pass ---
         # Get Team Lead's StaffID to set the reporting line
         cursor.execute("SELECT TeamLeadStaffID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
         team = cursor.fetchone()
         if not team or not team['TeamLeadStaffID']:
             flash("Cannot assign recruiter. The selected team does not have a lead.", "warning")
-            return redirect(url_for('.organization_management'))
+            return redirect(request.referrer or url_for('.organization_management'))
         
         team_lead_staff_id = team['TeamLeadStaffID']
         
@@ -669,4 +768,4 @@ def assign_recruiter_to_team():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-    return redirect(url_for('.organization_management'))
+    return redirect(request.referrer or url_for('.organization_management'))
