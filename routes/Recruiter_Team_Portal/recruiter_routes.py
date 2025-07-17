@@ -10,10 +10,7 @@ RECRUITER_PORTAL_ROLES = [
     'CEO', 'OperationsManager'
 ]
 
-# Define roles that are considered "Leaders" within this portal and can see the "My Team" page
-# Update LEADER_ROLES_IN_PORTAL to just be the direct leaders
-LEADER_ROLES_IN_PORTAL = ['SourcingTeamLead', 'HeadSourcingTeamLead'] 
-# Define Unit Manager and above as "Division Leaders"
+LEADER_ROLES_IN_PORTAL = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'Founder']
 DIVISION_LEADER_ROLES = ['UnitManager', 'CEO', 'OperationsManager']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
