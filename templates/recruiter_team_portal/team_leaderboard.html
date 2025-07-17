@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 {% endblock %}
 
+{# *** CORRECTED: ONLY ONE 'recruiter_content' BLOCK *** #}
 {% block recruiter_content %}
 <div class="px-4 sm:px-0">
     <div class="sm:flex sm:items-center sm:justify-between">
@@ -34,10 +35,8 @@
         <div id="leaderboard-chart"></div>
     </div>
 </div>
-{% endblock %}
 
-{% block recruiter_content %}
-{{ super() }}
+{# The script is now placed inside the single content block #}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const leaderboardData = {{ leaderboard_data|tojson }};
@@ -59,63 +58,66 @@ document.addEventListener('DOMContentLoaded', function () {
         seriesName = 'Total Referrals';
     }
 
-    const leaderboardOptions = {
-        series: [{
-            name: seriesName,
-            data: leaderboardData.map(item => item[seriesDataKey])
-        }],
-        chart: {
-            type: 'bar',
-            height: 350 + (leaderboardData.length * 20), // Dynamic height
-            toolbar: { show: false }
-        },
-        plotOptions: {
-            bar: {
-                borderRadius: 4,
-                horizontal: true,
-                distributed: true, // This gives each bar a different color
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: function (val, opt) {
-                return val
+    if (leaderboardData.length > 0) {
+        const leaderboardOptions = {
+            series: [{
+                name: seriesName,
+                data: leaderboardData.map(item => item[seriesDataKey])
+            }],
+            chart: {
+                type: 'bar',
+                height: 350 + (leaderboardData.length * 20), // Dynamic height
+                toolbar: { show: false }
             },
-            style: {
-                fontSize: '12px',
-                fontWeight: 'bold',
-                colors: ["#fff"]
-            }
-        },
-        xaxis: {
-            categories: leaderboardData.map(item => `${item.FirstName} ${item.LastName}`),
-        },
-        legend: {
-            show: false // Hide legend since we use distributed colors
-        },
-        colors: [ // A palette of colors for the bars
-            '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
-            '#F43F5E', '#F97316', '#F59E0B', '#84CC16', '#10B981'
-        ],
-        tooltip: {
-            y: {
-                formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
-                    const data = leaderboardData[dataPointIndex];
-                    return `
-                        <div><b>${seriesName}: ${value}</b></div>
-                        <div>Total Referrals: ${data.referrals_all_time}</div>
-                        <div>Total Hires: ${data.hires_all_time}</div>
-                    `;
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    horizontal: true,
+                    distributed: true, // This gives each bar a different color
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                formatter: function (val, opt) {
+                    return val
                 },
-                title: {
-                    formatter: (seriesName) => ''
+                style: {
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    colors: ["#fff"]
+                }
+            },
+            xaxis: {
+                categories: leaderboardData.map(item => `${item.FirstName} ${item.LastName}`),
+            },
+            legend: {
+                show: false // Hide legend since we use distributed colors
+            },
+            colors: [ // A palette of colors for the bars
+                '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899',
+                '#F43F5E', '#F97316', '#F59E0B', '#84CC16', '#10B981'
+            ],
+            tooltip: {
+                y: {
+                    formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
+                        const data = leaderboardData[dataPointIndex];
+                        return `
+                            <div><b>${seriesName}: ${value}</b></div>
+                            <div>Total Referrals: ${data.referrals_all_time}</div>
+                            <div>Total Hires: ${data.hires_all_time}</div>
+                        `;
+                    },
+                    title: {
+                        formatter: (seriesName) => ''
+                    }
                 }
             }
-        }
-    };
-
-    const leaderboardChart = new ApexCharts(document.querySelector("#leaderboard-chart"), leaderboardOptions);
-    leaderboardChart.render();
+        };
+        const leaderboardChart = new ApexCharts(document.querySelector("#leaderboard-chart"), leaderboardOptions);
+        leaderboardChart.render();
+    } else {
+        document.querySelector("#leaderboard-chart").innerHTML = '<div class="text-center text-gray-500 py-16">No leaderboard data available for this criteria.</div>';
+    }
 });
 </script>
 {% endblock %}
