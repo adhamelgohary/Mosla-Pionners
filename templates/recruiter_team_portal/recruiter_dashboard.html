@@ -1,3 +1,5 @@
+--- START OF FILE recruiter_dashboard.html (Updated) ---
+
 {# templates/recruiter_team_portal/recruiter_dashboard.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
@@ -12,8 +14,9 @@
 
 {% block recruiter_content %}
 <div class="px-4 sm:px-0 mb-8">
+    {# The main page title is now dynamic. This can be a secondary welcome message. #}
     <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
-    <p class="mt-1 text-sm text-gray-600">This is your performance and pipeline overview.</p>
+    <p class="mt-1 text-sm text-gray-600">This is the aggregated performance and pipeline overview for your scope.</p>
 </div>
 
 <!-- Main Grid for Visualizations -->

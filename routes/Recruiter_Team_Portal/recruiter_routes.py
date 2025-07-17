@@ -20,23 +20,70 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
                          template_folder='../../../templates')
 
 
-# --- Standard Read-Only Routes ---
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
-    """ The main dashboard for the Recruiter Portal with advanced visualizations. """
-    staff_id = getattr(current_user, 'specific_role_id', None)
-    if not staff_id:
+    """ 
+    The main dashboard for the Recruiter Portal with advanced, role-aware visualizations.
+    The data displayed is aggregated based on the user's role and scope.
+    """
+    user_staff_id = getattr(current_user, 'specific_role_id', None)
+    user_role = getattr(current_user, 'role_type', None)
+
+    if not user_staff_id:
         flash("Your staff profile could not be found.", "danger")
         return redirect(url_for('staff_perf_bp.list_all_staff'))
 
-    kpis = {}
     conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    scoped_staff_ids = []
+    dashboard_title = "My Performance" # Default title
+
     try:
-        cursor = conn.cursor(dictionary=True)
+        # --- Determine the scope of StaffIDs based on the user's role ---
+        if user_role in ORG_MANAGEMENT_ROLES:
+            dashboard_title = "Overall Sourcing Division Performance"
+            # Get all staff in any sourcing role
+            cursor.execute("""
+                SELECT StaffID FROM Staff 
+                WHERE Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager')
+            """)
+            scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
+
+        elif user_role == 'UnitManager':
+            dashboard_title = f"{current_user.first_name}'s Unit Performance"
+            # Get all staff members in all teams that belong to this manager's unit
+            cursor.execute("""
+                SELECT s.StaffID FROM Staff s
+                JOIN SourcingTeams st ON s.TeamID = st.TeamID
+                WHERE st.UnitID = (
+                    SELECT su.UnitID FROM SourcingUnits su WHERE su.UnitManagerStaffID = %s
+                )
+            """, (user_staff_id,))
+            scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
+
+        elif user_role == 'SourcingTeamLead':
+            dashboard_title = f"{current_user.first_name}'s Team Performance"
+            # Get all staff members in this leader's team
+            cursor.execute("""
+                SELECT StaffID FROM Staff WHERE TeamID = (
+                    SELECT TeamID FROM Staff WHERE StaffID = %s
+                )
+            """, (user_staff_id,))
+            scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
+
+        # If a manager has no reports yet, or for a standard recruiter, show their own stats.
+        if not scoped_staff_ids:
+            scoped_staff_ids.append(user_staff_id)
+
+        # --- Fetch KPIs using the determined scope of StaffIDs ---
+        kpis = {}
+        # Create placeholders for the IN clause
+        placeholders = ', '.join(['%s'] * len(scoped_staff_ids))
         
-        funnel_sql = "SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID = %s GROUP BY Status"
-        cursor.execute(funnel_sql, (staff_id,))
+        funnel_sql = f"SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID IN ({placeholders}) GROUP BY Status"
+        cursor.execute(funnel_sql, tuple(scoped_staff_ids))
         funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
         
         kpis['funnel'] = {
@@ -48,28 +95,28 @@ def dashboard():
         kpis['status_breakdown_for_chart'] = funnel_data
         kpis['total_referrals'] = sum(funnel_data.values())
         
-        monthly_sql = """
+        monthly_sql = f"""
             SELECT 
                 DATE_FORMAT(ApplicationDate, '%%Y-%%m') AS month,
                 COUNT(ApplicationID) as total_referrals,
                 SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as total_hires
             FROM JobApplications
-            WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            WHERE ReferringStaffID IN ({placeholders}) AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
             GROUP BY month ORDER BY month ASC
         """
-        cursor.execute(monthly_sql, (staff_id,))
+        cursor.execute(monthly_sql, tuple(scoped_staff_ids))
         kpis['monthly_performance'] = cursor.fetchall()
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {staff_id}: {e}", exc_info=True)
+        current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {user_staff_id}: {e}", exc_info=True)
         flash("Could not load all dashboard data.", "warning")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals(): cursor.close()
-            conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
     return render_template('recruiter_team_portal/recruiter_dashboard.html', 
-                           title="Recruiter Dashboard", kpis=kpis)
+                           title=dashboard_title, kpis=kpis)
+
 
 @recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
