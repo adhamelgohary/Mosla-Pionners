@@ -29,7 +29,6 @@
     --highlight-gradient: linear-gradient(135deg, var(--secondary-color), #4a9eff); 
     --footer-link-hover: var(--secondary-color); 
     --transition-speed: 0.3s; 
-    --bg-image-opacity: 1;
 
     /* Forms & Other Pages */
     --content-bg-color: var(--card-bg);
@@ -68,7 +67,6 @@ html[data-theme="dark"] {
     --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     --highlight-gradient: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
     --footer-link-hover: var(--primary-color); 
-    --bg-image-opacity: 0.05;
 
     /* --- Dark Mode Forms & Other --- */
     --content-bg-color: var(--card-bg);
@@ -387,7 +385,6 @@ html[data-theme="dark"] .theme-toggle-button .moon-icon { opacity: 1; transform:
 .bg-image {
     position: absolute;
     display: block;
-    opacity: var(--bg-image-opacity);
     animation: float 15s ease-in-out infinite;
     object-fit: contain;
     transition: opacity 0.3s ease;
@@ -487,9 +484,6 @@ html[data-theme="dark"] .file-upload-label {
 @media (max-width: 768px) {
     .form-wrapper {
         padding: 2rem 1.5rem;
-    }
-    .bg-image {
-        opacity: calc(var(--bg-image-opacity) * 0.6);
     }
     .image-1 { width: 50px; height: 50px; }
     .image-2 { width: 35px; height: 35px; }
