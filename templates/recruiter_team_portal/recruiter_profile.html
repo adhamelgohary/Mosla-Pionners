@@ -1,3 +1,5 @@
+--- START OF FILE recruiter_profile.html ---
+
 {# templates/recruiter_team_portal/recruiter_profile.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
@@ -16,7 +18,7 @@
 {% block recruiter_content %}
 {# --- Permission Flags for easier conditional rendering --- #}
 {% set is_head_unit_manager_or_above = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-{% set is_viewing_own_profile = current_user.id == profile_data.info.UserID %}
+{% set is_viewing_own_profile = current_user.specific_role_id == profile_data.info.StaffID %}
 {% set can_manage_this_user = (is_head_unit_manager_or_above or current_user.specific_role_id == profile_data.info.ReportsToStaffID) and not is_viewing_own_profile %}
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" x-data="{ isTransferModalOpen: false }">
@@ -101,7 +103,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td class="text-center py-10 text-gray-500">No recent referrals found.</td></tr>
+                    <tr><td class="text-center py-10 text-gray-500 col-span-2">No recent referrals found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

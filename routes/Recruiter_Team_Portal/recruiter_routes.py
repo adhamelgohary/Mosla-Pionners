@@ -216,7 +216,7 @@ def _get_team_members(leader_staff_id, leader_role):
     if roles_to_find:
         placeholders = ', '.join(['%s'] * len(roles_to_find))
         sql = f"""
-            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
+            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID, {stats_subquery}
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.ReportsToStaffID = %s AND s.Role IN ({placeholders})
             ORDER BY s.Role, u.LastName
@@ -225,7 +225,7 @@ def _get_team_members(leader_staff_id, leader_role):
     else:
         # Fallback for roles at the bottom of the hierarchy (or undefined)
         sql = f"""
-            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
+            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID, {stats_subquery}
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.ReportsToStaffID = %s
             ORDER BY u.LastName
@@ -248,13 +248,24 @@ def my_team_view():
         flash("Your staff profile could not be found.", "warning")
         return redirect(url_for('.dashboard'))
     
-    # The helper function now intelligently gets the right team members
     team_members = _get_team_members(leader_staff_id, leader_role)
     
+    # Fetch all team leads for the transfer modal
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role = 'SourcingTeamLead'
+    """)
+    all_sourcing_team_leads = cursor.fetchall()
+    conn.close()
+
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title="My Team",
                            team_members=team_members,
                            current_leader=current_user,
+                           all_sourcing_team_leads=all_sourcing_team_leads,
                            breadcrumbs=[])
 
 
@@ -265,7 +276,7 @@ def team_view(leader_staff_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Security check (remains the same)
+    # Security check
     cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (leader_staff_id,))
     leader_info = cursor.fetchone()
     if not (current_user.role_type in DIVISION_LEADER_ROLES or (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
@@ -278,14 +289,20 @@ def team_view(leader_staff_id):
         conn.close()
         abort(404)
     
-    # --- THIS IS THE FIX ---
-    # We now have the leader's role from the `current_leader` dictionary.
-    # We must pass it as the second argument to the helper function.
+    # *** FIX: Pass the sub-leader's actual role to the helper function ***
     team_members = _get_team_members(leader_staff_id, current_leader['Role'])
     
-    conn.close() # Close connection after all queries are done
+    # Fetch all team leads for the transfer modal
+    cursor.execute("""
+        SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role = 'SourcingTeamLead'
+    """)
+    all_sourcing_team_leads = cursor.fetchall()
     
-    # Build breadcrumbs for navigation (remains the same)
+    conn.close()
+    
+    # Build breadcrumbs for navigation
     breadcrumbs = [
         {'name': 'My Team', 'url': url_for('.my_team_view')},
         {'name': f"{current_leader['FirstName']} {current_leader['LastName']}", 'url': None}
@@ -295,6 +312,7 @@ def team_view(leader_staff_id):
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
                            team_members=team_members, 
                            current_leader=current_leader,
+                           all_sourcing_team_leads=all_sourcing_team_leads,
                            breadcrumbs=breadcrumbs)
 
 
@@ -302,8 +320,7 @@ def team_view(leader_staff_id):
 @login_required_with_role(PROMOTION_ROLES)
 def promote_to_unit_manager(staff_id_to_promote):
     """Promotes a SourcingTeamLead to a UnitManager."""
-    # Redirect back to the team view after the action
-    redirect_url = url_for('.my_team_view')
+    redirect_url = request.referrer or url_for('.my_team_view')
     head_unit_manager_staff_id = getattr(current_user, 'specific_role_id', None)
     
     conn = get_db_connection()
@@ -332,11 +349,10 @@ def promote_to_unit_manager(staff_id_to_promote):
     return redirect(redirect_url)
 
 @recruiter_bp.route('/manage/transfer-recruiter/<int:recruiter_staff_id>', methods=['POST'])
-@login_required_with_role(LEADER_ROLES_IN_PORTAL) # Any leader in the portal can transfer
+@login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def transfer_recruiter(recruiter_staff_id):
     """Transfers a SourcingRecruiter to a new SourcingTeamLead."""
     new_leader_staff_id = request.form.get('new_leader_id')
-    # Redirect back to the team view of the recruiter's FORMER manager for context
     redirect_url = request.form.get('redirect_url', url_for('.my_team_view'))
 
     if not new_leader_staff_id:
@@ -391,7 +407,7 @@ def view_recruiter_profile(staff_id_viewing):
             abort(404, "Staff member not found.")
         profile_data['info'] = profile_info
 
-        # Security check
+        # Security check: Viewer must be their manager, a division leader, or viewing their own profile.
         is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
         is_top_level_manager = current_user.role_type in DIVISION_LEADER_ROLES
         is_own_profile = (profile_info['StaffID'] == viewer_staff_id)
@@ -422,8 +438,8 @@ def view_recruiter_profile(staff_id_viewing):
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role = 'SourcingTeamLead' AND s.StaffID != %s
-        """, (staff_id_viewing,))
+            WHERE s.Role = 'SourcingTeamLead'
+        """)
         profile_data['sourcing_team_leads'] = cursor.fetchall()
 
     finally:

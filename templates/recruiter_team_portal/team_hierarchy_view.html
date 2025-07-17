@@ -70,14 +70,12 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ member.Role }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-700">{{ member.direct_reports_count }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-green-600 font-bold">{{ member.total_hires }}</td>
-                                <!-- In team_hierarchy_view.html -->
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
                                     <div class="flex items-center justify-center gap-4">
                                         <!-- Main Action Link -->
                                         {% if member.direct_reports_count > 0 %}
                                             <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Team">View Team →</a>
                                         {% else %}
-                                            <!-- *** UPDATED LINK to new recruiter profile page *** -->
                                             <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Performance Profile">View Profile</a>
                                         {% endif %}
                                         <!-- Management Tools -->
@@ -117,10 +115,10 @@
                     <label for="new_leader_id" class="block text-sm font-medium text-gray-700">Select New Team Lead</label>
                     <select id="new_leader_id" name="new_leader_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <option value="" disabled selected>-- Choose a new leader --</option>
-                        {% for leader in team_members %}
-                            {# Show other team leads at the same level as potential transfer targets #}
-                            <template x-if="leader.Role == 'SourcingTeamLead' && leader.StaffID != transferTarget.ReportsToStaffID">
-                               <option :value="leader.StaffID" x-text="leader.FirstName + ' ' + leader.LastName"></option>
+                        {% for leader in all_sourcing_team_leads %}
+                            {# Use Alpine to check against the target user's current manager #}
+                            <template x-if="leader.StaffID != transferTarget.ReportsToStaffID">
+                               <option :value="leader.StaffID" x-text="leader.FullName"></option>
                             </template>
                         {% endfor %}
                     </select>
