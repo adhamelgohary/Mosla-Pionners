@@ -36,7 +36,7 @@
         
                                 {# Team view is visible to all leaders, but the link text changes based on their role #}
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
-                                    <a href="{{ url_for('recruiter_bp.my_team_performance') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_performance' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_view' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                         {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
                                             All Teams
                                         {% else %}
