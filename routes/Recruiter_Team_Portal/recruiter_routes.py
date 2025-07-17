@@ -265,18 +265,27 @@ def team_view(leader_staff_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
+    # Security check (remains the same)
     cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (leader_staff_id,))
     leader_info = cursor.fetchone()
     if not (current_user.role_type in DIVISION_LEADER_ROLES or (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
         abort(403)
 
+    # Get details of the leader whose team we are viewing
     cursor.execute("SELECT u.FirstName, u.LastName, s.Role, s.StaffID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (leader_staff_id,))
     current_leader = cursor.fetchone()
-    if not current_leader: abort(404)
-    conn.close()
+    if not current_leader: 
+        conn.close()
+        abort(404)
     
-    team_members = _get_team_members(leader_staff_id)
+    # --- THIS IS THE FIX ---
+    # We now have the leader's role from the `current_leader` dictionary.
+    # We must pass it as the second argument to the helper function.
+    team_members = _get_team_members(leader_staff_id, current_leader['Role'])
     
+    conn.close() # Close connection after all queries are done
+    
+    # Build breadcrumbs for navigation (remains the same)
     breadcrumbs = [
         {'name': 'My Team', 'url': url_for('.my_team_view')},
         {'name': f"{current_leader['FirstName']} {current_leader['LastName']}", 'url': None}
@@ -284,7 +293,8 @@ def team_view(leader_staff_id):
     
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
-                           team_members=team_members, current_leader=current_leader,
+                           team_members=team_members, 
+                           current_leader=current_leader,
                            breadcrumbs=breadcrumbs)
 
 
