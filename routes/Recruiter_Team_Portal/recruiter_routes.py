@@ -188,30 +188,51 @@ def team_leaderboard():
     return render_template('recruiter_team_portal/team_leaderboard.html',
                            title=title, leaderboard_data=leaderboard_data, current_sort=sort_by)
 
-def _get_team_members(leader_staff_id, is_global_view=False):
-    """A helper function to fetch team members for a given leader or all sourcing staff."""
+def _get_team_members(leader_staff_id, leader_role):
+    """
+    A helper function to fetch team members based on the leader's specific role.
+    """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
     stats_subquery = """
         (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
         (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires,
         (SELECT COUNT(*) FROM Staff WHERE ReportsToStaffID = s.StaffID) as direct_reports_count
     """
-    if is_global_view:
+    
+    # --- NEW HIERARCHICAL LOGIC ---
+    # Determine which roles to look for based on the manager's role.
+    roles_to_find = []
+    if leader_role in ['HeadUnitManager', 'CEO', 'Founder']:
+        roles_to_find = ['UnitManager']
+    elif leader_role == 'UnitManager':
+        roles_to_find = ['HeadSourcingTeamLead', 'SourcingTeamLead']
+    elif leader_role == 'HeadSourcingTeamLead':
+        roles_to_find = ['SourcingTeamLead']
+    elif leader_role == 'SourcingTeamLead':
+        roles_to_find = ['SourcingRecruiter']
+
+    if roles_to_find:
+        placeholders = ', '.join(['%s'] * len(roles_to_find))
         sql = f"""
             SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s AND s.Role IN ('HeadSourcingTeamLead', 'SourcingTeamLead')
+            WHERE s.ReportsToStaffID = %s AND s.Role IN ({placeholders})
             ORDER BY s.Role, u.LastName
         """
-        cursor.execute(sql, (leader_staff_id,))
+        params = [leader_staff_id] + roles_to_find
     else:
+        # Fallback for roles at the bottom of the hierarchy (or undefined)
         sql = f"""
             SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
-            FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.ReportsToStaffID = %s
-            ORDER BY s.Role, u.LastName
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.ReportsToStaffID = %s
+            ORDER BY u.LastName
         """
-        cursor.execute(sql, (leader_staff_id,))
+        params = [leader_staff_id]
+        
+    cursor.execute(sql, tuple(params))
     team_members = cursor.fetchall()
     conn.close()
     return team_members
@@ -219,18 +240,23 @@ def _get_team_members(leader_staff_id, is_global_view=False):
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def my_team_view():
-    """ Acts as the main entry point for team views. """
+    """ Acts as the main entry point for team views, now using role-based fetching. """
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
-    if not leader_staff_id:
-        flash("Your staff profile ID could not be found.", "warning")
+    leader_role = getattr(current_user, 'role_type', None)
+
+    if not leader_staff_id or not leader_role:
+        flash("Your staff profile could not be found.", "warning")
         return redirect(url_for('.dashboard'))
     
-    is_top_level_view = current_user.role_type in DIVISION_LEADER_ROLES
-    team_members = _get_team_members(leader_staff_id, is_global_view=is_top_level_view)
+    # The helper function now intelligently gets the right team members
+    team_members = _get_team_members(leader_staff_id, leader_role)
     
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
-                           title="My Team", team_members=team_members,
-                           current_leader=current_user, breadcrumbs=[])
+                           title="My Team",
+                           team_members=team_members,
+                           current_leader=current_user,
+                           breadcrumbs=[])
+
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)

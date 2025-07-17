@@ -13,7 +13,7 @@ login_manager = LoginManager()
 # --- DEFINITIVE ROLE CONSTANTS FOR REDIRECTION ---
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder', 'SalesManager', 'Admin', 'OperationsManager']
 ACCOUNT_MANAGER_PORTAL_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
-RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager']
+RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitManager', 'UnitManager']
 CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
