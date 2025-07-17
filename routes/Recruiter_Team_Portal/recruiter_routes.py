@@ -7,19 +7,19 @@ from db import get_db_connection
 # --- CORRECTED ROLE CONSTANTS ---
 # Roles that can access this entire portal
 RECRUITER_PORTAL_ROLES = [
-    'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
-    'CEO', 'OperationsManager'
+    'SourcingRecruiter', 'SourcingTeamLead','UnitManager', 
+    'CEO', 'HeadUnitManager'
 ]
 
 # --- UPDATED: Define new top-level management roles ---
-HEAD_UNIT_MANAGER_ROLES = ['HeadUnitManager', 'CEO', 'Founder', 'OperationsManager']
+HEAD_UNIT_MANAGER_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 
 # Roles that are considered "Leaders" and can see team views
 LEADER_ROLES_IN_PORTAL = [
-    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'
+    'SourcingTeamLead', 'SourcingTeamLead', 'HeadUnitManager', 'CEO'
 ]
 # Roles that see the top-level global view of all teams
-DIVISION_LEADER_ROLES = ['UnitManager', 'CEO', 'OperationsManager']
+DIVISION_LEADER_ROLES = ['CEO', 'HeadUnitManager']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
@@ -328,3 +328,72 @@ def transfer_recruiter(recruiter_staff_id):
         if conn.is_connected(): conn.close()
         
     return redirect(redirect_url)
+
+
+@recruiter_bp.route('/profile/<int:staff_id_viewing>')
+@login_required_with_role(LEADER_ROLES_IN_PORTAL)
+def view_recruiter_profile(staff_id_viewing):
+    """
+    Displays a dedicated performance and management profile for a member of the sourcing division.
+    """
+    viewer_staff_id = getattr(current_user, 'specific_role_id', None)
+    profile_data = {}
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # 1. Fetch the profile's main info
+        cursor.execute("""
+            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, s.ReportsToStaffID
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.StaffID = %s
+        """, (staff_id_viewing,))
+        profile_info = cursor.fetchone()
+        if not profile_info:
+            abort(404, "Staff member not found.")
+        profile_data['info'] = profile_info
+
+        # Security check: Make sure viewer is a manager of the person being viewed
+        # (This is simplified; a full recursive check would be more robust but this covers most cases)
+        is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
+        is_top_level_manager = current_user.role_type in DIVISION_LEADER_ROLES
+        if not (is_manager or is_top_level_manager or profile_info['StaffID'] == viewer_staff_id):
+            abort(403)
+
+        # 2. Fetch KPIs for the profile
+        kpis = {}
+        cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s", (staff_id_viewing,))
+        kpis['referrals_all_time'] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s AND Status = 'Hired'", (staff_id_viewing,))
+        kpis['hires_all_time'] = cursor.fetchone()['count']
+        profile_data['kpis'] = kpis
+
+        # 3. Fetch recent applications
+        cursor.execute("""
+            SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, jo.Title as JobTitle
+            FROM JobApplications ja
+            JOIN Candidates c ON ja.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            WHERE ja.ReferringStaffID = %s
+            ORDER BY ja.ApplicationDate DESC LIMIT 10
+        """, (staff_id_viewing,))
+        profile_data['recent_applications'] = cursor.fetchall()
+        
+        # 4. Fetch list of other SourcingTeamLeads for the transfer modal
+        cursor.execute("""
+            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role = 'SourcingTeamLead' AND s.StaffID != %s
+        """, (staff_id_viewing,))
+        profile_data['sourcing_team_leads'] = cursor.fetchall()
+
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+            
+    return render_template('recruiter_team_portal/recruiter_profile.html',
+                           title=f"Profile: {profile_data['info']['FirstName']}",
+                           profile_data=profile_data)

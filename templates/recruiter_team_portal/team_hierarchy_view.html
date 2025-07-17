@@ -70,25 +70,31 @@
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ member.Role }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-700">{{ member.direct_reports_count }}</td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-green-600 font-bold">{{ member.total_hires }}</td>
+                                <!-- In team_hierarchy_view.html -->
                                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                    <div class="flex items-center justify-center gap-2">
+                                    <div class="flex items-center justify-center gap-4">
+                                        <!-- Main Action Link -->
                                         {% if member.direct_reports_count > 0 %}
                                             <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900" title="View Team">View Team →</a>
                                         {% else %}
-                                            <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="text-gray-500 hover:text-indigo-700" title="View Full Profile">View Profile</a>
+                                            <!-- *** UPDATED LINK to new profile page *** -->
+                                            <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-gray-500 hover:text-indigo-700" title="View Performance Profile">View Profile</a>
                                         {% endif %}
 
-                                        <!-- Promote Button -->
-                                        {% if is_head_unit_manager_or_above and member.Role == 'SourcingTeamLead' %}
-                                            <form action="{{ url_for('recruiter_bp.promote_to_unit_manager', staff_id_to_promote=member.StaffID) }}" method="POST" onsubmit="return confirm('Are you sure you want to promote this Team Lead to a Unit Manager?');">
-                                                <button type="submit" class="text-green-600 hover:text-green-900" title="Promote to Unit Manager"><i class="bi bi-arrow-up-circle-fill"></i></button>
-                                            </form>
-                                        {% endif %}
+                                        <!-- Management Tools -->
+                                        <div class="flex items-center justify-center gap-2 border-l pl-3">
+                                            <!-- Promote Button -->
+                                            {% if is_head_unit_manager_or_above and member.Role == 'SourcingTeamLead' %}
+                                                <form action="{{ url_for('recruiter_bp.promote_to_unit_manager', staff_id_to_promote=member.StaffID) }}" method="POST" onsubmit="return confirm('Promote this leader to Unit Manager?');">
+                                                    <button type="submit" class="text-green-600 hover:text-green-900" title="Promote to Unit Manager"><i class="bi bi-arrow-up-circle-fill"></i></button>
+                                                </form>
+                                            {% endif %}
 
-                                        <!-- Transfer Button -->
-                                        {% if (is_head_unit_manager_or_above or current_user.specific_role_id == member.ReportsToStaffID) and member.Role == 'SourcingRecruiter' %}
-                                            <button @click="isTransferModalOpen = true; transferTarget = {{ member|tojson }}" type="button" class="text-blue-600 hover:text-blue-900" title="Transfer Recruiter"><i class="bi bi-arrow-left-right"></i></button>
-                                        {% endif %}
+                                            <!-- Transfer Button -->
+                                            {% if (is_head_unit_manager_or_above or current_user.specific_role_id == member.ReportsToStaffID) and member.Role == 'SourcingRecruiter' %}
+                                                <button @click="isTransferModalOpen = true; transferTarget = {{ member|tojson }}" type="button" class="text-blue-600 hover:text-blue-900" title="Transfer Recruiter"><i class="bi bi-arrow-left-right"></i></button>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

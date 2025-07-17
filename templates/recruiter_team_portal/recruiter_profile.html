@@ -1,0 +1,129 @@
+{# templates/recruiter_team_portal/recruiter_profile.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+
+{% block recruiter_page_title %}
+    <div class="flex items-center gap-3">
+        <img class="h-12 w-12 rounded-full object-cover" src="{{ profile_data.info.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="Profile picture of {{ profile_data.info.FirstName }}">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900">{{ profile_data.info.FirstName }} {{ profile_data.info.LastName }}</h1>
+            <p class="text-sm text-gray-500">{{ profile_data.info.Role }} - Performance Profile</p>
+        </div>
+    </div>
+{% endblock %}
+
+{% block recruiter_content %}
+{# --- Permission Flags for easier conditional rendering --- #}
+{% set is_head_unit_manager_or_above = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'OperationsManager'] %}
+{% set is_viewing_own_profile = current_user.id == profile_data.info.UserID %}
+{% set can_manage_this_user = (is_head_unit_manager_or_above or current_user.specific_role_id == profile_data.info.ReportsToStaffID) and not is_viewing_own_profile %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6" x-data="{ isTransferModalOpen: false }">
+
+    <!-- Left Column: KPIs and Management Tools -->
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm border">
+            <h3 class="text-lg font-semibold text-gray-900">Performance Snapshot</h3>
+            <dl class="mt-4 space-y-4">
+                <div class="flex items-center justify-between">
+                    <dt class="text-sm font-medium text-gray-500">Total Referrals (All-Time)</dt>
+                    <dd class="text-lg font-bold text-indigo-600">{{ profile_data.kpis.referrals_all_time }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-sm font-medium text-gray-500">Total Hires (All-Time)</dt>
+                    <dd class="text-lg font-bold text-green-600">{{ profile_data.kpis.hires_all_time }}</dd>
+                </div>
+                <div class="flex items-center justify-between">
+                    <dt class="text-sm font-medium text-gray-500">Success Rate</dt>
+                    <dd class="text-lg font-bold text-gray-800">
+                        {% if profile_data.kpis.referrals_all_time > 0 %}
+                            {{ "%.1f"|format(profile_data.kpis.hires_all_time * 100 / profile_data.kpis.referrals_all_time) }}%
+                        {% else %}0.0%{% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Management Tools -->
+        {% if can_manage_this_user %}
+        <div class="bg-white p-6 rounded-lg shadow-sm border">
+            <h3 class="text-lg font-semibold text-gray-900">Management Actions</h3>
+            
+            <!-- Promote Button -->
+            {% if is_head_unit_manager_or_above and profile_data.info.Role == 'SourcingTeamLead' %}
+            <div class="mt-4">
+                <p class="text-sm font-medium text-gray-700">Promote to Unit Manager</p>
+                <form action="{{ url_for('recruiter_bp.promote_to_unit_manager', staff_id_to_promote=profile_data.info.StaffID) }}" method="POST" onsubmit="return confirm('Promote this leader to Unit Manager?');" class="mt-2">
+                    <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Promote</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Transfer Button -->
+            {% if profile_data.info.Role == 'SourcingRecruiter' %}
+            <div class="mt-4 {% if is_head_unit_manager_or_above and profile_data.info.Role == 'SourcingTeamLead' %}border-t pt-4{% endif %}">
+                <p class="text-sm font-medium text-gray-700">Transfer Recruiter</p>
+                <button @click="isTransferModalOpen = true" type="button" class="mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Transfer</button>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 border-t pt-4">
+                 <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=profile_data.info.UserID) }}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="bi bi-person-gear mr-2"></i> Full Management Profile
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Recent Referrals List -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border">
+        <h3 class="px-6 py-4 text-lg font-semibold text-gray-900 border-b">Recent Referrals</h3>
+        <div class="overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-200">
+                    {% for app in profile_data.recent_applications %}
+                    <tr>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-800">{{ app.FirstName }} {{ app.LastName }}</p>
+                            <p class="text-sm text-gray-500">Applied for: {{ app.JobTitle }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                             <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ {'Hired': 'bg-green-50 text-green-700 ring-green-600/20', 'Rejected': 'bg-red-50 text-red-700 ring-red-600/20'}.get(app.Status, 'bg-blue-50 text-blue-700 ring-blue-600/20') }}">{{ app.Status }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td class="text-center py-10 text-gray-500">No recent referrals found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Transfer Recruiter Modal -->
+    <div x-show="isTransferModalOpen" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50" style="display: none;">
+        <div @click.away="isTransferModalOpen = false" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium leading-6 text-gray-900">Transfer {{ profile_data.info.FirstName }}</h3>
+            <form :action="'{{ url_for('recruiter_bp.transfer_recruiter', recruiter_staff_id=0) }}'.replace('0', {{ profile_data.info.StaffID }})" method="POST" class="mt-4">
+                <input type="hidden" name="redirect_url" value="{{ request.url }}">
+                <div>
+                    <label for="new_leader_id" class="block text-sm font-medium text-gray-700">Select New Team Lead</label>
+                    <select id="new_leader_id" name="new_leader_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="" disabled selected>-- Choose a new leader --</option>
+                        {% for leader in profile_data.sourcing_team_leads %}
+                            {% if leader.StaffID != profile_data.info.ReportsToStaffID %}
+                            <option value="{{ leader.StaffID }}">{{ leader.FullName }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button @click="isTransferModalOpen = false" type="button" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Confirm Transfer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
