@@ -8,9 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <title>{% block recruiter_title %}Recruiter Portal{% endblock %} - Mosla Pioneers</title>
     
-    <!-- Alpine.js for interactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
     {% block head_extra %}{% endblock %}
 </head>
 <body class="h-full">
@@ -28,15 +26,12 @@
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-4">
-                                <!-- Main Links for this portal -->
                                 <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Dashboard</a>
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
-                                
                                 <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
         
-                                {# Team view is visible to all leaders, but the link text changes based on their role #}
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
-                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_view' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint in ['recruiter_bp.my_team_view', 'recruiter_bp.team_view'] else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                         {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
                                             All Teams
                                         {% else %}
@@ -47,7 +42,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Profile Dropdown -->
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
                             <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
@@ -64,7 +58,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Mobile menu button -->
                     <div class="-mr-2 flex md:hidden">
                         <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-indigo-600 p-2 text-indigo-200 hover:bg-indigo-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
                             <span class="sr-only">Open main menu</span>
@@ -74,20 +67,19 @@
                 </div>
             </div>
 
-            <!-- Mobile menu -->
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('recruiter_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Dashboard</a>
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
                     {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
-                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_view' or request.endpoint == 'recruiter_bp.team_view' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
-        {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
-            All Teams
-        {% else %}
-            My Team
-        {% endif %}
-    </a>
+                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint in ['recruiter_bp.my_team_view', 'recruiter_bp.team_view'] else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+                            {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
+                                All Teams
+                            {% else %}
+                                My Team
+                            {% endif %}
+                        </a>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">
@@ -126,7 +118,6 @@
                     </div>
                     {% endif %}
                 {% endwith %}
-
                 {% block recruiter_content %}{% endblock %}
             </div>
         </main>

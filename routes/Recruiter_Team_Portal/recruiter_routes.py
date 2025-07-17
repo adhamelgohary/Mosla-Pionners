@@ -1,16 +1,21 @@
 # routes/Recruiter_Team_Portal/recruiter_routes.py
-from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request , jsonify
+from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request, jsonify
 from flask_login import login_required, current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
 
-# Define roles that can access this entire portal
+# --- CORRECTED ROLE CONSTANTS ---
+# Roles that can access this entire portal
 RECRUITER_PORTAL_ROLES = [
     'SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 
     'CEO', 'OperationsManager'
 ]
 
-LEADER_ROLES_IN_PORTAL = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'Founder']
+# Roles that are considered "Leaders" and can see team views
+LEADER_ROLES_IN_PORTAL = [
+    'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'
+]
+# Roles that see the top-level global view of all teams
 DIVISION_LEADER_ROLES = ['UnitManager', 'CEO', 'OperationsManager']
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
@@ -31,7 +36,6 @@ def dashboard():
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- 1. Data for Status Donut Chart & Funnel ---
         funnel_sql = "SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID = %s GROUP BY Status"
         cursor.execute(funnel_sql, (staff_id,))
         funnel_data = {row['Status']: row['count'] for row in cursor.fetchall()}
@@ -45,7 +49,6 @@ def dashboard():
         kpis['status_breakdown_for_chart'] = funnel_data
         kpis['total_referrals'] = sum(funnel_data.values())
         
-        # --- 2. Data for Monthly Performance Bar Chart (Last 6 Months) ---
         monthly_sql = """
             SELECT 
                 DATE_FORMAT(ApplicationDate, '%%Y-%%m') AS month,
@@ -53,8 +56,7 @@ def dashboard():
                 SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as total_hires
             FROM JobApplications
             WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY month
-            ORDER BY month ASC
+            GROUP BY month ORDER BY month ASC
         """
         cursor.execute(monthly_sql, (staff_id,))
         kpis['monthly_performance'] = cursor.fetchall()
@@ -68,16 +70,12 @@ def dashboard():
             conn.close()
 
     return render_template('recruiter_team_portal/recruiter_dashboard.html', 
-                           title="Recruiter Dashboard", 
-                           kpis=kpis)
+                           title="Recruiter Dashboard", kpis=kpis)
 
 @recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def review_referred_application(application_id):
-    """
-    Provides a read-only view of an application's details, specifically for recruiters.
-    This ensures recruiters can't perform AM actions but can see the details.
-    """
+    """ Provides a read-only view of an application's details for recruiters. """
     staff_id = getattr(current_user, 'specific_role_id', None)
     if not staff_id: abort(403)
     
@@ -85,13 +83,11 @@ def review_referred_application(application_id):
     review_data = {}
     try:
         cursor = conn.cursor(dictionary=True)
-        # Verify this recruiter is authorized to see this application
         cursor.execute("SELECT ReferringStaffID FROM JobApplications WHERE ApplicationID = %s", (application_id,))
         app_check = cursor.fetchone()
         if not app_check or app_check.get('ReferringStaffID') != staff_id:
             abort(403)
 
-        # Fetch all the details for the modal
         cursor.execute("""
             SELECT ja.ApplicationID, ja.NotesByCandidate, ja.ApplicationDate, ja.NotesByStaff,
                    c.CandidateID, jo.OfferID, jo.Title as OfferTitle, comp.CompanyName
@@ -121,10 +117,8 @@ def review_referred_application(application_id):
             cursor.close()
             conn.close()
 
-    # We can reuse the AM portal's modal template, but pass a flag to disable actions.
     return render_template('account_manager_portal/application_review_modal.html', 
-                           review_data=review_data, 
-                           is_recruiter_view=True) # Pass a flag to the template
+                           review_data=review_data, is_recruiter_view=True)
     
 @recruiter_bp.route('/my-referrals')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
@@ -152,35 +146,55 @@ def my_referred_applications():
         """
         cursor.execute(sql, (staff_id,))
         referred_applications = cursor.fetchall()
-    except Exception as e:
-        current_app.logger.error(f"Error fetching referred apps for StaffID {staff_id}: {e}", exc_info=True)
-        flash("An error occurred while loading your referred applications.", "danger")
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals(): cursor.close()
             conn.close()
     
     return render_template('recruiter_team_portal/my_referred_applications.html',
-                           title="My Referred Applications",
-                           applications=referred_applications)
+                           title="My Referred Applications", applications=referred_applications)
     
-# --- HIERARCHICAL TEAM VIEW ROUTES ---
+@recruiter_bp.route('/leaderboard')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def team_leaderboard():
+    """ Displays a leaderboard for all sourcing staff. """
+    sort_by = request.args.get('sort_by', 'referrals_all_time')
+    sql = """
+        SELECT s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as referrals_all_time,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as hires_all_time,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as referrals_monthly,
+            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired' AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as hires_monthly
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
+    """
+    if sort_by == 'hires_all_time':
+        sql += " ORDER BY hires_all_time DESC, referrals_all_time DESC"; title = "Leaderboard: All-Time Hires"
+    elif sort_by == 'referrals_monthly':
+        sql += " ORDER BY referrals_monthly DESC, hires_monthly DESC"; title = "Leaderboard: Referrals This Month"
+    elif sort_by == 'hires_monthly':
+        sql += " ORDER BY hires_monthly DESC, referrals_monthly DESC"; title = "Leaderboard: Hires This Month"
+    else:
+        sort_by = 'referrals_all_time'; sql += " ORDER BY referrals_all_time DESC, hires_all_time DESC"; title = "Leaderboard: All-Time Referrals"
+        
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(sql)
+    leaderboard_data = cursor.fetchall()
+    conn.close()
+    return render_template('recruiter_team_portal/team_leaderboard.html',
+                           title=title, leaderboard_data=leaderboard_data, current_sort=sort_by)
 
 def _get_team_members(leader_staff_id, is_global_view=False):
     """A helper function to fetch team members for a given leader or all sourcing staff."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # Common query part for fetching stats
     stats_subquery = """
         (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
         (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires,
         (SELECT COUNT(*) FROM Staff WHERE ReportsToStaffID = s.StaffID) as direct_reports_count
     """
-    
     if is_global_view:
-        # For Unit Managers, show the top of their hierarchy: HeadSourcingTeamLeads
-        # or any SourcingTeamLeads that report directly to them.
         sql = f"""
             SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -189,15 +203,12 @@ def _get_team_members(leader_staff_id, is_global_view=False):
         """
         cursor.execute(sql, (leader_staff_id,))
     else:
-        # For other leaders, show their direct reports
         sql = f"""
             SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
-            FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.ReportsToStaffID = %s
             ORDER BY s.Role, u.LastName
         """
         cursor.execute(sql, (leader_staff_id,))
-    
     team_members = cursor.fetchall()
     conn.close()
     return team_members
@@ -205,43 +216,31 @@ def _get_team_members(leader_staff_id, is_global_view=False):
 @recruiter_bp.route('/my-team')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def my_team_view():
-    """
-    Acts as the main entry point for team views.
-    - SourcingTeamLead sees their recruiters.
-    - HeadSourcingTeamLead sees their SourcingTeamLeads.
-    - UnitManager sees their HeadSourcingTeamLeads.
-    """
+    """ Acts as the main entry point for team views. """
     leader_staff_id = getattr(current_user, 'specific_role_id', None)
     if not leader_staff_id:
-        flash("Your staff profile could not be found.", "warning")
+        flash("Your staff profile ID could not be found.", "warning")
         return redirect(url_for('.dashboard'))
     
-    # Unit Managers and above start at the highest level view
     is_top_level_view = current_user.role_type in DIVISION_LEADER_ROLES
     team_members = _get_team_members(leader_staff_id, is_global_view=is_top_level_view)
     
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
-                           title="My Team",
-                           team_members=team_members,
-                           current_leader=current_user,
-                           breadcrumbs=[]) # Start with empty breadcrumbs
+                           title="My Team", team_members=team_members,
+                           current_leader=current_user, breadcrumbs=[])
 
 @recruiter_bp.route('/team-view/<int:leader_staff_id>')
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def team_view(leader_staff_id):
-    """Shows the team of a specific sub-leader (e.g., a HeadSourcingTeamLead)."""
+    """Shows the team of a specific sub-leader."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Security check: Make sure the current user is authorized to see this leader's team
-    # This is a simplified check; a full hierarchy check would be more robust.
     cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (leader_staff_id,))
     leader_info = cursor.fetchone()
-    if not (current_user.role_type in DIVISION_LEADER_ROLES or 
-            (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
+    if not (current_user.role_type in DIVISION_LEADER_ROLES or (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
         abort(403)
 
-    # Get details of the leader whose team we are viewing
     cursor.execute("SELECT u.FirstName, u.LastName, s.Role, s.StaffID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (leader_staff_id,))
     current_leader = cursor.fetchone()
     if not current_leader: abort(404)
@@ -249,7 +248,6 @@ def team_view(leader_staff_id):
     
     team_members = _get_team_members(leader_staff_id)
     
-    # Build breadcrumbs for navigation
     breadcrumbs = [
         {'name': 'My Team', 'url': url_for('.my_team_view')},
         {'name': f"{current_leader['FirstName']} {current_leader['LastName']}", 'url': None}
@@ -257,57 +255,5 @@ def team_view(leader_staff_id):
     
     return render_template('recruiter_team_portal/team_hierarchy_view.html',
                            title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
-                           team_members=team_members,
-                           current_leader=current_leader,
+                           team_members=team_members, current_leader=current_leader,
                            breadcrumbs=breadcrumbs)
-    
-    
-@recruiter_bp.route('/leaderboard')
-@login_required_with_role(RECRUITER_PORTAL_ROLES)
-def team_leaderboard():
-    """ Displays a leaderboard for all sourcing staff. """
-    sort_by = request.args.get('sort_by', 'referrals_all_time') # Default sort
-    
-    # Base query to get all sourcing staff and their core stats
-    sql = """
-        SELECT 
-            s.StaffID,
-            u.FirstName,
-            u.LastName,
-            u.ProfilePictureURL,
-            s.Role,
-            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as referrals_all_time,
-            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as hires_all_time,
-            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as referrals_monthly,
-            (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired' AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as hires_monthly
-        FROM Staff s
-        JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
-    """
-
-    # Dynamically set the ORDER BY clause based on user selection
-    if sort_by == 'hires_all_time':
-        sql += " ORDER BY hires_all_time DESC, referrals_all_time DESC"
-        title = "Leaderboard: All-Time Hires"
-    elif sort_by == 'referrals_monthly':
-        sql += " ORDER BY referrals_monthly DESC, hires_monthly DESC"
-        title = "Leaderboard: Referrals This Month"
-    elif sort_by == 'hires_monthly':
-        sql += " ORDER BY hires_monthly DESC, referrals_monthly DESC"
-        title = "Leaderboard: Hires This Month"
-    else: # Default case
-        sort_by = 'referrals_all_time'
-        sql += " ORDER BY referrals_all_time DESC, hires_all_time DESC"
-        title = "Leaderboard: All-Time Referrals"
-        
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(sql)
-    leaderboard_data = cursor.fetchall()
-    conn.close()
-
-    return render_template('recruiter_team_portal/team_leaderboard.html',
-                           title=title,
-                           leaderboard_data=leaderboard_data,
-                           current_sort=sort_by)
-    
