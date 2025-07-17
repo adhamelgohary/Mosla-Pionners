@@ -81,13 +81,13 @@
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
                     {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'CEO', 'OperationsManager'] %}
-                        <a href="{{ url_for('recruiter_bp.my_team_performance') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_performance' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
-                            {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
-                                All Teams
-                            {% else %}
-                                My Team
-                            {% endif %}
-                        </a>
+                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_team_view' or request.endpoint == 'recruiter_bp.team_view' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+        {% if current_user.role_type in ['UnitManager', 'CEO', 'OperationsManager'] %}
+            All Teams
+        {% else %}
+            My Team
+        {% endif %}
+    </a>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">

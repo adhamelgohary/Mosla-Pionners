@@ -167,65 +167,103 @@ def my_referred_applications():
                            title="My Referred Applications",
                            applications=referred_applications)
     
+# --- HIERARCHICAL TEAM VIEW ROUTES ---
 
-# --- UPDATED `my_team` logic ---
-@recruiter_bp.route('/my-team')
-@login_required_with_role(LEADER_ROLES_IN_PORTAL + DIVISION_LEADER_ROLES)
-def my_team_performance():
-    """ 
-    Displays team members. 
-    - For Sourcing/HeadSourcing Team Leads, it shows their direct reports.
-    - For Unit Managers and above, it shows ALL recruiters in the sourcing division.
-    """
-    user_role = current_user.role_type
-    leader_staff_id = getattr(current_user, 'specific_role_id', None)
-    if not leader_staff_id:
-        flash("Your staff profile ID could not be found.", "warning")
-        return redirect(url_for('.dashboard'))
-
-    team_members = []
-    is_global_view = user_role in DIVISION_LEADER_ROLES
-    
+def _get_team_members(leader_staff_id, is_global_view=False):
+    """A helper function to fetch team members for a given leader or all sourcing staff."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    try:
-        if is_global_view:
-            # Unit Managers and above see ALL sourcing staff
-            title = "All Sourcing Team Performance"
-            sql = """
-                SELECT 
-                    u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
-                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
-                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires
-                FROM Staff s
-                JOIN Users u ON s.UserID = u.UserID
-                WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead')
-                ORDER BY total_hires DESC, total_referrals DESC, u.LastName ASC
-            """
-            cursor.execute(sql)
-        else:
-            # Team Leads see only their direct reports
-            title = "My Team's Referral Performance"
-            sql = """
-                SELECT 
-                    u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role,
-                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
-                    (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires
-                FROM Staff s
-                JOIN Users u ON s.UserID = u.UserID
-                WHERE s.ReportsToStaffID = %s
-                ORDER BY total_hires DESC, total_referrals DESC, u.LastName ASC
-            """
-            cursor.execute(sql, (leader_staff_id,))
-        
-        team_members = cursor.fetchall()
-    finally:
-        if conn and conn.is_connected(): conn.close()
-            
-    return render_template('recruiter_team_portal/my_team.html',
-                           title=title,
+    
+    # Common query part for fetching stats
+    stats_subquery = """
+        (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID) as total_referrals,
+        (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired') as total_hires,
+        (SELECT COUNT(*) FROM Staff WHERE ReportsToStaffID = s.StaffID) as direct_reports_count
+    """
+    
+    if is_global_view:
+        # For Unit Managers, show the top of their hierarchy: HeadSourcingTeamLeads
+        # or any SourcingTeamLeads that report directly to them.
+        sql = f"""
+            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.ReportsToStaffID = %s AND s.Role IN ('HeadSourcingTeamLead', 'SourcingTeamLead')
+            ORDER BY s.Role, u.LastName
+        """
+        cursor.execute(sql, (leader_staff_id,))
+    else:
+        # For other leaders, show their direct reports
+        sql = f"""
+            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.ProfilePictureURL, s.Role, {stats_subquery}
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.ReportsToStaffID = %s
+            ORDER BY s.Role, u.LastName
+        """
+        cursor.execute(sql, (leader_staff_id,))
+    
+    team_members = cursor.fetchall()
+    conn.close()
+    return team_members
+
+@recruiter_bp.route('/my-team')
+@login_required_with_role(LEADER_ROLES_IN_PORTAL)
+def my_team_view():
+    """
+    Acts as the main entry point for team views.
+    - SourcingTeamLead sees their recruiters.
+    - HeadSourcingTeamLead sees their SourcingTeamLeads.
+    - UnitManager sees their HeadSourcingTeamLeads.
+    """
+    leader_staff_id = getattr(current_user, 'specific_role_id', None)
+    if not leader_staff_id:
+        flash("Your staff profile could not be found.", "warning")
+        return redirect(url_for('.dashboard'))
+    
+    # Unit Managers and above start at the highest level view
+    is_top_level_view = current_user.role_type in DIVISION_LEADER_ROLES
+    team_members = _get_team_members(leader_staff_id, is_global_view=is_top_level_view)
+    
+    return render_template('recruiter_team_portal/team_hierarchy_view.html',
+                           title="My Team",
                            team_members=team_members,
-                           is_global_view=is_global_view) # Pass this flag to the template
+                           current_leader=current_user,
+                           breadcrumbs=[]) # Start with empty breadcrumbs
+
+@recruiter_bp.route('/team-view/<int:leader_staff_id>')
+@login_required_with_role(LEADER_ROLES_IN_PORTAL)
+def team_view(leader_staff_id):
+    """Shows the team of a specific sub-leader (e.g., a HeadSourcingTeamLead)."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Security check: Make sure the current user is authorized to see this leader's team
+    # This is a simplified check; a full hierarchy check would be more robust.
+    cursor.execute("SELECT ReportsToStaffID FROM Staff WHERE StaffID = %s", (leader_staff_id,))
+    leader_info = cursor.fetchone()
+    if not (current_user.role_type in DIVISION_LEADER_ROLES or 
+            (leader_info and leader_info['ReportsToStaffID'] == current_user.specific_role_id)):
+        abort(403)
+
+    # Get details of the leader whose team we are viewing
+    cursor.execute("SELECT u.FirstName, u.LastName, s.Role, s.StaffID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (leader_staff_id,))
+    current_leader = cursor.fetchone()
+    if not current_leader: abort(404)
+    conn.close()
+    
+    team_members = _get_team_members(leader_staff_id)
+    
+    # Build breadcrumbs for navigation
+    breadcrumbs = [
+        {'name': 'My Team', 'url': url_for('.my_team_view')},
+        {'name': f"{current_leader['FirstName']} {current_leader['LastName']}", 'url': None}
+    ]
+    
+    return render_template('recruiter_team_portal/team_hierarchy_view.html',
+                           title=f"Team: {current_leader['FirstName']} {current_leader['LastName']}",
+                           team_members=team_members,
+                           current_leader=current_leader,
+                           breadcrumbs=breadcrumbs)
+    
     
 @recruiter_bp.route('/leaderboard')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)

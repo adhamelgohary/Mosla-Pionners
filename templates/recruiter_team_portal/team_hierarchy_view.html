@@ -1,18 +1,47 @@
-{# templates/recruiter_team_portal/my_team.html #}
+{# templates/recruiter_team_portal/team_hierarchy_view.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
 {% block recruiter_title %}{{ title }}{% endblock %}
-{% block recruiter_page_title %}{{ title }}{% endblock %}
+
+{% block recruiter_page_title %}
+    <i class="bi bi-people-fill text-gray-500"></i>
+    <span>{{ title }}</span>
+{% endblock %}
 
 {% block recruiter_content %}
+
+<!-- Breadcrumb Navigation -->
+{% if breadcrumbs %}
+<nav class="flex mb-6" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-4">
+    <li>
+      <div>
+        <a href="{{ url_for('recruiter_bp.dashboard') }}" class="text-gray-400 hover:text-gray-500">
+          <i class="bi bi-house-door-fill flex-shrink-0 h-5 w-5"></i>
+          <span class="sr-only">Home</span>
+        </a>
+      </div>
+    </li>
+    {% for crumb in breadcrumbs %}
+    <li>
+      <div class="flex items-center">
+        <i class="bi bi-chevron-right flex-shrink-0 h-5 w-5 text-gray-400"></i>
+        <a href="{{ crumb.url or '#' }}" class="ml-4 text-sm font-medium {{ 'text-gray-500 hover:text-gray-700' if crumb.url else 'text-indigo-600' }}" {% if not crumb.url %}aria-current="page"{% endif %}>
+            {{ crumb.name }}
+        </a>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}
+
+
 <div class="px-4 sm:px-0">
-    <p class="mt-1 text-sm text-gray-600">
-        {% if is_global_view %}
-            A performance overview of the entire sourcing division.
-        {% else %}
-            Referral and hiring performance snapshot of your direct reports.
-        {% endif %}
-    </p>
+    <h2 class="text-xl font-bold text-gray-800">
+        Team Members reporting to {{ current_leader.FirstName }} {{ current_leader.LastName }}
+    </h2>
+    <p class="mt-1 text-sm text-gray-600">A performance overview of this team. Click on a team lead to drill down further.</p>
 </div>
 
 <div class="mt-8 flow-root">
@@ -23,9 +52,10 @@
                     <tr>
                         <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Team Member</th>
                         <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Direct Reports</th>
                         <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Referrals</th>
                         <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total Hires</th>
-                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">View</span></th>
+                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
@@ -43,22 +73,21 @@
                                 </div>
                             </td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ member.Role }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-700">{{ member.direct_reports_count }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-gray-900 font-semibold">{{ member.total_referrals }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-green-600 font-bold">{{ member.total_hires }}</td>
                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                                <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="text-indigo-600 hover:text-indigo-900">Manage Profile</a>
+                                {% if member.direct_reports_count > 0 %}
+                                    <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900">View Team <span aria-hidden="true">→</span></a>
+                                {% else %}
+                                    <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=member.UserID) }}" class="text-gray-500 hover:text-indigo-700">View Profile</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-10 text-gray-500">
-                                {% if is_global_view %}
-                                    No staff members found in the sourcing division.
-                                {% else %}
-                                    You do not have any direct reports.
-                                {% endif %}
-                            </td>
+                            <td colspan="6" class="text-center py-10 text-gray-500">This leader does not have any direct reports.</td>
                         </tr>
                     {% endif %}
                 </tbody>
