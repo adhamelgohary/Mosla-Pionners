@@ -29,7 +29,7 @@
     --highlight-gradient: linear-gradient(135deg, var(--secondary-color), #4a9eff); 
     --footer-link-hover: var(--secondary-color); 
     --transition-speed: 0.3s; 
-    --bg-image-opacity: 0.08;
+    --bg-image-opacity: 1;
 
     /* Forms & Other Pages */
     --content-bg-color: var(--card-bg);
