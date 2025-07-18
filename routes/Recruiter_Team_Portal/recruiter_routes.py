@@ -22,10 +22,6 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
                          template_folder='../../../templates')
 
 
-# ... (dashboard, review_referred_application, my_referred_applications, team_leaderboard, etc. remain the same)
-# ... (all routes up to 'view_recruiter_profile' are unchanged and compatible)
-
-
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
@@ -45,12 +41,19 @@ def dashboard():
 
     scoped_staff_ids = []
     dashboard_title = "My Performance"  # Default title
+    
+    # [FIX] Initialize kpis BEFORE the try block to prevent UnboundLocalError
+    kpis = {
+        'funnel': {'Applied': 0, 'Shortlisted': 0, 'Interview Scheduled': 0, 'Hired': 0},
+        'status_breakdown_for_chart': {},
+        'total_referrals': 0,
+        'monthly_performance': []
+    }
 
     try:
         # --- Determine the scope of StaffIDs based on the user's role ---
         if user_role in ORG_MANAGEMENT_ROLES:
             dashboard_title = "Overall Sourcing Division Performance"
-            # Get all staff in any sourcing role
             cursor.execute("""
                 SELECT StaffID FROM Staff
                 WHERE Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager') AND status = 'Active'
@@ -59,7 +62,6 @@ def dashboard():
 
         elif user_role == 'UnitManager':
             dashboard_title = f"{current_user.first_name}'s Unit Performance"
-            # Get all staff members in all teams that belong to this manager's unit
             cursor.execute("""
                 SELECT s.StaffID FROM Staff s
                 JOIN SourcingTeams st ON s.TeamID = st.TeamID
@@ -71,7 +73,6 @@ def dashboard():
 
         elif user_role == 'SourcingTeamLead':
             dashboard_title = f"{current_user.first_name}'s Team Performance"
-            # Get all staff members in this leader's team
             cursor.execute("""
                 SELECT StaffID FROM Staff WHERE TeamID = (
                     SELECT TeamID FROM Staff WHERE StaffID = %s
@@ -79,14 +80,12 @@ def dashboard():
             """, (user_staff_id,))
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
 
-        # If a manager has no reports yet, or for a standard recruiter, show their own stats.
+        # [FIX] The 'AttributeError' is now fixed by the change to the user_loader
         if not scoped_staff_ids and current_user.status == 'Active':
             scoped_staff_ids.append(user_staff_id)
 
         # --- Fetch KPIs using the determined scope of StaffIDs ---
-        kpis = {}
         if scoped_staff_ids:
-            # Create placeholders for the IN clause
             placeholders = ', '.join(['%s'] * len(scoped_staff_ids))
 
             funnel_sql = f"SELECT Status, COUNT(ApplicationID) as count FROM JobApplications WHERE ReferringStaffID IN ({placeholders}) GROUP BY Status"
@@ -113,16 +112,9 @@ def dashboard():
             """
             cursor.execute(monthly_sql, tuple(scoped_staff_ids))
             kpis['monthly_performance'] = cursor.fetchall()
-        else: # Default KPIs if no scope
-             kpis = {
-                'funnel': {'Applied': 0, 'Shortlisted': 0, 'Interview Scheduled': 0, 'Hired': 0},
-                'status_breakdown_for_chart': {},
-                'total_referrals': 0,
-                'monthly_performance': []
-            }
-
-
+        
     except Exception as e:
+        # The log shows the original AttributeError was caught here
         current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {user_staff_id}: {e}", exc_info=True)
         flash("Could not load all dashboard data.", "warning")
     finally:
@@ -131,7 +123,6 @@ def dashboard():
 
     return render_template('recruiter_team_portal/recruiter_dashboard.html',
                            title=dashboard_title, kpis=kpis)
-
 
 @recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
