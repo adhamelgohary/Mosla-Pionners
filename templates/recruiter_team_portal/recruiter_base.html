@@ -30,13 +30,13 @@
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                                 <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
         
-                                {# --- Team View Link --- #}
-                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                                {# --- [REVERTED] Explicit role check for Team View Link --- #}
+                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
                                     <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if 'team_view' in request.endpoint else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Team</a>
                                 {% endif %}
                                 
-                                {# --- [ENHANCEMENT] Admin Tools Dropdown --- #}
-                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                                {# --- [REVERTED] Explicit role check for Admin Tools Dropdown --- #}
+                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
                                 <div x-data="{ adminMenuOpen: false }" @click.away="adminMenuOpen = false" class="relative">
                                     <button @click="adminMenuOpen = !adminMenuOpen" class="inline-flex items-center gap-x-1 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">
                                         <span>Admin Tools</span>
@@ -53,7 +53,8 @@
                                         class="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
                                         <div class="py-1">
                                             <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Recruiters</a>
-                                            {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
+                                            {# --- [REVERTED] Explicit role check for inner links --- #}
+                                            {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
                                             <a href="{{ url_for('recruiter_bp.organization_management') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Organization</a>
                                             <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Pending Registrations</a>
                                             {% endif %}
@@ -96,22 +97,21 @@
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Leaderboard</a>
                     
-                    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                    {# --- [REVERTED] Explicit role check for mobile menu --- #}
+                    {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
                         <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">My Team</a>
-                    {% endif %}
                     
-                    {# --- [ENHANCEMENT] Admin Links for Mobile --- #}
-                    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
-                    <div class="border-t border-indigo-700 pt-4 mt-4">
-                        <h3 class="px-3 text-xs font-semibold uppercase text-indigo-200">Admin Tools</h3>
-                        <div class="mt-1 space-y-1">
-                            <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Recruiters</a>
-                            {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
-                            <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
-                            <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Pending Registrations</a>
-                            {% endif %}
+                        <div class="border-t border-indigo-700 pt-4 mt-4">
+                            <h3 class="px-3 text-xs font-semibold uppercase text-indigo-200">Admin Tools</h3>
+                            <div class="mt-1 space-y-1">
+                                <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Recruiters</a>
+                                {# --- [REVERTED] Explicit role check for inner mobile links --- #}
+                                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+                                <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
+                                <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Pending Registrations</a>
+                                {% endif %}
+                            </div>
                         </div>
-                    </div>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">
