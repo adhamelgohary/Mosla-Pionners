@@ -67,7 +67,6 @@ def dashboard():
             WHERE 
                 IsActive = 1
                 AND (DisplayUntil IS NULL OR DisplayUntil > NOW())
-                AND Audience IN ('AllStaff', 'Recruiters')
             ORDER BY Priority DESC, CreatedAt DESC
             LIMIT 5
         """)
