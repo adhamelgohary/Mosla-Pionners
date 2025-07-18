@@ -9,82 +9,58 @@
 
     <div class="bg-card rounded-lg shadow-md">
         <div class="p-4 sm:p-6">
-            <form method="POST" action="" class="space-y-6">
+            <form method="POST" action="" class="space-y-8">
                 
-                <!-- ROW 1: CORE OFFER INFO -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="title" class="form-label">Job Title <span class="text-danger-500">*</span></label>
-                        <input type="text" id="title" name="title" value="{{ form_data.get('title', '') }}" required
-                               class="form-input {% if errors.title %}border-danger-500{% endif %}">
-                        {% if errors.title %}<p class="mt-1 text-xs text-danger-600">{{ errors.title }}</p>{% endif %}
-                    </div>
-                    <div>
-                        <label for="category_id" class="form-label">Job Category <span class="text-danger-500">*</span></label>
-                        <select id="category_id" name="category_id" required
-                                class="form-select {% if errors.category_id %}border-danger-500{% endif %}">
-                            <option value="">-- Select a Category --</option>
-                            {% for category in categories %}
-                            <option value="{{ category.CategoryID }}" {% if category.CategoryID|int == form_data.get('CategoryID')|int %}selected{% endif %}>{{ category.CategoryName }}</option>
-                            {% endfor %}
-                        </select>
-                        {% if errors.category_id %}<p class="mt-1 text-xs text-danger-600">{{ errors.category_id }}</p>{% endif %}
-                    </div>
-                </div>
-
-                <!-- ROW 2: COMPANY SELECTION (Only for Create) -->
-                {% if not is_editing_live %}
-                <div class="bg-background p-4 rounded-md border border-border space-y-4">
-                    <h3 class="form-label">Company Association <span class="text-danger-500">*</span></h3>
-                    {% if errors.company_selection_mode %}<p class="text-xs text-danger-600">{{ errors.company_selection_mode }}</p>{% endif %}
-                    
-                    <div class="space-y-2">
-                        <div class="flex items-center">
-                            <input type="radio" id="existing_company_radio" name="company_selection_mode" value="existing" class="form-radio" {% if form_data.get('company_selection_mode') != 'new' %}checked{% endif %}>
-                            <label for="existing_company_radio" class="ml-2 text-sm text-text">Select an Existing Company</label>
+                <!-- SECTION: CORE OFFER INFO -->
+                <div class="space-y-6">
+                    <h3 class="text-base font-semibold leading-7 text-heading">Core Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="title" class="form-label">Job Title <span class="text-danger-500">*</span></label>
+                            <input type="text" id="title" name="title" value="{{ form_data.get('title', '') }}" required
+                                class="form-input {% if errors.title %}border-danger-500{% endif %}">
+                            {% if errors.title %}<p class="mt-1 text-xs text-danger-600">{{ errors.title }}</p>{% endif %}
                         </div>
-                        <select name="selected_company_id" class="form-select {% if errors.company_id %}border-danger-500{% endif %}">
-                            <option value="">-- Select Company --</option>
-                            {% for company in companies %}
-                            <option value="{{ company.CompanyID }}" {% if company.CompanyID|int == form_data.get('selected_company_id')|int %}selected{% endif %}>{{ company.CompanyName }}</option>
-                            {% endfor %}
-                        </select>
-                        {% if errors.company_id %}<p class="mt-1 text-xs text-danger-600">{{ errors.company_id }}</p>{% endif %}
-                    </div>
-
-                    <div class="space-y-2">
-                        <div class="flex items-center">
-                            <input type="radio" id="new_company_radio" name="company_selection_mode" value="new" class="form-radio" {% if form_data.get('company_selection_mode') == 'new' %}checked{% endif %}>
-                            <label for="new_company_radio" class="ml-2 text-sm text-text">Create a New Company</label>
+                        <div>
+                            <label for="category_id" class="form-label">Job Category <span class="text-danger-500">*</span></label>
+                            <select id="category_id" name="category_id" required class="form-select {% if errors.category_id %}border-danger-500{% endif %}">
+                                <option value="">-- Select a Category --</option>
+                                {% for category in categories %}
+                                <option value="{{ category.CategoryID }}" {% if category.CategoryID|int == form_data.get('CategoryID')|int %}selected{% endif %}>{{ category.CategoryName }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.category_id %}<p class="mt-1 text-xs text-danger-600">{{ errors.category_id }}</p>{% endif %}
                         </div>
-                        <input type="text" name="new_company_name" placeholder="Enter new company name" value="{{ form_data.get('new_company_name', '') }}" 
-                               class="form-input {% if errors.new_company_name %}border-danger-500{% endif %}">
-                        {% if errors.new_company_name %}<p class="mt-1 text-xs text-danger-600">{{ errors.new_company_name }}</p>{% endif %}
                     </div>
-                </div>
-                {% else %}
-                    <input type="hidden" name="CompanyID" value="{{ form_data.get('CompanyID') }}">
-                {% endif %}
-                
-                <!-- ROW 3: LOCATION & SALARY -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="location" class="form-label">Location</label>
-                        <input type="text" id="location" name="location" value="{{ form_data.get('location', '') }}" class="form-input" placeholder="e.g., Cairo, Egypt">
+                    {% if not is_editing_live %}
+                    <div class="bg-background p-4 rounded-md border border-border space-y-4">
+                        <h3 class="form-label">Company Association <span class="text-danger-500">*</span></h3>
+                        {% if errors.company_selection_mode %}<p class="text-xs text-danger-600">{{ errors.company_selection_mode }}</p>{% endif %}
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="radio" id="existing_company_radio" name="company_selection_mode" value="existing" class="form-radio" {% if form_data.get('company_selection_mode') != 'new' %}checked{% endif %}>
+                                <label for="existing_company_radio" class="ml-2 text-sm text-text">Select an Existing Company</label>
+                            </div>
+                            <select name="selected_company_id" class="form-select {% if errors.company_id %}border-danger-500{% endif %}">
+                                <option value="">-- Select Company --</option>
+                                {% for company in companies %}
+                                <option value="{{ company.CompanyID }}" {% if company.CompanyID|int == form_data.get('selected_company_id')|int %}selected{% endif %}>{{ company.CompanyName }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if errors.company_id %}<p class="mt-1 text-xs text-danger-600">{{ errors.company_id }}</p>{% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="radio" id="new_company_radio" name="company_selection_mode" value="new" class="form-radio" {% if form_data.get('company_selection_mode') == 'new' %}checked{% endif %}>
+                                <label for="new_company_radio" class="ml-2 text-sm text-text">Create a New Company</label>
+                            </div>
+                            <input type="text" name="new_company_name" placeholder="Enter new company name" value="{{ form_data.get('new_company_name', '') }}" class="form-input {% if errors.new_company_name %}border-danger-500{% endif %}">
+                            {% if errors.new_company_name %}<p class="mt-1 text-xs text-danger-600">{{ errors.new_company_name }}</p>{% endif %}
+                        </div>
                     </div>
-                    <div>
-                        <label for="net_salary" class="form-label">Net Salary (EGP)</label>
-                        <input type="number" step="0.01" id="net_salary" name="net_salary" value="{{ form_data.get('net_salary', '') }}" class="form-input {% if errors.net_salary %}border-danger-500{% endif %}" placeholder="e.g., 5000">
-                        {% if errors.net_salary %}<p class="mt-1 text-xs text-danger-600">{{ errors.net_salary }}</p>{% endif %}
-                    </div>
-                    <div>
-                        <label for="payment_term" class="form-label">Payment Term</label>
-                        <select id="payment_term" name="payment_term" class="form-select">
-                           {% for option in form_options.PaymentTerm %}
-                            <option value="{{ option }}" {% if option == form_data.get('payment_term') %}selected{% endif %}>{{ option }}</option>
-                           {% endfor %}
-                        </select>
-                    </div>
+                    {% else %}
+                        <input type="hidden" name="CompanyID" value="{{ form_data.get('CompanyID') }}">
+                    {% endif %}
                 </div>
 
                 <hr class="border-border">
@@ -101,41 +77,51 @@
                         <div>
                             <label for="nationality" class="form-label">Nationality</label>
                             <select id="nationality" name="nationality" class="form-select">
-                                {% for option in form_options.Nationality %}
-                                <option value="{{ option }}" {% if option == form_data.get('nationality') %}selected{% endif %}>{{ option }}</option>
-                                {% endfor %}
+                                {% for option in form_options.Nationality %}<option value="{{ option }}" {% if option == form_data.get('nationality') %}selected{% endif %}>{{ option }}</option>{% endfor %}
                             </select>
                         </div>
                         <div>
                             <label class="form-label">Gender Requirement</label>
                             <div class="mt-2 flex items-center space-x-4">
-                            {% for option in form_options.Gender %}
-                                <div class="flex items-center">
-                                    <input class="form-radio" type="radio" name="gender" id="gender_{{ option }}" value="{{ option }}" {% if option == form_data.get('gender') %}checked{% endif %}>
-                                    <label class="ml-2 text-sm text-text" for="gender_{{ option }}">{{ option }}</label>
-                                </div>
-                            {% endfor %}
+                            {% for option in form_options.Gender %}<div class="flex items-center"><input class="form-radio" type="radio" name="gender" id="gender_{{ option }}" value="{{ option }}" {% if option == form_data.get('gender') %}checked{% endif %}><label class="ml-2 text-sm text-text" for="gender_{{ option }}">{{ option }}</label></div>{% endfor %}
                             </div>
                         </div>
                         <div>
                             <label for="military_status" class="form-label">Military Status</label>
                             <select id="military_status" name="military_status" class="form-select">
-                                {% for option in form_options.MilitaryStatus %}
-                                <option value="{{ option }}" {% if option == form_data.get('military_status') %}selected{% endif %}>{{ option }}</option>
-                                {% endfor %}
+                                {% for option in form_options.MilitaryStatus %}<option value="{{ option }}" {% if option == form_data.get('military_status') %}selected{% endif %}>{{ option }}</option>{% endfor %}
                             </select>
                         </div>
                     </div>
-                    
                     <div>
                         <label class="form-label">Graduation Status Requirement</label>
                         <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {% for option in form_options.GraduationStatusRequirement %}
-                            <div class="flex items-center">
-                                <input class="form-checkbox" type="checkbox" name="grad_status_req" id="grad_{{ loop.index }}" value="{{ option }}" {% if option in form_data.get('grad_status_req', []) %}checked{% endif %}>
-                                <label class="ml-2 text-sm text-text" for="grad_{{ loop.index }}">{{ option|replace('-', ' ')|title }}</label>
+                        {% for option in form_options.GraduationStatusRequirement %}<div class="flex items-center"><input class="form-checkbox" type="checkbox" name="grad_status_req" id="grad_{{ loop.index }}" value="{{ option }}" {% if option in form_data.get('grad_status_req', []) %}checked{% endif %}><label class="ml-2 text-sm text-text" for="grad_{{ loop.index }}">{{ option|replace('-', ' ')|title }}</label></div>{% endfor %}
+                        </div>
+                    </div>
+                    <!-- *** NEWLY ADDED: LANGUAGES SECTION *** -->
+                    <div>
+                        <label class="form-label">Language Requirements</label>
+                        <div class="mt-2 p-4 bg-background/50 rounded-md border border-border/50">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="required_level" class="text-xs font-medium text-text-muted">Required Level</label>
+                                    <select id="required_level" name="required_level" class="form-select mt-1">
+                                        {% for option in form_options.RequiredLevel %}<option value="{{ option }}" {% if option == form_data.get('required_level') %}selected{% endif %}>{{ option }}</option>{% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-text-muted">Required Languages (select all that apply)</label>
+                                    <div class="mt-2 space-y-2">
+                                        {% for lang in form_options.RequiredLanguages %}
+                                        <div class="flex items-center">
+                                            <input id="lang_{{ loop.index }}" name="required_languages" type="checkbox" value="{{ lang }}" class="form-checkbox" {% if lang in form_data.get('required_languages', []) %}checked{% endif %}>
+                                            <label for="lang_{{ loop.index }}" class="ml-2 text-sm text-text">{{ lang }}</label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
-                        {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -144,18 +130,38 @@
                 
                 <!-- SECTION: WORK & SCHEDULE -->
                 <div class="space-y-6">
-                    <h3 class="text-base font-semibold leading-7 text-heading">Work & Schedule Details</h3>
+                    <h3 class="text-base font-semibold leading-7 text-heading">Work, Schedule & Experience</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div>
+                        <div>
                             <label for="working_days" class="form-label">Working Days</label>
                             <input type="text" id="working_days" name="working_days" value="{{ form_data.get('working_days', '') }}" class="form-input" placeholder="e.g., Sunday - Thursday">
                         </div>
-                         <div>
+                        <div>
                             <label for="working_hours" class="form-label">Working Hours</label>
                             <input type="text" id="working_hours" name="working_hours" value="{{ form_data.get('working_hours', '') }}" class="form-input" placeholder="e.g., 9:00 AM to 5:00 PM">
                         </div>
                     </div>
-                     <div>
+                    <!-- *** NEWLY ADDED: SHIFTS SECTION *** -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="shift_type" class="form-label">Shift Type</label>
+                            <select id="shift_type" name="shift_type" class="form-select">
+                                {% for option in form_options.ShiftType %}<option value="{{ option }}" {% if option == form_data.get('shift_type') %}selected{% endif %}>{{ option|title }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Available Shifts (if rotational)</label>
+                            <div class="mt-2 grid grid-cols-2 gap-2">
+                                {% for shift in form_options.AvailableShifts %}
+                                <div class="flex items-center">
+                                    <input id="shift_{{ loop.index }}" name="available_shifts" type="checkbox" value="{{ shift }}" class="form-checkbox" {% if shift in form_data.get('available_shifts', []) %}checked{% endif %}>
+                                    <label for="shift_{{ loop.index }}" class="ml-2 text-sm text-text">{{ shift }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
                         <label for="experience_requirement" class="form-label">Experience Requirement</label>
                         <textarea id="experience_requirement" name="experience_requirement" rows="4" class="form-textarea" placeholder="e.g., 1-2 years experience in customer service...">{{ form_data.get('experience_requirement', '') }}</textarea>
                     </div>
@@ -165,49 +171,44 @@
 
                 <!-- SECTION: BENEFITS & TRANSPORTATION -->
                 <div class="space-y-6">
-                    <h3 class="text-base font-semibold leading-7 text-heading">Benefits & Transportation</h3>
-                    
-                    <!-- Transportation -->
+                    <h3 class="text-base font-semibold leading-7 text-heading">Compensation & Benefits</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="net_salary" class="form-label">Net Salary (EGP)</label>
+                            <input type="number" step="0.01" id="net_salary" name="net_salary" value="{{ form_data.get('net_salary', '') }}" class="form-input {% if errors.net_salary %}border-danger-500{% endif %}" placeholder="e.g., 5000">
+                            {% if errors.net_salary %}<p class="mt-1 text-xs text-danger-600">{{ errors.net_salary }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label for="payment_term" class="form-label">Payment Term</label>
+                            <select id="payment_term" name="payment_term" class="form-select">
+                                {% for option in form_options.PaymentTerm %}<option value="{{ option }}" {% if option == form_data.get('payment_term') %}selected{% endif %}>{{ option }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
                     <div class="bg-background/50 p-4 rounded-md border border-border/50">
                         <label class="form-label">Is transportation provided?</label>
                         <div class="mt-2 flex items-center space-x-4">
-                            <div class="flex items-center">
-                                <input id="transportation_yes" name="transportation" type="radio" value="yes" class="form-radio" {% if form_data.get('transportation') == 'yes' %}checked{% endif %}>
-                                <label for="transportation_yes" class="ml-2 text-sm text-text">Yes</label>
-                            </div>
-                            <div class="flex items-center">
-                                <input id="transportation_no" name="transportation" type="radio" value="no" class="form-radio" {% if form_data.get('transportation') != 'yes' %}checked{% endif %}>
-                                <label for="transportation_no" class="ml-2 text-sm text-text">No</label>
-                            </div>
+                            <div class="flex items-center"><input id="transportation_yes" name="transportation" type="radio" value="yes" class="form-radio" {% if form_data.get('transportation') == 'yes' %}checked{% endif %}><label for="transportation_yes" class="ml-2 text-sm text-text">Yes</label></div>
+                            <div class="flex items-center"><input id="transportation_no" name="transportation" type="radio" value="no" class="form-radio" {% if form_data.get('transportation') != 'yes' %}checked{% endif %}><label for="transportation_no" class="ml-2 text-sm text-text">No</label></div>
                         </div>
                         <div class="mt-4" id="transport_type_container" {% if form_data.get('transportation') != 'yes' %}style="display:none;"{% endif %}>
                             <label for="transport_type" class="form-label">Transportation Type</label>
                             <select name="transport_type" id="transport_type" class="form-select">
                                 <option value="">-- Select Type --</option>
-                                {% for option in form_options.transportation_options %}
-                                <option value="{{ option }}" {% if option == form_data.get('transport_type') %}selected{% endif %}>{{ option }}</option>
-                                {% endfor %}
+                                {% for option in form_options.transportation_options %}<option value="{{ option }}" {% if option == form_data.get('transport_type') %}selected{% endif %}>{{ option }}</option>{% endfor %}
                             </select>
                         </div>
                     </div>
-                    
-                    <!-- Other Benefits -->
                     <div>
                         <label class="form-label">Other Benefits (select all that apply)</label>
                          <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            {% for benefit in form_options.benefits_checkboxes %}
-                            <div class="flex items-center">
-                                <input id="benefit_{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" class="form-checkbox"
-                                    {% if benefit in form_data.get('benefits_checkboxes', []) %}checked{% endif %}>
-                                <label for="benefit_{{ loop.index }}" class="ml-2 text-sm text-text">{{ benefit }}</label>
-                            </div>
-                            {% endfor %}
+                            {% for benefit in form_options.benefits_checkboxes %}<div class="flex items-center"><input id="benefit_{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.get('benefits_checkboxes', []) %}checked{% endif %}><label for="benefit_{{ loop.index }}" class="ml-2 text-sm text-text">{{ benefit }}</label></div>{% endfor %}
                         </div>
                     </div>
                 </div>
 
                 <!-- ACTION BUTTONS -->
-                <div class="flex items-center justify-end gap-x-4 pt-4">
+                <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-border mt-8">
                     <a href="{{ url_for('.list_all_job_offers') }}" class="btn-secondary">Cancel</a>
                     <button type="submit" class="btn-primary">{{ action_verb }}</button>
                 </div>
@@ -217,11 +218,9 @@
 </div>
 
 <script>
-    // Simple script to show/hide the transportation type dropdown
     document.addEventListener('DOMContentLoaded', function() {
         const transportRadios = document.querySelectorAll('input[name="transportation"]');
         const transportTypeContainer = document.getElementById('transport_type_container');
-
         function toggleTransportType() {
             if (document.querySelector('input[name="transportation"]:checked').value === 'yes') {
                 transportTypeContainer.style.display = 'block';
@@ -229,10 +228,7 @@
                 transportTypeContainer.style.display = 'none';
             }
         }
-
         transportRadios.forEach(radio => radio.addEventListener('change', toggleTransportType));
-        
-        // Initial check on page load
         toggleTransportType();
     });
 </script>
