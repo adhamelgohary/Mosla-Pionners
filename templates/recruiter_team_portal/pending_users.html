@@ -1,15 +1,15 @@
 {# templates/recruiter_team_portal/pending_users.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
-{% block recruiter_title %}{{ title }}{% endblock %}
-{% block recruiter_page_title %}<i class="bi bi-person-plus-fill text-gray-500"></i><span>{{ title }}</span>{% endblock %}
+{% block recruiter_title %}Pending Registrations{% endblock %}
+{% block recruiter_page_title %}<i class="bi bi-person-plus-fill text-gray-500"></i><span>Pending Registrations</span>{% endblock %}
 
 {% block recruiter_content %}
 <div class="bg-white p-6 rounded-lg shadow-sm border">
     <div class="sm:flex sm:items-center">
         <div class="sm:flex-auto">
-            <h2 class="text-xl font-semibold text-gray-900">Pending Staff Activations</h2>
-            <p class="mt-2 text-sm text-gray-700">The following users have registered and are awaiting activation. Activate them here to make them available for team assignments.</p>
+            <h2 class="text-xl font-semibold text-gray-900">Pending Staff Registrations</h2>
+            <p class="mt-2 text-sm text-gray-700">The following staff members have registered and are awaiting activation. Review their profile, then activate them to grant full system access.</p>
         </div>
     </div>
     <div class="mt-8 flow-root">
@@ -20,35 +20,39 @@
                         <tr>
                             <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
                             <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Registration Date</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Action</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Registered On</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        {# The backend now passes 'pending_staff', but we'll keep the loop variable 'user' for simplicity #}
                         {% for user in pending_users %}
                         <tr>
                             <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ user.FirstName }} {{ user.LastName }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ user.Email }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ user.RegistrationDate.strftime('%Y-%m-%d') }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                <form action="{{ url_for('recruiter_bp.activate_staff_member') }}" method="POST" class="flex items-center gap-x-2">
-                                    {# *** MODIFIED: Use staff_id instead of user_id *** #}
-                                    <input type="hidden" name="staff_id" value="{{ user.StaffID }}">
-                                    
-                                    <select name="initial_role" class="block w-full rounded-md border-gray-300 py-1.5 text-gray-900 shadow-sm sm:text-sm">
-                                        <option value="SourcingRecruiter" selected>Sourcing Recruiter</option>
-                                        {# Add other potential roles here if needed in the future #}
-                                    </select>
-                                    
-                                    <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Activate</button>
-                                </form>
+                                <div class="flex items-center gap-x-4">
+                                    <!-- Activation Form -->
+                                    <form action="{{ url_for('recruiter_bp.activate_staff_member') }}" method="POST" class="flex items-center gap-x-2">
+                                        <input type="hidden" name="staff_id" value="{{ user.StaffID }}">
+                                        <select name="initial_role" class="block w-full rounded-md border-gray-300 py-1.5 text-gray-900 shadow-sm sm:text-sm">
+                                            <option value="SourcingRecruiter" selected>Sourcing Recruiter</option>
+                                            <option value="AccountManager">Account Manager</option>
+                                            <option value="SalesManager">Sales Manager</option>
+                                        </select>
+                                        <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Activate</button>
+                                    </form>
+                                    <!-- View Profile Link -->
+                                    <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=user.StaffID) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                        View Profile <i class="bi bi-box-arrow-up-right ml-1"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
                             <td colspan="4" class="text-center py-10 text-gray-500">
-                                There are no pending staff members to activate.
+                                There are no pending staff registrations.
                             </td>
                         </tr>
                         {% endfor %}
