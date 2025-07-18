@@ -21,8 +21,8 @@ SALES_MANAGER_SPECIFIC_ROLES = ['SalesManager', 'CEO', 'Founder']
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder']
 
 # --- You can now also update EXECUTIVE_ROLES if you wish, or just use the new list ---
-EXECUTIVE_ROLES = ['CEO', 'OperationsManager', 'Founder'] # OM might still be exec but not see the portal
-LEADER_ROLES = ['CEO', 'Founder', 'OperationsManager', 'HeadSourcingTeamLead', 'HeadAccountManager', 'SeniorAccountManager', 'SalesManager']
+EXECUTIVE_ROLES = ['CEO', 'Founder'] # OM might still be exec but not see the portal
+LEADER_ROLES = ['CEO', 'Founder', 'HeadSourcingTeamLead', 'HeadAccountManager', 'SeniorAccountManager', 'SalesManager']
 
 # --- CORE DECORATOR ---
 def login_required_with_role(allowed_roles, insufficient_role_redirect='public_routes_bp.home_page'):

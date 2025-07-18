@@ -9,8 +9,8 @@ import mysql.connector
 
 # These roles should match the ENUM values in your Staff.Role column
 # These roles should match the ENUM values in your Staff.Role column
-COURSE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'OperationsManager']
-COURSE_DASHBOARD_VIEW_ROLES = ['SalesManager', 'CEO', 'OperationsManager', 'HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager', 'SeniorAccountManager', 'AccountManager']
+COURSE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder']
+COURSE_DASHBOARD_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder', 'HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager', 'SeniorAccountManager', 'AccountManager']
 
 
 course_mgmt_bp = Blueprint('course_mgmt_bp', __name__,
