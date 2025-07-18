@@ -94,32 +94,64 @@
         </div>
     </div>
 
-    <!-- Section 3: Assign Recruiters -->
+    <!-- Section 3: Manage All Staff (REPLACES old assignment section) -->
     <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 class="text-xl font-semibold text-gray-900">Step 3: Assign Recruiters to Teams</h2>
-        <p class="text-sm text-gray-600 mt-1">Place unassigned sourcing recruiters into the teams you've created.</p>
+        <h2 class="text-xl font-semibold text-gray-900">Step 3: Manage Staff Assignments & Status</h2>
+        <p class="text-sm text-gray-600 mt-1">A complete overview of all sourcing division staff. Assign roles, teams, and manage account status here.</p>
         <div class="mt-4 flow-root">
              <table class="min-w-full divide-y divide-gray-200">
-                <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Recruiter Name</th><th class="py-2 text-left text-sm font-medium text-gray-500">Actions</th></tr></thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for recruiter in unassigned_recruiters %}
+                <thead>
                     <tr>
-                        <td class="py-3 font-medium">{{ recruiter.FirstName }} {{ recruiter.LastName }}</td>
+                        <th class="py-2 text-left text-sm font-medium text-gray-500">Staff Member</th>
+                        <th class="py-2 text-left text-sm font-medium text-gray-500">Role</th>
+                        <th class="py-2 text-left text-sm font-medium text-gray-500">Team</th>
+                        <th class="py-2 text-left text-sm font-medium text-gray-500">Status</th>
+                        <th class="py-2 text-left text-sm font-medium text-gray-500">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for member in all_staff %}
+                    <tr>
+                        <td class="py-3 font-medium">{{ member.FirstName }} {{ member.LastName }}</td>
+                        <td class="py-3 text-sm text-gray-600">{{ member.Role }}</td>
+                        <td class="py-3 text-sm text-gray-600">{{ member.TeamName or 'Unassigned' }}</td>
                         <td class="py-3">
+                            {# --- STATUS BADGE --- #}
+                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                                {% if member.status == 'Active' %}bg-green-50 text-green-700 ring-green-600/20
+                                {% elif member.status == 'Inactive' %}bg-red-50 text-red-700 ring-red-600/20
+                                {% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">
+                                {{ member.status }}
+                            </span>
+                        </td>
+                        <td class="py-3 space-y-2">
+                            {# --- Form to change status --- #}
+                            <form action="{{ url_for('recruiter_bp.manage_staff_status') }}" method="POST" class="flex gap-2 items-center">
+                                <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
+                                <select name="new_status" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
+                                    <option value="Active" {% if member.status == 'Active' %}selected{% endif %}>Active</option>
+                                    <option value="Inactive" {% if member.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                                </select>
+                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Set Status</button>
+                            </form>
+
+                            {# --- Form to assign to team (only for recruiters) --- #}
+                            {% if member.Role == 'SourcingRecruiter' and member.status == 'Active' %}
                             <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="recruiter_staff_id" value="{{ recruiter.StaffID }}">
+                                <input type="hidden" name="recruiter_staff_id" value="{{ member.StaffID }}">
                                 <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
                                     <option value="" disabled selected>-- Assign to a Team --</option>
                                     {% for team in teams %}
-                                        <option value="{{ team.TeamID }}">{{ team.TeamName }}</option>
+                                        <option value="{{ team.TeamID }}" {% if team.TeamName == member.TeamName %}selected{% endif %}>{{ team.TeamName }}</option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
+                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign Team</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="2" class="text-center py-4 text-gray-500">No unassigned recruiters found.</td></tr>
+                    <tr><td colspan="5" class="text-center py-4 text-gray-500">No staff members found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

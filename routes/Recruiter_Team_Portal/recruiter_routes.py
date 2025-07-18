@@ -22,6 +22,10 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
                          template_folder='../../../templates')
 
 
+# ... (dashboard, review_referred_application, my_referred_applications, team_leaderboard, etc. remain the same)
+# ... (all routes up to 'view_recruiter_profile' are unchanged and compatible)
+
+
 @recruiter_bp.route('/')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
@@ -49,7 +53,7 @@ def dashboard():
             # Get all staff in any sourcing role
             cursor.execute("""
                 SELECT StaffID FROM Staff
-                WHERE Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager')
+                WHERE Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager') AND status = 'Active'
             """)
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
 
@@ -61,7 +65,7 @@ def dashboard():
                 JOIN SourcingTeams st ON s.TeamID = st.TeamID
                 WHERE st.UnitID = (
                     SELECT su.UnitID FROM SourcingUnits su WHERE su.UnitManagerStaffID = %s
-                )
+                ) AND s.status = 'Active'
             """, (user_staff_id,))
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
 
@@ -71,12 +75,12 @@ def dashboard():
             cursor.execute("""
                 SELECT StaffID FROM Staff WHERE TeamID = (
                     SELECT TeamID FROM Staff WHERE StaffID = %s
-                )
+                ) AND status = 'Active'
             """, (user_staff_id,))
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
 
         # If a manager has no reports yet, or for a standard recruiter, show their own stats.
-        if not scoped_staff_ids:
+        if not scoped_staff_ids and current_user.status == 'Active':
             scoped_staff_ids.append(user_staff_id)
 
         # --- Fetch KPIs using the determined scope of StaffIDs ---
@@ -230,7 +234,7 @@ def team_leaderboard():
             (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as referrals_monthly,
             (SELECT COUNT(*) FROM JobApplications WHERE ReferringStaffID = s.StaffID AND Status = 'Hired' AND ApplicationDate >= DATE_FORMAT(NOW(), '%%Y-%%m-01')) as hires_monthly
         FROM Staff s JOIN Users u ON s.UserID = u.UserID
-        WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
+        WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager') AND s.status = 'Active'
     """
     if sort_by == 'hires_all_time':
         sql += " ORDER BY hires_all_time DESC, referrals_all_time DESC"; title = "Leaderboard: All-Time Hires"
@@ -285,7 +289,7 @@ def _get_manager_context_data(cursor, user):
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead') AND (
+            WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead') AND s.status = 'Active' AND (
                 s.TeamID IN (
                     SELECT TeamID FROM SourcingTeams WHERE UnitID = (
                         SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s
@@ -296,12 +300,12 @@ def _get_manager_context_data(cursor, user):
         context['potential_team_leads'] = cursor.fetchall()
         
         # Fetch all unassigned recruiters
-        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL AND s.status = 'Active'")
         context['unassigned_recruiters'] = cursor.fetchall()
 
     elif user.role_type == 'SourcingTeamLead':
         # Fetch unassigned recruiters for the assignment panel
-        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL")
+        cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL AND s.status = 'Active'")
         context['unassigned_recruiters'] = cursor.fetchall()
         
         # For a Team Lead, the only assignable team is their own
@@ -334,7 +338,7 @@ def my_team_view():
         # Get the list of direct reports for the current page's subject (in this case, the logged-in user)
         if leader_role in ORG_MANAGEMENT_ROLES:
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, su.UnitName
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, s.status, su.UnitName
                 FROM SourcingUnits su
                 JOIN Staff s ON su.UnitManagerStaffID = s.StaffID
                 JOIN Users u ON s.UserID = u.UserID
@@ -343,7 +347,7 @@ def my_team_view():
             team_members = cursor.fetchall()
         elif leader_role == 'UnitManager':
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, s.status, st.TeamName
                 FROM SourcingTeams st
                 JOIN SourcingUnits su ON st.UnitID = su.UnitID
                 JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
@@ -353,7 +357,7 @@ def my_team_view():
             team_members = cursor.fetchall()
         elif leader_role == 'SourcingTeamLead':
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, u.ProfilePictureURL
                 FROM Staff s JOIN Users u ON s.UserID = u.UserID
                 WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s) AND s.StaffID != %s
             """, (leader_staff_id, leader_staff_id))
@@ -388,7 +392,7 @@ def team_view(leader_staff_id):
     try:
         # Fetch details of the leader whose team we are viewing
         cursor.execute("""
-            SELECT s.StaffID, s.Role, u.FirstName, u.LastName, u.UserID
+            SELECT s.StaffID, s.Role, s.status, u.FirstName, u.LastName, u.UserID
             FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s
         """, (leader_staff_id,))
         current_leader = cursor.fetchone()
@@ -402,7 +406,7 @@ def team_view(leader_staff_id):
         leader_role = current_leader['Role']
         if leader_role == 'UnitManager':
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL, st.TeamName
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, u.ProfilePictureURL, st.TeamName
                 FROM SourcingTeams st
                 JOIN SourcingUnits su ON st.UnitID = su.UnitID
                 JOIN Staff s ON st.TeamLeadStaffID = s.StaffID
@@ -412,7 +416,7 @@ def team_view(leader_staff_id):
             team_members = cursor.fetchall()
         elif leader_role == 'SourcingTeamLead':
             cursor.execute("""
-                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
+                SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, u.ProfilePictureURL
                 FROM Staff s
                 JOIN Users u ON s.UserID = u.UserID
                 WHERE s.TeamID = (SELECT TeamID FROM Staff WHERE StaffID = %s) AND s.StaffID != %s
@@ -454,7 +458,7 @@ def view_recruiter_profile(staff_id_viewing):
     try:
         # 1. Fetch the profile's main info
         cursor.execute("""
-            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate,
+            SELECT s.StaffID, s.status, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate,
                    s.Role, s.ReportsToStaffID, s.TotalPoints, s.ReferralCode
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.StaffID = %s
@@ -497,12 +501,13 @@ def view_recruiter_profile(staff_id_viewing):
                            profile_data=profile_data)
 
 
+
 # --- NEW, CONSOLIDATED ORGANIZATION MANAGEMENT ROUTES (The Single Source of Truth) ---
 
 @recruiter_bp.route('/organization')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def organization_management():
-    """A central hub for managing Units, Teams, and their assignments."""
+    """A central hub for managing Units, Teams, their assignments, and staff status."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -529,20 +534,32 @@ def organization_management():
             ORDER BY su.UnitName, st.TeamName
         """)
         teams = cursor.fetchall()
+        
+        # [MODIFIED] Fetch ALL Sourcing staff for a comprehensive management view
+        cursor.execute("""
+            SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, t.TeamName
+            FROM Staff s
+            JOIN Users u ON s.UserID = u.UserID
+            LEFT JOIN SourcingTeams t ON s.TeamID = t.TeamID
+            WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'HeadSourcingTeamLead')
+            ORDER BY s.status, u.LastName, u.FirstName
+        """)
+        all_staff = cursor.fetchall()
 
-        # Fetch potential Unit Managers (TeamLeads and above)
+
+        # Fetch potential Unit Managers (Active TeamLeads and above)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role IN ('SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager')
+            WHERE s.Role IN ('SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager') AND s.status = 'Active'
         """)
         potential_managers = cursor.fetchall()
 
-        # Fetch potential Team Leads (can be existing leads or senior recruiters)
+        # Fetch potential Team Leads (Active staff)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role IN ('SourcingTeamLead', 'SourcingRecruiter')
+            WHERE s.Role IN ('SourcingTeamLead', 'SourcingRecruiter') AND s.status = 'Active'
         """)
         potential_team_leads = cursor.fetchall()
 
@@ -550,7 +567,7 @@ def organization_management():
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
-            WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL
+            WHERE s.Role = 'SourcingRecruiter' AND s.TeamID IS NULL AND s.status = 'Active'
         """)
         unassigned_recruiters = cursor.fetchall()
 
@@ -562,6 +579,7 @@ def organization_management():
                            title="Organization Structure",
                            units=units,
                            teams=teams,
+                           all_staff=all_staff, # Pass the new comprehensive list
                            potential_managers=potential_managers,
                            potential_team_leads=potential_team_leads,
                            unassigned_recruiters=unassigned_recruiters)
@@ -774,79 +792,114 @@ def assign_recruiter_to_team():
         if conn: conn.close()
     return redirect(request.referrer or url_for('.organization_management'))
 
-@recruiter_bp.route('/pending-users')
+# --- [MODIFIED] STAFF ACTIVATION & STATUS MANAGEMENT ---
+
+@recruiter_bp.route('/pending-staff')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
-def list_pending_users():
+def list_pending_staff():
     """
-    Displays a list of all registered users who have not yet been
-    activated as Staff members.
+    [MODIFIED] Displays a list of all staff members whose status is 'Pending'.
+    These are users who have registered but not yet been activated by an admin.
     """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    pending_users = []
+    pending_staff = []
     try:
-        # Select all users that do NOT have a corresponding entry in the Staff table
+        # [MODIFIED QUERY] Select staff members with 'Pending' status.
         cursor.execute("""
-            SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.RegistrationDate
+            SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.RegistrationDate, s.Role
             FROM Users u
-            LEFT JOIN Staff s ON u.UserID = s.UserID
-            WHERE s.StaffID IS NULL
+            JOIN Staff s ON u.UserID = s.UserID
+            WHERE s.status = 'Pending'
+            ORDER BY u.RegistrationDate ASC
         """)
-        pending_users = cursor.fetchall()
+        pending_staff = cursor.fetchall()
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
 
     return render_template('recruiter_team_portal/pending_users.html',
                            title="Activate New Staff",
-                           pending_users=pending_users)
+                           pending_users=pending_staff)
 
 
 @recruiter_bp.route('/activate-staff', methods=['POST'])
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def activate_staff_member():
     """
-    Activates a user by creating a new record for them in the Staff table.
-    The user is initially unassigned.
+    [MODIFIED] Activates a staff member by updating their status in the Staff table
+    from 'Pending' to 'Active' and confirming their role.
     """
-    user_id = request.form.get('user_id')
-    initial_role = request.form.get('initial_role', 'SourcingRecruiter') # Default to SourcingRecruiter
+    staff_id = request.form.get('staff_id')
+    initial_role = request.form.get('initial_role', 'SourcingRecruiter')
 
-    if not user_id:
-        flash("User ID is missing.", "danger")
-        return redirect(url_for('.list_pending_users'))
+    if not staff_id:
+        flash("Staff ID is missing.", "danger")
+        return redirect(url_for('.list_pending_staff'))
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        
-        # Check if user is already a staff member to prevent duplicates
-        cursor.execute("SELECT COUNT(*) as count FROM Staff WHERE UserID = %s", (user_id,))
-        if cursor.fetchone()[0] > 0:
-            flash("This user is already a staff member.", "warning")
-            return redirect(url_for('.list_pending_users'))
-
-        # Insert the new staff record. They will be unassigned (TeamID is NULL)
-        # and will not report to anyone yet. This is handled by later assignment steps.
+        # [MODIFIED LOGIC] Update the existing staff record to 'Active'.
         cursor.execute("""
-            INSERT INTO Staff (UserID, Role, ReportsToStaffID, TeamID, TotalPoints, ReferralCode)
-            VALUES (%s, %s, NULL, NULL, 0, NULL)
-        """, (user_id, initial_role))
-        conn.commit()
+            UPDATE Staff SET status = 'Active', Role = %s
+            WHERE StaffID = %s AND status = 'Pending'
+        """, (initial_role, staff_id))
         
-        # We could also generate a referral code here if needed
-        # For example:
-        # staff_id = cursor.lastrowid
-        # referral_code = f"REF{staff_id:04d}"
-        # cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (referral_code, staff_id))
-        # conn.commit()
-
-        flash("User successfully activated as a Staff member.", "success")
+        if cursor.rowcount == 0:
+            flash("Staff member not found or was already active.", "warning")
+        else:
+            conn.commit()
+            flash("Staff member successfully activated.", "success")
+            
     except Exception as e:
-        current_app.logger.error(f"Error activating staff for UserID {user_id}: {e}")
+        current_app.logger.error(f"Error activating staff for StaffID {staff_id}: {e}")
         flash(f"Error activating staff: {e}", "danger")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
 
-    return redirect(url_for('.list_pending_users'))
+    return redirect(url_for('.list_pending_staff'))
+
+
+@recruiter_bp.route('/organization/manage-status', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def manage_staff_status():
+    """
+    [NEW] A route to change a staff member's status (e.g., to 'Inactive' or 'Active').
+    This is intended for use on the main organization management page.
+    """
+    staff_id = request.form.get('staff_id')
+    new_status = request.form.get('new_status')
+
+    if not staff_id or not new_status:
+        flash("Missing required information to update status.", "danger")
+        return redirect(url_for('.organization_management'))
+    
+    # Basic validation to ensure only allowed statuses are set
+    if new_status not in ['Active', 'Inactive']:
+        flash("Invalid status provided.", "danger")
+        return redirect(url_for('.organization_management'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Inactivating a user could also involve un-assigning them from teams/units
+        if new_status == 'Inactive':
+             cursor.execute("""
+                UPDATE Staff SET status = 'Inactive', TeamID = NULL, ReportsToStaffID = NULL
+                WHERE StaffID = %s
+            """, (staff_id,))
+        else: # Activating a user
+            cursor.execute("UPDATE Staff SET status = 'Active' WHERE StaffID = %s", (staff_id,))
+
+        conn.commit()
+        flash(f"Staff member status successfully updated to '{new_status}'.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error updating status for StaffID {staff_id}: {e}")
+        flash(f"Error updating staff status: {e}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return redirect(url_for('.organization_management'))

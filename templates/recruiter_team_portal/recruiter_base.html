@@ -46,7 +46,7 @@
                                 <a href="{{ url_for('recruiter_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.organization_management' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                     Manage Organization
                                 </a>
-                                <a href="{{ url_for('recruiter_bp.list_pending_users') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.list_pending_users' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+                                <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.list_pending_staff' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                     Activate Staff
                                 </a>
                                 {% endif %} 
@@ -98,7 +98,7 @@
                     {# --- Administration Links for Mobile --- #}
                     {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
                         <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
-                        <a href="{{ url_for('recruiter_bp.list_pending_users') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Activate Staff</a>
+                        <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Activate Staff</a>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">
