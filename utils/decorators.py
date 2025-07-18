@@ -5,20 +5,16 @@ from flask_login import current_user
 
 # --- ROLE LISTS ---
 AGENCY_STAFF_ROLES = [
-    'SourcingRecruiter', 
-    'SourcingTeamLead', 
-    'OperationsManager', 
     'CEO', 
     'SalesManager',
-    'AccountManager',
-    'SeniorAccountManager'
+    'Founder'
 ]
 ADMIN_ROLES = ['Admin'] 
 CANDIDATE_ROLES = ['Candidate']
-ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'OperationsManager'] 
-JOB_OFFER_MANAGEMENT_ROLES = ['CEO', 'OperationsManager']
-COURSE_MANAGEMENT_ROLES_DECORATOR = ['SalesManager', 'CEO', 'OperationsManager']
-SALES_MANAGER_SPECIFIC_ROLES = ['SalesManager', 'CEO', 'OperationsManager']
+ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'Founder'] 
+JOB_OFFER_MANAGEMENT_ROLES = ['CEO', 'Founder'] 
+COURSE_MANAGEMENT_ROLES_DECORATOR = ['SalesManager', 'CEO', 'Founder']
+SALES_MANAGER_SPECIFIC_ROLES = ['SalesManager', 'CEO', 'Founder']
 
 # --- NEW: Central Authority for Managerial Access ---
 # This is the single source of truth for who can access the new portal.

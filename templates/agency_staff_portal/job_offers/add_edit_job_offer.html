@@ -1,241 +1,276 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-file-earmark-plus-fill text-gray-400"></i>
+    <span>{{ title }}</span>
+{% endblock %}
 
 {% block staff_content %}
-<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-    <form method="POST" action="{% if is_editing_live %}{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer_id) }}{% else %}{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}{% endif %}">
-        {% if is_editing_live %}<input type="hidden" name="original_title_hidden" value="{{ original_title_hidden or form_data.get('position-title', '') }}">{% endif %}
-
-        <div class="space-y-8">
-            <!-- Section 1: Core Info -->
-            <div>
-                <h3 class="text-lg font-medium text-gray-900">Core Information</h3>
-                <p class="mt-1 text-sm text-gray-500">Essential details about the role and company.</p>
-                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-3">
-                        <label for="company_id" class="block text-sm font-medium text-gray-700">Company <span class="text-red-500">*</span></label>
-                        <select id="company_id" name="company_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('company_id') }}">
-                            <option value="">Select Company...</option>
-                            {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.get('company_id')|string == company.CompanyID|string %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
-                        </select>
-                        {% if errors.get('company_id') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('company_id') }}</p>{% endif %}
-                    </div>
-                    <div class="sm:col-span-3">
-                        <label for="category_id" class="block text-sm font-medium text-gray-700">Job Category <span class="text-red-500">*</span></label>
-                        <select id="category_id" name="category_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('category_id') }}">
-                            <option value="">Select Category...</option>
-                             {% for category in categories %}<option value="{{ category.CategoryID }}" {% if form_data.get('category_id')|string == category.CategoryID|string %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
-                        </select>
-                        {% if errors.get('category_id') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('category_id') }}</p>{% endif %}
-                    </div>
-                    <div class="sm:col-span-4">
-                        <label for="position-title" class="block text-sm font-medium text-gray-700">Position / Job Title <span class="text-red-500">*</span></label>
-                        <input type="text" id="position-title" name="position-title" value="{{ form_data.get('position-title', '') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Senior Customer Service Agent">
-                        {% if errors.get('position-title') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('position-title') }}</p>{% endif %}
-                    </div>
-                     <div class="sm:col-span-2">
-                        <label for="closing_date" class="block text-sm font-medium text-gray-700">Closing Date</label>
-                        <input type="date" id="closing_date" name="closing_date" value="{{ form_data.get('closing_date', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                    </div>
-                    <div class="sm:col-span-6">
-                        <label for="location" class="block text-sm font-medium text-gray-700">Work Location Address</label>
-                        <input type="text" id="location" name="location" value="{{ form_data.get('location', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Maadi, Cairo">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Section 2: Requirements -->
-            <div class="border-t border-gray-200 pt-8">
-                 <h3 class="text-lg font-medium text-gray-900">Candidate Requirements</h3>
-                 <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-3">
-                        <label for="required_languages" class="block text-sm font-medium text-gray-700">Languages</label>
-                        <fieldset class="mt-2">
-                            <div class="space-y-2">
-                                {% set checked_languages = form_data.get('required_languages', []) %}
-                                {% for lang in form_options.RequiredLanguages %}
-                                <div class="flex items-center">
-                                    <input id="lang-{{ lang|lower }}" name="required_languages" type="checkbox" value="{{ lang }}" {% if lang in checked_languages %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                    <label for="lang-{{ lang|lower }}" class="ml-3 block text-sm text-gray-900">{{ lang }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </fieldset>
-                    </div>
-                    <div class="sm:col-span-3">
-                        <label for="required_level" class="block text-sm font-medium text-gray-700">Language Level</label>
-                        <select id="required_level" name="required_level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <option value="">N/A</option>
-                            {% for level in form_options.RequiredLevel %}
-                            <option value="{{ level }}" {% if form_data.get('required_level') == level %}selected{% endif %}>{{ level|upper }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label for="grad-status" class="block text-sm font-medium text-gray-700">Graduation Status</label>
-                        <select id="grad-status" name="grad-status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            {% for status in form_options.GraduationStatusRequirement %}
-                            <option value="{{ status }}" {% if form_data.get('grad-status') == status %}selected{% endif %}>{{ status|replace('_', ' ')|title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label for="max_age" class="block text-sm font-medium text-gray-700">Max Age</label>
-                        <input type="number" id="max_age" name="max_age" value="{{ form_data.get('max_age', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                        {% if errors.get('max_age') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('max_age') }}</p>{% endif %}
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label for="nationality" class="block text-sm font-medium text-gray-700">Nationality</label>
-                        <select id="nationality" name="nationality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                           {% for nat in form_options.Nationality %}
-                           <option value="{{ nat }}" {% if form_data.get('nationality') == nat %}selected{% endif %}>{{ nat }}</option>
-                           {% endfor %}
-                        </select>
-                    </div>
-                 </div>
-            </div>
+<form method="POST" 
+      action="{{ url_for('.edit_live_job_offer', offer_id=offer_id) if is_editing_live else url_for('.staff_direct_create_job_offer') }}" 
+      class="bg-white shadow-md rounded-lg p-6 sm:p-8 space-y-8">
+    
+    {# --- Section 1: Core Job & Company Details --- #}
+    <div class="border-b border-gray-200 pb-6">
+        <h3 class="text-lg font-semibold leading-6 text-gray-900">Core Information</h3>
+        <p class="mt-1 text-sm text-gray-500">Define the main role and the associated company.</p>
+        
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             
-             <!-- Section 3: Offer Details -->
-            <div class="border-t border-gray-200 pt-8">
-                 <h3 class="text-lg font-medium text-gray-900">Hiring & Offer Details</h3>
-                 <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-2">
-                        <label for="candidate-count" class="block text-sm font-medium text-gray-700">Candidates Needed <span class="text-red-500">*</span></label>
-                        <input type="number" id="candidate-count" name="candidate-count" value="{{ form_data.get('candidate-count', '1') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                        {% if errors.get('candidates_needed') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('candidates_needed') }}</p>{% endif %}
+            {# --- Company Selection (Create vs Edit) --- #}
+            <div class="sm:col-span-3">
+                <label class="block text-sm font-medium text-gray-700">Company</label>
+                {% if is_editing_live %}
+                    <div class="mt-1">
+                        <p class="px-3 py-2 bg-gray-100 text-gray-800 rounded-md">{{ companies | selectattr('CompanyID', 'equalto', form_data.CompanyID) | map(attribute='CompanyName') | first }}</p>
+                        <input type="hidden" name="company_id" value="{{ form_data.CompanyID }}">
                     </div>
-                    <div class="sm:col-span-2">
-                        <label for="hiring_cadence" class="block text-sm font-medium text-gray-700">Hiring Cadence</label>
-                        <select id="hiring_cadence" name="hiring_cadence" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            {% for cadence in form_options.HiringCadence %}
-                            <option value="{{ cadence }}" {% if form_data.get('hiring_cadence') == cadence %}selected{% endif %}>{{ cadence|replace('_', ' ')|title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label for="hiring_plan" class="block text-sm font-medium text-gray-700">Hiring Plan</label>
-                        <select id="hiring_plan" name="hiring_plan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                           {% for plan in form_options.HiringPlan %}
-                           <option value="{{ plan }}" {% if form_data.get('hiring_plan') == plan %}selected{% endif %}>{{ plan|replace('-', ' ')|title }}</option>
-                           {% endfor %}
-                        </select>
-                    </div>
-                    <div class="sm:col-span-3">
-                        <label for="salary" class="block text-sm font-medium text-gray-700">Salary (Net)</label>
-                        <input type="number" step="0.01" id="salary" name="salary" value="{{ form_data.get('salary', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if errors.get('salary') }}" placeholder="e.g., 8500.00">
-                         {% if errors.get('salary') %}<p class="mt-2 text-sm text-red-600">{{ errors.get('salary') }}</p>{% endif %}
-                    </div>
-                    <div class="sm:col-span-3">
-                        <label for="payment_term" class="block text-sm font-medium text-gray-700">Payment Term</label>
-                        <input type="text" id="payment_term" name="payment_term" value="{{ form_data.get('payment_term', '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="e.g., Monthly, Net 30">
-                    </div>
-                    <div class="sm:col-span-6">
-                        <label for="has_contract" class="block text-sm font-medium text-gray-700">Contract Offered?</label>
-                        <div class="mt-2 flex items-center gap-x-4">
-                            <label class="inline-flex items-center"><input type="radio" name="has_contract" value="yes" {% if form_data.get('has_contract') == 'yes' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Yes</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="has_contract" value="no" {% if form_data.get('has_contract') == 'no' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">No</span></label>
-                        </div>
-                    </div>
-                 </div>
-            </div>
-            
-            <!-- Section 4: Work Environment -->
-            <div class="border-t border-gray-200 pt-8">
-                 <h3 class="text-lg font-medium text-gray-900">Work Environment</h3>
-                 <div class="mt-6 space-y-6">
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Work Location Type</label>
-                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                            {% for loc_type in form_options.WorkLocationType %}
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="work_location" value="{{ loc_type }}" {% if form_data.get('work_location') == loc_type %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                <span class="ml-2">{{ loc_type|replace('wfh', 'Work From Home')|replace('site', 'On-site') }}</span>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Shift Type</label>
-                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-                            {% for s_type in form_options.ShiftType %}
-                            <label class="inline-flex items-center">
-                                <input type="radio" name="shift_type" value="{{ s_type }}" {% if form_data.get('shift_type') == s_type %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500">
-                                <span class="ml-2">{{ s_type|title }}</span>
-                            </label>
-                             {% endfor %}
-                        </div>
-                    </div>
-                    <fieldset>
-                        <legend class="text-sm font-medium text-gray-700">Available Shifts</legend>
-                        <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
-                            {% set checked_shifts = form_data.get('available_shifts', []) %}
-                            {% for shift in form_options.AvailableShifts %}
+                {% else %}
+                    <div x-data="{ companyMode: '{{ form_data.company_selection_mode or 'existing' }}' }" class="mt-2 space-y-4">
+                        <div class="flex items-center gap-x-6">
                             <div class="flex items-center">
-                                <input id="shift-{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in checked_shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                <label for="shift-{{ shift }}" class="ml-3 block text-sm text-gray-900">{{ shift|title }}</label>
+                                <input id="existing-company" name="company_selection_mode" type="radio" value="existing" x-model="companyMode" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                                <label for="existing-company" class="ml-3 block text-sm font-medium text-gray-900">Select Existing</label>
                             </div>
-                            {% endfor %}
-                        </div>
-                    </fieldset>
-                 </div>
-            </div>
-
-            <!-- Section 5: Benefits & Perks -->
-            <div class="border-t border-gray-200 pt-8">
-                 <h3 class="text-lg font-medium text-gray-900">Benefits & Perks</h3>
-                 <div class="mt-6 space-y-6">
-                    <fieldset>
-                        <legend class="text-sm font-medium text-gray-700">Benefits Package</legend>
-                        <div class="mt-4 space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-10">
-                            {% set checked_benefits = form_data.get('benefits_checkboxes', []) %}
-                            {% for benefit in form_options.benefits_checkboxes %}
                             <div class="flex items-center">
-                                <input id="benefit-{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" {% if benefit in checked_benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                <label for="benefit-{{ loop.index }}" class="ml-3 block text-sm text-gray-900">{{ benefit|replace('_', ' ')|title }}</label>
+                                <input id="new-company" name="company_selection_mode" type="radio" value="new" x-model="companyMode" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                                <label for="new-company" class="ml-3 block text-sm font-medium text-gray-900">Create New</label>
                             </div>
-                            {% endfor %}
                         </div>
-                    </fieldset>
-                    <div>
-                        <label class="text-sm font-medium text-gray-700">Transportation</label>
-                        <div class="mt-2 flex items-center gap-x-4">
-                            <label class="inline-flex items-center"><input type="radio" name="transportation" value="yes" {% if form_data.get('transportation') == 'yes' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Provided</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="transportation" value="no" {% if form_data.get('transportation') == 'no' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"> <span class="ml-2">Not Provided</span></label>
-                        </div>
-                        <div class="mt-4 pl-8">
-                            <label for="transport_type" class="text-sm font-medium text-gray-700">Transportation Type</label>
-                            <select id="transport_type" name="transport_type" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                                <option value="">Select if provided...</option>
-                                {% for key, value in form_options.transportation_options_map.items() %}
-                                <option value="{{ key }}" {% if form_data.get('transport_type') == key %}selected{% endif %}>{{ value|replace('Transportation ', '') }}</option>
+                        
+                        <div x-show="companyMode === 'existing'" x-transition>
+                            <label for="selected_company_id" class="sr-only">Select a company</label>
+                            <select id="selected_company_id" name="selected_company_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                                <option value="">-- Choose a Company --</option>
+                                {% for company in companies %}
+                                <option value="{{ company.CompanyID }}" {% if company.CompanyID|string == form_data.selected_company_id %}selected{% endif %}>{{ company.CompanyName }}</option>
                                 {% endfor %}
                             </select>
+                            {% if errors.get('company_id') %}<p class="text-sm text-red-600 mt-1">{{ errors.company_id }}</p>{% endif %}
+                        </div>
+
+                        <div x-show="companyMode === 'new'" x-transition>
+                            <label for="new_company_name" class="sr-only">New Company Name</label>
+                            <input type="text" name="new_company_name" id="new_company_name" placeholder="Enter new company name" value="{{ form_data.new_company_name or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            {% if errors.get('new_company_name') %}<p class="text-sm text-red-600 mt-1">{{ errors.new_company_name }}</p>{% endif %}
+                        </div>
+                        {% if errors.get('company_selection_mode') %}<p class="text-sm text-red-600 mt-1">{{ errors.company_selection_mode }}</p>{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="sm:col-span-3">
+                <label for="title" class="block text-sm font-medium text-gray-700">Job Title / Position</label>
+                <input type="text" name="title" id="title" value="{{ form_data.title or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                {% if errors.get('title') %}<p class="text-sm text-red-600 mt-1">{{ errors.title }}</p>{% endif %}
+            </div>
+
+            <div class="sm:col-span-3">
+                <label for="category_id" class="block text-sm font-medium text-gray-700">Job Category</label>
+                <select id="category_id" name="category_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    <option value="">-- Select Category --</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.CategoryID }}" {% if cat.CategoryID|string == form_data.CategoryID|string %}selected{% endif %}>{{ cat.CategoryName }}</option>
+                    {% endfor %}
+                </select>
+                {% if errors.get('category_id') %}<p class="text-sm text-red-600 mt-1">{{ errors.category_id }}</p>{% endif %}
+            </div>
+            
+            <div class="sm:col-span-3">
+                <label for="location" class="block text-sm font-medium text-gray-700">Location</label>
+                <input type="text" name="location" id="location" value="{{ form_data.Location or '' }}" placeholder="e.g., Cairo, Egypt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                {% if errors.get('location') %}<p class="text-sm text-red-600 mt-1">{{ errors.location }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# --- Section 2: Financials & Headcount --- #}
+    <div class="border-b border-gray-200 pb-6">
+        <h3 class="text-lg font-semibold leading-6 text-gray-900">Salary & Hiring Plan</h3>
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-2">
+                <label for="net_salary" class="block text-sm font-medium text-gray-700">Net Salary (EGP)</label>
+                <input type="number" step="0.01" name="net_salary" id="net_salary" value="{{ form_data.net_salary or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                 {% if errors.get('net_salary') %}<p class="text-sm text-red-600 mt-1">{{ errors.net_salary }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+                <label for="payment_term" class="block text-sm font-medium text-gray-700">Payment Term</label>
+                <select id="payment_term" name="payment_term" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for term in form_options.PaymentTerm %}
+                    <option value="{{ term }}" {% if term == form_data.PaymentTerm %}selected{% endif %}>{{ term }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label for="hiring_plan" class="block text-sm font-medium text-gray-700">Hiring Plan</label>
+                <select id="hiring_plan" name="hiring_plan" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for plan in form_options.HiringPlan %}
+                    <option value="{{ plan }}" {% if plan == form_data.HiringPlan %}selected{% endif %}>{{ plan|replace('-', ' ')|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-3">
+                <label for="candidates_needed" class="block text-sm font-medium text-gray-700">Candidates Needed</label>
+                <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.candidates_needed or '1' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                {% if errors.get('candidates_needed') %}<p class="text-sm text-red-600 mt-1">{{ errors.candidates_needed }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-3">
+                <label for="hiring_cadence" class="block text-sm font-medium text-gray-700">Hiring Cadence</label>
+                <select id="hiring_cadence" name="hiring_cadence" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for cadence in form_options.HiringCadence %}
+                    <option value="{{ cadence }}" {% if cadence == form_data.HiringCadence %}selected{% endif %}>Per {{ cadence|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    {# --- Section 3: Candidate Requirements --- #}
+    <div class="border-b border-gray-200 pb-6">
+        <h3 class="text-lg font-semibold leading-6 text-gray-900">Candidate Requirements</h3>
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-2">
+                <label for="max_age" class="block text-sm font-medium text-gray-700">Maximum Age</label>
+                <input type="number" name="max_age" id="max_age" value="{{ form_data.MaxAge or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                {% if errors.get('max_age') %}<p class="text-sm text-red-600 mt-1">{{ errors.max_age }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+                <label for="grad_status_req" class="block text-sm font-medium text-gray-700">Graduation Status</label>
+                <select id="grad_status_req" name="grad_status_req" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for status in form_options.GraduationStatusRequirement %}
+                    <option value="{{ status }}" {% if status == form_data.grad_status_req %}selected{% endif %}>{{ status|replace('-', ' ')|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label for="nationality" class="block text-sm font-medium text-gray-700">Required Nationality</label>
+                <select id="nationality" name="nationality" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for nat in form_options.Nationality %}
+                    <option value="{{ nat }}" {% if nat == form_data.Nationality %}selected{% endif %}>{{ nat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-3">
+                <label for="required_languages" class="block text-sm font-medium text-gray-700">Required Languages</label>
+                <select id="required_languages" name="required_languages" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm h-32">
+                    {% for lang in form_options.RequiredLanguages %}
+                    <option value="{{ lang }}" {% if lang in form_data.required_languages %}selected{% endif %}>{{ lang }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-3">
+                <label for="required_level" class="block text-sm font-medium text-gray-700">Required Level (for selected languages)</label>
+                <select id="required_level" name="required_level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    <option value="">-- Not Specified --</option>
+                    {% for level in form_options.RequiredLevel %}
+                    <option value="{{ level }}" {% if level == form_data.RequiredLevel %}selected{% endif %}>{{ level }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    {# --- Section 4: Work Conditions & Benefits --- #}
+    <div>
+        <h3 class="text-lg font-semibold leading-6 text-gray-900">Work Conditions & Benefits</h3>
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-3">
+                 <label class="block text-sm font-medium text-gray-700">Work Location Type</label>
+                 <div class="mt-2 flex space-x-4">
+                     {% for wlt in form_options.WorkLocationType %}
+                     <div class="flex items-center">
+                         <input id="wlt-{{wlt}}" name="work_location_type" type="radio" value="{{wlt}}" {% if wlt == form_data.work_location_type %}checked{% endif %} class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                         <label for="wlt-{{wlt}}" class="ml-2 block text-sm text-gray-900">{{ wlt|title }}</label>
+                     </div>
+                     {% endfor %}
+                 </div>
+            </div>
+            <div class="sm:col-span-3">
+                 <label class="block text-sm font-medium text-gray-700">Shift Type</label>
+                 <div class="mt-2 flex space-x-4">
+                     {% for st in form_options.ShiftType %}
+                     <div class="flex items-center">
+                         <input id="st-{{st}}" name="shift_type" type="radio" value="{{st}}" {% if st == form_data.ShiftType %}checked{% endif %} class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                         <label for="st-{{st}}" class="ml-2 block text-sm text-gray-900">{{ st|title }}</label>
+                     </div>
+                     {% endfor %}
+                 </div>
+            </div>
+             <div class="sm:col-span-6">
+                <label for="available_shifts" class="block text-sm font-medium text-gray-700">Available Shifts (select one or more)</label>
+                <select id="available_shifts" name="available_shifts" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm h-32">
+                    {% for shift in form_options.AvailableShifts %}
+                    <option value="{{ shift }}" {% if shift in form_data.available_shifts %}selected{% endif %}>{{ shift }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="sm:col-span-6" x-data="{ transport: '{{ form_data.transportation or 'no' }}' }">
+                <label class="block text-sm font-medium text-gray-700">Transportation</label>
+                 <div class="mt-2 flex space-x-4">
+                     <div class="flex items-center">
+                         <input id="transport-no" name="transportation" type="radio" value="no" x-model="transport" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                         <label for="transport-no" class="ml-2 block text-sm text-gray-900">Not Provided</label>
+                     </div>
+                     <div class="flex items-center">
+                         <input id="transport-yes" name="transportation" type="radio" value="yes" x-model="transport" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500">
+                         <label for="transport-yes" class="ml-2 block text-sm text-gray-900">Provided</label>
+                     </div>
+                 </div>
+                 <div x-show="transport === 'yes'" x-transition class="mt-4">
+                     <label for="transport_type" class="block text-sm font-medium text-gray-700">Transportation Type</label>
+                     <select name="transport_type" id="transport_type" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                         {% for key, value in form_options.transportation_options_map.items() %}
+                         <option value="{{ key }}" {% if key == form_data.transport_type %}selected{% endif %}>{{ value }}</option>
+                         {% endfor %}
+                     </select>
+                 </div>
+            </div>
+            
+            <div class="sm:col-span-6">
+                <label class="block text-sm font-medium text-gray-700">Other Benefits</label>
+                <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {% for benefit in form_options.benefits_checkboxes %}
+                    <div class="relative flex items-start">
+                        <div class="flex h-5 items-center">
+                            <input id="benefit-{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}"
+                                   {% if benefit in form_data.benefits_checkboxes %}checked{% endif %}
+                                   class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="benefit-{{ loop.index }}" class="font-medium text-gray-700">{{ benefit }}</label>
                         </div>
                     </div>
-                 </div>
+                    {% endfor %}
+                </div>
             </div>
 
             {% if is_editing_live %}
-            <div class="border-t border-gray-200 pt-8">
-                <h3 class="text-lg font-medium text-gray-900">Offer Status</h3>
-                <div class="mt-4">
-                    <select name="status" class="mt-1 block w-full sm:w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                        {% for status in form_options.Status %}
-                        <option value="{{ status }}" {% if form_data.get('status') == status %}selected{% endif %}>{{ status }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="sm:col-span-3">
+                <label for="status" class="block text-sm font-medium text-gray-700">Offer Status</label>
+                <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                    {% for stat in form_options.Status %}
+                    <option value="{{ stat }}" {% if stat == form_data.Status %}selected{% endif %}>{{ stat }}</option>
+                    {% endfor %}
+                </select>
             </div>
             {% endif %}
 
-        </div>
+            <div class="sm:col-span-3">
+                <label for="closing_date" class="block text-sm font-medium text-gray-700">Closing Date (Optional)</label>
+                <input type="date" name="closing_date" id="closing_date" value="{{ form_data.closing_date or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+            </div>
 
-        <div class="pt-8 mt-8 border-t border-gray-200 flex justify-end gap-x-3">
-            <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Cancel</a>
-            <button type="submit" class="inline-flex justify-center rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors">{{ action_verb }} Offer</button>
         </div>
-    </form>
-</div>
+    </div>
+    
+    <div class="pt-5">
+        <div class="flex justify-end">
+            <a href="{{ url_for('.list_all_job_offers') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Cancel</a>
+            <button type="submit" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">{{ action_verb }}</button>
+        </div>
+    </div>
+</form>
 {% endblock %}
