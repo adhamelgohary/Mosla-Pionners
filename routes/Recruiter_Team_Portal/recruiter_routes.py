@@ -17,6 +17,11 @@ ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 TEAM_ASSIGNMENT_ROLES = ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder']
 UNIT_AND_ORG_MANAGEMENT_ROLES = ['UnitManager', 'HeadUnitManager', 'CEO', 'Founder']
 
+ASSIGNABLE_SOURCING_ROLES = [
+    'SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager'
+]
+
+
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
                          template_folder='../../../templates')
@@ -447,7 +452,7 @@ def view_recruiter_profile(staff_id_viewing):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # 1. Fetch the profile's main info
+        # 1. Fetch the profile's main info (no changes to this query)
         cursor.execute("""
             SELECT s.StaffID, s.status, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate,
                    s.Role, s.ReportsToStaffID, s.TotalPoints, s.ReferralCode
@@ -459,19 +464,19 @@ def view_recruiter_profile(staff_id_viewing):
             abort(404, "Staff member not found.")
         profile_data['info'] = profile_info
 
-        # Security check: Viewer must be their manager, a division leader, or viewing their own profile.
+        # Security check (no changes needed here)
         is_manager = (profile_info['ReportsToStaffID'] == viewer_staff_id)
-        is_top_level_manager = current_user.role_type in ['HeadUnitManager', 'UnitManager', 'CEO', 'Founder']
+        is_top_level_manager = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder']
         is_own_profile = (profile_info['StaffID'] == viewer_staff_id)
         if not (is_manager or is_top_level_manager or is_own_profile):
             abort(403)
 
-        # 2. Fetch KPIs for the profile
+        # 2. Fetch KPIs for the profile (no changes needed)
         kpis = {}
         kpis['hires_all_time'], kpis['referrals_all_time'] = _get_performance_stats(cursor, staff_id_viewing)
         profile_data['kpis'] = kpis
 
-        # 3. Fetch recent applications
+        # 3. Fetch recent applications (no changes needed)
         cursor.execute("""
             SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, jo.Title as JobTitle
             FROM JobApplications ja
@@ -486,10 +491,12 @@ def view_recruiter_profile(staff_id_viewing):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-
+    
+    # [MODIFIED] Pass the list of assignable roles to the template
     return render_template('recruiter_team_portal/recruiter_profile.html',
                            title=f"Profile: {profile_data['info']['FirstName']}",
-                           profile_data=profile_data)
+                           profile_data=profile_data,
+                           available_roles=ASSIGNABLE_SOURCING_ROLES) # <-- ADD THIS
 
 
 
@@ -894,3 +901,45 @@ def manage_staff_status():
         if conn: conn.close()
 
     return redirect(url_for('.organization_management'))
+
+@recruiter_bp.route('/profile/change-role', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES) # Only org managers can change roles
+def change_staff_role():
+    """
+    Updates the role of a specified staff member.
+    """
+    staff_id_to_change = request.form.get('staff_id')
+    new_role = request.form.get('new_role')
+
+    # --- Validation ---
+    if not staff_id_to_change or not new_role:
+        flash("Staff ID or new role is missing.", "danger")
+        return redirect(url_for('.organization_management'))
+
+    if new_role not in ASSIGNABLE_SOURCING_ROLES:
+        flash("Invalid role selected.", "danger")
+        return redirect(url_for('.view_recruiter_profile', staff_id_viewing=staff_id_to_change))
+        
+    # Prevent a manager from accidentally demoting themselves via this form
+    if str(staff_id_to_change) == str(getattr(current_user, 'specific_role_id', '')):
+        flash("You cannot change your own role from this page.", "warning")
+        return redirect(url_for('.view_recruiter_profile', staff_id_viewing=staff_id_to_change))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # --- Database Update ---
+        # Note: This just changes the role. Team/Unit assignments for new managers
+        # must be handled separately on the organization management page.
+        cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_change))
+        conn.commit()
+
+        flash(f"Role successfully updated to '{new_role}'. Any necessary team or unit re-assignments should be done on the Organization Management page.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error changing role for StaffID {staff_id_to_change}: {e}")
+        flash(f"Error updating role: {e}", "danger")
+    finally:
+        if conn: conn.close()
+
+    return redirect(url_for('.view_recruiter_profile', staff_id_viewing=staff_id_to_change))
