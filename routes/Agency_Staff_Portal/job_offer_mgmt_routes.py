@@ -317,7 +317,7 @@ def get_form_options(conn, cursor):
         'HiringPlan', 'GraduationStatusRequirement', 'HiringCadence',
         'WorkLocationType', 'ShiftType', 'AvailableShifts', 'BenefitsIncluded',
         'Nationality', 'RequiredLanguages', 'RequiredLevel', 'Status', 'PaymentTerm',
-        'LanguagesType'
+        'LanguagesType', 'Gender', 'MilitaryStatus'
     ]
     for col in columns_to_fetch:
         options[col] = get_column_options(conn, cursor, table, col)
@@ -370,6 +370,7 @@ def staff_direct_create_job_offer():
         form_data['benefits_included'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         form_data['required_languages'] = request.form.getlist('required_languages')
+        form_data['grad_status_req'] = request.form.getlist('grad_status_req')
 
         errors = validate_job_offer_data(form_data, is_editing=False)
 
@@ -402,7 +403,7 @@ def staff_direct_create_job_offer():
                     "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status_req": form_data.get('grad_status_req'),
+                    "grad_status_req": ",".join(form_data.get('grad_status_req', [])),
                     "languages_type": form_data.get('languages_type'),
                     "required_languages": ",".join(form_data.get('required_languages', [])),
                     "required_level": form_data.get('required_level'),
@@ -414,7 +415,12 @@ def staff_direct_create_job_offer():
                     "benefits_included": ",".join(form_data.get('benefits_included', [])),
                     "interview_type": form_data.get('interview_type'),
                     "nationality": form_data.get('nationality'),
-                    "closing_date": form_data.get('closing_date') or None
+                    "closing_date": form_data.get('closing_date') or None,
+                    "gender": form_data.get('gender'),
+                    "military_status": form_data.get('military_status'),
+                    "working_days": form_data.get('working_days'),
+                    "working_hours": form_data.get('working_hours'),
+                    "experience_requirement": form_data.get('experience_requirement')
                 }
                 
                 sql = """
@@ -422,13 +428,15 @@ def staff_direct_create_job_offer():
                         CompanyID, PostedByStaffID, CategoryID, Title, Location, NetSalary, PaymentTerm, HiringPlan,
                         MaxAge, HasContract, GraduationStatusRequirement, LanguagesType, RequiredLanguages, RequiredLevel,
                         CandidatesNeeded, HiringCadence, WorkLocationType, ShiftType, AvailableShifts,
-                        BenefitsIncluded, InterviewType, Nationality, Status, ClosingDate, DatePosted
+                        BenefitsIncluded, InterviewType, Nationality, Status, ClosingDate, DatePosted,
+                        Gender, MilitaryStatus, WorkingDays, WorkingHours, ExperienceRequirement
                     ) VALUES (
                         %(company_id)s, %(posted_by_id)s, %(category_id)s, %(title)s, %(location)s, %(net_salary)s, 
                         %(payment_term)s, %(hiring_plan)s, %(max_age)s, %(has_contract)s, %(grad_status_req)s,
                         %(languages_type)s, %(required_languages)s, %(required_level)s, %(candidates_needed)s, 
                         %(hiring_cadence)s, %(work_location_type)s, %(shift_type)s, %(available_shifts)s, 
-                        %(benefits_included)s, %(interview_type)s, %(nationality)s, 'Open', %(closing_date)s, NOW()
+                        %(benefits_included)s, %(interview_type)s, %(nationality)s, 'Open', %(closing_date)s, NOW(),
+                        %(gender)s, %(military_status)s, %(working_days)s, %(working_hours)s, %(experience_requirement)s
                     )
                 """
                 cursor.execute(sql, params)
@@ -452,8 +460,8 @@ def staff_direct_create_job_offer():
         form_data = {
             'work_location_type': 'site', 'hiring_plan': 'long-term', 'shift_type': 'fixed',
             'transportation': 'no', 'has_contract': 'yes', 'hiring_cadence': 'month',
-            'grad_status_req': 'grad', 'nationality': 'Egyptians Only', 'payment_term': 'Monthly',
-            'candidates_needed': 1, 'status': 'Open'
+            'grad_status_req': ['grad'], 'nationality': 'Egyptians Only', 'payment_term': 'Monthly',
+            'candidates_needed': 1, 'status': 'Open', 'gender': 'Both', 'military_status': 'Not Applicable'
         }
 
     return render_template('agency_staff_portal/job_offers/add_edit_job_offer.html', 
@@ -493,6 +501,7 @@ def edit_live_job_offer(offer_id):
         form_data['benefits_included'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         form_data['required_languages'] = request.form.getlist('required_languages')
+        form_data['grad_status_req'] = request.form.getlist('grad_status_req')
 
         errors = validate_job_offer_data(form_data, is_editing=True)
         
@@ -509,7 +518,7 @@ def edit_live_job_offer(offer_id):
                     "payment_term": form_data.get('payment_term'), "hiring_plan": form_data.get('hiring_plan'),
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "grad_status_req": form_data.get('grad_status_req'),
+                    "grad_status_req": ",".join(form_data.get('grad_status_req', [])),
                     "languages_type": form_data.get('languages_type'),
                     "required_languages": ",".join(form_data.get('required_languages', [])),
                     "required_level": form_data.get('required_level'),
@@ -522,7 +531,12 @@ def edit_live_job_offer(offer_id):
                     "interview_type": form_data.get('interview_type'), "nationality": form_data.get('nationality'),
                     "status": form_data.get('status', 'Open'),
                     "closing_date": form_data.get('closing_date') or None, "offer_id": offer_id,
-                    "company_id": form_data.get('CompanyID')
+                    "company_id": form_data.get('CompanyID'),
+                    "gender": form_data.get('gender'),
+                    "military_status": form_data.get('military_status'),
+                    "working_days": form_data.get('working_days'),
+                    "working_hours": form_data.get('working_hours'),
+                    "experience_requirement": form_data.get('experience_requirement')
                 }
                 sql = """
                     UPDATE JobOffers SET
@@ -531,7 +545,9 @@ def edit_live_job_offer(offer_id):
                         RequiredLanguages=%(required_languages)s, RequiredLevel=%(required_level)s, CandidatesNeeded=%(candidates_needed)s, 
                         HiringCadence=%(hiring_cadence)s, WorkLocationType=%(work_location_type)s, ShiftType=%(shift_type)s, 
                         AvailableShifts=%(available_shifts)s, BenefitsIncluded=%(benefits_included)s, InterviewType=%(interview_type)s, 
-                        Nationality=%(nationality)s, Status=%(status)s, ClosingDate=%(closing_date)s, UpdatedAt=NOW()
+                        Nationality=%(nationality)s, Status=%(status)s, ClosingDate=%(closing_date)s, 
+                        Gender=%(gender)s, MilitaryStatus=%(military_status)s, WorkingDays=%(working_days)s, WorkingHours=%(working_hours)s, ExperienceRequirement=%(experience_requirement)s,
+                        UpdatedAt=NOW()
                     WHERE OfferID = %(offer_id)s
                 """
                 cursor_update.execute(sql, params)
@@ -574,6 +590,7 @@ def edit_live_job_offer(offer_id):
             all_benefits_from_db = parse_set_or_text_column(db_data.get('BenefitsIncluded'))
             form_data_for_template['required_languages'] = parse_set_or_text_column(db_data.get('RequiredLanguages'))
             form_data_for_template['available_shifts'] = parse_set_or_text_column(db_data.get('AvailableShifts'))
+            form_data_for_template['grad_status_req'] = parse_set_or_text_column(db_data.get('GraduationStatusRequirement'))
             
             dynamic_transport_options = form_options.get('transportation_options', [])
             form_data_for_template['transportation'] = 'no'
@@ -591,7 +608,6 @@ def edit_live_job_offer(offer_id):
             form_data_for_template['has_contract'] = 'yes' if db_data.get('HasContract') else 'no'
             form_data_for_template['net_salary'] = str(db_data['NetSalary']) if db_data.get('NetSalary') is not None else ''
             form_data_for_template['closing_date'] = db_data['ClosingDate'].isoformat() if db_data.get('ClosingDate') else ''
-            form_data_for_template['grad_status_req'] = db_data.get('GraduationStatusRequirement')
             form_data_for_template['work_location_type'] = db_data.get('WorkLocationType')
 
         except Exception as e:
@@ -789,6 +805,7 @@ def view_live_job_offer_detail(offer_id):
             offer['Benefits_list'] = parse_set_or_text_column(offer.get('BenefitsIncluded'))
             offer['AvailableShifts_list'] = parse_set_or_text_column(offer.get('AvailableShifts'))
             offer['RequiredLanguages_list'] = parse_set_or_text_column(offer.get('RequiredLanguages'))
+            offer['GraduationStatus_list'] = parse_set_or_text_column(offer.get('GraduationStatusRequirement'))
 
     except Exception as e:
         current_app.logger.error(f"Error fetching live offer detail {offer_id}: {e}", exc_info=True)
