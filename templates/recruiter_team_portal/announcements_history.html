@@ -1,0 +1,65 @@
+{# templates/recruiter_team_portal/announcements_history.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}<i class="bi bi-archive-fill text-gray-500"></i><span>{{ title }}</span>{% endblock %}
+
+{% block recruiter_content %}
+<div class="bg-white p-6 rounded-lg shadow-sm border">
+    <div class="sm:flex sm:flex-wrap sm:items-center sm:justify-between gap-4">
+        <div class="sm:flex-auto">
+            <h2 class="text-xl font-semibold text-gray-900">Announcement Archive</h2>
+            <p class="mt-2 text-sm text-gray-700">A complete history of all announcements relevant to the sourcing division.</p>
+        </div>
+        
+        <!-- Search and Filter Form -->
+        <form method="GET" action="{{ url_for('recruiter_bp.announcements_history') }}" class="mt-4 sm:mt-0 flex flex-wrap items-center gap-4">
+            <div>
+                <label for="search" class="sr-only">Search</label>
+                <input type="search" name="search" id="search" value="{{ search_query or '' }}" placeholder="Search title or content..." class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm sm:text-sm">
+            </div>
+            <div>
+                <label for="priority" class="sr-only">Filter by Priority</label>
+                <select name="priority" id="priority" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    <option value="">All Priorities</option>
+                    <option value="Urgent" {% if 'Urgent' == filter_priority %}selected{% endif %}>Urgent</option>
+                    <option value="High" {% if 'High' == filter_priority %}selected{% endif %}>High</option>
+                    <option value="Normal" {% if 'Normal' == filter_priority %}selected{% endif %}>Normal</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Filter</button>
+                <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Announcements List -->
+    <div class="mt-8 flow-root">
+        <div class="border-t border-gray-200">
+            <dl class="divide-y divide-gray-200">
+                {% for announcement in announcements %}
+                    <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
+                        <dt class="text-sm font-medium leading-6 text-gray-900">
+                            {{ announcement.Title }}
+                            <div class="mt-1 flex items-center gap-x-2">
+                                <span class="text-xs text-gray-500">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
+                                {% if announcement.Priority == 'Urgent' %}
+                                    <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Urgent</span>
+                                {% elif announcement.Priority == 'High' %}
+                                    <span class="inline-flex items-center rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/10">High</span>
+                                {% endif %}
+                            </div>
+                        </dt>
+                        <dd class="mt-1 text-sm leading-6 text-gray-700 sm:col-span-2 sm:mt-0">{{ announcement.Content }}</dd>
+                    </div>
+                {% else %}
+                    <div class="text-center py-10 text-gray-500">
+                        No announcements found matching your criteria.
+                    </div>
+                {% endfor %}
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}

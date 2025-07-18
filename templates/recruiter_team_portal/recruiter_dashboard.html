@@ -16,26 +16,42 @@
     <p class="mt-1 text-sm text-gray-600">This is the aggregated performance and pipeline overview for your scope.</p>
 </div>
 
-<!-- [NEW] System Announcements Section -->
+<!-- [MODIFIED] System Announcements Section as a Collapsible Accordion -->
 {% if announcements %}
-<div class="mb-8 bg-white p-6 rounded-lg shadow-sm border">
-    <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-        <i class="bi bi-megaphone-fill text-indigo-600"></i>
-        <span>Latest Announcements</span>
-    </h3>
-    <div class="mt-4 space-y-4">
+<div class="mb-8 bg-white p-6 rounded-lg shadow-sm border" x-data="{ openAnnouncement: 1 }">
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <i class="bi bi-megaphone-fill text-indigo-600"></i>
+            <span>Latest Announcements</span>
+        </h3>
+        <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 mt-2 sm:mt-0">
+            View All Announcements →
+        </a>
+    </div>
+    <div class="mt-4 space-y-2">
         {% for announcement in announcements %}
             {% set priority_classes = {
-                'Urgent': 'border-red-500 bg-red-50',
-                'High': 'border-amber-500 bg-amber-50',
-                'Normal': 'border-gray-300 bg-gray-50'
+                'Urgent': 'border-red-500 text-red-700',
+                'High': 'border-amber-500 text-amber-700',
+                'Normal': 'border-gray-400 text-gray-800'
             } %}
-            <div class="p-4 rounded-md border-l-4 {{ priority_classes.get(announcement.Priority, 'border-gray-300') }}">
-                <div class="flex items-center justify-between">
-                    <h4 class="font-bold text-gray-800">{{ announcement.Title }}</h4>
-                    <span class="text-xs text-gray-500">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
+            <div class="border-t">
+                <button @click="openAnnouncement = (openAnnouncement === {{ loop.index }} ? null : {{ loop.index }})" class="w-full text-left p-4 focus:outline-none">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium flex items-center gap-2 {{ priority_classes.get(announcement.Priority, 'text-gray-800') }}">
+                            {% if announcement.Priority == 'Urgent' %}<i class="bi bi-exclamation-octagon-fill"></i>{% endif %}
+                            {% if announcement.Priority == 'High' %}<i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
+                            {{ announcement.Title }}
+                        </span>
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs text-gray-500 hidden sm:block">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
+                            <i class="bi" :class="{ 'bi-chevron-down': openAnnouncement !== {{ loop.index }}, 'bi-chevron-up': openAnnouncement === {{ loop.index }} }"></i>
+                        </div>
+                    </div>
+                </button>
+                <div x-show="openAnnouncement === {{ loop.index }}" x-collapse class="px-4 pb-4 text-sm text-gray-600">
+                    {{ announcement.Content }}
                 </div>
-                <p class="mt-1 text-sm text-gray-600">{{ announcement.Content }}</p>
             </div>
         {% endfor %}
     </div>

@@ -3563,6 +3563,10 @@ html[data-theme="dark"] {
   --tw-ring-color: rgb(253 230 138 / var(--tw-ring-opacity, 1));
 }
 
+.ring-amber-600\/10 {
+  --tw-ring-color: rgb(217 119 6 / 0.1);
+}
+
 .ring-black {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(0 0 0 / var(--tw-ring-opacity, 1));

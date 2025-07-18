@@ -1041,3 +1041,57 @@ def manage_recruiters():
                            filter_role=filter_role,
                            filter_status=filter_status,
                            available_roles=MANAGEABLE_RECRUITER_ROLES)
+    
+@recruiter_bp.route('/announcements')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def announcements_history():
+    """
+    Displays a full, searchable, and filterable history of all system announcements
+    relevant to the recruiter portal audience.
+    """
+    search_query = request.args.get('search', '').strip()
+    filter_priority = request.args.get('priority', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    all_announcements = []
+    
+    try:
+        # Base query for all relevant announcements
+        sql = """
+            SELECT Title, Content, CreatedAt, Priority, Audience
+            FROM SystemAnnouncements
+            WHERE 
+                IsActive = 1
+                AND Audience IN ('AllStaff', 'Recruiters')
+        """
+        params = []
+
+        # Dynamically add search and filter conditions
+        if search_query:
+            sql += " AND (Title LIKE %s OR Content LIKE %s)"
+            like_query = f"%{search_query}%"
+            params.extend([like_query, like_query])
+        
+        if filter_priority:
+            sql += " AND Priority = %s"
+            params.append(filter_priority)
+            
+        sql += " ORDER BY CreatedAt DESC"
+
+        cursor.execute(sql, tuple(params))
+        all_announcements = cursor.fetchall()
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching announcements history: {e}", exc_info=True)
+        flash("Could not load the announcements history.", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/announcements_history.html',
+                           title="Announcements History",
+                           announcements=all_announcements,
+                           search_query=search_query,
+                           filter_priority=filter_priority)
