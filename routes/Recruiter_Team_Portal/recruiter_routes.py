@@ -773,3 +773,80 @@ def assign_recruiter_to_team():
         if cursor: cursor.close()
         if conn: conn.close()
     return redirect(request.referrer or url_for('.organization_management'))
+
+@recruiter_bp.route('/pending-users')
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def list_pending_users():
+    """
+    Displays a list of all registered users who have not yet been
+    activated as Staff members.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    pending_users = []
+    try:
+        # Select all users that do NOT have a corresponding entry in the Staff table
+        cursor.execute("""
+            SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.RegistrationDate
+            FROM Users u
+            LEFT JOIN Staff s ON u.UserID = s.UserID
+            WHERE s.StaffID IS NULL
+        """)
+        pending_users = cursor.fetchall()
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/pending_users.html',
+                           title="Activate New Staff",
+                           pending_users=pending_users)
+
+
+@recruiter_bp.route('/activate-staff', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def activate_staff_member():
+    """
+    Activates a user by creating a new record for them in the Staff table.
+    The user is initially unassigned.
+    """
+    user_id = request.form.get('user_id')
+    initial_role = request.form.get('initial_role', 'SourcingRecruiter') # Default to SourcingRecruiter
+
+    if not user_id:
+        flash("User ID is missing.", "danger")
+        return redirect(url_for('.list_pending_users'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        # Check if user is already a staff member to prevent duplicates
+        cursor.execute("SELECT COUNT(*) as count FROM Staff WHERE UserID = %s", (user_id,))
+        if cursor.fetchone()[0] > 0:
+            flash("This user is already a staff member.", "warning")
+            return redirect(url_for('.list_pending_users'))
+
+        # Insert the new staff record. They will be unassigned (TeamID is NULL)
+        # and will not report to anyone yet. This is handled by later assignment steps.
+        cursor.execute("""
+            INSERT INTO Staff (UserID, Role, ReportsToStaffID, TeamID, TotalPoints, ReferralCode)
+            VALUES (%s, %s, NULL, NULL, 0, NULL)
+        """, (user_id, initial_role))
+        conn.commit()
+        
+        # We could also generate a referral code here if needed
+        # For example:
+        # staff_id = cursor.lastrowid
+        # referral_code = f"REF{staff_id:04d}"
+        # cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (referral_code, staff_id))
+        # conn.commit()
+
+        flash("User successfully activated as a Staff member.", "success")
+    except Exception as e:
+        current_app.logger.error(f"Error activating staff for UserID {user_id}: {e}")
+        flash(f"Error activating staff: {e}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return redirect(url_for('.list_pending_users'))

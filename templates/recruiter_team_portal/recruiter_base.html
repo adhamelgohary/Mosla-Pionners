@@ -41,10 +41,13 @@
                                     </a>
                                 {% endif %}
                                 
-                                {# --- Organization Management Link (Restricted to top-level managers) --- #}
+                                {# --- Administration Links (Restricted to top-level managers) --- #}
                                 {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
                                 <a href="{{ url_for('recruiter_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.organization_management' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
                                     Manage Organization
+                                </a>
+                                <a href="{{ url_for('recruiter_bp.list_pending_users') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.list_pending_users' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
+                                    Activate Staff
                                 </a>
                                 {% endif %} 
                             </div>
@@ -75,11 +78,13 @@
                 </div>
             </div>
 
+            <!-- Mobile Menu -->
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('recruiter_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Dashboard</a>
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Leaderboard</a>
+                    
                     {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
                         <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">
                             {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
@@ -89,8 +94,11 @@
                             {% endif %}
                         </a>
                     {% endif %}
+                    
+                    {# --- Administration Links for Mobile --- #}
                     {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
                         <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
+                        <a href="{{ url_for('recruiter_bp.list_pending_users') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Activate Staff</a>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">
@@ -111,7 +119,10 @@
         
         <header class="bg-white shadow-sm">
             <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                <h1 class="text-xl font-bold tracking-tight text-gray-900">{% block recruiter_page_title %}{% endblock %}</h1>
+                <div class="flex items-center gap-x-3">
+                    {% block recruiter_page_title_icon %}{% endblock %}
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900">{% block recruiter_page_title %}{% endblock %}</h1>
+                </div>
             </div>
         </header>
         
