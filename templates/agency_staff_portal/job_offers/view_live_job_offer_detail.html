@@ -1,13 +1,15 @@
 {% extends "agency_staff_portal/staff_base.html" %} {# Assumes you have a base layout for Tailwind #}
 
-{% macro detail_item(label, value) %}
+{% macro detail_item(label) %}
     <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-0">
         <dt class="text-sm font-medium leading-6 text-heading">{{ label }}</dt>
-        <dd class="mt-1 text-sm leading-6 text-text-muted sm:col-span-2 sm:mt-0">{{ value|safe if value else 'N/A' }}</dd>
+        <dd class="mt-1 text-sm leading-6 text-text-muted sm:col-span-2 sm:mt-0">
+            {{ caller() | safe if caller else 'N/A' }}
+        </dd>
     </div>
 {% endmacro %}
 
-{% block staff_content %}
+{% block content %}
 <div class="p-4 md:p-6">
     <header class="mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -30,59 +32,74 @@
                 <!-- Section: Core Information -->
                 <div class="py-4">
                     <h3 class="text-base font-semibold leading-7 text-heading mb-3">Core Information</h3>
-                    <div class="space-y-3">
-                        {{ detail_item('Status', '<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ' + ('bg-green-100 text-green-700' if offer.Status == 'Open' else 'bg-red-100 text-red-700') + '">' ~ offer.Status ~ '</span>') }}
-                        {{ detail_item('Company', offer.CompanyName) }}
-                        {{ detail_item('Category', offer.get('CategoryName')) }}
-                        {{ detail_item('Location', offer.get('Location')) }}
-                        {{ detail_item('Net Salary', ('EGP ' ~ "{:,.2f}".format(offer.NetSalary) if offer.NetSalary is not none else 'Not specified') ~ ' <span class="text-text-muted">(' ~ offer.get('PaymentTerm', 'N/A') ~ ')</span>') }}
-                        {{ detail_item('Candidates Needed', offer.get('CandidatesNeeded')) }}
-                        {{ detail_item('Date Posted', offer.DatePosted.strftime('%B %d, %Y') if offer.DatePosted) }}
-                    </div>
+                    {% call detail_item('Status') %}<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium {{ 'bg-green-100 text-green-700' if offer.Status == 'Open' else 'bg-red-100 text-red-700' }}">{{ offer.Status }}</span>{% endcall %}
+                    {% call detail_item('Company') %}{{ offer.CompanyName }}{% endcall %}
+                    {% call detail_item('Category') %}{{ offer.get('CategoryName') }}{% endcall %}
+                    {% call detail_item('Location') %}{{ offer.get('Location') }}{% endcall %}
+                    {% call detail_item('Net Salary') %}{% if offer.NetSalary is not none %}{{ "EGP {:,.2f}".format(offer.NetSalary) }}{% else %}Not specified{% endif %} <span class="text-text-muted">({{ offer.get('PaymentTerm', 'N/A') }})</span>{% endcall %}
+                    {% call detail_item('Candidates Needed') %}{{ offer.get('CandidatesNeeded') }}{% endcall %}
+                    {% call detail_item('Date Posted') %}{{ offer.DatePosted.strftime('%B %d, %Y') if offer.DatePosted }}{% endcall %}
                 </div>
 
                 <!-- Section: Candidate Requirements -->
                 <div class="py-4">
                     <h3 class="text-base font-semibold leading-7 text-heading mb-3">Candidate Requirements</h3>
-                    <div class="space-y-3">
-                        {{ detail_item('Maximum Age', offer.get('MaxAge')) }}
-                        {{ detail_item('Nationality', offer.get('Nationality')) }}
-                        {{ detail_item('Gender', offer.get('Gender')) }}
-                        {{ detail_item('Military Status', offer.get('MilitaryStatus')) }}
-                        {{ detail_item('Graduation Status', '
-                            <div class="flex flex-wrap gap-2">' ~ 
-                                (offer.GraduationStatus_list|map(v => '<span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-200">' ~ v|replace("-", " ")|title ~ '</span>')|join(''))
-                            ~ '</div>' if offer.GraduationStatus_list else 'Not specified') }}
-                        {{ detail_item('Languages', '
-                            <div class="flex flex-wrap items-center gap-2">' ~ 
-                                (offer.RequiredLanguages_list|map(v => '<span class="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-200">' ~ v ~ '</span>')|join(''))
-                                ~ '<span class="text-xs text-text-muted">(Level: ' ~ offer.get('RequiredLevel', 'N/A') ~ ')</span>'
-                            ~ '</div>' if offer.RequiredLanguages_list else 'Not specified') }}
-                    </div>
+                    {% call detail_item('Maximum Age') %}{{ offer.get('MaxAge') }}{% endcall %}
+                    {% call detail_item('Nationality') %}{{ offer.get('Nationality') }}{% endcall %}
+                    {% call detail_item('Gender') %}{{ offer.get('Gender') }}{% endcall %}
+                    {% call detail_item('Military Status') %}{{ offer.get('MilitaryStatus') }}{% endcall %}
+                    
+                    {% call detail_item('Graduation Status') %}
+                        {% if offer.GraduationStatus_list %}
+                            <div class="flex flex-wrap gap-2">
+                                {% for status in offer.GraduationStatus_list %}
+                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-200">{{ status|replace("-", " ")|title }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            Not specified
+                        {% endif %}
+                    {% endcall %}
+
+                    {% call detail_item('Languages') %}
+                        {% if offer.RequiredLanguages_list %}
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% for lang in offer.RequiredLanguages_list %}
+                                    <span class="inline-flex items-center rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-200">{{ lang }}</span>
+                                {% endfor %}
+                                <span class="text-xs text-text-muted">(Level: {{ offer.get('RequiredLevel', 'N/A') }})</span>
+                            </div>
+                        {% else %}
+                             Not specified
+                        {% endif %}
+                    {% endcall %}
                 </div>
                 
                 <!-- Section: Work & Schedule Details -->
                 <div class="py-4">
                     <h3 class="text-base font-semibold leading-7 text-heading mb-3">Work & Schedule Details</h3>
-                    <div class="space-y-3">
-                        {{ detail_item('Working Days', offer.get('WorkingDays')) }}
-                        {{ detail_item('Working Hours', offer.get('WorkingHours')) }}
-                        {{ detail_item('Work Location', offer.get('WorkLocationType')|title) }}
-                        {{ detail_item('Shift Type', offer.get('ShiftType')|title) }}
-                        {{ detail_item('Experience Requirement', '<p class="whitespace-pre-wrap">' ~ offer.get('ExperienceRequirement', 'N/A') ~ '</p>') }}
-                    </div>
+                    {% call detail_item('Working Days') %}{{ offer.get('WorkingDays') }}{% endcall %}
+                    {% call detail_item('Working Hours') %}{{ offer.get('WorkingHours') }}{% endcall %}
+                    {% call detail_item('Work Location') %}{{ offer.get('WorkLocationType')|title if offer.get('WorkLocationType') }}{% endcall %}
+                    {% call detail_item('Shift Type') %}{{ offer.get('ShiftType')|title if offer.get('ShiftType') }}{% endcall %}
+                    {% call detail_item('Experience Requirement') %}<p class="whitespace-pre-wrap">{{ offer.get('ExperienceRequirement', 'N/A') }}</p>{% endcall %}
                 </div>
                 
                 <!-- Section: Benefits -->
                 <div class="py-4">
                      <h3 class="text-base font-semibold leading-7 text-heading mb-3">Benefits & Other Details</h3>
-                    <div class="space-y-3">
-                        {{ detail_item('Has Contract?', 'Yes' if offer.get('HasContract') else 'No') }}
-                        {{ detail_item('Benefits Included', '
-                            <div class="flex flex-wrap gap-2">' ~ 
-                                (offer.Benefits_list|map(v => '<span class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">' ~ v ~ '</span>')|join(''))
-                            ~ '</div>' if offer.Benefits_list else 'No benefits listed') }}
-                    </div>
+                    {% call detail_item('Has Contract?') %}{% if offer.get('HasContract') %}Yes{% else %}No{% endif %}{% endcall %}
+                    {% call detail_item('Benefits Included') %}
+                        {% if offer.Benefits_list %}
+                            <div class="flex flex-wrap gap-2">
+                                {% for benefit in offer.Benefits_list %}
+                                    <span class="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200">{{ benefit }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            No benefits listed
+                        {% endif %}
+                    {% endcall %}
                 </div>
             </dl>
         </div>
