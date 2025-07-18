@@ -4,108 +4,105 @@
 
 {% block staff_page_title %}
     <i class="bi bi-journal-text text-gray-500"></i>
-    <span>{{ title }}</span>
+    <span class="fluid-text-lg">{{ title }}</span>
 {% endblock %}
 
 {% block staff_content %}
-<div class="px-4 py-6 sm:px-0">
+<div class="px-4 sm:px-0">
     <!-- Filter Section -->
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-6 border">
-        <h3 class="text-lg font-medium text-gray-800 mb-4">Filter Applications</h3>
-        <form method="GET" action="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="bg-white p-4 rounded-xl shadow-lg mb-6 border border-gray-200">
+        <form method="GET" action="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div>
-                <label for="company_id" class="block text-sm font-medium text-gray-700">Company</label>
-                <select name="company_id" id="company_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <label for="company_id" class="form-label">Company</label>
+                <select name="company_id" id="company_id" class="form-select transition-all duration-300">
                     <option value="">All Companies</option>
                     {% for company in companies %}
                     <option value="{{ company.CompanyID }}" {% if company.CompanyID == selected_company_id %}selected{% endif %}>{{ company.CompanyName }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label for="offer_id" class="block text-sm font-medium text-gray-700">Job Offer</label>
-                <select name="offer_id" id="offer_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <div class="md:col-span-2">
+                <label for="offer_id" class="form-label">Job Offer</label>
+                <select name="offer_id" id="offer_id" class="form-select transition-all duration-300">
                     <option value="">All Job Offers</option>
                      {# Options will be populated by JavaScript #}
                 </select>
             </div>
             <div class="flex space-x-2 md:col-span-2">
-                <button type="submit" class="w-full inline-flex justify-center items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                    <i class="bi bi-funnel-fill mr-2"></i> Filter
-                </button>
-                <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="w-full inline-flex justify-center items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                    Clear
-                </a>
+                <button type="submit" class="btn-primary w-full"><i class="bi bi-funnel-fill mr-2"></i>Filter</button>
+                <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="btn-secondary w-full text-center">Clear</a>
             </div>
         </form>
     </div>
 
     <!-- Actions and Summary -->
-    <div class="flex justify-between items-center mb-4">
-        <p class="text-sm text-gray-600">
-            Displaying <span class="font-bold">{{ applications|length }}</span> applications.
+    <div class="flex justify-between items-center mb-4 px-2">
+        <p class="fluid-text-sm text-gray-600">
+            Displaying <span class="font-bold text-gray-800">{{ applications|length }}</span> applications.
         </p>
         <div class="relative inline-block text-left" x-data="{ open: false }">
             <div>
-                <button @click="open = !open" type="button" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm ring-1 ring-inset ring-green-700 hover:bg-green-700" aria-expanded="false" aria-haspopup="true">
-                    <i class="bi bi-download mr-2"></i>Download
-                    <svg class="-mr-1 h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                <button @click="open = !open" type="button" class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50" aria-expanded="false" aria-haspopup="true">
+                    <i class="bi bi-download mr-2"></i>Download Report
+                    <svg class="-mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
                 </button>
             </div>
             <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
                 <div class="py-1">
-                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='xlsx') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100"><i class="bi bi-file-earmark-spreadsheet-fill text-green-600 mr-3"></i>Styled Report (.xlsx)</a>
-                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='csv') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100"><i class="bi bi-filetype-csv text-gray-500 mr-3"></i>Plain Data (.csv)</a>
+                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='xlsx') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-file-earmark-spreadsheet-fill text-green-600 mr-3"></i>Styled Report (.xlsx)</a>
+                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='csv') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-filetype-csv text-gray-500 mr-3"></i>Plain Data (.csv)</a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Applications Table -->
-    <div class="overflow-x-auto bg-white rounded-lg shadow border">
-        <!-- ... Table remains unchanged ... -->
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% if applications %}
-                    {% for app in applications %}
+    <div class="overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ app.FirstName }} {{ app.LastName }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.JobTitle }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.CompanyName }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.ApplicationDate.strftime('%Y-%m-%d') if app.ApplicationDate }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {% if app.Status == 'Hired' %} bg-green-100 text-green-800 
-                                {% elif app.Status in ['Submitted', 'Shortlisted', 'Interview Scheduled'] %} bg-blue-100 text-blue-800
-                                {% elif app.Status == 'Rejected' %} bg-red-100 text-red-800
-                                {% else %} bg-gray-100 text-gray-800 {% endif %}">
-                                {{ app.Status }}
-                           </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=app.CandidateID) }}" class="text-indigo-600 hover:text-indigo-900">View Profile</a>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if applications %}
+                        {% for app in applications %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ app.FirstName }} {{ app.LastName }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.JobTitle }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.CompanyName }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ app.ApplicationDate.strftime('%Y-%m-%d') if app.ApplicationDate }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {% if app.Status == 'Hired' %} bg-success-100 text-success-700 
+                                    {% elif app.Status in ['Submitted', 'Shortlisted', 'Interview Scheduled'] %} bg-primary-100 text-primary-800
+                                    {% elif app.Status == 'Rejected' %} bg-danger-100 text-danger-700
+                                    {% else %} bg-gray-100 text-gray-800 {% endif %}">
+                                    {{ app.Status }}
+                               </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=app.CandidateID) }}" class="text-primary-600 hover:text-primary-900 font-medium">View Profile</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                            <i class="bi bi-search text-4xl text-gray-300"></i>
+                            <p class="mt-2">No applications found for the selected criteria.</p>
                         </td>
                     </tr>
-                    {% endfor %}
-                {% else %}
-                <tr>
-                    <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
-                        No applications found for the selected criteria.
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -115,12 +112,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const companySelect = document.getElementById('company_id');
     const offerSelect = document.getElementById('offer_id');
-    
-    // Store the initially selected offer ID to re-select it after fetching
     const initiallySelectedOfferId = "{{ selected_offer_id or '' }}";
 
     function fetchAndPopulateOffers(companyId) {
-        // Determine which API endpoint to call
         const url = companyId 
             ? `{{ url_for('job_offer_mgmt_bp.api_get_offers_for_company', company_id=0) }}`.replace('0', companyId)
             : `{{ url_for('job_offer_mgmt_bp.api_get_all_offers') }}`;
@@ -128,20 +122,14 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                // Clear existing options
                 offerSelect.innerHTML = '<option value="">All Job Offers</option>';
-                
-                // Populate with new options from the API response
                 data.offers.forEach(offer => {
                     const option = document.createElement('option');
                     option.value = offer.OfferID;
                     option.textContent = offer.Title;
-                    
-                    // If this offer was the one originally selected, mark it as selected
                     if (offer.OfferID == initiallySelectedOfferId) {
                         option.selected = true;
                     }
-                    
                     offerSelect.appendChild(option);
                 });
             })
@@ -151,17 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Add event listener for when the company selection changes
     companySelect.addEventListener('change', function() {
-        const selectedCompanyId = this.value;
-        fetchAndPopulateOffers(selectedCompanyId);
+        fetchAndPopulateOffers(this.value);
     });
 
-    // --- Initial population on page load ---
-    // This is crucial for when the page reloads after a filter is applied.
-    // It ensures the offer dropdown is correctly populated and the selection is maintained.
-    const initialCompanyId = companySelect.value;
-    fetchAndPopulateOffers(initialCompanyId);
+    fetchAndPopulateOffers(companySelect.value);
 });
 </script>
 {% endblock %}

@@ -3,11 +3,11 @@
 {% block staff_title %}{{ title }}{% endblock %}
 
 {% block staff_page_title %}
-    <i class="bi bi-file-earmark-plus-fill"></i> {{ title }}
+    <i class="bi bi-file-earmark-plus-fill"></i> <span class="fluid-text-lg font-semibold text-heading">{{ title }}</span>
 {% endblock %}
 
 {% block staff_content %}
-<div class="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200" x-data="{ 
+<div class="bg-card p-6 sm:p-8 rounded-xl shadow-lg border border-border animate-fade-in-up" x-data="{ 
     transportation: '{{ form_data.transportation or 'no' }}',
     companyMode: '{{ form_data.company_selection_mode or ('existing' if not is_editing_live else '') }}'
 }">
@@ -15,59 +15,59 @@
         
         <div class="space-y-12">
             <!-- Section 1: Core Job Details -->
-            <div class="border-b border-gray-900/10 pb-12">
-                <h2 class="text-lg font-semibold leading-7 text-gray-900">Core Job Details</h2>
-                <p class="mt-1 text-sm leading-6 text-gray-600">Provide the fundamental information about the job offer.</p>
+            <div class="border-b border-border pb-12">
+                <h2 class="fluid-text-lg font-semibold leading-7 text-heading">Core Job Details</h2>
+                <p class="mt-1 fluid-text-sm leading-6 text-text-muted">Provide the fundamental information about the job offer.</p>
                 
                 <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-4">
-                        <label for="title" class="form-label">Job Title <span class="text-red-500">*</span></label>
-                        <input type="text" name="title" id="title" value="{{ form_data.title or form_data.Title or '' }}" class="form-input {{ 'border-red-500' if errors.title }}" required>
-                        {% if errors.title %}<p class="mt-2 text-sm text-red-600">{{ errors.title }}</p>{% endif %}
+                        <label for="title" class="form-label">Job Title <span class="text-danger-500">*</span></label>
+                        <input type="text" name="title" id="title" value="{{ form_data.title or form_data.Title or '' }}" class="form-input {{ 'border-danger-500 focus:ring-danger-500' if errors.title }}" required>
+                        {% if errors.title %}<p class="mt-2 text-sm text-danger-600">{{ errors.title }}</p>{% endif %}
                     </div>
                     
                     {% if not is_editing_live %}
                     <div class="sm:col-span-6">
-                        <label class="form-label">Company <span class="text-red-500">*</span></label>
+                        <label class="form-label">Company <span class="text-danger-500">*</span></label>
                         <fieldset class="mt-2">
                              <div class="flex items-center space-x-6">
                                 <div class="flex items-center">
-                                    <input type="radio" x-model="companyMode" value="existing" name="company_selection_mode" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
-                                    <label for="existing_company" class="ml-2 block text-sm font-medium leading-6 text-gray-900">Existing Company</label>
+                                    <input type="radio" x-model="companyMode" value="existing" name="company_selection_mode" class="form-radio">
+                                    <label class="ml-2 block text-sm font-medium leading-6 text-text">Existing Company</label>
                                 </div>
                                 <div class="flex items-center">
-                                    <input type="radio" x-model="companyMode" value="new" name="company_selection_mode" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
-                                    <label for="new_company" class="ml-2 block text-sm font-medium leading-6 text-gray-900">New Company</label>
+                                    <input type="radio" x-model="companyMode" value="new" name="company_selection_mode" class="form-radio">
+                                    <label class="ml-2 block text-sm font-medium leading-6 text-text">New Company</label>
                                 </div>
                              </div>
                         </fieldset>
-                        <div x-show="companyMode === 'existing'" class="mt-4" x-transition>
-                            <select name="selected_company_id" class="form-select {{ 'border-red-500' if errors.company_id }}">
+                        <div x-show="companyMode === 'existing'" class="mt-4" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                            <select name="selected_company_id" class="form-select {{ 'border-danger-500 focus:ring-danger-500' if errors.company_id }}">
                                 <option value="">-- Select an Existing Company --</option>
                                 {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.get('selected_company_id') and form_data.get('selected_company_id')|int == company.CompanyID %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
                             </select>
                         </div>
-                        <div x-show="companyMode === 'new'" class="mt-4" x-transition>
-                            <input type="text" name="new_company_name" placeholder="Enter New Company Name" value="{{ form_data.new_company_name or '' }}" class="form-input {{ 'border-red-500' if errors.new_company_name }}">
+                        <div x-show="companyMode === 'new'" class="mt-4" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                            <input type="text" name="new_company_name" placeholder="Enter New Company Name" value="{{ form_data.new_company_name or '' }}" class="form-input {{ 'border-danger-500 focus:ring-danger-500' if errors.new_company_name }}">
                         </div>
-                        {% if errors.company_id %}<p class="mt-2 text-sm text-red-600">{{ errors.company_id }}</p>{% endif %}
-                        {% if errors.new_company_name %}<p class="mt-2 text-sm text-red-600">{{ errors.new_company_name }}</p>{% endif %}
+                        {% if errors.company_id %}<p class="mt-2 text-sm text-danger-600">{{ errors.company_id }}</p>{% endif %}
+                        {% if errors.new_company_name %}<p class="mt-2 text-sm text-danger-600">{{ errors.new_company_name }}</p>{% endif %}
                     </div>
                     {% else %}
                     <input type="hidden" name="CompanyID" value="{{ form_data.CompanyID }}">
                     <div class="sm:col-span-3">
                         <label class="form-label">Company</label>
-                        <p class="mt-2 text-sm font-medium text-gray-700 p-2 bg-gray-50 rounded-md border">{{ companies|selectattr('CompanyID', 'equalto', form_data.CompanyID)|map(attribute='CompanyName')|first }}</p>
+                        <p class="mt-2 text-sm font-medium text-text p-2.5 bg-input rounded-md border border-input-border">{{ companies|selectattr('CompanyID', 'equalto', form_data.CompanyID)|map(attribute='CompanyName')|first }}</p>
                     </div>
                     {% endif %}
                     
                     <div class="sm:col-span-3">
-                        <label for="category_id" class="form-label">Job Category <span class="text-red-500">*</span></label>
-                        <select id="category_id" name="category_id" class="form-select {{ 'border-red-500' if errors.category_id }}" required>
+                        <label for="category_id" class="form-label">Job Category <span class="text-danger-500">*</span></label>
+                        <select id="category_id" name="category_id" class="form-select {{ 'border-danger-500 focus:ring-danger-500' if errors.category_id }}" required>
                             <option value="">-- Select a Category --</option>
                             {% for category in categories %}<option value="{{ category.CategoryID }}" {% if form_data.get('CategoryID') and form_data.get('CategoryID')|int == category.CategoryID %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
                         </select>
-                         {% if errors.category_id %}<p class="mt-2 text-sm text-red-600">{{ errors.category_id }}</p>{% endif %}
+                         {% if errors.category_id %}<p class="mt-2 text-sm text-danger-600">{{ errors.category_id }}</p>{% endif %}
                     </div>
 
                     {% if is_editing_live %}
@@ -86,8 +86,8 @@
 
                     <div class="sm:col-span-3">
                         <label for="net_salary" class="form-label">Net Salary (EGP)</label>
-                        <input type="number" step="0.01" name="net_salary" id="net_salary" value="{{ form_data.net_salary or '' }}" class="form-input {{ 'border-red-500' if errors.net_salary }}" placeholder="e.g., 8000">
-                        {% if errors.net_salary %}<p class="mt-2 text-sm text-red-600">{{ errors.net_salary }}</p>{% endif %}
+                        <input type="number" step="0.01" name="net_salary" id="net_salary" value="{{ form_data.net_salary or '' }}" class="form-input {{ 'border-danger-500 focus:ring-danger-500' if errors.net_salary }}" placeholder="e.g., 8000">
+                        {% if errors.net_salary %}<p class="mt-2 text-sm text-danger-600">{{ errors.net_salary }}</p>{% endif %}
                     </div>
 
                     <div class="sm:col-span-3">
@@ -103,9 +103,9 @@
             </div>
 
             <!-- Section 2: Candidate Requirements -->
-            <div class="border-b border-gray-900/10 pb-12">
-                <h2 class="text-lg font-semibold leading-7 text-gray-900">Candidate Requirements</h2>
-                <p class="mt-1 text-sm leading-6 text-gray-600">Specify the ideal candidate profile.</p>
+            <div class="border-b border-border pb-12">
+                 <h2 class="fluid-text-lg font-semibold leading-7 text-heading">Candidate Requirements</h2>
+                <p class="mt-1 fluid-text-sm leading-6 text-text-muted">Specify the ideal candidate profile.</p>
                 <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-2">
                         <label for="grad_status_req" class="form-label">Graduation Status</label>
@@ -115,8 +115,8 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label for="max_age" class="form-label">Maximum Age</label>
-                        <input type="number" name="max_age" id="max_age" value="{{ form_data.MaxAge or '' }}" class="form-input {{ 'border-red-500' if errors.max_age }}" placeholder="e.g., 35">
-                        {% if errors.max_age %}<p class="mt-2 text-sm text-red-600">{{ errors.max_age }}</p>{% endif %}
+                        <input type="number" name="max_age" id="max_age" value="{{ form_data.MaxAge or '' }}" class="form-input {{ 'border-danger-500 focus:ring-danger-500' if errors.max_age }}" placeholder="e.g., 35">
+                        {% if errors.max_age %}<p class="mt-2 text-sm text-danger-600">{{ errors.max_age }}</p>{% endif %}
                     </div>
                     <div class="sm:col-span-2">
                         <label for="nationality" class="form-label">Nationality</label>
@@ -138,7 +138,7 @@
                             <option value="{{ lang }}" {% if lang in (form_data.required_languages or []) %}selected{% endif %}>{{ lang }}</option>
                             {% endfor %}
                         </select>
-                        <p class="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple.</p>
+                        <p class="mt-1 text-xs text-text-muted">Hold Ctrl/Cmd to select multiple.</p>
                     </div>
                     <div class="sm:col-span-2">
                         <label for="required_level" class="form-label">Required Level</label>
@@ -151,13 +151,13 @@
             
             <!-- Section 3: Offer Logistics -->
             <div class="pb-12">
-                <h2 class="text-lg font-semibold leading-7 text-gray-900">Offer Logistics & Benefits</h2>
-                <p class="mt-1 text-sm leading-6 text-gray-600">Details about the work schedule, benefits, and contract.</p>
+                <h2 class="fluid-text-lg font-semibold leading-7 text-heading">Offer Logistics & Benefits</h2>
+                <p class="mt-1 fluid-text-sm leading-6 text-text-muted">Details about the work schedule, benefits, and contract.</p>
                  <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                     <div class="sm:col-span-2">
                         <label for="candidates_needed" class="form-label">Candidates Needed</label>
-                        <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.candidates_needed or 1 }}" class="form-input {{ 'border-red-500' if errors.candidates_needed }}">
-                        {% if errors.candidates_needed %}<p class="mt-2 text-sm text-red-600">{{ errors.candidates_needed }}</p>{% endif %}
+                        <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.candidates_needed or 1 }}" class="form-input {{ 'border-danger-500 focus:ring-danger-500' if errors.candidates_needed }}">
+                        {% if errors.candidates_needed %}<p class="mt-2 text-sm text-danger-600">{{ errors.candidates_needed }}</p>{% endif %}
                     </div>
                     <div class="sm:col-span-2">
                         <label for="hiring_cadence" class="form-label">Hiring Cadence</label>
@@ -170,7 +170,7 @@
                          <input type="date" name="closing_date" id="closing_date" value="{{ form_data.closing_date or '' }}" class="form-input">
                     </div>
 
-                    <div class="sm:col-span-6"><div class="border-t border-gray-200"></div></div>
+                    <div class="sm:col-span-6"><div class="border-t border-border"></div></div>
 
                     <div class="sm:col-span-2">
                         <label for="work_location_type" class="form-label">Work Location</label>
@@ -189,30 +189,26 @@
                         <div class="mt-2 space-y-2">
                             {% for shift in form_options.AvailableShifts %}
                             <div class="relative flex items-start">
-                                <div class="flex h-6 items-center">
-                                    <input type="checkbox" name="available_shifts" value="{{ shift }}" {% if shift in (form_data.available_shifts or []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600">
-                                </div>
-                                <div class="ml-3 text-sm leading-6">
-                                    <label class="font-medium text-gray-900">{{ shift|capitalize }}</label>
-                                </div>
+                                <div class="flex h-6 items-center"><input type="checkbox" name="available_shifts" value="{{ shift }}" {% if shift in (form_data.available_shifts or []) %}checked{% endif %} class="form-checkbox"></div>
+                                <div class="ml-3 text-sm leading-6"><label class="font-medium text-text">{{ shift|capitalize }}</label></div>
                             </div>
                             {% endfor %}
                         </div>
                     </div>
 
-                    <div class="sm:col-span-6"><div class="border-t border-gray-200"></div></div>
+                    <div class="sm:col-span-6"><div class="border-t border-border"></div></div>
 
                     <div class="sm:col-span-3">
                          <label class="form-label">Transportation</label>
                          <fieldset class="mt-2">
                             <div class="flex items-center space-x-6">
                                 <div class="flex items-center">
-                                    <input type="radio" x-model="transportation" value="yes" name="transportation" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
-                                    <label class="ml-2 block text-sm font-medium leading-6 text-gray-900">Provided</label>
+                                    <input type="radio" x-model="transportation" value="yes" name="transportation" class="form-radio">
+                                    <label class="ml-2 block text-sm font-medium leading-6 text-text">Provided</label>
                                 </div>
                                 <div class="flex items-center">
-                                    <input type="radio" x-model="transportation" value="no" name="transportation" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
-                                    <label class="ml-2 block text-sm font-medium leading-6 text-gray-900">Not Provided</label>
+                                    <input type="radio" x-model="transportation" value="no" name="transportation" class="form-radio">
+                                    <label class="ml-2 block text-sm font-medium leading-6 text-text">Not Provided</label>
                                 </div>
                             </div>
                          </fieldset>
@@ -231,12 +227,8 @@
                         <div class="mt-2 space-y-2">
                             {% for benefit in form_options.benefits_checkboxes %}
                             <div class="relative flex items-start">
-                                <div class="flex h-6 items-center">
-                                    <input type="checkbox" name="benefits_checkboxes" value="{{ benefit }}" {% if benefit in (form_data.benefits_checkboxes or []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600">
-                                </div>
-                                <div class="ml-3 text-sm leading-6">
-                                    <label class="font-medium text-gray-900">{{ benefit }}</label>
-                                </div>
+                                <div class="flex h-6 items-center"><input type="checkbox" name="benefits_checkboxes" value="{{ benefit }}" {% if benefit in (form_data.benefits_checkboxes or []) %}checked{% endif %} class="form-checkbox"></div>
+                                <div class="ml-3 text-sm leading-6"><label class="font-medium text-text">{{ benefit }}</label></div>
                             </div>
                             {% endfor %}
                         </div>
@@ -245,7 +237,7 @@
             </div>
         </div>
 
-        <div class="mt-6 flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-6">
+        <div class="mt-6 flex items-center justify-end gap-x-6 border-t border-border pt-6">
             <a href="{{ url_for('.list_all_job_offers') }}" class="btn-secondary">Cancel</a>
             <button type="submit" class="btn-primary">
                 <i class="bi bi-save-fill mr-1"></i> {{ action_verb }}
