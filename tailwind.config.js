@@ -132,7 +132,12 @@ module.exports = {
     // --- 3. ADVANCED PLUGINS ---
     require('@tailwindcss/container-queries'), // For container-based responsive design
     require('tailwindcss-text-balance'),    // For prettier text wrapping in headlines
-    
+    require('tailwindcss-fluid-type'),      // For fluid typography
+    require('tailwindcss-gradients'),       // For advanced gradient utilities
+    require('tailwindcss-children'),        // For styling child elements easily
+    require('@mertasan/tailwindcss-variables'),       // For CSS variable support in Tailwind
+    require('tailwindcss-pseudo-elements'), // For styling pseudo-elements like ::before and ::after
+    require('tailwindcss-scrollbar'),       // For custom scrollbar styles
     // UI and animation plugins
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
