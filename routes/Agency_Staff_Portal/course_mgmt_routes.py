@@ -60,7 +60,9 @@ def list_all_packages():
                            main_packages=main_packages)
     
 
-# --- Main Package Management (Updated) ---
+# WARNING: This code removes explicit transaction boundaries.
+# This is NOT recommended as it can lead to data integrity issues if an error occurs mid-operation.
+
 @package_mgmt_bp.route('/main-package/add', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_main_package():
@@ -72,15 +74,13 @@ def add_main_package():
 
         if request.method == 'POST':
             form_data = request.form
-            # Use getlist to handle multiple language selections for bilingual packages
             selected_languages = form_data.getlist('LanguageIDs')
 
             if not form_data.get('Name') or not selected_languages:
                 flash("Package Name and at least one Language are required.", "danger")
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
             
-            # Use a transaction for multi-step database write
-            conn.start_transaction()
+            # --- `conn.start_transaction()` REMOVED ---
             
             # 1. Insert into MainPackages table
             sql_main = """
@@ -100,12 +100,16 @@ def add_main_package():
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (new_package_id, lang_id))
 
+            # This is now ESSENTIAL. Without it, nothing will be saved.
             conn.commit()
+
             flash("Main Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
             
     except mysql.connector.Error as err:
-        if conn and conn.is_connected(): conn.rollback()
+        # --- `conn.rollback()` REMOVED ---
+        # A failure here means the MainPackage might be saved but the languages are not,
+        # leaving corrupted data in your database.
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -129,14 +133,13 @@ def edit_main_package(package_id):
 
             if not form_data.get('Name') or not selected_languages:
                 flash("Package Name and at least one Language are required.", "danger")
-                # Refetch data for form repopulation on error
                 cursor.execute("SELECT * FROM MainPackages WHERE PackageID = %s", (package_id,))
                 current_data = cursor.fetchone()
                 cursor.execute("SELECT LanguageID FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
                 current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
 
-            conn.start_transaction()
+            # --- `conn.start_transaction()` REMOVED ---
             
             # 1. Update the MainPackages table
             sql_main = """
@@ -159,7 +162,9 @@ def edit_main_package(package_id):
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (package_id, lang_id))
             
+            # This is now ESSENTIAL. Without it, nothing will be saved.
             conn.commit()
+
             flash("Main Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
 
@@ -170,14 +175,14 @@ def edit_main_package(package_id):
             flash("Main Package not found.", "danger")
             return redirect(url_for('.list_all_packages'))
         
-        # Fetch the currently associated languages for this package
         cursor.execute("SELECT LanguageID FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
         form_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
 
         return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=form_data, package_id=package_id, languages=languages)
 
     except mysql.connector.Error as err:
-        if conn and conn.is_connected(): conn.rollback()
+        # --- `conn.rollback()` REMOVED ---
+        # A failure here can leave data in a broken state.
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
