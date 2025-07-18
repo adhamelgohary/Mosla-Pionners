@@ -16,7 +16,7 @@ package_mgmt_bp = Blueprint('package_mgmt_bp', __name__,
                             template_folder='../../../templates',
                             url_prefix='/packages-management')
 
-# --- Main Listing Page ---
+# --- Main Listing Page (Updated) ---
 @package_mgmt_bp.route('/')
 @login_required_with_role(PACKAGE_VIEW_ROLES)
 def list_all_packages():
@@ -27,20 +27,26 @@ def list_all_packages():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Fetch MainPackages and join with Languages to get the language name
-        sql = """
-            SELECT mp.*, l.LanguageName 
-            FROM MainPackages mp
-            JOIN Languages l ON mp.LanguageID = l.LanguageID
-            ORDER BY l.LanguageName, mp.Name
-        """
-        cursor.execute(sql)
+        # 1. Fetch all MainPackages
+        cursor.execute("SELECT * FROM MainPackages ORDER BY Name")
         main_packages = cursor.fetchall()
 
-        # For each main package, fetch its sub-packages
+        # 2. For each package, fetch its associated languages and sub-packages
         for package in main_packages:
+            # Fetch languages for this package
+            cursor.execute("""
+                SELECT l.LanguageName 
+                FROM MainPackageLanguages mpl
+                JOIN Languages l ON mpl.LanguageID = l.LanguageID
+                WHERE mpl.PackageID = %s
+            """, (package['PackageID'],))
+            languages_raw = cursor.fetchall()
+            package['languages'] = [lang['LanguageName'] for lang in languages_raw]
+
+            # Fetch sub-packages (no change here)
             cursor.execute("SELECT * FROM SubPackages WHERE MainPackageID = %s ORDER BY DisplayOrder, Name", (package['PackageID'],))
             package['sub_packages'] = cursor.fetchall()
+            
     except Exception as e:
         current_app.logger.error(f"Error fetching package management list: {e}", exc_info=True)
         flash("Could not load package content.", "danger")
@@ -49,16 +55,15 @@ def list_all_packages():
             cursor.close()
             conn.close()
     
-    # Template and variable names updated for new structure
     return render_template('agency_staff_portal/courses/list_packages.html', 
                            title="Manage Course Packages",
                            main_packages=main_packages)
+    
 
-# --- Main Package Management ---
+# --- Main Package Management (Updated) ---
 @package_mgmt_bp.route('/main-package/add', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_main_package():
-    languages = []
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
@@ -67,29 +72,45 @@ def add_main_package():
 
         if request.method == 'POST':
             form_data = request.form
-            if not form_data.get('Name') or not form_data.get('LanguageID'):
-                flash("Package Name and Language are required.", "danger")
-                return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
+            # Use getlist to handle multiple language selections for bilingual packages
+            selected_languages = form_data.getlist('LanguageIDs')
 
-            sql = """
-                INSERT INTO MainPackages (LanguageID, Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, IsActive, AddedByStaffID)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            if not form_data.get('Name') or not selected_languages:
+                flash("Package Name and at least one Language are required.", "danger")
+                return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
+            
+            # Use a transaction for multi-step database write
+            conn.start_transaction()
+            
+            # 1. Insert into MainPackages table
+            sql_main = """
+                INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, IsActive, AddedByStaffID)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            params = (
-                form_data['LanguageID'], form_data['Name'], form_data.get('Description'),
+            params_main = (
+                form_data['Name'], form_data.get('Description'),
                 form_data.get('Benefits'), form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
                 form_data.get('Notes'), 'IsActive' in form_data, current_user.specific_role_id
             )
-            cursor.execute(sql, params)
+            cursor.execute(sql_main, params_main)
+            new_package_id = cursor.lastrowid
+
+            # 2. Insert into the junction table MainPackageLanguages
+            sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
+            for lang_id in selected_languages:
+                cursor.execute(sql_lang, (new_package_id, lang_id))
+
             conn.commit()
             flash("Main Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
+            
     except mysql.connector.Error as err:
         if conn and conn.is_connected(): conn.rollback()
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
     
+    # GET request
     return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data={}, languages=languages)
 
 
@@ -99,30 +120,45 @@ def edit_main_package(package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Always fetch languages for the dropdown
         cursor.execute("SELECT LanguageID, LanguageName FROM Languages ORDER BY LanguageName")
         languages = cursor.fetchall()
 
         if request.method == 'POST':
             form_data = request.form
-            if not form_data.get('Name') or not form_data.get('LanguageID'):
-                flash("Package Name and Language are required.", "danger")
+            selected_languages = form_data.getlist('LanguageIDs')
+
+            if not form_data.get('Name') or not selected_languages:
+                flash("Package Name and at least one Language are required.", "danger")
+                # Refetch data for form repopulation on error
                 cursor.execute("SELECT * FROM MainPackages WHERE PackageID = %s", (package_id,))
                 current_data = cursor.fetchone()
+                cursor.execute("SELECT LanguageID FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
+                current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
+
+            conn.start_transaction()
             
-            sql = """
+            # 1. Update the MainPackages table
+            sql_main = """
                 UPDATE MainPackages SET
-                LanguageID = %s, Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
+                Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
                 BilingualOverview = %s, Notes = %s, IsActive = %s, UpdatedAt = NOW()
                 WHERE PackageID = %s
             """
-            params = (
-                form_data['LanguageID'], form_data['Name'], form_data.get('Description'),
-                form_data.get('Benefits'), form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
+            params_main = (
+                form_data['Name'], form_data.get('Description'), form_data.get('Benefits'),
+                form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
                 form_data.get('Notes'), 'IsActive' in form_data, package_id
             )
-            cursor.execute(sql, params)
+            cursor.execute(sql_main, params_main)
+            
+            # 2. Update languages by deleting old ones and inserting new ones
+            cursor.execute("DELETE FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
+            
+            sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
+            for lang_id in selected_languages:
+                cursor.execute(sql_lang, (package_id, lang_id))
+            
             conn.commit()
             flash("Main Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
@@ -133,10 +169,15 @@ def edit_main_package(package_id):
         if not form_data:
             flash("Main Package not found.", "danger")
             return redirect(url_for('.list_all_packages'))
+        
+        # Fetch the currently associated languages for this package
+        cursor.execute("SELECT LanguageID FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
+        form_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
+
         return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=form_data, package_id=package_id, languages=languages)
 
     except mysql.connector.Error as err:
-        if conn and request.method == 'POST' and conn.is_connected(): conn.rollback()
+        if conn and conn.is_connected(): conn.rollback()
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()

@@ -7,58 +7,101 @@
 {% endblock %}
 
 {% block staff_content %}
-<div class="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+<div class="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200"
+     x-data="{ 
+        packageType: '{{ 'bilingual' if form_data.selected_languages and form_data.selected_languages|length > 1 else 'monolingual' }}'
+     }">
     <form method="POST" action="{{ url_for('package_mgmt_bp.edit_main_package', package_id=package_id) if package_id else url_for('package_mgmt_bp.add_main_package') }}">
         <div class="space-y-6">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Package Name -->
+            <div>
+                <label for="Name" class="form-label">Package Name</label>
+                <input type="text" name="Name" id="Name" value="{{ form_data.Name or '' }}" class="form-input" required>
+            </div>
+
+            <!-- Package Type Selector -->
+            <div>
+                <label class="form-label">Package Type</label>
+                <fieldset class="mt-2">
+                    <legend class="sr-only">Package Type</legend>
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center">
+                            <input id="monolingual" x-model="packageType" type="radio" value="monolingual" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
+                            <label for="monolingual" class="ml-3 block text-sm font-medium leading-6 text-gray-900">Monolingual</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="bilingual" x-model="packageType" type="radio" value="bilingual" class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-600">
+                            <label for="bilingual" class="ml-3 block text-sm font-medium leading-6 text-gray-900">Bilingual</label>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- Monolingual Language Selector -->
+            <div x-show="packageType === 'monolingual'" x-transition>
+                <label for="LanguageID-mono" class="form-label">Language</label>
+                <select id="LanguageID-mono" name="LanguageIDs" class="form-select" :disabled="packageType !== 'monolingual'">
+                    <option value="">-- Select a Language --</option>
+                    {% for lang in languages %}
+                    <option value="{{ lang.LanguageID }}" {% if form_data.selected_languages and lang.LanguageID in form_data.selected_languages %}selected{% endif %}>{{ lang.LanguageName }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Bilingual Language Selector -->
+            <div x-show="packageType === 'bilingual'" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="Name" class="form-label">Package Name</label>
-                    <input type="text" name="Name" id="Name" value="{{ form_data.Name or '' }}" class="form-input" required>
-                </div>
-                <div>
-                    <label for="LanguageID" class="form-label">Language</label>
-                    <select id="LanguageID" name="LanguageID" class="form-select" required>
-                        <option value="">-- Select a Language --</option>
+                    <label for="LanguageID1-bi" class="form-label">First Language</label>
+                    <select id="LanguageID1-bi" name="LanguageIDs" class="form-select" :disabled="packageType !== 'bilingual'">
+                        <option value="">-- Select First Language --</option>
                         {% for lang in languages %}
-                        <option value="{{ lang.LanguageID }}" {% if form_data.LanguageID == lang.LanguageID %}selected{% endif %}>{{ lang.LanguageName }}</option>
+                        <option value="{{ lang.LanguageID }}" {% if form_data.selected_languages and form_data.selected_languages|length > 0 and lang.LanguageID == form_data.selected_languages[0] %}selected{% endif %}>{{ lang.LanguageName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                 <div>
+                    <label for="LanguageID2-bi" class="form-label">Second Language</label>
+                    <select id="LanguageID2-bi" name="LanguageIDs" class="form-select" :disabled="packageType !== 'bilingual'">
+                        <option value="">-- Select Second Language --</option>
+                         {% for lang in languages %}
+                        <option value="{{ lang.LanguageID }}" {% if form_data.selected_languages and form_data.selected_languages|length > 1 and lang.LanguageID == form_data.selected_languages[1] %}selected{% endif %}>{{ lang.LanguageName }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
 
+            <!-- General Description Fields -->
             <div>
-                <label for="Description" class="form-label">Description</label>
+                <label for="Description" class="form-label">General Description</label>
                 <textarea name="Description" id="Description" rows="4" class="form-textarea">{{ form_data.Description or '' }}</textarea>
-                <p class="mt-1 text-sm text-gray-500">A brief overview of the entire package program.</p>
+                <p class="mt-1 text-sm text-gray-500">A brief overview of the entire package program, visible for both types.</p>
             </div>
-
             <div>
                 <label for="Benefits" class="form-label">Benefits (one per line)</label>
                 <textarea name="Benefits" id="Benefits" rows="4" class="form-textarea">{{ form_data.Benefits or '' }}</textarea>
                 <p class="mt-1 text-sm text-gray-500">Key selling points for this package.</p>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="MonolingualOverview" class="form-label">Monolingual Overview</label>
-                    <textarea name="MonolingualOverview" id="MonolingualOverview" rows="3" class="form-textarea">{{ form_data.MonolingualOverview or '' }}</textarea>
-                </div>
-                 <div>
-                    <label for="BilingualOverview" class="form-label">Bilingual Overview</label>
-                    <textarea name="BilingualOverview" id="BilingualOverview" rows="3" class="form-textarea">{{ form_data.BilingualOverview or '' }}</textarea>
-                </div>
-            </div>
 
+            <!-- Type-Specific Overview Fields -->
+            <div x-show="packageType === 'monolingual'" x-transition>
+                <label for="MonolingualOverview" class="form-label">Monolingual Overview</label>
+                <textarea name="MonolingualOverview" id="MonolingualOverview" rows="3" class="form-textarea">{{ form_data.MonolingualOverview or '' }}</textarea>
+            </div>
+            <div x-show="packageType === 'bilingual'" x-transition>
+                <label for="BilingualOverview" class="form-label">Bilingual Overview</label>
+                <textarea name="BilingualOverview" id="BilingualOverview" rows="3" class="form-textarea">{{ form_data.BilingualOverview or '' }}</textarea>
+            </div>
+            
+            <!-- Notes and Active Status -->
              <div>
                 <label for="Notes" class="form-label">Internal Notes</label>
                 <textarea name="Notes" id="Notes" rows="3" class="form-textarea">{{ form_data.Notes or '' }}</textarea>
                  <p class="mt-1 text-sm text-gray-500">Notes for staff, not visible to the public.</p>
             </div>
-
             <div class="relative flex items-start">
                 <div class="flex h-6 items-center">
-                    <input id="IsActive" name="IsActive" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" {% if form_data.IsActive %}checked{% endif %}>
+                    <input id="IsActive" name="IsActive" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" {% if form_data.IsActive is not defined or form_data.IsActive %}checked{% endif %}>
                 </div>
                 <div class="ml-3 text-sm leading-6">
                     <label for="IsActive" class="font-medium text-gray-900">Active</label>
