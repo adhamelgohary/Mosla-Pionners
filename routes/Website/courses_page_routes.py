@@ -10,7 +10,6 @@ courses_page_bp = Blueprint('courses_page_bp', __name__,
                             template_folder='../../../templates')
 
 # Helper function to get CandidateID from UserID
-# This should ideally be in a shared utility file or within the candidate routes
 def get_candidate_id(user_id):
     conn = get_db_connection()
     try:
@@ -28,10 +27,8 @@ def view_courses():
     """
     Fetches all active course and language information from the new database schema,
     structures it, and passes it to the courses_page.html template.
-    This replaces the old logic entirely.
     """
     conn = get_db_connection()
-    # Use an OrderedDict to preserve the display order from the database
     courses_by_language = OrderedDict()
     
     try:
@@ -55,8 +52,8 @@ def view_courses():
             FROM CourseLanguages cl
             LEFT JOIN Courses c ON cl.LanguageID = c.LanguageID AND c.IsActive = TRUE
             WHERE cl.IsActive = TRUE
-            ORDER BY cl.DisplayOrder, cl.LanguageName, c.DisplayOrder, c.CourseTitle;
-        """
+            ORDER BY cl.DisplayOrder, cl.LanguageName, c.DisplayOrder, c.Title;
+        """ # <<< FIX 1: Changed c.CourseTitle to c.Title in the ORDER BY clause
         cursor.execute(sql)
         results = cursor.fetchall()
         
@@ -64,7 +61,6 @@ def view_courses():
         for row in results:
             lang_id = row['LanguageID']
             if lang_id not in courses_by_language:
-                # First time we see this language, create its entry
                 courses_by_language[lang_id] = {
                     'language_name': row['LanguageName'],
                     'title': row['PageTitle'],
@@ -72,17 +68,16 @@ def view_courses():
                     'benefits': [b.strip() for b in row['Benefits'].split(',') if b.strip()] if row['Benefits'] else [],
                     'pricing_notes': row['PricingNotes'],
                     'important_notes': row['ImportantNotes'],
-                    'courses': [] # Initialize an empty list for its courses
+                    'courses': []
                 }
             
-            # If the course part of the row exists (from the LEFT JOIN), add it
             if row['CourseID']:
                 courses_by_language[lang_id]['courses'].append({
                     'id': row['CourseID'],
                     'title': row['CourseTitle'],
                     'description': row['CourseDescription'],
                     'price': row['CoursePrice'],
-                    'original_price': row['CourseOriginalPrice']
+                    'original_price': row['CourseOriginalPrice'] # <<< FIX 2: Changed 'a' to 'row'
                 })
 
     except Exception as e:
@@ -99,7 +94,7 @@ def view_courses():
                            courses_by_language=courses_by_language)
 
 @courses_page_bp.route('/course/<int:course_id>/apply', methods=['GET'])
-@login_required # Only logged-in users can apply
+@login_required
 def apply_for_course_form(course_id):
     """
     Displays the application form for a specific course.
@@ -111,7 +106,6 @@ def apply_for_course_form(course_id):
     conn = get_db_connection()
     course = None
     try:
-        # Note: We query the 'Courses' table which now has the updated schema
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT CourseID, Title as CourseName FROM Courses WHERE CourseID = %s AND IsActive = 1", (course_id,))
         course = cursor.fetchone()

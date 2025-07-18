@@ -3,15 +3,15 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block head_links %}
-    <!-- This section is for custom CSS for this page only -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/courses_page_specific.css') }}">
+    <!-- This now links to your provided CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
 {% endblock %}
 
 
 {% block content %}
-<main class="courses-main-container">
+<main>
 
-    <!-- This 'about' section remains static as it's consistent for the page -->
+    <!-- This 'about' section now uses classes from your courses.css -->
     <section id="about" class="about-us">
         <div class="about-us-text">
             <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
@@ -33,7 +33,7 @@
         </div>
     </section>
 
-    <!-- This section is now fully dynamic -->
+    <!-- This section is now fully dynamic and uses your custom CSS classes -->
     <section id="courses" class="courses">
         <h2 class="section-title">Our Course Packages</h2>
 
@@ -49,11 +49,13 @@
                 <h3>{{ lang_data.title }}</h3>
                 <p>{{ lang_data.description }}</p>
 
+                {% if lang_data.benefits %}
                 <div class="benefits-list">
                     {% for benefit in lang_data.benefits %}
                         <div class="benefit-item">{{ benefit }}</div>
                     {% endfor %}
                 </div>
+                {% endif %}
 
                 <!-- Special handling for Spanish to show sub-headings -->
                 {% if lang_data.language_name == 'Spanish' %}

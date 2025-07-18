@@ -7,7 +7,7 @@
         <p class="price-highlight">
             <span class="current-price">{{ "%.0f"|format(course.price) }} EGP</span> 
             {% if course.original_price %}
-                <span class="original-price">{{ "%.0f"|format(course.original_price) }} EGP</span>
+                <span class="original-price" style="text-decoration: line-through; color: #888; margin-left: 8px;">{{ "%.0f"|format(course.original_price) }} EGP</span>
             {% endif %}
         </p>
     {% endif %}
