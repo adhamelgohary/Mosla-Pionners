@@ -1,0 +1,94 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-speedometer2"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div>
+    <h3 class="text-base font-semibold leading-6 text-gray-900">Key Performance Indicators</h3>
+    <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        
+        <!-- Total Sales Revenue -->
+        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+            <dt>
+                <div class="absolute rounded-md bg-primary-500 p-3">
+                    <i class="bi bi-cash-stack text-white h-6 w-6"></i>
+                </div>
+                <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Sales Revenue</p>
+            </dt>
+            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                <p class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</p>
+                <p class="ml-2 flex items-baseline text-sm font-semibold text-gray-500">
+                    {{ dashboard_data.default_currency }}
+                </p>
+                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">View all<span class="sr-only"> Total Sales stats</span></a>
+                    </div>
+                </div>
+            </dd>
+        </div>
+
+        <!-- Pending Applications -->
+        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+            <dt>
+                <div class="absolute rounded-md bg-primary-500 p-3">
+                    <i class="bi bi-person-check text-white h-6 w-6"></i>
+                </div>
+                <p class="ml-16 truncate text-sm font-medium text-gray-500">Pending Applications</p>
+            </dt>
+            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.pending_applications }}</p>
+                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                    <div class="text-sm">
+                        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="font-medium text-primary-600 hover:text-primary-500">Manage requests<span class="sr-only"> Pending Applications stats</span></a>
+                    </div>
+                </div>
+            </dd>
+        </div>
+
+        <!-- Ongoing & Graduated Students -->
+        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+            <dt>
+                <div class="absolute rounded-md bg-primary-500 p-3">
+                    <i class="bi bi-people-fill text-white h-6 w-6"></i>
+                </div>
+                <p class="ml-16 truncate text-sm font-medium text-gray-500">Students</p>
+            </dt>
+            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                <div class="flex flex-col">
+                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.ongoing_students }} <span class="text-lg font-medium text-gray-500">Ongoing</span></p>
+                    <p class="text-lg font-semibold text-gray-700 mt-1">{{ dashboard_data.graduated_students }} <span class="text-base font-medium text-gray-500">Graduated</span></p>
+                </div>
+                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">View all<span class="sr-only"> Student stats</span></a>
+                    </div>
+                </div>
+            </dd>
+        </div>
+        
+        <!-- Active Sub-Packages -->
+        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+            <dt>
+                <div class="absolute rounded-md bg-primary-500 p-3">
+                    <i class="bi bi-tags-fill text-white h-6 w-6"></i>
+                </div>
+                <p class="ml-16 truncate text-sm font-medium text-gray-500">Active Sub-Packages</p>
+            </dt>
+            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.active_packages }}</p>
+                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                    <div class="text-sm">
+                        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="font-medium text-primary-600 hover:text-primary-500">Manage packages<span class="sr-only"> Active packages stats</span></a>
+                    </div>
+                </div>
+            </dd>
+        </div>
+
+    </dl>
+</div>
+{% endblock %}

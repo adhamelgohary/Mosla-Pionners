@@ -14,7 +14,7 @@
 <body class="h-full">
     <div class="min-h-full">
         <!-- ===== Top Navigation Bar ===== -->
-        <nav class="bg-white border-b border-gray-200" x-data="{ open: false, profileMenuOpen: false, managementMenuOpen: false, coursesMenuOpen: false, reportsMenuOpen: false }">
+        <nav class="bg-white border-b border-gray-200" x-data="{ open: false, profileMenuOpen: false, managementMenuOpen: false, packagesMenuOpen: false, reportsMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
@@ -45,17 +45,17 @@
                                 <!-- Operations Links -->
                                 <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('job_offer_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Job Offers</a>
                                 
-                                <div class="relative" x-on:click.away="coursesMenuOpen = false">
-                                     <button @click="coursesMenuOpen = !coursesMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('course_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
-                                        <span>Courses</span>
+                                <!-- === UPDATED: Packages Dropdown === -->
+                                <div class="relative" x-on:click.away="packagesMenuOpen = false">
+                                     <button @click="packagesMenuOpen = !packagesMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('package_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
+                                        <span>Packages</span>
                                         <i class="bi bi-chevron-down -mr-1 h-5 w-5 text-gray-400" aria-hidden="true"></i>
                                     </button>
-                                     <div x-show="coursesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
+                                     <div x-show="packagesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
                                         <div class="py-1">
-                                            <!-- *** UPDATED LINKS *** -->
-                                            <a href="{{ url_for('course_mgmt_bp.courses_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses Dashboard</a>
-                                            <a href="{{ url_for('course_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
-                                            <a href="{{ url_for('course_mgmt_bp.list_all_course_content') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Course Content</a>
+                                            <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Packages Dashboard</a>
+                                            <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
+                                            <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Packages</a>
                                         </div>
                                     </div>
                                 </div>
@@ -110,8 +110,8 @@
                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Job Offers</a>
-                    <!-- *** UPDATED LINK *** -->
-                    <a href="{{ url_for('course_mgmt_bp.courses_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Courses</a>
+                    <!-- === UPDATED: Mobile Link === -->
+                    <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Packages</a>
                     <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Reports</a>
                     <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Announcements</a>
                 </div>

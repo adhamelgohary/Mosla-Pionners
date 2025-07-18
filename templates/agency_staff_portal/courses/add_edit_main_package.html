@@ -1,0 +1,78 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-box-seam-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+    <form method="POST" action="{{ url_for('package_mgmt_bp.edit_main_package', package_id=package_id) if package_id else url_for('package_mgmt_bp.add_main_package') }}">
+        <div class="space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="Name" class="form-label">Package Name</label>
+                    <input type="text" name="Name" id="Name" value="{{ form_data.Name or '' }}" class="form-input" required>
+                </div>
+                <div>
+                    <label for="LanguageID" class="form-label">Language</label>
+                    <select id="LanguageID" name="LanguageID" class="form-select" required>
+                        <option value="">-- Select a Language --</option>
+                        {% for lang in languages %}
+                        <option value="{{ lang.LanguageID }}" {% if form_data.LanguageID == lang.LanguageID %}selected{% endif %}>{{ lang.LanguageName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="Description" class="form-label">Description</label>
+                <textarea name="Description" id="Description" rows="4" class="form-textarea">{{ form_data.Description or '' }}</textarea>
+                <p class="mt-1 text-sm text-gray-500">A brief overview of the entire package program.</p>
+            </div>
+
+            <div>
+                <label for="Benefits" class="form-label">Benefits (one per line)</label>
+                <textarea name="Benefits" id="Benefits" rows="4" class="form-textarea">{{ form_data.Benefits or '' }}</textarea>
+                <p class="mt-1 text-sm text-gray-500">Key selling points for this package.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="MonolingualOverview" class="form-label">Monolingual Overview</label>
+                    <textarea name="MonolingualOverview" id="MonolingualOverview" rows="3" class="form-textarea">{{ form_data.MonolingualOverview or '' }}</textarea>
+                </div>
+                 <div>
+                    <label for="BilingualOverview" class="form-label">Bilingual Overview</label>
+                    <textarea name="BilingualOverview" id="BilingualOverview" rows="3" class="form-textarea">{{ form_data.BilingualOverview or '' }}</textarea>
+                </div>
+            </div>
+
+             <div>
+                <label for="Notes" class="form-label">Internal Notes</label>
+                <textarea name="Notes" id="Notes" rows="3" class="form-textarea">{{ form_data.Notes or '' }}</textarea>
+                 <p class="mt-1 text-sm text-gray-500">Notes for staff, not visible to the public.</p>
+            </div>
+
+            <div class="relative flex items-start">
+                <div class="flex h-6 items-center">
+                    <input id="IsActive" name="IsActive" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" {% if form_data.IsActive %}checked{% endif %}>
+                </div>
+                <div class="ml-3 text-sm leading-6">
+                    <label for="IsActive" class="font-medium text-gray-900">Active</label>
+                    <p class="text-gray-500">Make this main package visible and available.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-gray-200 flex items-center justify-end gap-x-3">
+            <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-save-fill mr-1"></i> Save Package
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-tag-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="bg-white p-6 sm:p-8 rounded-lg shadow-md border border-gray-200">
+    <form method="POST" action="{{ url_for('package_mgmt_bp.edit_sub_package', sub_package_id=sub_package_id) if sub_package_id else url_for('package_mgmt_bp.add_sub_package', main_package_id=main_package_id) }}">
+        <div class="space-y-6">
+            
+            <div>
+                <label for="Name" class="form-label">Sub-Package Name</label>
+                <input type="text" name="Name" id="Name" value="{{ form_data.Name or '' }}" class="form-input" required>
+                <p class="mt-1 text-sm text-gray-500">e.g., "Starter Tier", "Premium", "Immersion Level 1"</p>
+            </div>
+
+            <div>
+                <label for="Description" class="form-label">Description</label>
+                <textarea name="Description" id="Description" rows="4" class="form-textarea">{{ form_data.Description or '' }}</textarea>
+                <p class="mt-1 text-sm text-gray-500">Describe what is included in this specific tier.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label for="Price" class="form-label">Price (EGP)</label>
+                    <input type="number" name="Price" id="Price" step="0.01" value="{{ form_data.Price or '0.00' }}" class="form-input" required>
+                </div>
+                <div>
+                    <label for="NumSessionsMonolingual" class="form-label">Monolingual Sessions</label>
+                    <input type="number" name="NumSessionsMonolingual" id="NumSessionsMonolingual" value="{{ form_data.NumSessionsMonolingual or '0' }}" class="form-input" required>
+                </div>
+                <div>
+                    <label for="NumSessionsBilingual" class="form-label">Bilingual Sessions</label>
+                    <input type="number" name="NumSessionsBilingual" id="NumSessionsBilingual" value="{{ form_data.NumSessionsBilingual or '0' }}" class="form-input" required>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="MonolingualDetails" class="form-label">Monolingual Details</label>
+                    <textarea name="MonolingualDetails" id="MonolingualDetails" rows="3" class="form-textarea">{{ form_data.MonolingualDetails or '' }}</textarea>
+                </div>
+                <div>
+                    <label for="BilingualDetails" class="form-label">Bilingual Details</label>
+                    <textarea name="BilingualDetails" id="BilingualDetails" rows="3" class="form-textarea">{{ form_data.BilingualDetails or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="DisplayOrder" class="form-label">Display Order</label>
+                    <input type="number" name="DisplayOrder" id="DisplayOrder" value="{{ form_data.DisplayOrder or '0' }}" class="form-input">
+                    <p class="mt-1 text-sm text-gray-500">Lower numbers appear first.</p>
+                </div>
+                <div class="relative flex items-end">
+                    <div class="flex items-start">
+                        <div class="flex h-6 items-center">
+                            <input id="IsActive" name="IsActive" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" {% if form_data.IsActive %}checked{% endif %}>
+                        </div>
+                        <div class="ml-3 text-sm leading-6">
+                            <label for="IsActive" class="font-medium text-gray-900">Active</label>
+                            <p class="text-gray-500">Make this sub-package purchasable.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-gray-200 flex items-center justify-end gap-x-3">
+            <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-save-fill mr-1"></i> Save Sub-Package
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
