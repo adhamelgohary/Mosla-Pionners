@@ -1,69 +1,105 @@
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
 
-{% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+{% block staff_title %}Managerial Dashboard{% endblock %}
+
+{% block staff_page_title %}
+    <span class="font-bold text-2xl text-heading">Managerial Dashboard</span>
+{% endblock %}
 
 {% block staff_content %}
-
-{# --- Reusable Macros for this template --- #}
-{% macro podium_place(company, rank, icon) %}
-    <div class="relative text-center p-4 rounded-lg border bg-white shadow-sm w-full max-w-xs transition-transform hover:-translate-y-2
-        {% if rank == 1 %} order-1 md:order-2 h-64 bg-primary-50/50 border-primary-200 {% endif %}
-        {% if rank == 2 %} order-2 md:order-1 h-56 {% endif %}
-        {% if rank == 3 %} order-3 md:order-3 h-52 {% endif %}">
-        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white px-2 rounded-full">
-            <i class="text-4xl {{ icon }} 
-                {% if rank == 1 %} text-yellow-400 {% endif %}
-                {% if rank == 2 %} text-gray-400 {% endif %}
-                {% if rank == 3 %} text-amber-600 {% endif %}">
-            </i>
+<div class="space-y-8 animate-fade-in-up">
+    <!-- Welcome Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-heading">Welcome back, {{ current_user.first_name or 'Admin' }}!</h1>
+            <p class="mt-1 text-sm text-text-muted">Here’s your high-level agency and performance snapshot.</p>
         </div>
-        <div class="flex flex-col items-center justify-end h-full pt-4">
-            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" 
-                 class="rounded-full object-cover shadow-md 
-                        {% if rank == 1 %} w-24 h-24 border-4 border-white {% else %} w-20 h-20 border-2 border-white {% endif %}">
-            <div class="mt-3 font-semibold text-gray-800 truncate w-full">{{ company.CompanyName }}</div>
-            <div class="text-2xl font-bold text-primary-600">{{ company.FilledJobsCount }} <small class="text-sm font-medium text-gray-500">hires</small></div>
+        <div class="flex items-center space-x-2">
+            <a href="{{ url_for('announcement_bp.add_announcement') }}" class="btn-secondary">Add Announcement</a>
+            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="btn-primary">Add New Staff</a>
         </div>
     </div>
-{% endmacro %}
 
-<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-    <div class="pb-4 mb-4 border-b border-gray-200">
-        <h3 class="text-xl font-semibold text-gray-900">{{ title }}</h3>
-        <p class="text-sm text-gray-500 mt-1">{{ subtitle }}</p>
+    <!-- KPI Section - REBUILT FOR COMPACTNESS -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-heading">Key Performance Indicators</h3>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            
+            {% macro kpi_card(icon, title, value, link) %}
+            <a href="{{ link }}" class="block bg-card p-4 rounded-lg shadow border border-border transition-all duration-300 hocus:border-primary hocus:shadow-lg hocus:-translate-y-1">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-2">
+                        <i class="bi {{ icon }} h-5 w-5"></i>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <p class="text-xs font-medium text-text-muted truncate">{{ title }}</p>
+                        <p class="text-xl font-bold text-heading">{{ value }}</p>
+                    </div>
+                </div>
+            </a>
+            {% endmacro %}
+
+            {{ kpi_card(
+                icon='bi-people-fill',
+                title='Total Candidates',
+                value=kpis.total_candidates,
+                link='#'
+            ) }}
+
+            {{ kpi_card(
+                icon='bi-building',
+                title='Total Companies',
+                value=kpis.total_companies,
+                link='#'
+            ) }}
+            
+            {{ kpi_card(
+                icon='bi-briefcase-fill',
+                title='Open Job Offers',
+                value=kpis.open_job_offers,
+                link=url_for('job_offer_mgmt_bp.list_all_job_offers')
+            ) }}
+            
+            {{ kpi_card(
+                icon='bi-person-check-fill',
+                title='Active Staff',
+                value=kpis.active_staff,
+                link=url_for('staff_perf_bp.list_all_staff')
+            ) }}
+
+        </div>
     </div>
 
-    <!-- Podium Section for Top 3 -->
-    <div class="flex flex-col md:flex-row justify-center items-end gap-4 md:gap-2 my-8">
-        {% if top_companies|length >= 2 %}
-            {{ podium_place(top_companies[1], 2, 'bi bi-award-fill') }}
-        {% endif %}
-        {% if top_companies|length >= 1 %}
-            {{ podium_place(top_companies[0], 1, 'bi bi-trophy-fill') }}
-        {% endif %}
-        {% if top_companies|length >= 3 %}
-            {{ podium_place(top_companies[2], 3, 'bi bi-award-fill') }}
-        {% endif %}
+    <!-- Latest Announcements Section -->
+    <div>
+        <div class="flex justify-between items-center">
+            <h3 class="text-base font-semibold leading-6 text-heading">Latest Announcements</h3>
+            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="text-xs font-medium text-primary hover:underline">View All</a>
+        </div>
+        <div class="mt-4 bg-card p-4 rounded-lg shadow border border-border">
+            <ul class="divide-y divide-border">
+                {% if announcements %}
+                    {% for announcement in announcements %}
+                    <li class="py-3">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center">
+                                <i class="bi bi-megaphone-fill text-primary text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-heading">{{ announcement.Title }}</p>
+                                <p class="text-xs text-text-muted mt-1">{{ announcement.Content }}</p>
+                                <p class="text-xs text-text-muted mt-2">
+                                    By {{ announcement.PosterFirstName or 'System' }} on {{ announcement.CreatedAt.strftime('%b %d') }}
+                                </p>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="py-4 text-center text-sm text-text-muted">No announcements have been posted yet.</li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
-
-    {% if not top_companies %}
-        <p class="text-center text-gray-500 py-8">No company performance data found.</p>
-    {% endif %}
-
-    <!-- Rest of the Leaderboard -->
-    {% if top_companies|length > 3 %}
-    <h4 class="mt-12 mb-6 text-center text-lg font-semibold text-gray-800">Top Company Rankings</h4>
-    <ul class="max-w-3xl mx-auto space-y-3">
-        {% for company in top_companies[3:] %}
-        <li class="flex items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
-            <div class="text-lg font-bold text-gray-400 w-12 text-center">{{ loop.index + 3 }}</div>
-            <img src="{{ company.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }}" class="h-12 w-12 rounded-full object-cover">
-            <div class="flex-grow font-semibold text-gray-800 ml-4">{{ company.CompanyName }}</div>
-            <div class="font-bold text-primary-600">{{ company.FilledJobsCount }} <span class="text-sm font-medium text-gray-500">hires</span></div>
-        </li>
-        {% endfor %}
-    </ul>
-    {% endif %}
 </div>
 {% endblock %}

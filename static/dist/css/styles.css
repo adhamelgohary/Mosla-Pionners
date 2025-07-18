@@ -3271,6 +3271,11 @@ html[data-theme="dark"] {
   background-color: transparent;
 }
 
+.bg-warning-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
+}
+
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
@@ -3609,6 +3614,10 @@ html[data-theme="dark"] {
 
 .font-medium {
   font-weight: 500;
+}
+
+.font-normal {
+  font-weight: 400;
 }
 
 .font-semibold {
@@ -4744,6 +4753,16 @@ body {
   border-color: rgb(var(--primary-color-rgb) / var(--tw-border-opacity, 1));
 }
 
+.hocus\:text-primary-darker:hover {
+  color: var(--primary-color-darker);
+}
+
+.hocus\:shadow-2xl:hover {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
 .hocus\:shadow-lg:hover {
   --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
@@ -4758,6 +4777,16 @@ body {
 .hocus\:border-primary:focus {
   --tw-border-opacity: 1;
   border-color: rgb(var(--primary-color-rgb) / var(--tw-border-opacity, 1));
+}
+
+.hocus\:text-primary-darker:focus {
+  color: var(--primary-color-darker);
+}
+
+.hocus\:shadow-2xl:focus {
+  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
 .hocus\:shadow-lg:focus {

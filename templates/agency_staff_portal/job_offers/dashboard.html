@@ -1,105 +1,95 @@
 {% extends 'agency_staff_portal/staff_base.html' %}
 
-{% block staff_title %}Managerial Dashboard{% endblock %}
+{% block staff_title %}{{ title }}{% endblock %}
 
 {% block staff_page_title %}
-    <span class="font-bold text-2xl text-heading">Managerial Dashboard</span>
+    <i class="bi bi-speedometer2"></i> <span class="fluid-text-lg font-semibold text-heading">{{ title }}</span>
 {% endblock %}
 
 {% block staff_content %}
-<div class="space-y-8 animate-fade-in-up">
-    <!-- Welcome Header -->
-    <div class="flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-heading">Welcome back, {{ current_user.first_name or 'Admin' }}!</h1>
-            <p class="mt-1 text-sm text-text-muted">Here’s your high-level agency and performance snapshot.</p>
-        </div>
-        <div class="flex items-center space-x-2">
-            <a href="{{ url_for('announcement_bp.add_announcement') }}" class="btn-secondary">Add Announcement</a>
-            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="btn-primary">Add New Staff</a>
-        </div>
-    </div>
-
-    <!-- KPI Section - REBUILT FOR COMPACTNESS -->
+<div class="space-y-12 animate-fade-in-up">
+    <!-- KPI Section -->
     <div>
-        <h3 class="text-base font-semibold leading-6 text-heading">Key Performance Indicators</h3>
-        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <h3 class="fluid-text-xl font-semibold leading-6 text-heading">Key Performance Indicators</h3>
+        <dl class="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             
-            {% macro kpi_card(icon, title, value, link) %}
-            <a href="{{ link }}" class="block bg-card p-4 rounded-lg shadow border border-border transition-all duration-300 hocus:border-primary hocus:shadow-lg hocus:-translate-y-1">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 bg-primary/10 text-primary rounded-md p-2">
-                        <i class="bi {{ icon }} h-5 w-5"></i>
+            {% macro kpi_card(icon, title, value, footer_text, footer_link, color='primary') %}
+            <div class="relative overflow-hidden rounded-xl bg-card p-5 shadow-lg border border-border transition-all duration-300 hocus:-translate-y-1 hocus:shadow-2xl">
+                <dt>
+                    <div class="absolute rounded-lg p-3 shadow-md 
+                        {% if color == 'primary' %} bg-primary 
+                        {% elif color == 'warning' %} bg-warning-500
+                        {% endif %}">
+                        <i class="bi {{ icon }} text-white h-6 w-6"></i>
                     </div>
-                    <div class="ml-4 flex-1">
-                        <p class="text-xs font-medium text-text-muted truncate">{{ title }}</p>
-                        <p class="text-xl font-bold text-heading">{{ value }}</p>
+                    <p class="ml-16 truncate fluid-text-sm font-medium text-text-muted">{{ title }}</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="fluid-text-2xl font-semibold text-heading">{{ value|safe }}</p>
+                    <div class="absolute inset-x-0 bottom-0 bg-background/50 px-5 py-4 border-t border-border">
+                        <div class="text-sm">
+                            <a href="{{ footer_link }}" class="font-semibold text-primary hocus:text-primary-darker transition-colors">
+                                {{ footer_text }} <i class="bi bi-arrow-right-short"></i>
+                            </a>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </dd>
+            </div>
             {% endmacro %}
 
             {{ kpi_card(
-                icon='bi-people-fill',
-                title='Total Candidates',
-                value=kpis.total_candidates,
-                link='#'
-            ) }}
-
-            {{ kpi_card(
-                icon='bi-building',
-                title='Total Companies',
-                value=kpis.total_companies,
-                link='#'
-            ) }}
-            
-            {{ kpi_card(
                 icon='bi-briefcase-fill',
-                title='Open Job Offers',
-                value=kpis.open_job_offers,
-                link=url_for('job_offer_mgmt_bp.list_all_job_offers')
-            ) }}
-            
-            {{ kpi_card(
-                icon='bi-person-check-fill',
-                title='Active Staff',
-                value=kpis.active_staff,
-                link=url_for('staff_perf_bp.list_all_staff')
+                title='Total Open Offers',
+                value=kpis.total_open_offers,
+                footer_text='View all offers',
+                footer_link=url_for('.list_all_job_offers')
             ) }}
 
-        </div>
+            {{ kpi_card(
+                icon='bi-people-fill',
+                title='Open Positions',
+                value=kpis.total_candidates_needed ~ ' <span class=\"fluid-text-lg ml-2 font-normal text-text-muted\">candidates</span>',
+                footer_text='View details',
+                footer_link=url_for('.list_all_job_offers')
+            ) }}
+
+            {{ kpi_card(
+                icon='bi-inbox-fill',
+                title='Pending Client Submissions',
+                value=kpis.pending_submissions,
+                footer_text='Review now',
+                footer_link=url_for('.list_review_client_submissions'),
+                color='warning'
+            ) }}
+        </dl>
     </div>
 
-    <!-- Latest Announcements Section -->
-    <div>
-        <div class="flex justify-between items-center">
-            <h3 class="text-base font-semibold leading-6 text-heading">Latest Announcements</h3>
-            <a href="{{ url_for('announcement_bp.list_announcements') }}" class="text-xs font-medium text-primary hover:underline">View All</a>
-        </div>
-        <div class="mt-4 bg-card p-4 rounded-lg shadow border border-border">
-            <ul class="divide-y divide-border">
-                {% if announcements %}
-                    {% for announcement in announcements %}
-                    <li class="py-3">
-                        <div class="flex items-start space-x-3">
-                            <div class="flex-shrink-0 h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center">
-                                <i class="bi bi-megaphone-fill text-primary text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-heading">{{ announcement.Title }}</p>
-                                <p class="text-xs text-text-muted mt-1">{{ announcement.Content }}</p>
-                                <p class="text-xs text-text-muted mt-2">
-                                    By {{ announcement.PosterFirstName or 'System' }} on {{ announcement.CreatedAt.strftime('%b %d') }}
-                                </p>
-                            </div>
-                        </div>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li class="py-4 text-center text-sm text-text-muted">No announcements have been posted yet.</li>
-                {% endif %}
-            </ul>
-        </div>
+    <!-- Quick Stats Section -->
+    <div class="bg-card p-6 rounded-xl shadow-lg border border-border">
+         <h3 class="fluid-text-lg font-semibold leading-6 text-heading mb-4">Quick Stats</h3>
+         <ul class="divide-y divide-border">
+             <li class="py-4 flex justify-between items-center fluid-text-sm">
+                 <span class="font-medium text-text-muted">New Offers This Month</span>
+                 <span class="font-semibold text-heading text-lg bg-primary/10 text-primary px-3 py-1 rounded-full">{{ kpis.new_offers_this_month }}</span>
+             </li>
+             <li class="py-4 flex justify-between items-center fluid-text-sm">
+                 <span class="font-medium text-text-muted">Average Time to Fill</span>
+                 <span class="font-semibold text-heading">{{ kpis.avg_time_to_fill }} days</span>
+             </li>
+             <li class="py-4 flex justify-between items-center fluid-text-sm">
+                 <span class="font-medium text-text-muted">Client Submission Approval Rate (90d)</span>
+                 <span class="font-semibold text-heading">{{ kpis.approval_rate }}</span>
+             </li>
+             <li class="py-4 flex justify-between items-center fluid-text-sm">
+                <div class="flex flex-col">
+                    <span class="font-medium text-text-muted">Oldest Open Offer</span>
+                    {% if kpis.oldest_offer_title != 'No open offers' %}
+                    <span class="text-xs text-text-muted mt-1">{{ kpis.oldest_offer_title }} at {{ kpis.oldest_offer_company }}</span>
+                    {% endif %}
+                </div>
+                <span class="font-semibold text-heading">{{ kpis.age_of_oldest_offer }} days old</span>
+             </li>
+         </ul>
     </div>
 </div>
 {% endblock %}
