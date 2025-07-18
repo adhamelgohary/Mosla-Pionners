@@ -35,7 +35,6 @@
                         <div x-show="companyMode === 'existing'" class="mt-4">
                             <select name="selected_company_id" class="form-select {{ 'border-red-500' if errors.company_id }}">
                                 <option value="">-- Select an Existing Company --</option>
-                                <!-- FIX: Safely check for the key before trying to access it -->
                                 {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.get('selected_company_id') and form_data.get('selected_company_id')|int == company.CompanyID %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
                             </select>
                         </div>
@@ -57,7 +56,7 @@
                         <label for="category_id" class="form-label">Job Category <span class="text-red-500">*</span></label>
                         <select id="category_id" name="category_id" class="form-select {{ 'border-red-500' if errors.category_id }}" required>
                             <option value="">-- Select a Category --</option>
-                            {% for category in categories %}<option value="{{ category.CategoryID }}" {% if form_data.CategoryID|int == category.CategoryID %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
+                            {% for category in categories %}<option value="{{ category.CategoryID }}" {% if form_data.get('CategoryID') and form_data.get('CategoryID')|int == category.CategoryID %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
                         </select>
                          {% if errors.category_id %}<p class="mt-2 text-sm text-red-600">{{ errors.category_id }}</p>{% endif %}
                     </div>
