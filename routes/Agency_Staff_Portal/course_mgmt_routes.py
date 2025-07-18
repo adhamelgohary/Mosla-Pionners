@@ -208,28 +208,53 @@ def delete_main_package(package_id):
     return redirect(url_for('.list_all_packages'))
 
 
-# --- Sub-Package Management ---
 @package_mgmt_bp.route('/sub-package/add/<int:main_package_id>', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_sub_package(main_package_id):
-    if request.method == 'POST':
-        form_data = request.form
-        if not form_data.get('Name'):
-            flash("Sub-Package Name is required.", "danger")
-            return render_template('agency_staff_portal/courses/add_edit_sub_package.html', title="Add New Sub-Package", form_data=form_data, main_package_id=main_package_id)
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
         
-        conn = get_db_connection()
-        try:
-            cursor = conn.cursor()
+        # Fetch parent package's languages to determine form layout
+        cursor.execute("""
+            SELECT l.LanguageID, l.LanguageName 
+            FROM MainPackageLanguages mpl
+            JOIN Languages l ON mpl.LanguageID = l.LanguageID
+            WHERE mpl.PackageID = %s
+            ORDER BY l.LanguageName
+        """, (main_package_id,))
+        main_package_languages = cursor.fetchall()
+
+        if not main_package_languages:
+            flash("Cannot add a sub-package to a main package with no languages defined.", "danger")
+            return redirect(url_for('.list_all_packages'))
+
+        if request.method == 'POST':
+            form_data = request.form
+            if not form_data.get('Name'):
+                flash("Sub-Package Name is required.", "danger")
+                # Re-render form with entered data and necessary language info
+                return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
+                                       title="Add New Sub-Package", 
+                                       form_data=form_data, 
+                                       main_package_id=main_package_id,
+                                       main_package_languages=main_package_languages)
+            
+            # The backend logic can remain simple. The template ensures the correct
+            # form fields (NumSessionsMonolingual/Bilingual) are submitted.
             sql = """
                 INSERT INTO SubPackages (MainPackageID, Name, Description, Price, NumSessionsMonolingual, NumSessionsBilingual, MonolingualDetails, BilingualDetails, IsActive, DisplayOrder, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else decimal.Decimal('0.00')
             
+            # Get monolingual and bilingual session counts. .get() with a default handles cases where a field isn't submitted.
+            num_mono = form_data.get('NumSessionsMonolingual', 0)
+            num_bi = form_data.get('NumSessionsBilingual', 0)
+
             params = (
                 main_package_id, form_data['Name'], form_data.get('Description'),
-                price, form_data.get('NumSessionsMonolingual', 0), form_data.get('NumSessionsBilingual', 0),
+                price, num_mono, num_bi,
                 form_data.get('MonolingualDetails'), form_data.get('BilingualDetails'),
                 'IsActive' in form_data, form_data.get('DisplayOrder', 0), current_user.specific_role_id
             )
@@ -237,13 +262,24 @@ def add_sub_package(main_package_id):
             conn.commit()
             flash("Sub-Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
-        except (mysql.connector.Error, decimal.InvalidOperation) as err:
-            if conn and conn.is_connected(): conn.rollback()
-            flash(f"Invalid Data or DB Error: {err}", "danger")
-        finally:
-            if conn and conn.is_connected(): conn.close()
+            
+        # GET Request
+        return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
+                               title="Add New Sub-Package", 
+                               form_data={}, 
+                               main_package_id=main_package_id,
+                               main_package_languages=main_package_languages)
 
-    return render_template('agency_staff_portal/courses/add_edit_sub_package.html', title="Add New Sub-Package", form_data={}, main_package_id=main_package_id)
+    except (mysql.connector.Error, decimal.InvalidOperation) as err:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"Invalid Data or DB Error: {err}", "danger")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+    
+    # Fallback redirect
+    return redirect(url_for('.list_all_packages'))
 
 
 @package_mgmt_bp.route('/sub-package/edit/<int:sub_package_id>', methods=['GET', 'POST'])
@@ -252,13 +288,33 @@ def edit_sub_package(sub_package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # GET Request or POST validation failure: Fetch sub-package and its parent's languages
+        cursor.execute("SELECT * FROM SubPackages WHERE SubPackageID = %s", (sub_package_id,))
+        form_data = cursor.fetchone()
+        if not form_data:
+            flash("Sub-Package not found.", "danger")
+            return redirect(url_for('.list_all_packages'))
+            
+        cursor.execute("""
+            SELECT l.LanguageID, l.LanguageName 
+            FROM MainPackageLanguages mpl
+            JOIN Languages l ON mpl.LanguageID = l.LanguageID
+            WHERE mpl.PackageID = %s
+            ORDER BY l.LanguageName
+        """, (form_data['MainPackageID'],))
+        main_package_languages = cursor.fetchall()
+
         if request.method == 'POST':
-            form_data = request.form
-            if not form_data.get('Name'):
+            form_data_from_post = request.form
+            if not form_data_from_post.get('Name'):
                 flash("Sub-Package Name is required.", "danger")
-                cursor.execute("SELECT * FROM SubPackages WHERE SubPackageID = %s", (sub_package_id,))
-                current_data = cursor.fetchone()
-                return render_template('agency_staff_portal/courses/add_edit_sub_package.html', title="Edit Sub-Package", form_data=current_data, sub_package_id=sub_package_id)
+                # On failure, render with the original data but pass language info
+                return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
+                                       title="Edit Sub-Package", 
+                                       form_data=form_data, 
+                                       sub_package_id=sub_package_id,
+                                       main_package_languages=main_package_languages)
             
             sql = """
                 UPDATE SubPackages SET
@@ -266,32 +322,36 @@ def edit_sub_package(sub_package_id):
                 MonolingualDetails = %s, BilingualDetails = %s, IsActive = %s, DisplayOrder = %s, UpdatedAt = NOW()
                 WHERE SubPackageID = %s
             """
-            price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else decimal.Decimal('0.00')
+            price = decimal.Decimal(form_data_from_post['Price']) if form_data_from_post.get('Price') else decimal.Decimal('0.00')
+
+            num_mono = form_data_from_post.get('NumSessionsMonolingual', 0)
+            num_bi = form_data_from_post.get('NumSessionsBilingual', 0)
 
             params = (
-                form_data['Name'], form_data.get('Description'), price,
-                form_data.get('NumSessionsMonolingual', 0), form_data.get('NumSessionsBilingual', 0),
-                form_data.get('MonolingualDetails'), form_data.get('BilingualDetails'),
-                'IsActive' in form_data, form_data.get('DisplayOrder', 0), sub_package_id
+                form_data_from_post['Name'], form_data_from_post.get('Description'), price,
+                num_mono, num_bi,
+                form_data_from_post.get('MonolingualDetails'), form_data_from_post.get('BilingualDetails'),
+                'IsActive' in form_data_from_post, form_data_from_post.get('DisplayOrder', 0), sub_package_id
             )
             cursor.execute(sql, params)
             conn.commit()
             flash("Sub-Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
         
-        # GET Request
-        cursor.execute("SELECT * FROM SubPackages WHERE SubPackageID = %s", (sub_package_id,))
-        form_data = cursor.fetchone()
-        if not form_data:
-            flash("Sub-Package not found.", "danger")
-            return redirect(url_for('.list_all_packages'))
-        return render_template('agency_staff_portal/courses/add_edit_sub_package.html', title="Edit Sub-Package", form_data=form_data, sub_package_id=sub_package_id)
+        # GET Request (initial load)
+        return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
+                               title="Edit Sub-Package", 
+                               form_data=form_data, 
+                               sub_package_id=sub_package_id,
+                               main_package_languages=main_package_languages)
     
     except (mysql.connector.Error, decimal.InvalidOperation) as err:
         if conn and request.method == 'POST' and conn.is_connected(): conn.rollback()
         flash(f"Invalid Data or DB Error: {err}", "danger")
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 
     return redirect(url_for('.list_all_packages'))
 
