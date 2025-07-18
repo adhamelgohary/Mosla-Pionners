@@ -2,97 +2,116 @@
 
 {% block page_title %}{{ title }}{% endblock %}
 
-{% block head_extra %}
-    <!-- Linking the stylesheet to match your static file setup -->
+{% block head_links %}
+    <!-- Link to Bootstrap Icons for the icons in the design -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Link to the NEW stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
 {% endblock %}
 
 {% block content %}
-<main>
-    <section id="about" class="about-us">
-      <div class="about-us-text">
-        <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
-        <p>
-          Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries up to 35,000 EGP.
-        </p>
-      </div>
-      <div class="about-us-image">
+<div class="courses-page-container">
+    
+    <!-- This section is now static as per the design -->
+    <section id="about" class="language-section">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center;">
         <div>
-          <h3>🎓 Professional Training</h3>
-          <p>Expert instructors with 8+ years experience</p>
-          <br>
-          <h3>💼 Job Guarantee</h3>
-          <p>Direct placement with partner companies</p>
-          <br>
-          <h3>💰 Competitive Salaries</h3>
-          <p>Up to 35,000 EGP starting salary</p>
+            <h1 style="font-size: 2.5rem; font-weight: 700;">WELCOME TO OUR <span style="color: var(--accent-blue);">Train To Hire</span> Courses</h1>
+            <p style="font-size: 1.1rem; color: var(--secondary-text);">
+              Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries up to 35,000 EGP.
+            </p>
+            <p style="font-size: 1.1rem; color: var(--secondary-text);">
+              Our Train to Hire programs address the critical need for qualified bilingual professionals in Egypt's growing international business sector.
+            </p>
+        </div>
+        <div style="background-color: #0d2a57; color: white; padding: 2.5rem; border-radius: var(--border-radius-lg);">
+          <div style="display: flex; align-items: flex-start; margin-bottom: 2rem;">
+            <i class="bi bi-mortarboard-fill" style="font-size: 1.5rem; margin-right: 1rem;"></i>
+            <div>
+              <h3 style="font-weight: 600; font-size: 1.1rem; margin: 0 0 0.25rem 0;">Professional Training</h3>
+              <p style="margin: 0; color: #adb5bd;">Expert instructors with 8+ years experience</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: flex-start; margin-bottom: 2rem;">
+            <i class="bi bi-briefcase-fill" style="font-size: 1.5rem; margin-right: 1rem;"></i>
+            <div>
+              <h3 style="font-weight: 600; font-size: 1.1rem; margin: 0 0 0.25rem 0;">Job Guarantee</h3>
+              <p style="margin: 0; color: #adb5bd;">Direct placement with partner companies</p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: flex-start;">
+            <i class="bi bi-cash-stack" style="font-size: 1.5rem; margin-right: 1rem;"></i>
+            <div>
+              <h3 style="font-weight: 600; font-size: 1.1rem; margin: 0 0 0.25rem 0;">Competitive Salaries</h3>
+              <p style="margin: 0; color: #adb5bd;">Up to 35,000 EGP starting salary</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="courses" class="courses">
-      <h2 class="section-title">Our Course Packages</h2>
-      
-      {% if not courses_by_language %}
-        <div class="course-info">
+    <h2 class="section-title">Our Course Packages</h2>
+
+    {% if not courses_by_language %}
+        <div class="language-section" style="text-align: center;">
             <h3>No Courses Available</h3>
             <p>We are currently updating our course offerings. Please check back soon!</p>
         </div>
-      {% endif %}
+    {% endif %}
 
-      {% for lang_id, lang_data in courses_by_language.items() %}
-      <!-- Dynamically generated language section -->
-      <div id="{{ lang_data.language_name.lower() }}-courses" class="course-info">
-        <h3>{{ lang_data.title }}</h3>
-        <p>{{ lang_data.description }}</p>
-        
+    {% for lang_id, lang_data in courses_by_language.items() %}
+    <section id="{{ lang_data.language_name.lower() }}-courses" class="language-section">
+        <h3 class="language-title">{{ lang_data.title }}</h3>
+        <p class="language-description">{{ lang_data.description }}</p>
+
         {% if lang_data.benefits %}
-        <div class="benefits-list">
+        <div class="benefits-grid">
             {% for benefit in lang_data.benefits %}
-                <div class="benefit-item">{{ benefit }}</div>
+                <div class="benefit-tag"><i class="bi bi-check-circle-fill"></i> {{ benefit }}</div>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Special handling for Spanish to show sub-headings -->
         {% if lang_data.language_name == 'Spanish' %}
-            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">🔹 Monolingual Spanish Packages</h4>
-            <div class="course-cards">
+            <h4 class="packages-subtitle"><i class="bi bi-translate"></i> Monolingual Spanish Packages</h4>
+            <div class="course-cards-grid">
                 {% for course in lang_data.courses if 'Bilingual' not in course.title %}
                     {% include 'Website/_course_card.html' %}
                 {% endfor %}
             </div>
 
-            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">🔸 Bilingual Packages (Spanish + English)</h4>
-            <div class="course-cards">
+            <h4 class="packages-subtitle"><i class="bi bi-intersect"></i> Bilingual Packages (Spanish + English)</h4>
+            <div class="course-cards-grid">
                 {% for course in lang_data.courses if 'Bilingual' in course.title %}
                     {% include 'Website/_course_card.html' %}
                 {% endfor %}
             </div>
         {% else %}
-            <!-- Default rendering for English and other languages -->
-            <div class="course-cards">
+            <div class="course-cards-grid">
                 {% for course in lang_data.courses %}
                     {% include 'Website/_course_card.html' %}
                 {% endfor %}
             </div>
         {% endif %}
-        
+
         {% if lang_data.pricing_notes %}
-        <div class="pricing">
-          {{ lang_data.pricing_notes | safe }}
+        <div class="notes-section">
+            <h4 class="notes-title"><i class="bi bi-tags-fill"></i> {{ "English" if lang_data.language_name == 'English' else "Spanish" }} Course Pricing:</h4>
+            <div class="notes-grid">
+                {{ lang_data.pricing_notes | safe }}
+            </div>
         </div>
         {% endif %}
 
         {% if lang_data.important_notes %}
-        <div class="pricing">
-          <!-- The static file has a heading here, you might want to add one in your CMS -->
-          <h4>🔥 Important Notes:</h4>
-          {{ lang_data.important_notes | safe }}
+        <div class="notes-section">
+            <h4 class="notes-title"><i class="bi bi-exclamation-triangle-fill"></i> Important Notes:</h4>
+            <div class="notes-grid">
+                 {{ lang_data.important_notes | safe }}
+            </div>
         </div>
         {% endif %}
-      </div>
-      {% endfor %}
     </section>
-  </main>
+    {% endfor %}
+</div>
 {% endblock %}

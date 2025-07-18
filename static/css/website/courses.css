@@ -1,227 +1,212 @@
 /*
-  COURSES PAGE-SPECIFIC STYLES
-  This file EXTENDS the main website_styles.css.
-  It should be loaded AFTER website_styles.css on the courses page.
-  It only contains styles unique to the courses page layout.
+  Custom stylesheet for the new Courses Page design.
+  This is designed to replicate the provided screenshots.
 */
 
-/* About Section on Courses Page */
-.about-us {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  max-width: 1200px;
-  margin: 0 auto 3rem; /* Added margin-bottom */
-  padding: 4rem 2rem;
-  background: var(--card-bg);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  box-shadow: var(--card-shadow);
-  transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+:root {
+    --page-bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --primary-text: #212529;
+    --secondary-text: #6c757d;
+    --accent-blue: #0d6efd;
+    --light-blue-bg: #e7f1ff;
+    --price-red: #dc3545;
+    --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+    --border-radius-md: 12px;
+    --border-radius-lg: 16px;
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.about-us-text h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-color);
+/* Base page styles */
+.courses-page-container {
+    font-family: var(--font-family);
+    background-color: var(--page-bg);
+    padding: 2rem 1rem;
 }
 
-.about-us-text span {
-  background: var(--highlight-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.about-us-text p {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  color: var(--text-muted);
-  text-align: justify;
-}
-
-/* Courses Section Container */
-.courses {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
+/* Generic Section Title (e.g., "Our Course Packages") */
 .section-title {
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  color: var(--primary-color);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-text);
+    margin-bottom: 3rem;
 }
 
-.course-info {
-  background: var(--card-bg);
-  border-radius: 20px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  backdrop-filter: blur(10px);
-  box-shadow: var(--card-shadow);
-  transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+/* Container for a full language block (e.g., "English Course Packages") */
+.language-section {
+    max-width: 1200px;
+    margin: 0 auto 4rem auto;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--card-shadow);
+    padding: 2rem 2.5rem;
 }
 
-.course-info h3 {
-  color: var(--primary-color);
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
+.language-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
 }
 
-.course-info p {
-  margin-bottom: 1rem;
-  color: var(--text-muted);
+.language-description {
+    font-size: 1.1rem;
+    color: var(--secondary-text);
+    margin-bottom: 2rem;
 }
 
-.benefits-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
+/* Benefits grid and tags */
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
 }
 
-.benefit-item {
-  background: var(--highlight-gradient);
-  color: white;
-  padding: 1rem;
-  border-radius: 10px;
-  font-weight: 500;
-  text-align: center;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease;
+.benefit-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--light-blue-bg);
+    color: var(--accent-blue);
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    font-size: 0.95rem;
 }
 
-.benefit-item:hover {
-  transform: translateY(-5px);
+.benefit-tag i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
 }
 
-.pricing {
-  background: var(--header-bg);
-  padding: 1.5rem;
-  border-radius: 15px;
-  margin: 1.5rem 0;
-  transition: background var(--transition-speed) ease;
+/* Subtitle for package types (e.g., "Monolingual Spanish Packages") */
+.packages-subtitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+.packages-subtitle i {
+    margin-right: 0.75rem;
+    color: var(--accent-blue);
 }
 
-.pricing h4 {
-  color: var(--text-color);
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
+
+/* Grid container for the course cards */
+.course-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
 }
 
-.price-item {
-  margin-bottom: 0.8rem;
-  padding: 0.5rem;
-  background: var(--card-bg);
-  border-radius: 8px;
-  border-left: 4px solid var(--primary-color);
-  transition: background-color var(--transition-speed) ease;
-}
-
-/* Course Cards Grid */
-.course-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
+/* Individual Course Card */
 .course-card {
-  background: var(--card-bg);
-  border-radius: 15px;
-  padding: 2rem;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  box-shadow: var(--card-shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color var(--transition-speed) ease;
-  display: flex;
-  flex-direction: column;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .course-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
 }
 
-.course-card h3 {
-  color: var(--primary-color);
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-}
-
-.course-card p {
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-  flex-grow: 1; /* Allows paragraph to take available space */
-}
-
-.course-actions {
-  margin-top: auto; /* Pushes the actions to the bottom of the card */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.apply-button {
-  background: var(--highlight-gradient);
-  color: white;
-  padding: 0.8rem 2rem;
-  border: none;
-  border-radius: 25px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  display: inline-block;
-  width: 100%;
-  font-size: 1rem;
-}
-
-.apply-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-/* Responsive Design for Course-Specific Elements */
-@media (max-width: 768px) {
-  .about-us {
-    grid-template-columns: 1fr;
+.card-header {
     text-align: center;
-  }
-
-  .about-us-text h1 {
-    font-size: 2rem;
-  }
-
-  .section-title {
-    font-size: 2rem;
-  }
-
-  .course-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .benefits-list {
-    grid-template-columns: 1fr;
-  }
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+.card-header i {
+    margin-right: 0.5rem;
 }
 
-/* Animation for Course-Specific Elements */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.card-body {
+    text-align: center;
+    color: var(--secondary-text);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
 }
 
-/* FIX: Corrected typo 'anation' to 'animation' */
-.about-us, .courses, .course-card {
-  animation: fadeInUp 0.8s ease;
+.flex-grow {
+    flex-grow: 1; /* Pushes price and footer to the bottom */
+}
+
+.card-price {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.current-price {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--price-red);
+    margin-right: 0.5rem;
+}
+
+.original-price {
+    font-size: 1.1rem;
+    color: var(--secondary-text);
+    text-decoration: line-through;
+}
+
+.card-footer .apply-button {
+    display: block;
+    width: 100%;
+    background-color: var(--accent-blue);
+    color: #ffffff;
+    text-align: center;
+    padding: 0.9rem 1rem;
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+}
+
+.card-footer .apply-button:hover {
+    background-color: #0b5ed7;
+}
+
+/* Pricing and Notes Section */
+.notes-section {
+    margin-top: 3rem;
+}
+.notes-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+}
+.notes-title i {
+    margin-right: 0.75rem;
+    color: var(--accent-blue);
+}
+
+.notes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.note-item {
+    display: flex;
+    align-items: center;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: var(--border-radius-md);
+    padding: 1rem 1.5rem;
+}
+.note-item i {
+    margin-right: 1rem;
+    font-size: 1.2rem;
+    color: var(--accent-blue);
 }
