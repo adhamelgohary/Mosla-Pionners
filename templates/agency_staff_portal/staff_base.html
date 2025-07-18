@@ -53,7 +53,7 @@
                                     </button>
                                      <div x-show="coursesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display:none;">
                                         <div class="py-1">
-                                            <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses Dashboard</a>
+                                            <a href="{{ url_for('course_mgmt_bp.courses_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Courses Dashboard</a>
                                             <a href="{{ url_for('course_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
                                             <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Courses</a>
                                         </div>
@@ -112,7 +112,7 @@
                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Job Offers</a>
-                    <a href="{{ url_for('course_mgmt_bp.courses_dashboard_page') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Courses</a>
+                    <a href="{{ url_for('course_mgmt_bp.courses_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Courses</a>
                     <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Reports</a>
                     <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Announcements</a>
                 </div>
