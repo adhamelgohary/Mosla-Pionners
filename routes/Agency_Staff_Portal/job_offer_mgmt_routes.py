@@ -10,7 +10,7 @@ import re
 import io
 import csv
 
-# Imports for styled Excel generation (as per previous request to keep it in-file)
+# Imports for styled Excel generation
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
@@ -22,12 +22,9 @@ job_offer_mgmt_bp = Blueprint('job_offer_mgmt_bp', __name__,
                               template_folder='../../../templates',
                               url_prefix='/job-offers')
 
-# --- Excel Helper Function (Copied from reports for self-containment) ---
+# --- Excel Helper Function ---
 def _create_styled_excel(report_data, title, header_mapping):
-    """
-    Generates a styled Excel report using only OpenPyXL.
-    NOTE: In a larger application, this would be moved to a shared utils file.
-    """
+    """Generates a styled Excel report using only OpenPyXL."""
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Report"
@@ -83,11 +80,9 @@ def _create_styled_excel(report_data, title, header_mapping):
 
 
 def get_column_options(cursor, table_name, column_name):
-    """
-    Dynamically fetches the allowed values for an ENUM or SET column from the database schema.
-    """
+    """Dynamically fetches the allowed values for an ENUM or SET column from the database schema."""
     try:
-        db_name = get_db_connection().database
+        db_name = cursor.connection.database
         query = """
             SELECT COLUMN_TYPE 
             FROM INFORMATION_SCHEMA.COLUMNS
@@ -95,8 +90,7 @@ def get_column_options(cursor, table_name, column_name):
         """
         cursor.execute(query, (db_name, table_name, column_name))
         result = cursor.fetchone()
-        if result:
-            # Using regex to extract values from strings like "enum('a','b','c')" or "set('x','y','z')"
+        if result and result.get('COLUMN_TYPE'):
             type_string = result['COLUMN_TYPE']
             values = re.findall(r"'(.*?)'", type_string)
             return values
@@ -106,61 +100,42 @@ def get_column_options(cursor, table_name, column_name):
         return []
 
 def validate_job_offer_data(form_data, is_editing=False, is_client_submission=False):
-    """
-    A comprehensive validation helper for the offer form, combining logic from AM and Staff portals.
-    It now handles company creation logic for staff.
-    """
+    """A comprehensive validation helper for the offer form."""
     errors = {}
     
     if is_client_submission:
-        # --- Logic for Client Submissions (uses original field names for this route) ---
         if not form_data.get('title', '').strip(): errors['title'] = 'Job title is required.'
-        
         net_salary_str = form_data.get('salary', '').strip()
         if net_salary_str:
             try:
                 if decimal.Decimal(net_salary_str) < 0: errors['salary'] = 'Net salary cannot be negative.'
             except decimal.InvalidOperation: errors['salary'] = 'Invalid net salary format.'
-
-        candidates_needed_str = form_data.get('candidates_needed', '').strip()
-        if candidates_needed_str:
-            try:
-                if int(candidates_needed_str) < 1: errors['candidates_needed'] = 'At least 1 candidate is required.'
-            except ValueError: errors['candidates_needed'] = 'Invalid number for candidates needed.'
     else:
-        # --- Logic for Staff Create/Edit (adopting AM Portal logic and field names) ---
         if not form_data.get('title', '').strip():
             errors['title'] = 'Job title is required.'
-        elif len(form_data.get('title', '')) > 255:
-            errors['title'] = 'Job title is too long.'
-
-        # Company validation for creation, copied from AM portal
         if not is_editing:
             company_selection_mode = form_data.get('company_selection_mode')
-            if not form_data.get('company_id'): # A pre-selected company_id bypasses this
+            if not form_data.get('company_id'):
                 if company_selection_mode == 'existing' and not form_data.get('selected_company_id'):
                     errors['company_id'] = "You must select an existing company."
                 elif company_selection_mode == 'new' and not form_data.get('new_company_name', '').strip():
                     errors['new_company_name'] = "New company name cannot be empty."
                 elif not company_selection_mode:
                     errors['company_selection_mode'] = "Please select a company option."
-
         if not form_data.get('category_id'):
             errors['category_id'] = 'Job category is required.'
-        
-        net_salary_str = form_data.get('net_salary', '').strip() # Standardized to 'net_salary'
+        net_salary_str = form_data.get('net_salary', '').strip()
         if net_salary_str:
             try:
                 if decimal.Decimal(net_salary_str) < 0: errors['net_salary'] = 'Net salary cannot be negative.'
             except decimal.InvalidOperation: errors['net_salary'] = 'Invalid net salary format.'
-        
-        candidates_needed_str = form_data.get('candidates_needed', '').strip() # Standardized to 'candidates_needed'
-        if candidates_needed_str:
-            try:
-                if int(candidates_needed_str) < 1: errors['candidates_needed'] = 'At least 1 candidate is required.'
-            except ValueError: errors['candidates_needed'] = 'Invalid number for candidates needed.'
+    
+    candidates_needed_str = form_data.get('candidates_needed', '').strip()
+    if candidates_needed_str:
+        try:
+            if int(candidates_needed_str) < 1: errors['candidates_needed'] = 'At least 1 candidate is required.'
+        except ValueError: errors['candidates_needed'] = 'Invalid number for candidates needed.'
 
-    # Common validations for all forms
     max_age_str = form_data.get('max_age', '').strip()
     if max_age_str:
         try:
@@ -171,6 +146,7 @@ def validate_job_offer_data(form_data, is_editing=False, is_client_submission=Fa
 
 
 def _create_automated_announcement(db_cursor, source_type, title, content, audience='AllUsers', priority='Normal', posted_by_user_id=None):
+    """Helper to create an automated announcement."""
     try:
         sql = "INSERT INTO SystemAnnouncements (Title, Content, Audience, Priority, Source, PostedByUserID, IsActive) VALUES (%s, %s, %s, %s, %s, %s, 1)"
         db_cursor.execute(sql, (title, content, audience, priority, source_type, posted_by_user_id))
@@ -198,8 +174,6 @@ def client_submit_job_offer():
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor()
-                # Note: This table still uses the old column names, which is fine as it's a staging table.
-                # The mapping happens when an admin approves it.
                 sql = """INSERT INTO ClientSubmittedJobOffers (
                              CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract,
                              RequiredLanguage, EnglishLevelRequirement, CandidatesNeeded, HiringCadence, WorkLocationType,
@@ -214,22 +188,17 @@ def client_submit_job_offer():
                 params = {
                     "company_id": client_company_id,
                     "user_id": current_user.id,
-                    "title": form_data.get('title'),
-                    "location": form_data.get('location'),
+                    "title": form_data.get('title'), "location": form_data.get('location'),
                     "max_age": form_data.get('max_age') or None,
                     "closing_date": form_data.get('closing_date') or None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "required_language": form_data.get('required_language'),
-                    "english_level": form_data.get('english_level'),
+                    "required_language": form_data.get('required_language'), "english_level": form_data.get('english_level'),
                     "candidates_needed": int(form_data.get('candidates_needed', 1)) if form_data.get('candidates_needed') else 1,
-                    "hiring_cadence": form_data.get('hiring_cadence'),
-                    "work_location": form_data.get('work_location'),
-                    "hiring_plan": form_data.get('hiring_plan'),
-                    "shift_type": form_data.get('shift_type'),
+                    "hiring_cadence": form_data.get('hiring_cadence'), "work_location": form_data.get('work_location'),
+                    "hiring_plan": form_data.get('hiring_plan'), "shift_type": form_data.get('shift_type'),
                     "available_shifts": ",".join(form_data['available_shifts']) if form_data['available_shifts'] else None,
                     "salary": decimal.Decimal(form_data['salary']) if form_data.get('salary') else None,
-                    "payment_term": form_data.get('payment_term'),
-                    "grad_status": form_data.get('grad_status'),
+                    "payment_term": form_data.get('payment_term'), "grad_status": form_data.get('grad_status'),
                     "nationality": form_data.get('nationality'),
                     "benefits": ",".join(form_data['benefits']) if form_data['benefits'] else None,
                     "transport_provided": 1 if form_data.get('transportation') == 'yes' else 0,
@@ -254,7 +223,6 @@ def client_submit_job_offer():
 @job_offer_mgmt_bp.route('/api/offers-for-company/<int:company_id>')
 @login_required_with_role(EXECUTIVE_ROLES)
 def api_get_offers_for_company(company_id):
-    """API endpoint to fetch job offers for a specific company."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT OfferID, Title FROM JobOffers WHERE CompanyID = %s ORDER BY Title", (company_id,))
@@ -266,7 +234,6 @@ def api_get_offers_for_company(company_id):
 @job_offer_mgmt_bp.route('/api/all-offers')
 @login_required_with_role(EXECUTIVE_ROLES)
 def api_get_all_offers():
-    """API endpoint to fetch all job offers."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT OfferID, Title FROM JobOffers ORDER BY Title")
@@ -338,7 +305,7 @@ def list_all_job_offers():
 def get_form_options(cursor):
     """
     Helper to fetch all dynamic options for the job offer form.
-    This version dynamically identifies transportation benefits.
+    This version now dynamically identifies transportation benefits from the DB schema.
     """
     options = {}
     table = 'JobOffers'
@@ -351,14 +318,11 @@ def get_form_options(cursor):
     for col in columns_to_fetch:
         options[col] = get_column_options(cursor, table, col)
     
-    # --- DYNAMIC BENEFIT HANDLING (REFACTORED) ---
-    all_benefits = options.get('BenefitsIncluded', [])
+    all_benefits_from_schema = options.get('BenefitsIncluded', [])
     transportation_options = []
     other_benefits = []
     
-    # Sort benefits into 'transportation' and 'other' based on a keyword.
-    # This is more robust than hardcoding exact strings.
-    for benefit in all_benefits:
+    for benefit in all_benefits_from_schema:
         if 'transportation' in benefit.lower():
             transportation_options.append(benefit)
         else:
@@ -376,7 +340,6 @@ def staff_direct_create_job_offer():
     errors, companies, categories, form_options = {}, [], [], {}
     form_data = {}
 
-    # Fetch dependencies for the form on both GET and POST (for error re-render)
     conn_data = get_db_connection()
     try:
         cursor = conn_data.cursor(dictionary=True)
@@ -394,7 +357,6 @@ def staff_direct_create_job_offer():
     if request.method == 'POST':
         form_data = request.form.to_dict()
         
-        # Reconstruct dynamic lists from form
         benefits_list = request.form.getlist('benefits_checkboxes')
         if form_data.get('transportation') == 'yes' and form_data.get('transport_type'):
             benefits_list.append(form_data.get('transport_type'))
@@ -420,7 +382,7 @@ def staff_direct_create_job_offer():
                         raise ValueError("Duplicate company name")
                     cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (new_company_name,))
                     company_id = cursor.lastrowid
-                else: # 'existing' mode
+                else:
                     company_id = form_data.get('selected_company_id')
 
                 params = {
@@ -480,12 +442,12 @@ def staff_direct_create_job_offer():
         if errors:
             flash('Please correct the errors shown in the form.', 'warning')
 
-    else: # GET request defaults
+    else:
         form_data = {
             'work_location_type': 'site', 'hiring_plan': 'long-term', 'shift_type': 'fixed',
             'transportation': 'no', 'has_contract': 'yes', 'hiring_cadence': 'month',
             'grad_status_req': 'grad', 'nationality': 'Egyptians Only', 'payment_term': 'Monthly',
-            'candidates_needed': 1
+            'candidates_needed': 1, 'status': 'Open'
         }
 
     return render_template('agency_staff_portal/job_offers/add_edit_job_offer.html', 
@@ -493,15 +455,12 @@ def staff_direct_create_job_offer():
         categories=categories, is_editing_live=False, action_verb="Post Live", form_options=form_options)
 
 
-# In routes/Agency_Staff_Portal/job_offer_mgmt_routes.py
-
 @job_offer_mgmt_bp.route('/edit-live/<int:offer_id>', methods=['GET', 'POST'])
 @login_required_with_role(JOB_OFFER_REVIEW_ROLES)
 def edit_live_job_offer(offer_id):
     errors, companies, categories, form_options = {}, [], [], {}
     form_data_for_template = {}
     
-    # Fetch dependencies for the form, required on both GET and POST (for error re-render)
     conn_deps = get_db_connection()
     try:
         cursor_deps = conn_deps.cursor(dictionary=True)
@@ -520,7 +479,6 @@ def edit_live_job_offer(offer_id):
     if request.method == 'POST':
         form_data = request.form.to_dict()
         
-        # Reconstruct dynamic lists from the submitted form data
         benefits_list = request.form.getlist('benefits_checkboxes')
         if form_data.get('transportation') == 'yes' and form_data.get('transport_type'):
             benefits_list.append(form_data.get('transport_type'))
@@ -557,7 +515,7 @@ def edit_live_job_offer(offer_id):
                     "interview_type": form_data.get('interview_type'), "nationality": form_data.get('nationality'),
                     "status": form_data.get('status', 'Open'),
                     "closing_date": form_data.get('closing_date') or None, "offer_id": offer_id,
-                    "company_id": form_data.get('CompanyID') # Use hidden CompanyID from form
+                    "company_id": form_data.get('CompanyID')
                 }
                 sql = """
                     UPDATE JobOffers SET
@@ -583,10 +541,9 @@ def edit_live_job_offer(offer_id):
         if errors:
             flash('Please correct the form errors.', 'warning')
         
-        # If there are errors, we need to pass the submitted data back to the template
         form_data_for_template = form_data
     
-    else: # This block handles the initial GET request to load the form
+    else: # GET request
         conn_fetch = get_db_connection()
         try:
             cursor_fetch = conn_fetch.cursor(dictionary=True)
@@ -598,7 +555,6 @@ def edit_live_job_offer(offer_id):
             
             form_data_for_template = db_data.copy()
 
-            # Helper function to safely parse DB values that could be set, bytes, or string.
             def parse_set_or_text_column(value):
                 if isinstance(value, set):
                     return list(value)
@@ -608,12 +564,10 @@ def edit_live_job_offer(offer_id):
                     return [v.strip() for v in value.split(',') if v.strip()]
                 return []
 
-            # Use the safe parser for all potentially multi-valued columns
             all_benefits_from_db = parse_set_or_text_column(db_data.get('BenefitsIncluded'))
             form_data_for_template['required_languages'] = parse_set_or_text_column(db_data.get('RequiredLanguages'))
             form_data_for_template['available_shifts'] = parse_set_or_text_column(db_data.get('AvailableShifts'))
             
-            # Deconstruct the benefits list into transportation and other benefits for the form
             dynamic_transport_options = form_options.get('transportation_options', [])
             form_data_for_template['transportation'] = 'no'
             form_data_for_template['transport_type'] = ''
@@ -627,14 +581,9 @@ def edit_live_job_offer(offer_id):
                     final_benefits_for_checkboxes.append(benefit)
             form_data_for_template['benefits_checkboxes'] = final_benefits_for_checkboxes
 
-            # Process other fields to ensure they are in the correct format for the template
             form_data_for_template['has_contract'] = 'yes' if db_data.get('HasContract') else 'no'
             form_data_for_template['net_salary'] = str(db_data['NetSalary']) if db_data.get('NetSalary') is not None else ''
             form_data_for_template['closing_date'] = db_data['ClosingDate'].isoformat() if db_data.get('ClosingDate') else ''
-            
-            # Standardize keys to match the template's expected names
-            form_data_for_template['title'] = db_data.get('Title')
-            form_data_for_template['candidates_needed'] = db_data.get('CandidatesNeeded')
             form_data_for_template['grad_status_req'] = db_data.get('GraduationStatusRequirement')
             form_data_for_template['work_location_type'] = db_data.get('WorkLocationType')
 
@@ -763,7 +712,6 @@ def review_client_submission_action(submission_id):
                             %(Benefits)s, 'Open', %(ClosingDate)s, NOW()
                           )"""
             params_live = sub.copy()
-            # Map old submission columns to new live table columns
             nationality_mapping = {'egyptian': 'Egyptians Only', 'any': 'Foreigners & Egyptians', 'foreigner': 'Foreigners & Egyptians'}
             
             benefits_from_sub = params_live.get('Benefits', '').split(',') if params_live.get('Benefits') else []
@@ -777,7 +725,7 @@ def review_client_submission_action(submission_id):
                 "Nationality": nationality_mapping.get(sub.get('NationalityRequirement'), 'Foreigners & Egyptians'),
                 "RequiredLanguages": sub.get('RequiredLanguage'),
                 "RequiredLevel": sub.get('EnglishLevelRequirement'),
-                "Benefits": ",".join(filter(None, benefits_from_sub)) # Join final list
+                "Benefits": ",".join(filter(None, benefits_from_sub))
             })
             
             cursor.execute(sql_live, params_live)
@@ -825,9 +773,16 @@ def view_live_job_offer_detail(offer_id):
         """, (offer_id,))
         offer = cursor.fetchone()
         if offer: 
-            offer['Benefits_list'] = offer.get('BenefitsIncluded', '').split(',') if offer.get('BenefitsIncluded') else []
-            offer['AvailableShifts_list'] = offer.get('AvailableShifts', '').split(',') if offer.get('AvailableShifts') else []
-            offer['RequiredLanguages_list'] = offer.get('RequiredLanguages', '').split(',') if offer.get('RequiredLanguages') else []
+            def parse_set_or_text_column(value):
+                if isinstance(value, set): return list(value)
+                if isinstance(value, bytes): value = value.decode('utf-8')
+                if isinstance(value, str): return [v.strip() for v in value.split(',') if v.strip()]
+                return []
+                
+            offer['Benefits_list'] = parse_set_or_text_column(offer.get('BenefitsIncluded'))
+            offer['AvailableShifts_list'] = parse_set_or_text_column(offer.get('AvailableShifts'))
+            offer['RequiredLanguages_list'] = parse_set_or_text_column(offer.get('RequiredLanguages'))
+
     except Exception as e:
         current_app.logger.error(f"Error fetching live offer detail {offer_id}: {e}", exc_info=True)
         flash("Could not load offer details.", "danger")
@@ -840,34 +795,25 @@ def view_live_job_offer_detail(offer_id):
     return render_template('agency_staff_portal/job_offers/view_live_job_offer_detail.html', title=f"Job Offer Details", offer=offer)
 
 
-# --- NEW ROUTE TO LIST ALL APPLICATIONS ---
 @job_offer_mgmt_bp.route('/applications')
 @login_required_with_role(EXECUTIVE_ROLES)
 def list_all_applications():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Get filters from URL
     selected_company_id = request.args.get('company_id', type=int)
     selected_offer_id = request.args.get('offer_id', type=int)
     export_format = request.args.get('format')
 
-    # Fetch data for filter dropdowns
     cursor.execute("SELECT CompanyID, CompanyName FROM Companies ORDER BY CompanyName")
     companies = cursor.fetchall()
     cursor.execute("SELECT OfferID, Title FROM JobOffers ORDER BY Title")
     job_offers = cursor.fetchall()
     
-    # Base query
     sql = """
         SELECT
-            u.FirstName,
-            u.LastName,
-            ja.ApplicationDate,
-            jo.Title AS JobTitle,
-            c.CompanyName,
-            ja.Status,
-            cand.CandidateID
+            u.FirstName, u.LastName, ja.ApplicationDate, jo.Title AS JobTitle,
+            c.CompanyName, ja.Status, cand.CandidateID
         FROM JobApplications ja
         JOIN Candidates cand ON ja.CandidateID = cand.CandidateID
         JOIN Users u ON cand.UserID = u.UserID
@@ -875,7 +821,6 @@ def list_all_applications():
         JOIN Companies c ON jo.CompanyID = c.CompanyID
     """
     
-    # Apply filters
     conditions = []
     params = []
     if selected_company_id:
@@ -895,22 +840,19 @@ def list_all_applications():
     cursor.close()
     conn.close()
 
-    # Handle Exports
     if export_format:
         if not applications:
             flash("No data to export for the selected filters.", "warning")
             return redirect(url_for('.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id))
         
-        # EXCEL Export
         if export_format == 'xlsx':
             header_map = {
-                'Candidate Name': 'FullName', # We'll create this key
+                'Candidate Name': 'FullName',
                 'Application Date': 'ApplicationDate',
                 'Job Title': 'JobTitle',
                 'Company': 'CompanyName',
                 'Status': 'Status'
             }
-            # Pre-process data for full name
             excel_data = []
             for app in applications:
                 new_app = app.copy()
@@ -924,10 +866,8 @@ def list_all_applications():
             response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             return response
 
-        # CSV Export
         if export_format == 'csv':
             output = io.StringIO()
-            # Prepare data for CSV
             csv_data = []
             for app in applications:
                 csv_data.append({

@@ -1,70 +1,72 @@
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-speedometer2"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="flex flex-col sm:flex-row justify-between items-center mb-6 pb-6 border-b border-gray-200 gap-4">
-    <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-        <i class="bi bi-list-ul -ml-1 mr-2"></i> View & Manage All Offers
-    </a>
-        <!-- *** NEW BUTTON *** -->
-    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-        <i class="bi bi-people -ml-1 mr-2"></i> View All Applications
-    </a>
-    
-    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success-500">
-        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Create New Offer
-    </a>
+<div class="space-y-8">
+    <!-- KPI Section -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Key Performance Indicators</h3>
+        <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <!-- Total Open Offers -->
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-primary-500 p-3"><i class="bi bi-briefcase-fill text-white h-6 w-6"></i></div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Open Offers</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_open_offers }}</p>
+                    <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                        <div class="text-sm"><a href="{{ url_for('.list_all_job_offers') }}" class="font-medium text-primary-600 hover:text-primary-500">View all</a></div>
+                    </div>
+                </dd>
+            </div>
+            <!-- Total Candidates Needed -->
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-primary-500 p-3"><i class="bi bi-people-fill text-white h-6 w-6"></i></div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Open Positions</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_candidates_needed }}</p>
+                    <p class="ml-2 flex items-baseline text-sm font-semibold text-gray-500">candidates needed</p>
+                    <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                        <div class="text-sm"><a href="{{ url_for('.list_all_job_offers') }}" class="font-medium text-primary-600 hover:text-primary-500">View details</a></div>
+                    </div>
+                </dd>
+            </div>
+            <!-- Pending Submissions -->
+            <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
+                <dt>
+                    <div class="absolute rounded-md bg-yellow-500 p-3"><i class="bi bi-inbox-fill text-white h-6 w-6"></i></div>
+                    <p class="ml-16 truncate text-sm font-medium text-gray-500">Pending Client Submissions</p>
+                </dt>
+                <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                    <p class="text-2xl font-semibold text-gray-900">{{ kpis.pending_submissions }}</p>
+                    <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                        <div class="text-sm"><a href="{{ url_for('.list_review_client_submissions') }}" class="font-medium text-primary-600 hover:text-primary-500">Review now</a></div>
+                    </div>
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+         <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Quick Stats</h3>
+         <ul class="divide-y divide-gray-200">
+             <li class="py-3 flex justify-between text-sm"><span class="font-medium text-gray-600">New Offers This Month:</span><span class="font-semibold text-gray-800">{{ kpis.new_offers_this_month }}</span></li>
+             <li class="py-3 flex justify-between text-sm"><span class="font-medium text-gray-600">Average Time to Fill:</span><span class="font-semibold text-gray-800">{{ kpis.avg_time_to_fill }} days</span></li>
+             <li class="py-3 flex justify-between text-sm"><span class="font-medium text-gray-600">Client Submission Approval Rate (90d):</span><span class="font-semibold text-gray-800">{{ kpis.approval_rate }}</span></li>
+             <li class="py-3 flex justify-between text-sm"><span class="font-medium text-gray-600">Oldest Open Offer:</span><span class="font-semibold text-gray-800">{{ kpis.age_of_oldest_offer }} days old</span></li>
+             {% if kpis.oldest_offer_title != 'No open offers' %}
+             <li class="pt-2 text-xs text-gray-500 text-right">{{ kpis.oldest_offer_title }} at {{ kpis.oldest_offer_company }}</li>
+             {% endif %}
+         </ul>
+    </div>
 </div>
-
-{% if error %}
-    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-        <p class="text-sm text-red-700">There was an error loading the dashboard data. Please try again or contact support.</p>
-    </div>
-{% else %}
-    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6 pb-4 border-b border-gray-200">Key Performance Indicators</h3>
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-
-            {% macro kpi_card(title, value, footer_text, footer_link=None, color='primary') %}
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-{{ color }}-500 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
-                <div class="text-sm font-medium text-gray-500 truncate">{{ title }}</div>
-                <div class="mt-1 text-4xl font-semibold text-{{ color }}-600">{{ value }}</div>
-                <div class="mt-auto pt-3 border-t border-gray-100">
-                    {% if footer_link %}
-                    <a href="{{ footer_link }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">{{ footer_text }} →</a>
-                    {% else %}
-                    <p class="text-sm text-gray-400">{{ footer_text }}</p>
-                    {% endif %}
-                </div>
-            </div>
-            {% endmacro %}
-
-            {{ kpi_card('Open Offers', kpis.get('total_open_offers', '0'), 'View All', url_for('job_offer_mgmt_bp.list_all_job_offers'), 'yellow') }}
-            {{ kpi_card('Candidates Needed', kpis.get('total_candidates_needed', '0'), 'For Open Jobs', None, 'green') }}
-            {{ kpi_card('New Offers This Month', kpis.get('new_offers_this_month', '0'), 'Pipeline Growth', None, 'primary') }}
-            {{ kpi_card('Pending Submissions', kpis.get('pending_submissions', '0'), 'Review Now', url_for('job_offer_mgmt_bp.list_review_client_submissions'), 'amber') }}
-            
-            <div class="bg-white p-5 rounded-lg shadow flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
-                <div class="text-sm font-medium text-gray-500 truncate">Avg. Time to Fill</div>
-                <div class="mt-1 text-4xl font-semibold text-gray-700">{{ kpis.get('avg_time_to_fill', 'N/A') }}</div>
-                <div class="mt-auto pt-3 border-t border-gray-100">
-                     <p class="text-sm text-gray-400">Days</p>
-                </div>
-            </div>
-            
-            {{ kpi_card('Client Approval Rate', kpis.get('approval_rate', 'N/A'), 'Last 90 Days', None, 'info') }}
-
-            <div class="bg-white p-5 rounded-lg shadow border-l-4 border-danger-500 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
-                <div class="text-sm font-medium text-gray-500 truncate">Oldest Open Offer</div>
-                <div class="mt-1 text-4xl font-semibold text-danger-600">{{ kpis.get('age_of_oldest_offer', 'N/A') }} <span class="text-lg font-medium text-gray-500">Days</span></div>
-                <div class="mt-auto pt-3 border-t border-gray-100 text-left">
-                    <p class="text-sm font-semibold text-gray-800 truncate" title="{{ kpis.get('oldest_offer_title', '') }}">{{ kpis.get('oldest_offer_title', 'N/A') }}</p>
-                    <p class="text-xs text-gray-500 truncate">@ {{ kpis.get('oldest_offer_company', 'N/A') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-{% endif %}
 {% endblock %}

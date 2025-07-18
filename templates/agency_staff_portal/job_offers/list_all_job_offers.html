@@ -1,61 +1,66 @@
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-card-list"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="flex justify-between items-center mb-6">
-    <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
-        <i class="bi bi-arrow-left -ml-1 mr-2"></i> Back to Dashboard
-    </a>
-    <a href="{{ url_for('job_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700">
-        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Create New Offer
+<div class="mb-6 flex justify-end">
+    <a href="{{ url_for('.staff_direct_create_job_offer') }}" class="btn-primary">
+        <i class="bi bi-plus-circle-fill mr-1"></i> Create New Job Offer
     </a>
 </div>
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+<div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
     <div class="overflow-x-auto">
-        <table class="min-w-full text-sm divide-y divide-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Featured</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Posted</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
+                {% if offers %}
                 {% for offer in offers %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        <a href="{{ url_for('job_offer_mgmt_bp.view_live_job_offer_detail', offer_id=offer.OfferID) }}" class="text-primary-600 hover:text-primary-800">{{ offer.Title }}</a>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ offer.CompanyName }}</td>
+                <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="status-badge status-{{ offer.Status | lower | replace(' ', '-') }}">{{ offer.Status }}</span>
+                        <div class="text-sm font-medium text-gray-900">{{ offer.Title }}</div>
+                        <div class="text-sm text-gray-500">{{ offer.CategoryName or 'No Category' }}</div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-600">{{ offer.DatePosted | datetime }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                        {% if offer.IsFeatured %}<i class="bi bi-star-fill text-yellow-400"></i>{% else %}<i class="bi bi-star text-gray-300"></i>{% endif %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ offer.CompanyName }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ offer.DatePosted.strftime('%Y-%m-%d') if offer.DatePosted else 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {% set status_colors = {
+                            'Open': 'bg-green-100 text-green-800',
+                            'Closed': 'bg-red-100 text-red-800',
+                            'Filled': 'bg-blue-100 text-blue-800',
+                            'On Hold': 'bg-yellow-100 text-yellow-800',
+                            'Draft': 'bg-gray-100 text-gray-800'
+                        } %}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ status_colors.get(offer.Status, 'bg-gray-100 text-gray-800') }}">
+                            {{ offer.Status }}
+                        </span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right font-medium flex items-center justify-end gap-4">
-                         <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="text-info-600 hover:text-info-900" title="Edit"><i class="bi bi-pencil-square text-lg"></i></a>
-                        <form action="{{ url_for('job_offer_mgmt_bp.delete_live_job_offer', offer_id=offer.OfferID) }}" method="POST" onsubmit="return confirm('Delete \'{{ offer.Title|e }}\'? This cannot be undone.');">
-                            <button type="submit" class="text-danger-600 hover:text-danger-900" title="Delete"><i class="bi bi-trash text-lg"></i></button>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                        <a href="{{ url_for('.view_live_job_offer_detail', offer_id=offer.OfferID) }}" class="text-gray-500 hover:text-primary-600" title="View Details"><i class="bi bi-eye-fill"></i></a>
+                        <a href="{{ url_for('.edit_live_job_offer', offer_id=offer.OfferID) }}" class="text-gray-500 hover:text-primary-600" title="Edit Offer"><i class="bi bi-pencil-fill"></i></a>
+                        <form action="{{ url_for('.delete_live_job_offer', offer_id=offer.OfferID) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to permanently delete this job offer?');">
+                            <button type="submit" class="text-gray-500 hover:text-red-600" title="Delete Offer"><i class="bi bi-trash-fill"></i></button>
                         </form>
                     </td>
                 </tr>
+                {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center py-16 text-gray-500">
-                        <i class="bi bi-folder-x text-5xl text-gray-300"></i>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">No job offers found</h3>
-                        <p class="mt-1 text-sm text-gray-500">Get started by creating a new job offer.</p>
-                    </td>
+                    <td colspan="5" class="text-center py-10 px-6 text-sm text-gray-500">No job offers found.</td>
                 </tr>
-                {% endfor %}
+                {% endif %}
             </tbody>
         </table>
     </div>

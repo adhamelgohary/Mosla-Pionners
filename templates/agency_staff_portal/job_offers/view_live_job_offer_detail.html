@@ -1,88 +1,84 @@
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ offer.Title or 'Job Offer Details' }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-file-text-fill"></i> {{ offer.Title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="max-w-4xl mx-auto">
-    {% if offer %}
-        <div class="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
-            <div class="px-6 py-5 bg-gray-50 border-b border-gray-200">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="text-xl font-semibold text-gray-900">{{ offer.Title }}</h4>
-                        <p class="mt-1 text-sm text-gray-600">at <span class="font-medium">{{ offer.CompanyName }}</span></p>
-                    </div>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                        {{ offer.Status }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="p-6 space-y-8">
-                {% macro detail_section(title) %}
-                    <div>
-                        <h5 class="font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">{{ title }}</h5>
-                        <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 text-sm">
-                            {{ caller() }}
-                        </dl>
-                    </div>
-                {% endmacro %}
-
-                {% macro detail_item(label, value, colspan='sm:col-span-1') %}
-                    <div class="{{ colspan }}">
-                        <dt class="font-medium text-gray-500">{{ label }}</dt>
-                        <dd class="mt-1 text-gray-900">{{ value | safe or 'N/A' }}</dd>
-                    </div>
-                {% endmacro %}
-                
-                {% call detail_section('Core Details') %}
-                    {{ detail_item('Category', offer.CategoryName) }}
-                    {{ detail_item('Posted By', (offer.PosterFirstName ~ ' ' ~ offer.PosterLastName) if offer.PosterFirstName else 'N/A') }}
-                    {{ detail_item('Date Posted', offer.DatePosted.strftime('%Y-%m-%d %H:%M') if offer.DatePosted else 'N/A') }}
-                    {{ detail_item('Closing Date', offer.ClosingDate.strftime('%Y-%m-%d') if offer.ClosingDate else 'N/A') }}
-                    {{ detail_item('Location', offer.Location, colspan='sm:col-span-2') }}
-                {% endcall %}
-                
-                {% call detail_section('Hiring Details') %}
-                    {{ detail_item('Candidates Needed', offer.CandidatesNeeded) }}
-                    {{ detail_item('Hiring Cadence', offer.HiringCadence|replace('-', ' ')|title) }}
-                    {{ detail_item('Hiring Plan', offer.HiringPlan|replace('-', ' ')|title) }}
-                    {{ detail_item('Has Contract', 'Yes' if offer.HasContract else 'No') }}
-                {% endcall %}
-
-                {% call detail_section('Candidate Requirements') %}
-                    {{ detail_item('Languages Required', offer.RequiredLanguages_list|join(', ')|title) }}
-                    {{ detail_item('Language Level', offer.RequiredLevel|upper) }}
-                    {{ detail_item('Graduation Status', offer.GraduationStatusRequirement|replace('_', ' ')|title) }}
-                    {{ detail_item('Nationality', offer.Nationality) }}
-                    {{ detail_item('Maximum Age', offer.MaxAge) }}
-                {% endcall %}
-
-                {% call detail_section('Work Conditions & Package') %}
-                    {{ detail_item('Net Salary', "EGP {:,.2f}".format(offer.NetSalary) if offer.NetSalary else 'N/A') }}
-                    {{ detail_item('Payment Term', offer.PaymentTerm) }}
-                    {{ detail_item('Work Location', offer.WorkLocationType|replace('wfh', 'Work From Home')|replace('site', 'On-site')) }}
-                    {{ detail_item('Shift Type', offer.ShiftType|title) }}
-                    {{ detail_item('Available Shifts', offer.AvailableShifts_list|join(', ')|title, colspan='sm:col-span-2') }}
-                    {{ detail_item('Benefits', offer.Benefits_list|join(', ')|replace('_', ' ')|title, colspan='sm:col-span-2') }}
-                {% endcall %}
-            </div>
-            
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end items-center gap-x-3">
-                <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Back to List</a>
-                {% if current_user.role_type in JOB_OFFER_REVIEW_ROLES %}
-                <a href="{{ url_for('job_offer_mgmt_bp.edit_live_job_offer', offer_id=offer.OfferID) }}" class="inline-flex items-center justify-center rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors">
-                    <i class="bi bi-pencil-fill -ml-0.5 mr-2 h-5 w-5"></i>
-                    <span>Edit Offer</span>
-                </a>
-                {% endif %}
-            </div>
+<div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center border-b">
+        <div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ offer.Title }}</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">{{ offer.CompanyName }} - {{ offer.CategoryName or 'Uncategorized' }}</p>
         </div>
-    {% else %}
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
-            <p class="text-sm text-yellow-700">The requested job offer details could not be loaded or the offer does not exist.</p>
+        <div class="flex-shrink-0">
+             <a href="{{ url_for('.edit_live_job_offer', offer_id=offer.OfferID) }}" class="btn-secondary">
+                <i class="bi bi-pencil-square mr-1"></i> Edit Offer
+            </a>
         </div>
-    {% endif %}
+    </div>
+    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+        <dl class="sm:divide-y sm:divide-gray-200">
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                     {% set status_colors = {'Open': 'bg-green-100 text-green-800', 'Closed': 'bg-red-100 text-red-800', 'Filled': 'bg-blue-100 text-blue-800', 'On Hold': 'bg-yellow-100 text-yellow-800', 'Draft': 'bg-gray-100 text-gray-800'} %}
+                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ status_colors.get(offer.Status, 'bg-gray-100 text-gray-800') }}">
+                         {{ offer.Status }}
+                     </span>
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Net Salary</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ "EGP {:,.2f}".format(offer.NetSalary) if offer.NetSalary else 'Not Specified' }} ({{ offer.PaymentTerm or 'N/A' }})</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Location</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ offer.Location or 'Not specified' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Work & Shift</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ 'Work From Home' if offer.WorkLocationType == 'wfh' else 'On-Site' }}, {{ offer.ShiftType|capitalize }} Shift
+                    {% if offer.AvailableShifts_list %}
+                        <br><span class="text-xs text-gray-500">({{ offer.AvailableShifts_list|join(', ') }})</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Candidate Requirements</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    Graduation: {{ offer.GraduationStatusRequirement|capitalize }}<br>
+                    Nationality: {{ offer.Nationality }}<br>
+                    Max Age: {{ offer.MaxAge or 'N/A' }}
+                </dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Languages</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ offer.LanguagesType }}
+                    {% if offer.RequiredLanguages_list %}
+                        ({{ offer.RequiredLanguages_list|join(', ') }} at {{ offer.RequiredLevel }} level)
+                    {% endif %}
+                </dd>
+            </div>
+             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Benefits Included</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if offer.Benefits_list %}
+                        <ul class="list-disc list-inside space-y-1">
+                        {% for benefit in offer.Benefits_list %}
+                            <li>{{ benefit }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        No special benefits listed.
+                    {% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
 </div>
 {% endblock %}
