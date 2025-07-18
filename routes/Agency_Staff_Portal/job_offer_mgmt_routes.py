@@ -79,10 +79,10 @@ def _create_styled_excel(report_data, title, header_mapping):
     return output
 
 
-def get_column_options(cursor, table_name, column_name):
+def get_column_options(conn, cursor, table_name, column_name):
     """Dynamically fetches the allowed values for an ENUM or SET column from the database schema."""
     try:
-        db_name = cursor.connection.database
+        db_name = conn.database 
         query = """
             SELECT COLUMN_TYPE 
             FROM INFORMATION_SCHEMA.COLUMNS
@@ -96,7 +96,7 @@ def get_column_options(cursor, table_name, column_name):
             return values
         return []
     except Exception as e:
-        current_app.logger.error(f"Could not fetch options for {table_name}.{column_name}: {e}")
+        current_app.logger.error(f"Could not fetch options for {table_name}.{column_name}: {e}", exc_info=True)
         return []
 
 def validate_job_offer_data(form_data, is_editing=False, is_client_submission=False):
@@ -188,17 +188,22 @@ def client_submit_job_offer():
                 params = {
                     "company_id": client_company_id,
                     "user_id": current_user.id,
-                    "title": form_data.get('title'), "location": form_data.get('location'),
+                    "title": form_data.get('title'),
+                    "location": form_data.get('location'),
                     "max_age": form_data.get('max_age') or None,
                     "closing_date": form_data.get('closing_date') or None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
-                    "required_language": form_data.get('required_language'), "english_level": form_data.get('english_level'),
+                    "required_language": form_data.get('required_language'),
+                    "english_level": form_data.get('english_level'),
                     "candidates_needed": int(form_data.get('candidates_needed', 1)) if form_data.get('candidates_needed') else 1,
-                    "hiring_cadence": form_data.get('hiring_cadence'), "work_location": form_data.get('work_location'),
-                    "hiring_plan": form_data.get('hiring_plan'), "shift_type": form_data.get('shift_type'),
+                    "hiring_cadence": form_data.get('hiring_cadence'),
+                    "work_location": form_data.get('work_location'),
+                    "hiring_plan": form_data.get('hiring_plan'),
+                    "shift_type": form_data.get('shift_type'),
                     "available_shifts": ",".join(form_data['available_shifts']) if form_data['available_shifts'] else None,
                     "salary": decimal.Decimal(form_data['salary']) if form_data.get('salary') else None,
-                    "payment_term": form_data.get('payment_term'), "grad_status": form_data.get('grad_status'),
+                    "payment_term": form_data.get('payment_term'),
+                    "grad_status": form_data.get('grad_status'),
                     "nationality": form_data.get('nationality'),
                     "benefits": ",".join(form_data['benefits']) if form_data['benefits'] else None,
                     "transport_provided": 1 if form_data.get('transportation') == 'yes' else 0,
@@ -302,10 +307,9 @@ def list_all_job_offers():
     return render_template('agency_staff_portal/job_offers/list_all_job_offers.html', title='Manage Live Offers', offers=offers)
 
 
-def get_form_options(cursor):
+def get_form_options(conn, cursor):
     """
     Helper to fetch all dynamic options for the job offer form.
-    This version now dynamically identifies transportation benefits from the DB schema.
     """
     options = {}
     table = 'JobOffers'
@@ -316,7 +320,7 @@ def get_form_options(cursor):
         'LanguagesType'
     ]
     for col in columns_to_fetch:
-        options[col] = get_column_options(cursor, table, col)
+        options[col] = get_column_options(conn, cursor, table, col)
     
     all_benefits_from_schema = options.get('BenefitsIncluded', [])
     transportation_options = []
@@ -347,10 +351,12 @@ def staff_direct_create_job_offer():
         companies = cursor.fetchall()
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor.fetchall()
-        form_options = get_form_options(cursor)
+        form_options = get_form_options(conn_data, cursor)
     except Exception as e:
         current_app.logger.error(f"Error fetching form data for create offer: {e}", exc_info=True)
         flash("Error loading form support data.", "danger")
+        if conn_data and conn_data.is_connected(): conn_data.close()
+        return redirect(url_for('.list_all_job_offers'))
     finally:
         if conn_data and conn_data.is_connected(): conn_data.close()
 
@@ -468,10 +474,11 @@ def edit_live_job_offer(offer_id):
         companies = cursor_deps.fetchall()
         cursor_deps.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor_deps.fetchall()
-        form_options = get_form_options(cursor_deps)
+        form_options = get_form_options(conn_deps, cursor_deps)
     except Exception as e:
         current_app.logger.error(f"Error fetching dropdown data for edit offer {offer_id}: {e}", exc_info=True)
         flash("Error loading form support data.", "danger")
+        if conn_deps and conn_deps.is_connected(): conn_deps.close()
         return redirect(url_for('.list_all_job_offers'))
     finally:
         if conn_deps and conn_deps.is_connected(): conn_deps.close()
