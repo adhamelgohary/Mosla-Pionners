@@ -942,13 +942,13 @@ def change_staff_role():
 
     return redirect(url_for('.view_recruiter_profile', staff_id_viewing=staff_id_to_change))
 
+
 @recruiter_bp.route('/manage-recruiters')
-@login_required_with_role(LEADER_ROLES_IN_PORTAL) # Let all leaders view, but only top managers can manage
+@login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def manage_recruiters():
     """
     Provides a searchable and filterable list of all staff in the sourcing division.
     """
-    # Get search and filter parameters from the request URL
     search_query = request.args.get('search', '').strip()
     filter_role = request.args.get('role', '')
     filter_status = request.args.get('status', '')
@@ -959,17 +959,20 @@ def manage_recruiters():
     recruiters = []
     
     try:
-        # Base SQL query
-        sql = """
+        # [FIX] Generate placeholders for the IN clause dynamically
+        role_placeholders = ', '.join(['%s'] * len(MANAGEABLE_RECRUITER_ROLES))
+        
+        # Base SQL query with the new placeholders
+        sql = f"""
             SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, t.TeamName, su.UnitName, u.ProfilePictureURL
             FROM Staff s
-            JOIN Users u ON s.UserID = u.UserID
+            JOIN Users u ON s.UserID = s.UserID
             LEFT JOIN SourcingTeams t ON s.TeamID = t.TeamID
             LEFT JOIN SourcingUnits su ON t.UnitID = su.UnitID
-            WHERE s.Role IN %s
+            WHERE s.Role IN ({role_placeholders})
         """
-        # We start with the base roles to filter
-        params = [tuple(MANAGEABLE_RECRUITER_ROLES)]
+        # [FIX] Start with a flat list of parameters
+        params = list(MANAGEABLE_RECRUITER_ROLES)
 
         # Dynamically add search and filter conditions
         if search_query:
@@ -987,6 +990,7 @@ def manage_recruiters():
             
         sql += " ORDER BY u.FirstName, u.LastName"
 
+        # The tuple conversion is now correct because 'params' is a flat list
         cursor.execute(sql, tuple(params))
         recruiters = cursor.fetchall()
         
