@@ -1,0 +1,64 @@
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-card-heading text-gray-400"></i>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="bg-white shadow-md rounded-lg p-6 sm:p-8">
+    <form method="POST" action="{{ url_for('.edit_language_section', lang_id=lang_id) if lang_id else url_for('.add_language_section') }}" class="space-y-6">
+        <div>
+            <label for="LanguageName" class="block text-sm font-medium text-gray-700">Language Name</label>
+            <input type="text" name="LanguageName" id="LanguageName" value="{{ form_data.LanguageName or '' }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+            <p class="mt-1 text-xs text-gray-500">e.g., "English" or "Spanish". Used for internal linking.</p>
+        </div>
+
+        <div>
+            <label for="PageTitle" class="block text-sm font-medium text-gray-700">Page Title</label>
+            <input type="text" name="PageTitle" id="PageTitle" value="{{ form_data.PageTitle or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+            <p class="mt-1 text-xs text-gray-500">The main heading for this section on the public page.</p>
+        </div>
+
+        <div>
+            <label for="PageDescription" class="block text-sm font-medium text-gray-700">Description</label>
+            <textarea name="PageDescription" id="PageDescription" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">{{ form_data.PageDescription or '' }}</textarea>
+        </div>
+        
+        <div>
+            <label for="Benefits" class="block text-sm font-medium text-gray-700">Benefits List</label>
+            <textarea name="Benefits" id="Benefits" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">{{ form_data.Benefits or '' }}</textarea>
+            <p class="mt-1 text-xs text-gray-500">Enter benefits separated by a comma (e.g., Benefit 1, Benefit 2, Benefit 3).</p>
+        </div>
+        
+        <div>
+            <label for="PricingNotes" class="block text-sm font-medium text-gray-700">Pricing Notes (HTML allowed)</label>
+            <textarea name="PricingNotes" id="PricingNotes" rows="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono">{{ form_data.PricingNotes or '' }}</textarea>
+        </div>
+
+        <div>
+            <label for="ImportantNotes" class="block text-sm font-medium text-gray-700">Important Notes (HTML allowed)</label>
+            <textarea name="ImportantNotes" id="ImportantNotes" rows="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono">{{ form_data.ImportantNotes or '' }}</textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="DisplayOrder" class="block text-sm font-medium text-gray-700">Display Order</label>
+                <input type="number" name="DisplayOrder" id="DisplayOrder" value="{{ form_data.DisplayOrder or 0 }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                <p class="mt-1 text-xs text-gray-500">Lower numbers appear first.</p>
+            </div>
+            <div class="flex items-center pt-6">
+                <input id="IsActive" name="IsActive" type="checkbox" {% if form_data.get('IsActive', True) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                <label for="IsActive" class="ml-2 block text-sm text-gray-900">Active (Visible on public page)</label>
+            </div>
+        </div>
+        
+        <div class="pt-5 flex justify-end space-x-3">
+            <a href="{{ url_for('.list_all_course_content') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
+            <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700">{{ 'Update Section' if lang_id else 'Add Section' }}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

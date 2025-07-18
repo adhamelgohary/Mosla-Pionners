@@ -1,44 +1,125 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-speedometer2 text-gray-400"></i>
+    <span>{{ title }}</span>
+{% endblock %}
 
 {% block staff_content %}
-<div class="flex flex-col sm:flex-row justify-end items-center mb-6 pb-6 border-b border-gray-200 gap-4">
-    <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
-        <i class="bi bi-list-task -ml-1 mr-2"></i> Manage All Courses
-    </a>
-    <a href="{{ url_for('course_mgmt_bp.add_course') }}" class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
-        <i class="bi bi-plus-circle -ml-1 mr-2"></i> Add New Course
-    </a>
-</div>
+<div class="space-y-8">
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Pending Applications Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-plus-fill text-3xl text-white bg-yellow-500 p-3 rounded-md"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending Applications</dt>
+                            <dd class="flex items-baseline">
+                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.pending_applications }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="{{ url_for('.manage_enrollment_requests') }}" class="font-medium text-primary-700 hover:text-primary-900">
+                        View all <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
 
-{# --- Reusable KPI Card Macro for this page --- #}
-{% macro stat_card(title, value, label, color='primary', link_text=None, link_url=None) %}
-<div class="bg-white p-5 rounded-lg shadow-sm border flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-1">
-    <div class="text-sm font-medium text-gray-500 truncate">{{ title }}</div>
-    <div class="mt-1 text-4xl font-semibold text-{{ color }}-600">{{ value }}</div>
-    <div class="text-xs text-gray-400 mt-1">{{ label }}</div>
-    {% if link_url and link_text %}
-    <div class="mt-auto pt-4 border-t border-gray-100 text-right">
-        <a href="{{ link_url }}" class="text-sm font-medium text-primary-600 hover:text-primary-800">{{ link_text }} →</a>
+        <!-- Total Sales Revenue Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-cash-stack text-3xl text-white bg-green-500 p-3 rounded-md"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Sales Revenue</dt>
+                            <dd class="flex items-baseline">
+                                <div class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</div>
+                                <span class="ml-2 text-sm font-medium text-gray-500">{{ dashboard_data.default_currency }}</span>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Courses Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-journals text-3xl text-white bg-blue-500 p-3 rounded-md"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Active Courses</dt>
+                            <dd class="flex items-baseline">
+                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.active_courses }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-5 py-3">
+                <div class="text-sm">
+                    <a href="{{ url_for('.list_all_course_content') }}" class="font-medium text-primary-700 hover:text-primary-900">
+                        Manage courses <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ongoing Students Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-video3 text-3xl text-white bg-indigo-500 p-3 rounded-md"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Students In Progress</dt>
+                            <dd>
+                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.ongoing_students }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graduated Students Card -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-patch-check-fill text-3xl text-white bg-purple-500 p-3 rounded-md"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Graduated Students</dt>
+                            <dd>
+                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.graduated_students }}</div>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    {% endif %}
-</div>
-{% endmacro %}
-
-<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"> {# Changed to lg:grid-cols-4 #}
-    {{ stat_card('Total Sales Revenue', "{:,.2f}".format(dashboard_data.total_sales_revenue if dashboard_data.total_sales_revenue is not none else 0), dashboard_data.default_currency ~ ' (from confirmed enrollments)', 'green') }}
-    
-    <!-- NEW KPI CARD FOR PENDING APPLICATIONS -->
-    {{ stat_card('Pending Applications', dashboard_data.pending_applications|default(0), 'Awaiting confirmation', 'yellow', 'Review Now', url_for('course_mgmt_bp.manage_enrollment_requests')) }}
-
-    {{ stat_card('Ongoing Students', dashboard_data.ongoing_students|default(0), 'Currently in progress', 'amber') }}
-    {{ stat_card('Graduated Students', dashboard_data.graduated_students|default(0), 'Successfully completed courses', 'primary') }}
-    
-    <!-- These can be moved or kept depending on priority -->
-    {{ stat_card('Active Courses', dashboard_data.active_courses|default(0), 'Currently listed & available', 'info', 'View All Courses', url_for('course_mgmt_bp.list_courses')) }}
-    {{ stat_card('Total Enrollments', dashboard_data.total_enrollments|default(0), 'Engaged candidates (active/completed)', 'indigo') }}
-    {{ stat_card('Potential Course Value', "{:,.2f}".format(dashboard_data.potential_course_value if dashboard_data.potential_course_value is not none else 0), dashboard_data.default_currency ~ ' (from all active courses)', 'gray') }}
 </div>
 {% endblock %}

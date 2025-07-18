@@ -1,311 +1,325 @@
 # routes/Agency_Staff_Portal/course_mgmt_routes.py
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
-from flask_login import current_user 
-from utils.decorators import login_required_with_role # Ensure this decorator uses current_user.role_type
+from flask_login import current_user
+from utils.decorators import login_required_with_role
 from db import get_db_connection
-import datetime 
-import decimal 
+import decimal
 import mysql.connector
 
-# These roles should match the ENUM values in your Staff.Role column
-# These roles should match the ENUM values in your Staff.Role column
+# Roles with full management access (add/edit/delete)
 COURSE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder']
-COURSE_DASHBOARD_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder', 'HeadSourcingTeamLead', 'UnitManager', 'HeadAccountManager', 'SeniorAccountManager', 'AccountManager']
-
+# Roles that can only view the main list and dashboard
+COURSE_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder', 'HeadSourcingTeamLead', 'UnitManager']
 
 course_mgmt_bp = Blueprint('course_mgmt_bp', __name__,
-                           url_prefix='/courses')
+                           template_folder='../../../templates',
+                           url_prefix='/courses-management')
 
-# --- Helper Validation Functions (Keep as is, they are good) ---
-def validate_course_data(form_data):
-    errors = {}
-    if not form_data.get('course_name', '').strip():
-        errors['course_name'] = 'Course name is required.'
-    elif len(form_data.get('course_name', '')) > 255:
-        errors['course_name'] = 'Course name is too long (max 255 characters).'
-    price_str = form_data.get('price', '').strip()
-    if price_str:
-        try:
-            price_val = decimal.Decimal(price_str)
-            if price_val < 0: errors['price'] = 'Price cannot be negative.'
-            if price_val > decimal.Decimal('99999999.99'): errors['price'] = 'Price value is too large.'
-        except decimal.InvalidOperation: errors['price'] = 'Invalid price format.'
-    currency_str = form_data.get('currency', '').strip()
-    if currency_str and len(currency_str) > 10: errors['currency'] = 'Currency code too long (max 10 chars).'
-    start_date_str = form_data.get('start_date')
-    end_date_str = form_data.get('end_date')
-    if start_date_str and end_date_str:
-        try:
-            start_date_obj = datetime.date.fromisoformat(start_date_str)
-            end_date_obj = datetime.date.fromisoformat(end_date_str)
-            if end_date_obj < start_date_obj: errors['end_date'] = 'End date cannot be before start date.'
-        except ValueError:
-            errors.setdefault('start_date', []).append('Invalid date format.')
-            errors.setdefault('end_date', []).append('Invalid date format.')
-    # ... (rest of your validation logic is fine) ...
-    return errors
-
+# --- Main Listing Page ---
 @course_mgmt_bp.route('/')
-@login_required_with_role(COURSE_DASHBOARD_VIEW_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard') # Broader view access
-def list_courses():
-    courses = []
-    conn = None
+@login_required_with_role(COURSE_VIEW_ROLES)
+def list_all_course_content():
+    """
+    Lists all Language Sections and their associated Courses for management.
+    """
+    language_sections = []
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT CourseID, CourseName, Duration, Price, Currency, IsActive FROM Courses ORDER BY CreatedAt DESC")
-        courses = cursor.fetchall()
+        # Fetch all language sections first
+        cursor.execute("SELECT * FROM CourseLanguages ORDER BY DisplayOrder, LanguageName")
+        language_sections = cursor.fetchall()
+
+        # For each language section, fetch its courses
+        for section in language_sections:
+            cursor.execute("SELECT * FROM Courses WHERE LanguageID = %s ORDER BY DisplayOrder, Title", (section['LanguageID'],))
+            section['courses'] = cursor.fetchall()
     except Exception as e:
-        current_app.logger.error(f"Error fetching courses: {e}", exc_info=True)
-        flash("Could not load courses.", "danger")
+        current_app.logger.error(f"Error fetching course management list: {e}", exc_info=True)
+        flash("Could not load course content.", "danger")
     finally:
         if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
+            cursor.close()
             conn.close()
-    return render_template('agency_staff_portal/courses/staff_list_courses.html', title='Manage Courses', courses=courses)
+    
+    return render_template('agency_staff_portal/courses/list_course_content.html', 
+                           title="Manage Course Page Content",
+                           language_sections=language_sections)
 
-@course_mgmt_bp.route('/add', methods=['GET', 'POST'])
-@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
-def add_course():
-    form_data = {'currency':'EGP', 'is_active': True} # Defaults
-    errors = {}
+# --- Language Section Management ---
+@course_mgmt_bp.route('/language-section/add', methods=['GET', 'POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def add_language_section():
     if request.method == 'POST':
-        form_data = request.form.to_dict()
-        form_data['is_active'] = request.form.get('is_active') == 'on'
-        errors = validate_course_data(form_data)
-        if not errors:
-            conn = None
-            try:
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                # current_user.specific_role_id is the StaffID for logged-in staff
-                added_by_staff_id = current_user.specific_role_id 
-                
-                # The decorator already ensures only correct roles can access.
-                # This check is redundant if decorator is working.
-                if not added_by_staff_id or current_user.role_type not in COURSE_MANAGEMENT_ROLES:
-                    flash('Error: Your staff profile is not correctly set up to add courses.', 'danger')
-                    return render_template('agency_staff_portal/courses/add_edit_course.html', title='Add New Course', form_data=form_data, errors=errors, action_verb='Add')
+        form_data = request.form
+        # Simple validation
+        if not form_data.get('LanguageName'):
+            flash("Language Name is required.", "danger")
+            return render_template('agency_staff_portal/courses/add_edit_language_section.html', title="Add New Language Section", form_data=form_data)
 
-                sql = """INSERT INTO Courses (CourseName, Description, Duration, Price, Currency,
-                                            InstructorName, StartDate, EndDate, Category, Prerequisites,
-                                            SyllabusLink, IsActive, AddedByStaffID)
-                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                price_to_insert = decimal.Decimal(form_data['price']) if form_data.get('price','').strip() else None
-                val = (form_data.get('course_name').strip(), form_data.get('description') or None, 
-                       form_data.get('duration') or None, price_to_insert, 
-                       form_data.get('currency').strip() or 'EGP', # Default to EGP if empty
-                       form_data.get('instructor_name') or None,
-                       form_data.get('start_date') if form_data.get('start_date') else None, 
-                       form_data.get('end_date') if form_data.get('end_date') else None, 
-                       form_data.get('category') or None, form_data.get('prerequisites') or None, 
-                       form_data.get('syllabus_link').strip() or None, 
-                       form_data.get('is_active', True), 
-                       added_by_staff_id)
-                
-                cursor.execute(sql, val)
-                course_id = cursor.lastrowid 
-                
-                # Automated announcement (ensure _create_automated_announcement helper is defined, like in job_offer_mgmt)
-                # For now, assuming it's not defined here, so commenting out.
-                # If you have a shared helper:
-                # from ..utils.common_helpers import _create_automated_announcement
-                # _create_automated_announcement(cursor, 'Automated_Course', ...)
-                
-                conn.commit()
-                flash('Course added successfully!', 'success')
-                # Redirect to view the newly added course, assuming such a route exists
-                # If not, redirect to list_courses
-                # return redirect(url_for('.view_course', course_id=course_id)) 
-                return redirect(url_for('.list_courses'))
-            except mysql.connector.Error as db_err: 
-                if conn: conn.rollback()
-                flash(f'Database error: {str(db_err)}', 'danger'); errors['form'] = str(db_err)
-            except Exception as e:
-                if conn: conn.rollback()
-                flash(f'An unexpected error occurred: {str(e)}', 'danger'); errors['form'] = str(e)
-            finally:
-                if conn and conn.is_connected():
-                    if 'cursor' in locals() and cursor: cursor.close()
-                    conn.close()
-        else:
-            flash('Please correct the errors highlighted below.', 'warning') 
-    return render_template('agency_staff_portal/courses/add_edit_course.html', title='Add New Course', form_data=form_data, errors=errors, action_verb='Add')
-
-@course_mgmt_bp.route('/edit/<int:course_id>', methods=['GET', 'POST'])
-@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
-def edit_course(course_id):
-    form_data, errors = {}, {}
-    original_course_name_for_title = "Course"
-    if request.method == 'GET':
-        conn_fetch = None
-        try:
-            conn_fetch = get_db_connection()
-            cursor = conn_fetch.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM Courses WHERE CourseID = %s", (course_id,))
-            data = cursor.fetchone()
-            if data:
-                form_data = data
-                original_course_name_for_title = data.get('CourseName', 'Course')
-                if 'Price' in data and isinstance(data['Price'], decimal.Decimal):
-                    form_data['Price'] = str(data['Price'])
-                if 'StartDate' in data and data['StartDate'] and isinstance(data['StartDate'], datetime.date):
-                    form_data['StartDate'] = data['StartDate'].isoformat()
-                if 'EndDate' in data and data['EndDate'] and isinstance(data['EndDate'], datetime.date):
-                    form_data['EndDate'] = data['EndDate'].isoformat()
-                form_data['IsActive'] = bool(data.get('IsActive', True))
-            else:
-                flash('Course not found.', 'danger')
-                return redirect(url_for('.list_courses'))
-        except Exception as e:
-            flash('Error fetching course details.', 'danger')
-            return redirect(url_for('.list_courses'))
-        finally:
-            if conn_fetch and conn_fetch.is_connected():
-                if 'cursor' in locals() and cursor: cursor.close()
-                conn_fetch.close()
-    
-    elif request.method == 'POST':
-        form_data = request.form.to_dict()
-        form_data['is_active'] = request.form.get('is_active') == 'on'
-        original_course_name_for_title = request.form.get('original_course_name_for_title_hidden', form_data.get('course_name', 'Course'))
-        errors = validate_course_data(form_data)
-        if not errors:
-            conn_update = None
-            try:
-                conn_update = get_db_connection()
-                cursor = conn_update.cursor()
-                # AddedByStaffID is not updated on edit, only CourseName etc.
-                sql = """UPDATE Courses SET CourseName=%s, Description=%s, Duration=%s, Price=%s, Currency=%s,
-                                           InstructorName=%s, StartDate=%s, EndDate=%s, Category=%s, Prerequisites=%s,
-                                           SyllabusLink=%s, IsActive=%s, UpdatedAt=NOW()
-                         WHERE CourseID=%s"""
-                price_val = decimal.Decimal(form_data['price']) if form_data.get('price','').strip() else None
-                val = (form_data.get('course_name').strip(), form_data.get('description') or None, 
-                       form_data.get('duration') or None, price_val, 
-                       form_data.get('currency').strip() or 'EGP', 
-                       form_data.get('instructor_name') or None,
-                       form_data.get('start_date') if form_data.get('start_date') else None, 
-                       form_data.get('end_date') if form_data.get('end_date') else None,
-                       form_data.get('category') or None, form_data.get('prerequisites') or None, 
-                       form_data.get('syllabus_link').strip() or None, 
-                       form_data.get('is_active', True), course_id)
-                cursor.execute(sql, val)
-                conn_update.commit()
-                flash('Course updated successfully!', 'success')
-                return redirect(url_for('.list_courses'))
-            except mysql.connector.Error as db_err:
-                if conn_update: conn_update.rollback()
-                flash(f'Database error: {str(db_err)}.', 'danger'); errors['form'] = str(db_err)
-            except Exception as e:
-                if conn_update: conn_update.rollback()
-                flash(f'An unexpected error: {str(e)}.', 'danger'); errors['form'] = str(e)
-            finally:
-                if conn_update and conn_update.is_connected():
-                    if 'cursor' in locals() and cursor: cursor.close()
-                    conn_update.close()
-        else:
-            flash('Please correct errors.', 'warning') 
-    
-    display_course_name = original_course_name_for_title
-    return render_template('agency_staff_portal/courses/add_edit_course.html', 
-                           title=f"Edit Course: {display_course_name}", form_data=form_data, 
-                           errors=errors, action_verb='Update', course_id=course_id,
-                           original_course_name_for_title_hidden=original_course_name_for_title)
-
-@course_mgmt_bp.route('/delete/<int:course_id>', methods=['POST'])
-@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
-def delete_course(course_id):
-    conn = None
-    try:
         conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            sql = """
+                INSERT INTO CourseLanguages (LanguageName, PageTitle, PageDescription, Benefits, PricingNotes, ImportantNotes, IsActive, DisplayOrder)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            params = (
+                form_data['LanguageName'], form_data.get('PageTitle'), form_data.get('PageDescription'),
+                form_data.get('Benefits'), form_data.get('PricingNotes'), form_data.get('ImportantNotes'),
+                'IsActive' in form_data, form_data.get('DisplayOrder', 0)
+            )
+            cursor.execute(sql, params)
+            conn.commit()
+            flash("Language Section added successfully!", "success")
+            return redirect(url_for('.list_all_course_content'))
+        except mysql.connector.Error as err:
+            if conn: conn.rollback()
+            flash(f"Database Error: {err.msg}", "danger")
+        finally:
+            if conn and conn.is_connected(): conn.close()
+    
+    return render_template('agency_staff_portal/courses/add_edit_language_section.html', title="Add New Language Section", form_data={})
+
+@course_mgmt_bp.route('/language-section/edit/<int:lang_id>', methods=['GET', 'POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def edit_language_section(lang_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        if request.method == 'POST':
+            form_data = request.form
+            if not form_data.get('LanguageName'):
+                flash("Language Name is required.", "danger")
+                # Need to refetch to show the form again with an error
+                cursor.execute("SELECT * FROM CourseLanguages WHERE LanguageID = %s", (lang_id,))
+                current_data = cursor.fetchone()
+                return render_template('agency_staff_portal/courses/add_edit_language_section.html', title="Edit Language Section", form_data=current_data, lang_id=lang_id)
+            
+            sql = """
+                UPDATE CourseLanguages SET
+                LanguageName = %s, PageTitle = %s, PageDescription = %s, Benefits = %s, 
+                PricingNotes = %s, ImportantNotes = %s, IsActive = %s, DisplayOrder = %s, UpdatedAt = NOW()
+                WHERE LanguageID = %s
+            """
+            params = (
+                form_data['LanguageName'], form_data.get('PageTitle'), form_data.get('PageDescription'),
+                form_data.get('Benefits'), form_data.get('PricingNotes'), form_data.get('ImportantNotes'),
+                'IsActive' in form_data, form_data.get('DisplayOrder', 0), lang_id
+            )
+            cursor.execute(sql, params)
+            conn.commit()
+            flash("Language Section updated successfully!", "success")
+            return redirect(url_for('.list_all_course_content'))
+
+        # GET Request
+        cursor.execute("SELECT * FROM CourseLanguages WHERE LanguageID = %s", (lang_id,))
+        form_data = cursor.fetchone()
+        if not form_data:
+            flash("Language Section not found.", "danger")
+            return redirect(url_for('.list_all_course_content'))
+        return render_template('agency_staff_portal/courses/add_edit_language_section.html', title="Edit Language Section", form_data=form_data, lang_id=lang_id)
+
+    except mysql.connector.Error as err:
+        if conn and request.method == 'POST': conn.rollback()
+        flash(f"Database Error: {err.msg}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    
+    return redirect(url_for('.list_all_course_content'))
+
+
+@course_mgmt_bp.route('/language-section/delete/<int:lang_id>', methods=['POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def delete_language_section(lang_id):
+    conn = get_db_connection()
+    try:
         cursor = conn.cursor()
-        # Check if course exists
-        cursor.execute("SELECT CourseID FROM Courses WHERE CourseID = %s", (course_id,))
-        if not cursor.fetchone():
-            flash('Course not found.', 'warning')
-            return redirect(url_for('.list_courses'))
+        cursor.execute("DELETE FROM CourseLanguages WHERE LanguageID = %s", (lang_id,))
+        conn.commit()
+        flash("Language Section and all its courses have been deleted.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        if conn: conn.close()
+    return redirect(url_for('.list_all_course_content'))
+
+
+# --- Course Card Management ---
+@course_mgmt_bp.route('/course/add/<int:lang_id>', methods=['GET', 'POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def add_course(lang_id):
+    if request.method == 'POST':
+        form_data = request.form
+        if not form_data.get('Title'):
+            flash("Course Title is required.", "danger")
+            return render_template('agency_staff_portal/courses/add_edit_course.html', title="Add New Course Card", form_data=form_data, lang_id=lang_id)
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            sql = """
+                INSERT INTO Courses (LanguageID, Title, Description, Price, OriginalPrice, IsActive, DisplayOrder, AddedByStaffID)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else None
+            original_price = decimal.Decimal(form_data['OriginalPrice']) if form_data.get('OriginalPrice') else None
+            
+            params = (
+                lang_id, form_data['Title'], form_data.get('Description'),
+                price, original_price, 'IsActive' in form_data,
+                form_data.get('DisplayOrder', 0), current_user.specific_role_id
+            )
+            cursor.execute(sql, params)
+            conn.commit()
+            flash("Course Card added successfully!", "success")
+            return redirect(url_for('.list_all_course_content'))
+        except mysql.connector.Error as err:
+            if conn: conn.rollback()
+            flash(f"Database Error: {err.msg}", "danger")
+        finally:
+            if conn and conn.is_connected(): conn.close()
+
+    return render_template('agency_staff_portal/courses/add_edit_course.html', title="Add New Course Card", form_data={}, lang_id=lang_id)
+
+
+@course_mgmt_bp.route('/course/edit/<int:course_id>', methods=['GET', 'POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def edit_course(course_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        if request.method == 'POST':
+            form_data = request.form
+            if not form_data.get('Title'):
+                flash("Course Title is required.", "danger")
+                cursor.execute("SELECT * FROM Courses WHERE CourseID = %s", (course_id,))
+                current_data = cursor.fetchone()
+                return render_template('agency_staff_portal/courses/add_edit_course.html', title="Edit Course Card", form_data=current_data, course_id=course_id)
+            
+            sql = """
+                UPDATE Courses SET
+                Title = %s, Description = %s, Price = %s, OriginalPrice = %s,
+                IsActive = %s, DisplayOrder = %s, UpdatedAt = NOW()
+                WHERE CourseID = %s
+            """
+            price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else None
+            original_price = decimal.Decimal(form_data['OriginalPrice']) if form_data.get('OriginalPrice') else None
+
+            params = (
+                form_data['Title'], form_data.get('Description'),
+                price, original_price, 'IsActive' in form_data,
+                form_data.get('DisplayOrder', 0), course_id
+            )
+            cursor.execute(sql, params)
+            conn.commit()
+            flash("Course Card updated successfully!", "success")
+            return redirect(url_for('.list_all_course_content'))
+        
+        # GET Request
+        cursor.execute("SELECT * FROM Courses WHERE CourseID = %s", (course_id,))
+        form_data = cursor.fetchone()
+        if not form_data:
+            flash("Course Card not found.", "danger")
+            return redirect(url_for('.list_all_course_content'))
+        return render_template('agency_staff_portal/courses/add_edit_course.html', title="Edit Course Card", form_data=form_data, course_id=course_id)
+    
+    except (mysql.connector.Error, decimal.InvalidOperation) as err:
+        if conn and request.method == 'POST': conn.rollback()
+        flash(f"Invalid Data or DB Error: {err}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return redirect(url_for('.list_all_course_content'))
+
+
+@course_mgmt_bp.route('/course/delete/<int:course_id>', methods=['POST'])
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
+def delete_course(course_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
         cursor.execute("DELETE FROM Courses WHERE CourseID = %s", (course_id,))
         conn.commit()
-        flash('Course deleted!', 'success' if cursor.rowcount > 0 else 'warning')
-    except mysql.connector.Error as e: 
+        flash("Course Card deleted.", "success")
+    except mysql.connector.Error as err:
         if conn: conn.rollback()
-        if hasattr(e, 'errno') and e.errno == 1451: # FK violation
-             flash('Cannot delete course: it is referenced by other records (e.g., enrollments).', 'danger')
-        else: flash(f'Database error: {str(e)}', 'danger')
-    except Exception as e:
-        if conn: conn.rollback() 
-        flash(f'An unexpected error: {str(e)}', 'danger')
+        # Handle case where enrollments exist
+        if err.errno == 1451:
+            flash("Cannot delete this course as there are active enrollments. Deactivate it instead.", "danger")
+        else:
+            flash(f"A database error occurred: {err.msg}", "danger")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
-    return redirect(url_for('.list_courses'))
+        if conn: conn.close()
+    return redirect(url_for('.list_all_course_content'))
 
 @course_mgmt_bp.route('/dashboard')
-@login_required_with_role(COURSE_DASHBOARD_VIEW_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
-def courses_dashboard_page():
+@login_required_with_role(COURSE_VIEW_ROLES)
+def courses_dashboard():
     dashboard_data = {
-        'total_sales_revenue': decimal.Decimal('0.00'), 'potential_course_value': decimal.Decimal('0.00'), 
-        'ongoing_students': 0, 'graduated_students': 0, 'active_courses': 0, 'total_enrollments': 0, 
-        'pending_applications': 0, # <-- NEW KPI
-        'default_currency': 'EGP'
+        'total_sales_revenue': decimal.Decimal('0.00'),
+        'ongoing_students': 0, 'graduated_students': 0, 'active_courses': 0,
+        'pending_applications': 0, 'default_currency': 'EGP'
     }
-    conn = None
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # KPI 1: Active Courses & Potential Value
-        cursor.execute("SELECT COUNT(*) as course_count, SUM(Price) as potential_value, MIN(Currency) as base_currency FROM Courses WHERE IsActive = 1")
-        stats = cursor.fetchone()
-        if stats:
-            dashboard_data['active_courses'] = stats.get('course_count', 0)
-            dashboard_data['potential_course_value'] = stats.get('potential_value') or decimal.Decimal('0.00')
-            dashboard_data['default_currency'] = stats.get('base_currency') or 'EGP'
-        # KPI 2: Total Sales Revenue
-        cursor.execute("SELECT SUM(c.Price) as total_revenue, MIN(c.Currency) as revenue_currency FROM CourseEnrollments ce JOIN Courses c ON ce.CourseID = c.CourseID WHERE ce.Status IN ('Enrolled', 'InProgress', 'Completed') AND c.Price IS NOT NULL")
+        # KPI 1: Active Courses
+        cursor.execute("SELECT COUNT(*) as course_count FROM Courses WHERE IsActive = 1")
+        dashboard_data['active_courses'] = cursor.fetchone()['course_count']
+        
+        # KPI 2: Total Sales Revenue (from confirmed enrollments)
+        cursor.execute("""
+            SELECT SUM(c.Price) as total_revenue, MIN(cl.LanguageName) as example_lang
+            FROM CourseEnrollments ce
+            JOIN Courses c ON ce.CourseID = c.CourseID
+            JOIN CourseLanguages cl ON c.LanguageID = cl.LanguageID
+            WHERE ce.Status IN ('Enrolled', 'InProgress', 'Completed') AND c.Price IS NOT NULL
+        """)
         sales = cursor.fetchone()
-        if sales and sales.get('total_revenue') is not None:
-            dashboard_data['total_sales_revenue'] = sales.get('total_revenue')
-            if sales.get('revenue_currency'): dashboard_data['default_currency'] = sales.get('revenue_currency')
+        if sales and sales['total_revenue']:
+            dashboard_data['total_sales_revenue'] = sales['total_revenue']
+        
         # KPI 3: Ongoing Students
-        cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status IN ('Enrolled', 'InProgress')")
-        res = cursor.fetchone(); dashboard_data['ongoing_students'] = res.get('count', 0) if res else 0
+        cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'InProgress'")
+        dashboard_data['ongoing_students'] = cursor.fetchone()['count']
+        
         # KPI 4: Graduated Students
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'Completed'")
-        res = cursor.fetchone(); dashboard_data['graduated_students'] = res.get('count', 0) if res else 0
-        # KPI 5: Total Enrollments
-        cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status NOT IN ('DroppedOut', 'Cancelled', 'Applied')")
-        res = cursor.fetchone(); dashboard_data['total_enrollments'] = res.get('count', 0) if res else 0
-        # *** NEW KPI 6: Pending Applications ***
+        dashboard_data['graduated_students'] = cursor.fetchone()['count']
+        
+        # KPI 5: Pending Applications
         cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Applied'")
-        res = cursor.fetchone(); dashboard_data['pending_applications'] = res.get('count', 0) if res else 0
+        dashboard_data['pending_applications'] = cursor.fetchone()['count']
+        
     except Exception as e:
         current_app.logger.error(f"Error fetching course dashboard data: {e}", exc_info=True)
         flash("Could not load all dashboard data.", "warning")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
-    return render_template('agency_staff_portal/courses/courses_dashboard.html', title='Courses Dashboard', dashboard_data=dashboard_data)
-
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('agency_staff_portal/courses/courses_dashboard.html', 
+                           title='Courses Dashboard', 
+                           dashboard_data=dashboard_data)
 
 @course_mgmt_bp.route('/enrollment-requests')
-@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
 def manage_enrollment_requests():
     applications = []
-    conn = None
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         sql = """
             SELECT 
                 ce.EnrollmentID,
                 ce.EnrollmentDate AS ApplicationDate,
-                c.CourseName,
+                ce.Notes,
+                c.Title AS CourseName,
                 u.FirstName AS CandidateFirstName,
                 u.LastName AS CandidateLastName,
-                u.Email AS CandidateEmail
+                u.Email AS CandidateEmail,
+                u.PhoneNumber AS CandidatePhone
             FROM CourseEnrollments ce
             JOIN Courses c ON ce.CourseID = c.CourseID
             JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
@@ -319,45 +333,45 @@ def manage_enrollment_requests():
         current_app.logger.error(f"Error fetching enrollment requests: {e}", exc_info=True)
         flash("Could not load enrollment requests.", "danger")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
+        if conn and conn.is_connected(): conn.close()
             
     return render_template('agency_staff_portal/courses/manage_enrollments.html', 
                            title='Manage Enrollment Requests', 
                            applications=applications)
 
-# *** NEW ROUTE: Update Enrollment Status ***
 @course_mgmt_bp.route('/enrollment/update-status/<int:enrollment_id>', methods=['POST'])
-@login_required_with_role(COURSE_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+@login_required_with_role(COURSE_MANAGEMENT_ROLES)
 def update_enrollment_status(enrollment_id):
     new_status = request.form.get('status')
-    allowed_statuses = ['Enrolled', 'PendingPayment', 'Cancelled']
+    allowed_statuses = ['Enrolled', 'PendingPayment', 'Cancelled', 'InProgress', 'Completed']
     
     if not new_status or new_status not in allowed_statuses:
         flash("Invalid status update provided.", "danger")
         return redirect(url_for('.manage_enrollment_requests'))
 
-    conn = None
+    conn = get_db_connection()
     try:
-        conn = get_db_connection()
         cursor = conn.cursor()
-        sql = "UPDATE CourseEnrollments SET Status = %s, UpdatedAt = NOW() WHERE EnrollmentID = %s AND Status = 'Applied'"
+        # We allow updating from 'Applied' or other states now
+        sql = "UPDATE CourseEnrollments SET Status = %s, UpdatedAt = NOW() WHERE EnrollmentID = %s"
         cursor.execute(sql, (new_status, enrollment_id))
         conn.commit()
         
         if cursor.rowcount > 0:
             flash(f"Enrollment status successfully updated to '{new_status}'.", "success")
         else:
-            flash("Could not update status. The application may have been processed by another manager.", "warning")
+            flash("Could not update status. The application may no longer exist.", "warning")
 
     except Exception as e:
         if conn: conn.rollback()
         current_app.logger.error(f"Error updating enrollment status for ID {enrollment_id}: {e}", exc_info=True)
         flash("A database error occurred while updating the status.", "danger")
     finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
+        if conn and conn.is_connected(): conn.close()
             
-    return redirect(url_for('.manage_enrollment_requests'))
+    # Redirect back to the page the action was taken from
+    referer = request.headers.get("Referer")
+    if referer and 'enrollment-requests' in referer:
+        return redirect(url_for('.manage_enrollment_requests'))
+    # Add other redirects if needed, e.g., from a student profile page
+    return redirect(url_for('.courses_dashboard'))

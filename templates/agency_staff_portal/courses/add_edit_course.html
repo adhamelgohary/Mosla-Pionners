@@ -1,94 +1,56 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
+
 {% block staff_page_title %}
-    <i class="bi bi-journal-plus text-primary-600"></i> {{ title }}
+    <i class="bi bi-card-text text-gray-400"></i>
+    <span>{{ title }}</span>
 {% endblock %}
 
 {% block staff_content %}
-<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-    <form method="POST" action="{{ url_for(request.endpoint, course_id=course_id if course_id else None) }}" class="space-y-8 divide-y divide-gray-200">
+<div class="bg-white shadow-md rounded-lg p-6 sm:p-8">
+    <form method="POST" action="{{ url_for('.edit_course', course_id=course_id) if course_id else url_for('.add_course', lang_id=lang_id) }}" class="space-y-6">
         
-        {% if action_verb == 'Update' %}
-            <input type="hidden" name="original_course_name_for_title_hidden" value="{{ original_course_name_for_title_hidden or form_data.get('CourseName', '') }}">
-        {% endif %}
-
-        {# --- Reusable Form Row Macro --- #}
-        {% macro form_row(label, name, type='text', placeholder='', value='', required=False, error=None, extra_attrs='') %}
-        <div class="sm:col-span-3">
-            <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }} {% if required %}<span class="text-red-500">*</span>{% endif %}</label>
-            <div class="mt-1">
-                <input type="{{ type }}" name="{{ name }}" id="{{ name }}" value="{{ value }}" placeholder="{{ placeholder }}" {{ 'required' if required }}
-                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if error }}" {{ extra_attrs }}>
-            </div>
-            {% if error %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endif %}
+        <div>
+            <label for="Title" class="block text-sm font-medium text-gray-700">Course Title</label>
+            <input type="text" name="Title" id="Title" value="{{ form_data.Title or '' }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+            <p class="mt-1 text-xs text-gray-500">e.g., "🚀 Starter Package". Emojis and basic HTML are allowed.</p>
         </div>
-        {% endmacro %}
 
-        {% macro textarea_row(label, name, value='', rows=3, error=None) %}
-        <div class="sm:col-span-6">
-            <label for="{{ name }}" class="block text-sm font-medium text-gray-700">{{ label }}</label>
-            <div class="mt-1">
-                <textarea id="{{ name }}" name="{{ name }}" rows="{{ rows }}" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm {{ 'border-red-500' if error }}">{{ value }}</textarea>
-            </div>
-            {% if error %}<p class="mt-2 text-sm text-red-600">{{ error }}</p>{% endif %}
+        <div>
+            <label for="Description" class="block text-sm font-medium text-gray-700">Description (HTML allowed)</label>
+            <textarea name="Description" id="Description" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono">{{ form_data.Description or '' }}</textarea>
+            <p class="mt-1 text-xs text-gray-500">e.g., "<strong>12 sessions</strong><br>For A2 to B1 level"</p>
         </div>
-        {% endmacro %}
-        {# --- End Macros --- #}
 
-        <div class="space-y-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Course Information</h3>
-                <p class="mt-1 text-sm text-gray-500">Basic details about the course.</p>
-                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-6">{{ form_row('Course Name', 'course_name', value=form_data.get('course_name', form_data.get('CourseName', '')), required=True, error=errors.get('course_name')) }}</div>
-                    {{ textarea_row('Description', 'description', value=form_data.get('description', form_data.get('Description', '')), error=errors.get('description')) }}
-                </div>
+                <label for="Price" class="block text-sm font-medium text-gray-700">Current Price (EGP)</label>
+                <input type="number" step="0.01" name="Price" id="Price" value="{{ form_data.Price or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                <p class="mt-1 text-xs text-gray-500">Leave blank if no price is shown.</p>
             </div>
-
-            <div class="pt-8">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Pricing & Logistics</h3>
-                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    {{ form_row('Price', 'price', type='number', value=form_data.get('price', form_data.get('Price', '')), error=errors.get('price'), extra_attrs='step="0.01" min="0"') }}
-                    {{ form_row('Currency', 'currency', value=form_data.get('currency', form_data.get('Currency', 'EGP')), placeholder='EGP', error=errors.get('currency')) }}
-                    {{ form_row('Duration', 'duration', value=form_data.get('duration', form_data.get('Duration', '')), placeholder='e.g., 4 weeks, 20 hours', error=errors.get('duration')) }}
-                    {{ form_row('Instructor Name', 'instructor_name', value=form_data.get('instructor_name', form_data.get('InstructorName', '')), error=errors.get('instructor_name')) }}
-                    {{ form_row('Start Date', 'start_date', type='date', value=form_data.get('start_date', form_data.get('StartDate', '')), error=errors.get('start_date')) }}
-                    {{ form_row('End Date', 'end_date', type='date', value=form_data.get('end_date', form_data.get('EndDate', '')), error=errors.get('end_date')) }}
-                </div>
-            </div>
-
-            <div class="pt-8">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Details & Content</h3>
-                <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div class="sm:col-span-6">{{ form_row('Category', 'category', value=form_data.get('category', form_data.get('Category', '')), error=errors.get('category')) }}</div>
-                    {{ textarea_row('Prerequisites', 'prerequisites', value=form_data.get('prerequisites', form_data.get('Prerequisites', '')), error=errors.get('prerequisites')) }}
-                    <div class="sm:col-span-6">{{ form_row('Syllabus Link (URL)', 'syllabus_link', type='url', value=form_data.get('syllabus_link', form_data.get('SyllabusLink', '')), placeholder='https://example.com/syllabus.pdf', error=errors.get('syllabus_link')) }}</div>
-                </div>
-            </div>
-
-            <div class="pt-8">
-                <div class="relative flex items-start">
-                    <div class="flex h-5 items-center">
-                        <input id="is_active" name="is_active" type="checkbox" value="on" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                               {% if form_data.get('is_active', form_data.get('IsActive', True if action_verb == 'Add' else False)) %}checked{% endif %}>
-                    </div>
-                    <div class="ml-3 text-sm">
-                        <label for="is_active" class="font-medium text-gray-700">Is Active</label>
-                        <p class="text-gray-500">Make this course visible and available for enrollment.</p>
-                    </div>
-                </div>
+            <div>
+                <label for="OriginalPrice" class="block text-sm font-medium text-gray-700">Original Price (Strikethrough)</label>
+                <input type="number" step="0.01" name="OriginalPrice" id="OriginalPrice" value="{{ form_data.OriginalPrice or '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                <p class="mt-1 text-xs text-gray-500">The old price that will be crossed out.</p>
             </div>
         </div>
 
-        <div class="pt-5 mt-5">
-            <div class="flex justify-end gap-3">
-                <a href="{{ url_for('course_mgmt_bp.list_courses') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
-                <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700">
-                    <i class="bi bi-check-lg -ml-1 mr-2"></i> {{ action_verb }} Course
-                </button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="DisplayOrder" class="block text-sm font-medium text-gray-700">Display Order</label>
+                <input type="number" name="DisplayOrder" id="DisplayOrder" value="{{ form_data.DisplayOrder or 0 }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                <p class="mt-1 text-xs text-gray-500">Lower numbers appear first on the page.</p>
             </div>
-            {% if errors.get('form') %}<div class="mt-4 text-sm text-red-600 text-right">{{ errors.get('form') }}</div>{% endif %}
+            <div class="flex items-center pt-6">
+                <input id="IsActive" name="IsActive" type="checkbox" {% if form_data.get('IsActive', True) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                <label for="IsActive" class="ml-2 block text-sm text-gray-900">Active (Visible on public page)</label>
+            </div>
+        </div>
+        
+        <div class="pt-5 flex justify-end space-x-3">
+            <a href="{{ url_for('.list_all_course_content') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
+            <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700">{{ 'Update Course Card' if course_id else 'Add Course Card' }}</button>
         </div>
     </form>
 </div>
