@@ -3,98 +3,96 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block head_links %}
-    <!-- Linking the stylesheet as requested -->
+    <!-- Linking the stylesheet to match your static file setup -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
 {% endblock %}
 
 {% block content %}
-<main class="courses-main-container">
-
-    <!-- This 'about' section uses the classes from courses.css -->
+<main>
     <section id="about" class="about-us">
-        <div class="about-us-text">
-            <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
-            <p>
-                Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries up to 35,000 EGP.
-            </p>
+      <div class="about-us-text">
+        <h1>WELCOME TO OUR <span>Train To Hire</span> Courses</h1>
+        <p>
+          Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries up to 35,000 EGP.
+        </p>
+      </div>
+      <div class="about-us-image">
+        <div>
+          <h3>🎓 Professional Training</h3>
+          <p>Expert instructors with 8+ years experience</p>
+          <br>
+          <h3>💼 Job Guarantee</h3>
+          <p>Direct placement with partner companies</p>
+          <br>
+          <h3>💰 Competitive Salaries</h3>
+          <p>Up to 35,000 EGP starting salary</p>
         </div>
-        <div class="about-us-image">
-            <div>
-                <h3>🎓 Professional Training</h3>
-                <p>Expert instructors with 8+ years experience</p>
-                <br>
-                <h3>💼 Job Guarantee</h3>
-                <p>Direct placement with partner companies</p>
-                <br>
-                <h3>💰 Competitive Salaries</h3>
-                <p>Up to 35,000 EGP starting salary</p>
-            </div>
-        </div>
+      </div>
     </section>
 
-    <!-- This section is now fully dynamic and uses the classes from courses.css -->
     <section id="courses" class="courses">
-        <h2 class="section-title">Our Course Packages</h2>
+      <h2 class="section-title">Our Course Packages</h2>
+      
+      {% if not courses_by_language %}
+        <div class="course-info">
+            <h3>No Courses Available</h3>
+            <p>We are currently updating our course offerings. Please check back soon!</p>
+        </div>
+      {% endif %}
 
-        {% if not courses_by_language %}
-            <div class="course-info">
-                <h3>No Courses Available</h3>
-                <p>We are currently updating our course offerings. Please check back soon!</p>
+      {% for lang_id, lang_data in courses_by_language.items() %}
+      <!-- Dynamically generated language section -->
+      <div id="{{ lang_data.language_name.lower() }}-courses" class="course-info">
+        <h3>{{ lang_data.title }}</h3>
+        <p>{{ lang_data.description }}</p>
+        
+        {% if lang_data.benefits %}
+        <div class="benefits-list">
+            {% for benefit in lang_data.benefits %}
+                <div class="benefit-item">{{ benefit }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Special handling for Spanish to show sub-headings -->
+        {% if lang_data.language_name == 'Spanish' %}
+            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">🔹 Monolingual Spanish Packages</h4>
+            <div class="course-cards">
+                {% for course in lang_data.courses if 'Bilingual' not in course.title %}
+                    {% include 'Website/_course_card.html' %}
+                {% endfor %}
+            </div>
+
+            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">🔸 Bilingual Packages (Spanish + English)</h4>
+            <div class="course-cards">
+                {% for course in lang_data.courses if 'Bilingual' in course.title %}
+                    {% include 'Website/_course_card.html' %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Default rendering for English and other languages -->
+            <div class="course-cards">
+                {% for course in lang_data.courses %}
+                    {% include 'Website/_course_card.html' %}
+                {% endfor %}
             </div>
         {% endif %}
         
-        {% for lang_id, lang_data in courses_by_language.items() %}
-            <div id="{{ lang_data.language_name.lower() }}-courses" class="course-info">
-                <h3>{{ lang_data.title }}</h3>
-                <p>{{ lang_data.description }}</p>
+        {% if lang_data.pricing_notes %}
+        <div class="pricing">
+          {{ lang_data.pricing_notes | safe }}
+        </div>
+        {% endif %}
 
-                {% if lang_data.benefits %}
-                <div class="benefits-list">
-                    {% for benefit in lang_data.benefits %}
-                        <div class="benefit-item">{{ benefit }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Special handling for Spanish to show sub-headings -->
-                {% if lang_data.language_name == 'Spanish' %}
-                    <!-- Assuming you have a .sub-heading class or h4 is styled appropriately -->
-                    <h4 class="sub-heading">🔹 Monolingual Spanish Packages</h4>
-                    <div class="course-cards">
-                        {% for course in lang_data.courses if 'Bilingual' not in course.title %}
-                            {% include 'Website/_course_card.html' %}
-                        {% endfor %}
-                    </div>
-
-                    <h4 class="sub-heading">🔸 Bilingual Packages (Spanish + English)</h4>
-                    <div class="course-cards">
-                        {% for course in lang_data.courses if 'Bilingual' in course.title %}
-                            {% include 'Website/_course_card.html' %}
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <!-- Default rendering for English and other languages -->
-                    <div class="course-cards">
-                        {% for course in lang_data.courses %}
-                            {% include 'Website/_course_card.html' %}
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                {% if lang_data.pricing_notes %}
-                    <div class="pricing">
-                        {{ lang_data.pricing_notes | safe }}
-                    </div>
-                {% endif %}
-
-                {% if lang_data.important_notes %}
-                    <div class="pricing">
-                        {{ lang_data.important_notes | safe }}
-                    </div>
-                {% endif %}
-            </div>
-        {% endfor %}
+        {% if lang_data.important_notes %}
+        <div class="pricing">
+          <!-- The static file has a heading here, you might want to add one in your CMS -->
+          <h4>🔥 Important Notes:</h4>
+          {{ lang_data.important_notes | safe }}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
     </section>
-
-</main>
+  </main>
 {% endblock %}

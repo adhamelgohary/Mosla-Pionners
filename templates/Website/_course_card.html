@@ -1,20 +1,21 @@
 <div class="course-card">
     <h3>{{ course.title | safe }}</h3>
-    <p>{{ course.description | safe }}</p>
+    <p>
+      {{ course.description | safe }}
+    </p>
 
-    <!-- Price display logic. Note: your CSS doesn't have specific price classes, so this uses basic tags. -->
+    <!-- Price display logic, replicating the inline styles from your static file for an exact match -->
     {% if course.price %}
         <p>
-            <strong>{{ "%.0f"|format(course.price) }} EGP</strong>
+            <span style="color: #e74c3c; font-weight: bold;">{{ "%.0f"|format(course.price) }} EGP</span> 
             {% if course.original_price %}
-                <span style="text-decoration: line-through; color: #888; margin-left: 8px;">
-                    {{ "%.0f"|format(course.original_price) }} EGP
-                </span>
+                <span style="text-decoration: line-through; color: #999;">{{ "%.0f"|format(course.original_price) }} EGP</span>
             {% endif %}
         </p>
     {% endif %}
 
     <div class="course-actions">
-        <a href="{{ url_for('courses_page_bp.apply_for_course_form', course_id=course.id) }}" class="apply-button">Apply To Course</a>
+      <!-- Button correctly points to the dynamic application route -->
+      <a href="{{ url_for('courses_page_bp.apply_for_course_form', course_id=course.id) }}" class="apply-button">Apply To Course</a>
     </div>
 </div>
