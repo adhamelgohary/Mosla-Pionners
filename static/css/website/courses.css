@@ -17,9 +17,6 @@
       scroll-behavior: smooth;
     }
 
-    html[data-theme="dark"] img:not(.logo-image) {
-        filter: brightness(.8) contrast(1.2);
-    }
 
     /* Header Styles */
     header {
@@ -79,19 +76,6 @@
       margin-bottom: 1.5rem;
       color: var(--text-muted);
       text-align: justify;
-    }
-
-    .about-us-image {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--dark-section-bg);
-      border-radius: 15px;
-      color: var(--dark-section-text);
-      font-size: 1.2rem;
-      text-align: center;
-      padding: 2rem;
-      transition: background var(--transition-speed) ease;
     }
 
     /* Courses Section */
