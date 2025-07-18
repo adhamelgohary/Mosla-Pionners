@@ -21,6 +21,8 @@ ASSIGNABLE_SOURCING_ROLES = [
     'SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager'
 ]
 
+MANAGEABLE_RECRUITER_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
+
 
 recruiter_bp = Blueprint('recruiter_bp', __name__,
                          url_prefix='/recruiter-portal',
@@ -260,6 +262,7 @@ def _get_performance_stats(cursor, staff_id):
     referrals = cursor.fetchone()['count']
     return hires, referrals
 
+# --- Helper function for Unit/Team Lead context ---
 def _get_manager_context_data(cursor, user):
     """Fetches role-specific management data for the logged-in user."""
     context = {
@@ -281,7 +284,7 @@ def _get_manager_context_data(cursor, user):
         context['teams_in_unit'] = cursor.fetchall()
         context['assignable_teams'] = context['teams_in_unit']
 
-        # Fetch potential team leads (recruiters AND existing leads) within the unit's scope.
+        # [MODIFIED QUERY] Fetch potential team leads (only SourcingRecruiter or SourcingTeamLead roles) within the unit's scope.
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -498,10 +501,6 @@ def view_recruiter_profile(staff_id_viewing):
                            profile_data=profile_data,
                            available_roles=ASSIGNABLE_SOURCING_ROLES) # <-- ADD THIS
 
-
-
-# --- NEW, CONSOLIDATED ORGANIZATION MANAGEMENT ROUTES (The Single Source of Truth) ---
-
 @recruiter_bp.route('/organization')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def organization_management():
@@ -510,7 +509,7 @@ def organization_management():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Fetch all Units with their manager's info
+        # Fetch all Units with their manager's info (No change)
         cursor.execute("""
             SELECT su.*, u.FirstName, u.LastName
             FROM SourcingUnits su
@@ -520,7 +519,7 @@ def organization_management():
         """)
         units = cursor.fetchall()
 
-        # Fetch all Teams with their lead's and unit's info
+        # Fetch all Teams with their lead's and unit's info (No change)
         cursor.execute("""
             SELECT st.*,
                    lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName,
@@ -533,7 +532,7 @@ def organization_management():
         """)
         teams = cursor.fetchall()
         
-        # [MODIFIED] Fetch ALL Sourcing staff for a comprehensive management view
+        # Fetch ALL Sourcing staff for a comprehensive management view (No change)
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, t.TeamName
             FROM Staff s
@@ -544,8 +543,7 @@ def organization_management():
         """)
         all_staff = cursor.fetchall()
 
-
-        # Fetch potential Unit Managers (Active TeamLeads and above)
+        # Fetch potential Unit Managers (Active TeamLeads and above) (No change)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -553,7 +551,7 @@ def organization_management():
         """)
         potential_managers = cursor.fetchall()
 
-        # Fetch potential Team Leads (Active staff)
+        # [MODIFIED QUERY] Fetch potential Team Leads (only SourcingRecruiter or SourcingTeamLead roles)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -561,7 +559,7 @@ def organization_management():
         """)
         potential_team_leads = cursor.fetchall()
 
-        # Fetch unassigned recruiters to be placed into teams
+        # Fetch unassigned recruiters to be placed into teams (No change)
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -577,7 +575,7 @@ def organization_management():
                            title="Organization Structure",
                            units=units,
                            teams=teams,
-                           all_staff=all_staff, # Pass the new comprehensive list
+                           all_staff=all_staff,
                            potential_managers=potential_managers,
                            potential_team_leads=potential_team_leads,
                            unassigned_recruiters=unassigned_recruiters)
@@ -943,3 +941,66 @@ def change_staff_role():
         if conn: conn.close()
 
     return redirect(url_for('.view_recruiter_profile', staff_id_viewing=staff_id_to_change))
+
+@recruiter_bp.route('/manage-recruiters')
+@login_required_with_role(LEADER_ROLES_IN_PORTAL) # Let all leaders view, but only top managers can manage
+def manage_recruiters():
+    """
+    Provides a searchable and filterable list of all staff in the sourcing division.
+    """
+    # Get search and filter parameters from the request URL
+    search_query = request.args.get('search', '').strip()
+    filter_role = request.args.get('role', '')
+    filter_status = request.args.get('status', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    recruiters = []
+    
+    try:
+        # Base SQL query
+        sql = """
+            SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, t.TeamName, su.UnitName, u.ProfilePictureURL
+            FROM Staff s
+            JOIN Users u ON s.UserID = u.UserID
+            LEFT JOIN SourcingTeams t ON s.TeamID = t.TeamID
+            LEFT JOIN SourcingUnits su ON t.UnitID = su.UnitID
+            WHERE s.Role IN %s
+        """
+        # We start with the base roles to filter
+        params = [tuple(MANAGEABLE_RECRUITER_ROLES)]
+
+        # Dynamically add search and filter conditions
+        if search_query:
+            sql += " AND (u.FirstName LIKE %s OR u.LastName LIKE %s OR u.Email LIKE %s)"
+            like_query = f"%{search_query}%"
+            params.extend([like_query, like_query, like_query])
+        
+        if filter_role:
+            sql += " AND s.Role = %s"
+            params.append(filter_role)
+            
+        if filter_status:
+            sql += " AND s.status = %s"
+            params.append(filter_status)
+            
+        sql += " ORDER BY u.FirstName, u.LastName"
+
+        cursor.execute(sql, tuple(params))
+        recruiters = cursor.fetchall()
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching recruiters list: {e}", exc_info=True)
+        flash("Could not load the list of recruiters.", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/manage_recruiters.html',
+                           title="Manage Recruiters",
+                           recruiters=recruiters,
+                           search_query=search_query,
+                           filter_role=filter_role,
+                           filter_status=filter_status,
+                           available_roles=MANAGEABLE_RECRUITER_ROLES)

@@ -1,0 +1,100 @@
+{# templates/recruiter_team_portal/manage_recruiters.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}<i class="bi bi-people-fill text-gray-500"></i><span>{{ title }}</span>{% endblock %}
+
+{% block recruiter_content %}
+<div class="bg-white p-6 rounded-lg shadow-sm border">
+    <div class="sm:flex sm:flex-wrap sm:items-center sm:justify-between gap-4">
+        <div class="sm:flex-auto">
+            <h2 class="text-xl font-semibold text-gray-900">Sourcing Division Staff</h2>
+            <p class="mt-2 text-sm text-gray-700">Search, filter, and access the profiles of all recruiters and managers in the sourcing division.</p>
+        </div>
+        
+        <!-- Search and Filter Form -->
+        <form method="GET" action="{{ url_for('recruiter_bp.manage_recruiters') }}" class="mt-4 sm:mt-0 flex flex-wrap items-center gap-4">
+            <div>
+                <label for="search" class="sr-only">Search</label>
+                <input type="search" name="search" id="search" value="{{ search_query or '' }}" placeholder="Search by name or email..." class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm sm:text-sm">
+            </div>
+            <div>
+                <label for="role" class="sr-only">Filter by Role</label>
+                <select name="role" id="role" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    <option value="">All Roles</option>
+                    {% for role in available_roles %}
+                        <option value="{{ role }}" {% if role == filter_role %}selected{% endif %}>{{ role }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="status" class="sr-only">Filter by Status</label>
+                <select name="status" id="status" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {% if 'Active' == filter_status %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if 'Inactive' == filter_status %}selected{% endif %}>Inactive</option>
+                    <option value="Pending" {% if 'Pending' == filter_status %}selected{% endif %}>Pending</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Filter</button>
+                <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Recruiters Table -->
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Role</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Team / Unit</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4"><span class="sr-only">View Profile</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for recruiter in recruiters %}
+                        <tr>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 flex-shrink-0"><img class="h-10 w-10 rounded-full object-cover" src="{{ recruiter.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt=""></div>
+                                    <div class="ml-4">
+                                        <div class="font-medium text-gray-900">{{ recruiter.FirstName }} {{ recruiter.LastName }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ recruiter.Role }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                {{ recruiter.TeamName or recruiter.UnitName or 'N/A' }}
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                                    {% if recruiter.status == 'Active' %}bg-green-50 text-green-700 ring-green-600/20
+                                    {% elif recruiter.status == 'Inactive' %}bg-red-50 text-red-700 ring-red-600/20
+                                    {% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">
+                                    {{ recruiter.status }}
+                                </span>
+                            </td>
+                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium">
+                                <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=recruiter.StaffID) }}" class="text-indigo-600 hover:text-indigo-900">View Profile<span class="sr-only">, {{ recruiter.FirstName }} {{ recruiter.LastName }}</span></a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-gray-500">
+                                No staff members found matching your criteria.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

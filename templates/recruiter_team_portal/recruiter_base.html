@@ -14,7 +14,7 @@
 <body class="h-full">
     <div class="min-h-full">
         <!-- ===== Recruiter Portal Top Navigation Bar ===== -->
-        <nav class="bg-indigo-600" x-data="{ open: false, profileMenuOpen: false }">
+        <nav class="bg-indigo-600" x-data="{ mobileMenuOpen: false, profileMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
@@ -30,35 +30,45 @@
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Referrals</a>
                                 <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">Leaderboard</a>
         
-                                {# --- Team View Link (Visible to all leaders) --- #}
-                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint in ['recruiter_bp.my_team_view', 'recruiter_bp.team_view'] else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
-                                        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                            All Teams
-                                        {% else %}
-                                            My Team
-                                        {% endif %}
-                                    </a>
+                                {# --- Team View Link --- #}
+                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if 'team_view' in request.endpoint else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">My Team</a>
                                 {% endif %}
                                 
-                                {# --- Administration Links (Restricted to top-level managers) --- #}
-                                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                <a href="{{ url_for('recruiter_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.organization_management' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
-                                    Manage Organization
-                                </a>
-                                {# *** RENAMED LINK *** #}
-                                <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-indigo-700 text-white' if request.endpoint == 'recruiter_bp.list_pending_staff' else 'text-indigo-100 hover:bg-indigo-700 hover:text-white' }}">
-                                    Pending Registrations
-                                </a>
-                                {% endif %} 
+                                {# --- [ENHANCEMENT] Admin Tools Dropdown --- #}
+                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                                <div x-data="{ adminMenuOpen: false }" @click.away="adminMenuOpen = false" class="relative">
+                                    <button @click="adminMenuOpen = !adminMenuOpen" class="inline-flex items-center gap-x-1 px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">
+                                        <span>Admin Tools</span>
+                                        <i class="bi bi-chevron-down -mr-1 h-5 w-5"></i>
+                                    </button>
+                                    <div 
+                                        x-show="adminMenuOpen" 
+                                        x-transition:enter="transition ease-out duration-200"
+                                        x-transition:enter-start="opacity-0 translate-y-1"
+                                        x-transition:enter-end="opacity-100 translate-y-0"
+                                        x-transition:leave="transition ease-in duration-150"
+                                        x-transition:leave-start="opacity-100 translate-y-0"
+                                        x-transition:leave-end="opacity-0 translate-y-1"
+                                        class="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                        <div class="py-1">
+                                            <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Recruiters</a>
+                                            {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
+                                            <a href="{{ url_for('recruiter_bp.organization_management') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Organization</a>
+                                            <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Pending Registrations</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
-                            <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
+                            <div class="relative ml-3">
                                 <div>
-                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-indigo-600 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
+                                    <button @click="profileMenuOpen = !profileMenuOpen" @click.away="profileMenuOpen = false" type="button" class="flex max-w-xs items-center rounded-full bg-indigo-600 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
                                         <span class="sr-only">Open user menu</span>
                                         <img class="h-8 w-8 rounded-full object-cover" src="{{ current_user.profile_picture_url or url_for('static', filename='images/default-profile.png') }}" alt="">
                                     </button>
@@ -71,36 +81,37 @@
                         </div>
                     </div>
                     <div class="-mr-2 flex md:hidden">
-                        <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-indigo-600 p-2 text-indigo-200 hover:bg-indigo-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
+                        <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md bg-indigo-600 p-2 text-indigo-200 hover:bg-indigo-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-600">
                             <span class="sr-only">Open main menu</span>
-                            <i class="bi text-2xl" :class="{ 'bi-x-lg': open, 'bi-list': !open }"></i>
+                            <i class="bi text-2xl" :class="{ 'bi-x-lg': mobileMenuOpen, 'bi-list': !mobileMenuOpen }"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- Mobile Menu -->
-            <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
+            <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('recruiter_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Dashboard</a>
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Leaderboard</a>
                     
-                    {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">
-                            {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                All Teams
-                            {% else %}
-                                My Team
-                            {% endif %}
-                        </a>
+                    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">My Team</a>
                     {% endif %}
                     
-                    {# --- Administration Links for Mobile --- #}
-                    {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                        <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
-                        {# *** RENAMED LINK *** #}
-                        <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Pending Registrations</a>
+                    {# --- [ENHANCEMENT] Admin Links for Mobile --- #}
+                    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                    <div class="border-t border-indigo-700 pt-4 mt-4">
+                        <h3 class="px-3 text-xs font-semibold uppercase text-indigo-200">Admin Tools</h3>
+                        <div class="mt-1 space-y-1">
+                            <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Recruiters</a>
+                            {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
+                            <a href="{{ url_for('recruiter_bp.organization_management') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Manage Organization</a>
+                            <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-indigo-100 hover:bg-indigo-700 hover:text-white">Pending Registrations</a>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endif %}
                 </div>
                 <div class="border-t border-indigo-700 pb-3 pt-4">
