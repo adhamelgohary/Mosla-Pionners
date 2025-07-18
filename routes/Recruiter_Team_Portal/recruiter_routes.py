@@ -959,19 +959,36 @@ def manage_recruiters():
     recruiters = []
     
     try:
-        # [FIX] Generate placeholders for the IN clause dynamically
         role_placeholders = ', '.join(['%s'] * len(MANAGEABLE_RECRUITER_ROLES))
         
-        # Base SQL query with the new placeholders
+        # [FIX] Rewritten SQL query using a subquery to prevent JOIN multiplication
         sql = f"""
-            SELECT s.StaffID, u.FirstName, u.LastName, s.Role, s.status, t.TeamName, su.UnitName, u.ProfilePictureURL
-            FROM Staff s
-            JOIN Users u ON s.UserID = s.UserID
-            LEFT JOIN SourcingTeams t ON s.TeamID = t.TeamID
-            LEFT JOIN SourcingUnits su ON t.UnitID = su.UnitID
-            WHERE s.Role IN ({role_placeholders})
+            SELECT 
+                s.StaffID, 
+                u.FirstName, 
+                u.LastName, 
+                s.Role, 
+                s.status, 
+                u.ProfilePictureURL,
+                team_info.TeamName,
+                team_info.UnitName
+            FROM 
+                Staff s
+            JOIN 
+                Users u ON s.UserID = u.UserID
+            LEFT JOIN (
+                SELECT 
+                    t.TeamID, 
+                    t.TeamName, 
+                    su.UnitName
+                FROM 
+                    SourcingTeams t
+                LEFT JOIN 
+                    SourcingUnits su ON t.UnitID = su.UnitID
+            ) AS team_info ON s.TeamID = team_info.TeamID
+            WHERE 
+                s.Role IN ({role_placeholders})
         """
-        # [FIX] Start with a flat list of parameters
         params = list(MANAGEABLE_RECRUITER_ROLES)
 
         # Dynamically add search and filter conditions
@@ -990,7 +1007,6 @@ def manage_recruiters():
             
         sql += " ORDER BY u.FirstName, u.LastName"
 
-        # The tuple conversion is now correct because 'params' is a flat list
         cursor.execute(sql, tuple(params))
         recruiters = cursor.fetchall()
         
