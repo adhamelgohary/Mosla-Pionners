@@ -68,13 +68,13 @@ def candidate_portal_required(f):
     return login_required_with_role(CANDIDATE_ROLES, insufficient_role_redirect='public_routes_bp.home_page')(f)
 
 def course_management_access_required(f):
-    return login_required_with_role(COURSE_MANAGEMENT_ROLES_DECORATOR, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')(f)
+    return login_required_with_role(COURSE_MANAGEMENT_ROLES_DECORATOR, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
 
 def sales_manager_portal_specific_access_required(f):
-     return login_required_with_role(SALES_MANAGER_SPECIFIC_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')(f)
+     return login_required_with_role(SALES_MANAGER_SPECIFIC_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
 
 def announcement_management_access_required(f):
-    return login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')(f)
-    
+    return login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
+
 def job_offer_management_required(f):
-    return login_required_with_role(JOB_OFFER_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')(f)
+    return login_required_with_role(JOB_OFFER_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
