@@ -35,7 +35,7 @@
                         <div x-show="companyMode === 'existing'" class="mt-4">
                             <select name="selected_company_id" class="form-select {{ 'border-red-500' if errors.company_id }}">
                                 <option value="">-- Select an Existing Company --</option>
-                                {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.selected_company_id|int == company.CompanyID %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
+                                {% for company in companies %}<option value="{{ company.CompanyID }}" {% if form_data.get('selected_company_id') and form_data.selected_company_id|int == company.CompanyID %}selected{% endif %}>{{ company.CompanyName }}</option>{% endfor %}
                             </select>
                         </div>
                         <div x-show="companyMode === 'new'" class="mt-4">
