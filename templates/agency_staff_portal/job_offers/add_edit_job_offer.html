@@ -1,6 +1,6 @@
-{% extends "agency_staff_portal/staff_base.html" %} {# Assumes you have a base layout for Tailwind #}
+{% extends "agency_staff_portal/base_tailwind.html" %} {# Assumes you have a base layout for Tailwind #}
 
-{% block staff_content %}
+{% block content %}
 <div class="p-4 md:p-6">
     <header class="mb-6">
         <h1 class="fluid-text-3xl font-bold text-heading">{{ title }}</h1>
@@ -160,6 +160,51 @@
                         <textarea id="experience_requirement" name="experience_requirement" rows="4" class="form-textarea" placeholder="e.g., 1-2 years experience in customer service...">{{ form_data.get('experience_requirement', '') }}</textarea>
                     </div>
                 </div>
+                
+                <hr class="border-border">
+
+                <!-- SECTION: BENEFITS & TRANSPORTATION -->
+                <div class="space-y-6">
+                    <h3 class="text-base font-semibold leading-7 text-heading">Benefits & Transportation</h3>
+                    
+                    <!-- Transportation -->
+                    <div class="bg-background/50 p-4 rounded-md border border-border/50">
+                        <label class="form-label">Is transportation provided?</label>
+                        <div class="mt-2 flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <input id="transportation_yes" name="transportation" type="radio" value="yes" class="form-radio" {% if form_data.get('transportation') == 'yes' %}checked{% endif %}>
+                                <label for="transportation_yes" class="ml-2 text-sm text-text">Yes</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="transportation_no" name="transportation" type="radio" value="no" class="form-radio" {% if form_data.get('transportation') != 'yes' %}checked{% endif %}>
+                                <label for="transportation_no" class="ml-2 text-sm text-text">No</label>
+                            </div>
+                        </div>
+                        <div class="mt-4" id="transport_type_container" {% if form_data.get('transportation') != 'yes' %}style="display:none;"{% endif %}>
+                            <label for="transport_type" class="form-label">Transportation Type</label>
+                            <select name="transport_type" id="transport_type" class="form-select">
+                                <option value="">-- Select Type --</option>
+                                {% for option in form_options.transportation_options %}
+                                <option value="{{ option }}" {% if option == form_data.get('transport_type') %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Other Benefits -->
+                    <div>
+                        <label class="form-label">Other Benefits (select all that apply)</label>
+                         <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            {% for benefit in form_options.benefits_checkboxes %}
+                            <div class="flex items-center">
+                                <input id="benefit_{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" class="form-checkbox"
+                                    {% if benefit in form_data.get('benefits_checkboxes', []) %}checked{% endif %}>
+                                <label for="benefit_{{ loop.index }}" class="ml-2 text-sm text-text">{{ benefit }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ACTION BUTTONS -->
                 <div class="flex items-center justify-end gap-x-4 pt-4">
@@ -170,4 +215,26 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Simple script to show/hide the transportation type dropdown
+    document.addEventListener('DOMContentLoaded', function() {
+        const transportRadios = document.querySelectorAll('input[name="transportation"]');
+        const transportTypeContainer = document.getElementById('transport_type_container');
+
+        function toggleTransportType() {
+            if (document.querySelector('input[name="transportation"]:checked').value === 'yes') {
+                transportTypeContainer.style.display = 'block';
+            } else {
+                transportTypeContainer.style.display = 'none';
+            }
+        }
+
+        transportRadios.forEach(radio => radio.addEventListener('change', toggleTransportType));
+        
+        // Initial check on page load
+        toggleTransportType();
+    });
+</script>
+
 {% endblock %}
