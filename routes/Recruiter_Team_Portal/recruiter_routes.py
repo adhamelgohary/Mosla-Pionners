@@ -33,8 +33,7 @@ recruiter_bp = Blueprint('recruiter_bp', __name__,
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def dashboard():
     """
-    The main dashboard for the Recruiter Portal with advanced, role-aware visualizations.
-    The data displayed is aggregated based on the user's role and scope.
+    The main dashboard for the Recruiter Portal with advanced, role-aware visualizations and announcements.
     """
     user_staff_id = getattr(current_user, 'specific_role_id', None)
     user_role = getattr(current_user, 'role_type', None)
@@ -47,18 +46,35 @@ def dashboard():
     cursor = conn.cursor(dictionary=True)
 
     scoped_staff_ids = []
-    dashboard_title = "My Performance"  # Default title
+    dashboard_title = "My Performance"
     
-    # [FIX] Initialize kpis BEFORE the try block to prevent UnboundLocalError
     kpis = {
         'funnel': {'Applied': 0, 'Shortlisted': 0, 'Interview Scheduled': 0, 'Hired': 0},
         'status_breakdown_for_chart': {},
         'total_referrals': 0,
         'monthly_performance': []
     }
+    
+    # [NEW] Initialize announcements list
+    announcements = []
 
     try:
+        # --- [NEW] Fetch System Announcements ---
+        # This query gets announcements for 'AllStaff' or 'Recruiters' that are currently active
+        cursor.execute("""
+            SELECT Title, Content, CreatedAt, Priority
+            FROM SystemAnnouncements
+            WHERE 
+                IsActive = 1
+                AND (DisplayUntil IS NULL OR DisplayUntil > NOW())
+                AND Audience IN ('AllStaff', 'Recruiters')
+            ORDER BY Priority DESC, CreatedAt DESC
+            LIMIT 5
+        """)
+        announcements = cursor.fetchall()
+
         # --- Determine the scope of StaffIDs based on the user's role ---
+        # (The rest of this logic remains unchanged)
         if user_role in ORG_MANAGEMENT_ROLES:
             dashboard_title = "Overall Sourcing Division Performance"
             cursor.execute("""
@@ -87,7 +103,6 @@ def dashboard():
             """, (user_staff_id,))
             scoped_staff_ids = [row['StaffID'] for row in cursor.fetchall()]
 
-        # [FIX] The 'AttributeError' is now fixed by the change to the user_loader
         if not scoped_staff_ids and current_user.status == 'Active':
             scoped_staff_ids.append(user_staff_id)
 
@@ -121,15 +136,17 @@ def dashboard():
             kpis['monthly_performance'] = cursor.fetchall()
         
     except Exception as e:
-        # The log shows the original AttributeError was caught here
         current_app.logger.error(f"Error fetching recruiter dashboard for StaffID {user_staff_id}: {e}", exc_info=True)
         flash("Could not load all dashboard data.", "warning")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
-
+    
+    # [MODIFIED] Pass announcements to the template
     return render_template('recruiter_team_portal/recruiter_dashboard.html',
-                           title=dashboard_title, kpis=kpis)
+                           title=dashboard_title, 
+                           kpis=kpis,
+                           announcements=announcements)
 
 @recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)

@@ -12,10 +12,35 @@
 
 {% block recruiter_content %}
 <div class="px-4 sm:px-0 mb-8">
-    {# The main page title is now dynamic. This can be a secondary welcome message. #}
     <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
     <p class="mt-1 text-sm text-gray-600">This is the aggregated performance and pipeline overview for your scope.</p>
 </div>
+
+<!-- [NEW] System Announcements Section -->
+{% if announcements %}
+<div class="mb-8 bg-white p-6 rounded-lg shadow-sm border">
+    <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <i class="bi bi-megaphone-fill text-indigo-600"></i>
+        <span>Latest Announcements</span>
+    </h3>
+    <div class="mt-4 space-y-4">
+        {% for announcement in announcements %}
+            {% set priority_classes = {
+                'Urgent': 'border-red-500 bg-red-50',
+                'High': 'border-amber-500 bg-amber-50',
+                'Normal': 'border-gray-300 bg-gray-50'
+            } %}
+            <div class="p-4 rounded-md border-l-4 {{ priority_classes.get(announcement.Priority, 'border-gray-300') }}">
+                <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-gray-800">{{ announcement.Title }}</h4>
+                    <span class="text-xs text-gray-500">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
+                </div>
+                <p class="mt-1 text-sm text-gray-600">{{ announcement.Content }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Main Grid for Visualizations -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
