@@ -8,118 +8,80 @@
 {% endblock %}
 
 {% block staff_content %}
-<div class="space-y-8">
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <!-- Pending Applications Card -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-person-plus-fill text-3xl text-white bg-yellow-500 p-3 rounded-md"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Pending Applications</dt>
-                            <dd class="flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.pending_applications }}</div>
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+    <!-- Pending Applications Card (Large) -->
+    <a href="{{ url_for('.manage_enrollment_requests') }}" class="group relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:border-primary-500 transition-all lg:col-span-2">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Pending Applications</p>
+                <span class="mt-2 block text-3xl font-semibold text-gray-900">{{ dashboard_data.pending_applications }}</span>
             </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="{{ url_for('.manage_enrollment_requests') }}" class="font-medium text-primary-700 hover:text-primary-900">
-                        View all <span aria-hidden="true">→</span>
-                    </a>
-                </div>
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-yellow-100 group-hover:bg-yellow-200 transition-colors">
+                <i class="bi bi-person-plus-fill text-xl text-yellow-600"></i>
             </div>
         </div>
-
-        <!-- Total Sales Revenue Card -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-cash-stack text-3xl text-white bg-green-500 p-3 rounded-md"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Total Sales Revenue</dt>
-                            <dd class="flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</div>
-                                <span class="ml-2 text-sm font-medium text-gray-500">{{ dashboard_data.default_currency }}</span>
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
+        <div class="absolute bottom-4 right-4 text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            Review Now <span aria-hidden="true">→</span>
         </div>
+    </a>
 
-        <!-- Active Courses Card -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-journals text-3xl text-white bg-blue-500 p-3 rounded-md"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Active Courses</dt>
-                            <dd class="flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.active_courses }}</div>
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
+    <!-- Total Sales Revenue Card -->
+    <div class="block p-6 bg-white border border-gray-200 rounded-lg shadow">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Total Sales Revenue</p>
+                <span class="mt-2 block text-3xl font-semibold text-gray-900">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</span>
+                <span class="text-sm font-medium text-gray-500">{{ dashboard_data.default_currency }}</span>
             </div>
-            <div class="bg-gray-50 px-5 py-3">
-                <div class="text-sm">
-                    <a href="{{ url_for('.list_all_course_content') }}" class="font-medium text-primary-700 hover:text-primary-900">
-                        Manage courses <span aria-hidden="true">→</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ongoing Students Card -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-person-video3 text-3xl text-white bg-indigo-500 p-3 rounded-md"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Students In Progress</dt>
-                            <dd>
-                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.ongoing_students }}</div>
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Graduated Students Card -->
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-            <div class="p-5">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <i class="bi bi-patch-check-fill text-3xl text-white bg-purple-500 p-3 rounded-md"></i>
-                    </div>
-                    <div class="ml-5 w-0 flex-1">
-                        <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Graduated Students</dt>
-                            <dd>
-                                <div class="text-2xl font-semibold text-gray-900">{{ dashboard_data.graduated_students }}</div>
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-green-100">
+                <i class="bi bi-cash-stack text-xl text-green-600"></i>
             </div>
         </div>
     </div>
+
+    <!-- Active Courses Card -->
+    <a href="{{ url_for('.list_all_course_content') }}" class="group relative block p-6 bg-white border border-gray-200 rounded-lg shadow hover:border-primary-500 transition-all">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Active Courses</p>
+                <span class="mt-2 block text-3xl font-semibold text-gray-900">{{ dashboard_data.active_courses }}</span>
+            </div>
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                <i class="bi bi-journals text-xl text-blue-600"></i>
+            </div>
+        </div>
+        <div class="absolute bottom-4 right-4 text-sm font-medium text-primary-600 opacity-0 group-hover:opacity-100 transition-opacity">
+            Manage <span aria-hidden="true">→</span>
+        </div>
+    </a>
+
+    <!-- Ongoing Students Card -->
+    <div class="block p-6 bg-white border border-gray-200 rounded-lg shadow">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Students In Progress</p>
+                <span class="mt-2 block text-3xl font-semibold text-gray-900">{{ dashboard_data.ongoing_students }}</span>
+            </div>
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-100">
+                <i class="bi bi-person-video3 text-xl text-indigo-600"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graduated Students Card -->
+    <div class="block p-6 bg-white border border-gray-200 rounded-lg shadow">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Graduated Students</p>
+                <span class="mt-2 block text-3xl font-semibold text-gray-900">{{ dashboard_data.graduated_students }}</span>
+            </div>
+            <div class="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-purple-100">
+                <i class="bi bi-patch-check-fill text-xl text-purple-600"></i>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
