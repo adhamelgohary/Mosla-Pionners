@@ -1063,7 +1063,6 @@ def announcements_history():
             FROM SystemAnnouncements
             WHERE 
                 IsActive = 1
-                AND Audience IN ('AllStaff', 'Recruiters')
         """
         params = []
 
