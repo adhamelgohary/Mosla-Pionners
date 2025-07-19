@@ -117,6 +117,8 @@ def job_offers_list():
                            search_term=search_term)
 
 
+# In job_board_routes.py
+
 @job_board_bp.route('/offer/<int:offer_id>')
 @job_board_bp.route('/offer/<int:offer_id>/<job_title_slug>')
 @login_required
@@ -129,7 +131,7 @@ def job_detail(offer_id, job_title_slug=None):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- FIX 1: The SQL query now selects ALL the required columns from the database. ---
+        # --- FINAL FIX: The SQL query now selects EVERY required column. ---
         cursor.execute("""
             SELECT 
                 jo.OfferID, jo.Title, jo.Location, jo.NetSalary, jo.PaymentTerm, jo.MaxAge,
@@ -152,13 +154,23 @@ def job_detail(offer_id, job_title_slug=None):
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
             
-        # --- FIX 2: The loop now includes 'GraduationStatusRequirement' to process it correctly for the template. ---
+        # --- FINAL FIX: This loop now robustly handles both `str` and `bytes` types from the DB. ---
         for field in ['BenefitsIncluded', 'RequiredLanguages', 'AvailableShifts', 'GraduationStatusRequirement']:
             template_key = f"{field}_list"
             db_value = offer.get(field)
-            # The database driver returns SET types as a comma-separated string, so we split it.
-            if isinstance(db_value, (bytes, str)) and db_value.strip():
-                offer[template_key] = [item.strip() for item in db_value.split(',')]
+            
+            # Create a clean string representation to work with
+            value_str = ''
+            if isinstance(db_value, bytes):
+                # If it's bytes, decode it to a UTF-8 string
+                value_str = db_value.decode('utf-8')
+            elif isinstance(db_value, str):
+                # If it's already a string, just use it
+                value_str = db_value
+            
+            # Now process the guaranteed string
+            if value_str and value_str.strip():
+                offer[template_key] = [item.strip() for item in value_str.split(',')]
             else:
                 offer[template_key] = [] # Ensure it's an empty list if there's no data
                 
