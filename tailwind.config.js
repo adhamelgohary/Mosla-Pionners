@@ -14,12 +14,13 @@ module.exports = {
   ],
   
   theme: {
+    // === CHANGE 1: Toning down the fluid typography scale ===
     fluidType: {
       settings: {
-        fontSizeMin: 1.125,
-        fontSizeMax: 1.25,
-        ratioMin: 1.125,     
-        ratioMax: 1.2,      
+        fontSizeMin: 1.0,    // Base size remains 16px on mobile
+        fontSizeMax: 1.125,  // Max size is now 18px instead of 20px
+        ratioMin: 1.1,       
+        ratioMax: 1.15,      // Headings will be less dramatically larger
         screenMin: 20,       
         screenMax: 96,       
         unit: 'rem',
@@ -27,6 +28,7 @@ module.exports = {
       },
     },
     extend: {
+      // (The rest of your theme.extend section remains the same)
       colors: {
         primary: {
           DEFAULT: 'rgb(var(--primary-color-rgb) / <alpha-value>)',
@@ -92,9 +94,12 @@ module.exports = {
   },
   
   plugins: [
+    // --- OFFICIAL PLUGINS ---
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
     require('@tailwindcss/aspect-ratio'),
+    
+    // --- 3RD PARTY PLUGINS ---
     require('@tailwindcss/container-queries'),
     require('tailwindcss-text-balance'),
     require('tailwindcss-fluid-type'),
@@ -106,9 +111,13 @@ module.exports = {
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
 
+    // --- CUSTOM IN-LINE PLUGIN (WITH NEW COMPACT STYLES) ---
     plugin(function({ addBase, addComponents, addVariant }) {
+      // 1. ADD BASE STYLES AND CSS VARIABLES
       addBase({
         ':root': {
+          // Setting the root font size smaller to scale down all `rem` units globally
+          'font-size': '14px', 
           '--primary-color-rgb': '59 130 246', '--primary-color-darker': '#1d4ed8', '--secondary-color-rgb': '16 185 129',
           '--danger-color': '#ef4444', '--background-color': '#f9fafb', '--card-bg': '#ffffff', '--input-bg-color': '#ffffff',
           '--text-color': '#374151', '--text-muted': '#6b7280', '--heading-color': '#111827',
@@ -124,12 +133,28 @@ module.exports = {
         }
       });
 
-      // --- [THE FIX] ---
-      // This section is now empty. By not defining global .form-input or .btn-primary styles here,
-      // we prevent conflicts with pages like the Bento grid that use specific, local utility classes for styling.
-      // Other pages can now use the default styles from the @tailwindcss/forms plugin without issue.
+      // 2. ADD CUSTOM COMPONENT CLASSES (MORE COMPACT)
       addComponents({
-        // Intentionally left blank to avoid global style overrides.
+        '.form-label': {
+          '@apply block text-xs font-medium leading-6 text-text': {}, // smaller label text
+        },
+        '.form-input, .form-select, .form-textarea': {
+          // py-1 for less height
+          '@apply mt-1 block w-full rounded-md border-input-border bg-input shadow-sm px-2 py-1 text-sm hocus:border-primary hocus:ring hocus:ring-primary/20 transition-all duration-300': {},
+        },
+        '.form-checkbox, .form-radio': {
+          '@apply rounded border-input-border text-primary focus:ring-primary': {},
+        },
+        '.btn-primary, .btn-secondary': {
+            // py-1.5 for shorter buttons, text-xs for smaller text
+            '@apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-300': {},
+        },
+        '.btn-primary': {
+            '@apply bg-primary text-white hocus:bg-primary-darker hocus:scale-105': {},
+        },
+        '.btn-secondary': {
+            '@apply bg-card text-text ring-1 ring-inset ring-border hocus:bg-background hocus:ring-primary': {},
+        },
       });
 
       addVariant('hocus', ['&:hover', '&:focus']);
