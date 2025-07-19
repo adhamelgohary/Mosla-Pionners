@@ -148,19 +148,17 @@ app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
 
 
+# ==========================================================
+# --- START: COMBINED CONTEXT PROCESSOR (THE FIX) ---
+# ==========================================================
 @app.context_processor
-def inject_global_vars():
+def inject_global_template_variables():
     """
-    Injects variables into the context of all templates.
-    This provides the count of unread contact messages for the navbar.
+    Injects globally needed variables and utility functions into the template context.
     """
-    # Initialize a default dictionary
-    global_vars = {'unread_message_count': 0}
-    
-    # Check if a user is logged in and has a managerial role
+    # 1. Logic for unread message count
+    unread_count = 0
     if current_user.is_authenticated and hasattr(current_user, 'role_type') and current_user.role_type in MANAGERIAL_PORTAL_ROLES:
-        
-        # Use Flask's 'g' object to cache the DB call and avoid re-querying on the same request
         if 'unread_message_count' not in g:
             conn = None
             try:
@@ -168,31 +166,41 @@ def inject_global_vars():
                 cursor = conn.cursor(dictionary=True)
                 cursor.execute("SELECT COUNT(*) as count FROM ContactMessages WHERE Status = 'Unread'")
                 result = cursor.fetchone()
-                # Store the count in the request context 'g'
                 g.unread_message_count = result['count'] if result else 0
             except Exception:
-                g.unread_message_count = 0 # Default to 0 on any database error
+                g.unread_message_count = 0 
             finally:
                 if conn and conn.is_connected():
                     if 'cursor' in locals() and cursor: cursor.close()
                     conn.close()
-        
-        # Set the variable for the template
-        global_vars['unread_message_count'] = g.unread_message_count
-        
-    return global_vars
+        unread_count = g.unread_message_count
+    
+    # 2. Logic for blueprint_exists utility
+    def blueprint_exists(blueprint_name):
+        return blueprint_name in current_app.blueprints
+
+    # 3. Return a single dictionary containing all global variables
+    return {
+        'unread_message_count': unread_count,
+        'blueprint_exists': blueprint_exists
+    }
+# ==========================================================
+# --- END: COMBINED CONTEXT PROCESSOR ---
+# ==========================================================
 
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)
 def page_not_found(e):
     app.logger.warning(f"404 Not Found: {request.path}")
-    return "Page Not Found (404)", 404
+    # You might want to render a proper 404 template here
+    return render_template("Errors/404.html", title="Page Not Found"), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
     app.logger.error(f"500 Internal Server Error: {e} at {request.path}", exc_info=True)
-    return "An internal error occurred (500). Please check the server logs.", 500
+    # You might want to render a proper 500 template here
+    return render_template("Errors/500.html", title="Internal Server Error"), 500
 
 # --- Theme Setter Route ---
 @app.route('/set_theme', methods=['POST'])
@@ -211,9 +219,6 @@ def health_check():
     """A simple endpoint to check if the application is alive."""
     return "OK", 200
 
-# --- Context Processor ---
-@app.context_processor
-def inject_current_app_utilities():
-    def blueprint_exists(blueprint_name):
-        return blueprint_name in current_app.blueprints
-    return dict(blueprint_exists=blueprint_exists)
+# --- DELETED THE SECOND CONTEXT PROCESSOR ---
+# The function inject_current_app_utilities() has been removed.
+# Its logic is now inside inject_global_template_variables().
