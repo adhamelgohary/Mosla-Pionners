@@ -14,13 +14,13 @@ module.exports = {
   ],
   
   theme: {
-    // === CHANGE 1: Toning down the fluid typography scale ===
+    // [REVERTED] - Reverted to original fluid type settings for better scaling.
     fluidType: {
       settings: {
-        fontSizeMin: 1.0,    // Base size remains 16px on mobile
-        fontSizeMax: 1.125,  // Max size is now 18px instead of 20px
-        ratioMin: 1.1,       
-        ratioMax: 1.15,      // Headings will be less dramatically larger
+        fontSizeMin: 1.125, // 18px
+        fontSizeMax: 1.25,  // 20px
+        ratioMin: 1.125,     
+        ratioMax: 1.2,      
         screenMin: 20,       
         screenMax: 96,       
         unit: 'rem',
@@ -111,13 +111,12 @@ module.exports = {
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
 
-    // --- CUSTOM IN-LINE PLUGIN (WITH NEW COMPACT STYLES) ---
+    // --- CUSTOM IN-LINE PLUGIN ---
     plugin(function({ addBase, addComponents, addVariant }) {
       // 1. ADD BASE STYLES AND CSS VARIABLES
       addBase({
         ':root': {
-          // Setting the root font size smaller to scale down all `rem` units globally
-          'font-size': '14px', 
+          // [REVERTED] - Removed 'font-size: 14px' to restore Tailwind's default 16px base.
           '--primary-color-rgb': '59 130 246', '--primary-color-darker': '#1d4ed8', '--secondary-color-rgb': '16 185 129',
           '--danger-color': '#ef4444', '--background-color': '#f9fafb', '--card-bg': '#ffffff', '--input-bg-color': '#ffffff',
           '--text-color': '#374151', '--text-muted': '#6b7280', '--heading-color': '#111827',
@@ -133,28 +132,11 @@ module.exports = {
         }
       });
 
-      // 2. ADD CUSTOM COMPONENT CLASSES (MORE COMPACT)
+      // 2. [REVERTED] REMOVED the overly specific/compact component styles.
+      // The Bento Grid page uses standard utility classes which are more appropriate for that design.
+      // Keeping this section empty prevents conflicts with custom page designs.
       addComponents({
-        '.form-label': {
-          '@apply block text-xs font-medium leading-6 text-text': {}, // smaller label text
-        },
-        '.form-input, .form-select, .form-textarea': {
-          // py-1 for less height
-          '@apply mt-1 block w-full rounded-md border-input-border bg-input shadow-sm px-2 py-1 text-sm hocus:border-primary hocus:ring hocus:ring-primary/20 transition-all duration-300': {},
-        },
-        '.form-checkbox, .form-radio': {
-          '@apply rounded border-input-border text-primary focus:ring-primary': {},
-        },
-        '.btn-primary, .btn-secondary': {
-            // py-1.5 for shorter buttons, text-xs for smaller text
-            '@apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-300': {},
-        },
-        '.btn-primary': {
-            '@apply bg-primary text-white hocus:bg-primary-darker hocus:scale-105': {},
-        },
-        '.btn-secondary': {
-            '@apply bg-card text-text ring-1 ring-inset ring-border hocus:bg-background hocus:ring-primary': {},
-        },
+        // Intentionally left blank to avoid global style overrides.
       });
 
       addVariant('hocus', ['&:hover', '&:focus']);
