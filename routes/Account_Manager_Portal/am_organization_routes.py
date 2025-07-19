@@ -22,8 +22,9 @@ def organization_management():
     cursor = conn.cursor(dictionary=True)
     try:
         # Fetch all AM Units
+        # [FIXED] Corrected table aliases from s.FirstName to us.FirstName
         cursor.execute("""
-            SELECT u.*, s.FirstName, s.LastName
+            SELECT u.*, us.FirstName, us.LastName
             FROM AccountManagerUnits u
             LEFT JOIN Staff s ON u.UnitManagerStaffID = s.StaffID
             LEFT JOIN Users us ON s.UserID = us.UserID ORDER BY u.UnitName
@@ -51,7 +52,7 @@ def organization_management():
         """)
         all_am_staff = cursor.fetchall()
 
-        # [CORRECTED] Fetch potential Unit Managers (only HeadAccountManagers)
+        # Fetch potential Unit Managers (only HeadAccountManagers)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -59,7 +60,7 @@ def organization_management():
         """)
         potential_unit_managers = cursor.fetchall()
 
-        # [CORRECTED] Fetch potential Team Leads (only SeniorAccountManagers)
+        # Fetch potential Team Leads (only SeniorAccountManagers)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
