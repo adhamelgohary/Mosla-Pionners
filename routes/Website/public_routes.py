@@ -35,28 +35,6 @@ def home_page():
     
     return render_template('Website/home.html', recent_jobs=recent_jobs, title="Welcome to Mosla Pioneers")
 
-
-# === CONTACT PAGE ===
-@public_routes_bp.route('/contact', methods=['GET', 'POST'])
-def contact_page():
-    form_data = {} 
-    if request.method == 'POST':
-        form_data = request.form.to_dict()
-        name = form_data.get('name')
-        email = form_data.get('email')
-        subject = form_data.get('subject')
-        message_text = form_data.get('message')
-
-        if not all([name, email, subject, message_text]):
-            flash("Please fill in all fields of the contact form.", "warning")
-            return render_template('Website/contact.html', title="Contact Us", form_data=form_data)
-        
-        current_app.logger.info(f"Contact form received (DEMO): Name: {name}, Email: {email}, Subject: {subject}")
-        flash("Thank you for your message! We will get back to you shortly. (This is a demo - email not actually sent)", "success")
-        return redirect(url_for('.contact_page')) 
-
-    return render_template('Website/contact.html', title="Contact Us", form_data=form_data)
-
 # === CONTACT PAGE (UPDATED) ===
 @public_routes_bp.route('/contact', methods=['GET', 'POST'])
 def contact_page():
