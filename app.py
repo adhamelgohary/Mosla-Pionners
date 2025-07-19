@@ -119,6 +119,24 @@ app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
 
+
+# === ADD THIS CUSTOM FILTER ===
+@app.template_filter('format_timedelta_to_time')
+def format_timedelta_to_time(td_object, time_format='%I:%M %p'):
+    """
+    Custom Jinja filter to format a timedelta object into a time string.
+    Example: a timedelta of 9 hours becomes '09:00 AM'.
+    """
+    if not isinstance(td_object, datetime.timedelta):
+        # Return the original value if it's not a timedelta, preventing errors
+        return td_object
+    
+    # Create a dummy date, add the timedelta, then format the resulting time
+    dummy_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    result_time = (dummy_date + td_object).time()
+    return result_time.strftime(time_format)
+
+
 # --- Global Error Handlers ---
 @app.errorhandler(404)
 def page_not_found(e):

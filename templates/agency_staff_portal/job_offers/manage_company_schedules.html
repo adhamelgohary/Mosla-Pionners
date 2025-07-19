@@ -25,8 +25,8 @@
                             <div>
                                 <p class="font-semibold text-gray-800 dark:text-gray-200">{{ schedule.DayOfWeek }}</p>
                                 <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    {{ schedule.StartTime.strftime('%I:%M %p') }} - {{ schedule.EndTime.strftime('%I:%M %p') }}
-                                </p>
+    {{ schedule.StartTime|format_timedelta_to_time }} - {{ schedule.EndTime|format_timedelta_to_time }}
+</p>
                             </div>
                         </div>
                         <!-- Each delete button is its own form -->
