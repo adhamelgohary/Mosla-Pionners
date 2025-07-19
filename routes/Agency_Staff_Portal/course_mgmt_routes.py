@@ -67,7 +67,6 @@ def add_main_package():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # This SELECT statement implicitly starts a transaction
         cursor.execute("SELECT LanguageID, LanguageName FROM Languages ORDER BY LanguageName")
         languages = cursor.fetchall()
 
@@ -79,17 +78,14 @@ def add_main_package():
                 flash("Package Name and at least one Language are required.", "danger")
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
             
-            # --- FIX: REMOVED EXPLICIT TRANSACTION START ---
-            # conn.start_transaction() # This line was causing the error and is now removed.
-
             sql_main = """
-                INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, IsActive, AddedByStaffID)
+                INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, Status, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             params_main = (
                 form_data['Name'], form_data.get('Description'),
                 form_data.get('Benefits'), form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
-                form_data.get('Notes'), 'IsActive' in form_data, current_user.specific_role_id
+                form_data.get('Notes'), form_data.get('Status', 'Inactive'), current_user.specific_role_id
             )
             cursor.execute(sql_main, params_main)
             new_package_id = cursor.lastrowid
@@ -98,7 +94,7 @@ def add_main_package():
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (new_package_id, lang_id))
             
-            conn.commit() # This now commits the entire transaction
+            conn.commit()
             flash("Main Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
             
@@ -117,7 +113,6 @@ def edit_main_package(package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # This SELECT statement implicitly starts a transaction
         cursor.execute("SELECT LanguageID, LanguageName FROM Languages ORDER BY LanguageName")
         languages = cursor.fetchall()
 
@@ -133,19 +128,16 @@ def edit_main_package(package_id):
                 current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
 
-            # --- FIX: REMOVED EXPLICIT TRANSACTION START ---
-            # conn.start_transaction() # This line was causing the error and is now removed.
-
             sql_main = """
                 UPDATE MainPackages SET
                 Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
-                BilingualOverview = %s, Notes = %s, IsActive = %s, UpdatedAt = NOW()
+                BilingualOverview = %s, Notes = %s, Status = %s, UpdatedAt = NOW()
                 WHERE PackageID = %s
             """
             params_main = (
                 form_data['Name'], form_data.get('Description'), form_data.get('Benefits'),
                 form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
-                form_data.get('Notes'), 'IsActive' in form_data, package_id
+                form_data.get('Notes'), form_data.get('Status', 'Inactive'), package_id
             )
             cursor.execute(sql_main, params_main)
             
@@ -176,6 +168,7 @@ def edit_main_package(package_id):
         if conn and conn.is_connected(): conn.close()
     
     return redirect(url_for('.list_all_packages'))
+
 
 
 @package_mgmt_bp.route('/main-package/delete/<int:package_id>', methods=['POST'])
@@ -224,7 +217,7 @@ def add_sub_package(main_package_id):
                                        main_package_id=main_package_id, main_package_languages=main_package_languages)
             
             sql = """
-                INSERT INTO SubPackages (MainPackageID, Name, Description, Price, NumSessionsMonolingual, NumSessionsBilingual, MonolingualDetails, BilingualDetails, IsActive, DisplayOrder, AddedByStaffID)
+                INSERT INTO SubPackages (MainPackageID, Name, Description, Price, NumSessionsMonolingual, NumSessionsBilingual, MonolingualDetails, BilingualDetails, Status, DisplayOrder, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else decimal.Decimal('0.00')
@@ -234,7 +227,7 @@ def add_sub_package(main_package_id):
                 main_package_id, form_data['Name'], form_data.get('Description'),
                 price, num_mono, num_bi,
                 form_data.get('MonolingualDetails'), form_data.get('BilingualDetails'),
-                'IsActive' in form_data, form_data.get('DisplayOrder', 0), current_user.specific_role_id
+                form_data.get('Status', 'Inactive'), form_data.get('DisplayOrder', 0), current_user.specific_role_id
             )
             cursor.execute(sql, params)
             conn.commit()
@@ -288,7 +281,7 @@ def edit_sub_package(sub_package_id):
             sql = """
                 UPDATE SubPackages SET
                 Name = %s, Description = %s, Price = %s, NumSessionsMonolingual = %s, NumSessionsBilingual = %s,
-                MonolingualDetails = %s, BilingualDetails = %s, IsActive = %s, DisplayOrder = %s, UpdatedAt = NOW()
+                MonolingualDetails = %s, BilingualDetails = %s, Status = %s, DisplayOrder = %s, UpdatedAt = NOW()
                 WHERE SubPackageID = %s
             """
             price = decimal.Decimal(form_data_from_post['Price']) if form_data_from_post.get('Price') else decimal.Decimal('0.00')
@@ -298,7 +291,7 @@ def edit_sub_package(sub_package_id):
                 form_data_from_post['Name'], form_data_from_post.get('Description'), price,
                 num_mono, num_bi,
                 form_data_from_post.get('MonolingualDetails'), form_data_from_post.get('BilingualDetails'),
-                'IsActive' in form_data_from_post, form_data_from_post.get('DisplayOrder', 0), sub_package_id
+                form_data_from_post.get('Status', 'Inactive'), form_data_from_post.get('DisplayOrder', 0), sub_package_id
             )
             cursor.execute(sql, params)
             conn.commit()
@@ -536,3 +529,40 @@ def update_enrollment_status(enrollment_id):
              return redirect(url_for('.manage_enrollment_requests'))
     
     return redirect(url_for('.packages_dashboard'))
+
+@package_mgmt_bp.route('/update-status', methods=['POST'])
+@login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
+def update_package_status():
+    package_type = request.form.get('package_type')
+    package_id = request.form.get('package_id', type=int)
+    new_status = request.form.get('status')
+    
+    allowed_types = {'main': 'MainPackages', 'sub': 'SubPackages'}
+    allowed_statuses = ['Active', 'Inactive', 'On Hold']
+
+    if not all([package_type, package_id, new_status]) or package_type not in allowed_types or new_status not in allowed_statuses:
+        flash("Invalid request. Could not update status.", "danger")
+        return redirect(url_for('.list_all_packages'))
+
+    table_name = allowed_types[package_type]
+    id_column = 'PackageID' if package_type == 'main' else 'SubPackageID'
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        sql = f"UPDATE {table_name} SET Status = %s, UpdatedAt = NOW() WHERE {id_column} = %s"
+        cursor.execute(sql, (new_status, package_id))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            flash(f"Package status updated to '{new_status}'.", "success")
+        else:
+            flash("Package not found or status was already set.", "warning")
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error updating package status: {e}", exc_info=True)
+        flash("A database error occurred.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+            
+    return redirect(url_for('.list_all_packages'))
