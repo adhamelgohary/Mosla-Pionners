@@ -1130,7 +1130,6 @@ def update_application_status(application_id):
     return redirect(url_for('.list_applications_for_review'))
 
 
-# --- NEW: Manage Company Interview Schedules ---
 @job_offer_mgmt_bp.route('/company/<int:company_id>/schedules', methods=['GET', 'POST'])
 @login_required_with_role(EXECUTIVE_ROLES)
 def manage_company_schedules(company_id):
@@ -1139,16 +1138,13 @@ def manage_company_schedules(company_id):
         cursor = conn.cursor(dictionary=True)
 
         if request.method == 'POST':
-            # Delete and re-insert logic for simplicity and atomicity
+            # This POST logic is correct and does not need to be changed
             days = request.form.getlist('day')
             start_times = request.form.getlist('start_time')
             end_times = request.form.getlist('end_time')
 
             conn.start_transaction()
-            # 1. Delete all existing schedules for this company
             cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE CompanyID = %s", (company_id,))
-
-            # 2. Insert the new schedules
             insert_sql = """
                 INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
                 VALUES (%s, %s, %s, %s)
@@ -1176,10 +1172,14 @@ def manage_company_schedules(company_id):
         """, (company_id,))
         schedules = cursor.fetchall()
         
-        # Format time objects to strings for Alpine.js
+        # --- FIX IS HERE ---
+        # Convert timedelta objects to 'HH:MM' strings for the template
         for schedule in schedules:
-            schedule['StartTime'] = schedule['StartTime'].strftime('%H:%M')
-            schedule['EndTime'] = schedule['EndTime'].strftime('%H:%M')
+            if isinstance(schedule['StartTime'], datetime.timedelta):
+                # Convert timedelta to string ('HH:MM:SS') and slice the first 5 characters
+                schedule['StartTime'] = str(schedule['StartTime'])[:5]
+            if isinstance(schedule['EndTime'], datetime.timedelta):
+                schedule['EndTime'] = str(schedule['EndTime'])[:5]
 
         day_options = get_column_options(conn, cursor, 'CompanyInterviewSchedules', 'DayOfWeek')
 
@@ -1198,5 +1198,4 @@ def manage_company_schedules(company_id):
                            company=company,
                            schedules=schedules,
                            day_options=day_options,
-                           company_id=company_id
-                           )
+                           company_id=company_id)
