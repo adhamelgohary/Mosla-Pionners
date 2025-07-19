@@ -1,94 +1,145 @@
-{% extends 'agency_staff_portal/staff_base.html' %}
+{% extends "agency_staff_portal/base.html" %}
 
-{% block staff_title %}{{ title }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
-{% block staff_page_title %}
-    <i class="bi bi-speedometer2"></i> {{ title }}
-{% endblock %}
+{% block content %}
+<div class="container-fluid">
 
-{% block staff_content %}
-<div>
-    <h3 class="text-base font-semibold leading-6 text-gray-900">Key Performance Indicators</h3>
-    <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ title }}</h1>
+        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm">
+            <i class="fas fa-list-alt fa-sm text-white-50"></i> Manage Packages
+        </a>
+    </div>
+
+    <!-- Quick Links / Management Views -->
+    <div class="mb-4">
+        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="btn btn-warning shadow-sm">
+            <i class="fas fa-hourglass-half fa-sm text-white-50"></i> View Pending Enrollments
+        </a>
+        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="btn btn-success shadow-sm">
+            <i class="fas fa-check-circle fa-sm text-white-50"></i> View Approved Enrollments
+        </a>
+        <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="btn btn-danger shadow-sm">
+            <i class="fas fa-times-circle fa-sm text-white-50"></i> View Rejected Enrollments
+        </a>
+    </div>
+
+    <!-- Content Row - KPI Cards -->
+    <div class="row">
+
         <!-- Total Sales Revenue -->
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
-            <dt>
-                <div class="absolute rounded-md bg-primary-500 p-3">
-                    <i class="bi bi-cash-stack text-white h-6 w-6"></i>
-                </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Sales Revenue</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
-                <p class="text-2xl font-semibold text-gray-900">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</p>
-                <p class="ml-2 flex items-baseline text-sm font-semibold text-gray-500">
-                    {{ dashboard_data.default_currency }}
-                </p>
-                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
-                    <div class="text-sm">
-                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">View all<span class="sr-only"> Total Sales stats</span></a>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Sales Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.total_sales_revenue|round(2) }} {{ dashboard_data.default_currency }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
-            </dd>
+            </div>
         </div>
 
-        <!-- Pending Applications -->
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
-            <dt>
-                <div class="absolute rounded-md bg-primary-500 p-3">
-                    <i class="bi bi-person-check text-white h-6 w-6"></i>
-                </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Pending Applications</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
-                <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.pending_applications }}</p>
-                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
-                    <div class="text-sm">
-                        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="font-medium text-primary-600 hover:text-primary-500">Manage requests<span class="sr-only"> Pending Applications stats</span></a>
+        <!-- Pending Applications Card (Clickable) -->
+        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pending Applications</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.pending_applications }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
-            </dd>
-        </div>
+            </div>
+        </a>
 
-        <!-- Ongoing & Graduated Students -->
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
-            <dt>
-                <div class="absolute rounded-md bg-primary-500 p-3">
-                    <i class="bi bi-people-fill text-white h-6 w-6"></i>
-                </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Students</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
-                <div class="flex flex-col">
-                    <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.ongoing_students }} <span class="text-lg font-medium text-gray-500">Ongoing</span></p>
-                    <p class="text-lg font-semibold text-gray-700 mt-1">{{ dashboard_data.graduated_students }} <span class="text-base font-medium text-gray-500">Graduated</span></p>
-                </div>
-                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
-                    <div class="text-sm">
-                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">View all<span class="sr-only"> Student stats</span></a>
+        <!-- Ongoing Students Card (Clickable) -->
+        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Ongoing Students
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.ongoing_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-clock fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
-            </dd>
-        </div>
+            </div>
+        </a>
         
-        <!-- Active Sub-Packages -->
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6">
-            <dt>
-                <div class="absolute rounded-md bg-primary-500 p-3">
-                    <i class="bi bi-tags-fill text-white h-6 w-6"></i>
-                </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Active Sub-Packages</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
-                <p class="text-2xl font-semibold text-gray-900">{{ dashboard_data.active_packages }}</p>
-                <div class="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
-                    <div class="text-sm">
-                        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="font-medium text-primary-600 hover:text-primary-500">Manage packages<span class="sr-only"> Active packages stats</span></a>
+        <!-- Graduated Students Card (Clickable) -->
+        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Graduated Students</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.graduated_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
-            </dd>
+            </div>
+        </a>
+
+        <!-- NEW: Rejected/Cancelled Applications Card (Clickable) -->
+        <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Rejected / Cancelled</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.rejected_applications }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+        
+        <!-- Active Packages Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                Active Course Packages</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.active_packages }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cubes fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-    </dl>
+    </div>
+
+    <!-- Additional content like charts or recent activity can go here -->
+
 </div>
 {% endblock %}

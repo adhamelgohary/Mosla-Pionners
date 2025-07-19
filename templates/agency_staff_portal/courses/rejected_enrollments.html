@@ -1,0 +1,46 @@
+<!-- templates/agency_staff_portal/courses/rejected_enrollments.html -->
+{% extends "agency_staff_portal/base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Listing All Rejected or Cancelled Enrollments</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Applicant Name</th>
+                            <th>Contact</th>
+                            <th>Package</th>
+                            <th>Application Date</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td>{{ app.CandidateFirstName }} {{ app.CandidateLastName }}</td>
+                            <td>{{ app.CandidateEmail }}<br>{{ app.CandidatePhone }}</td>
+                            <td><strong>{{ app.MainPackageName }}</strong><br>{{ app.SubPackageName }}</td>
+                            <td>{{ app.ApplicationDate.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td><span class="badge badge-danger">{{ app.Status }}</span></td>
+                            <td>{{ app.Notes }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No rejected enrollments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

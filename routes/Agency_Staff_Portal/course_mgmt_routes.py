@@ -16,7 +16,7 @@ package_mgmt_bp = Blueprint('package_mgmt_bp', __name__,
                             template_folder='../../../templates',
                             url_prefix='/packages-management')
 
-# --- Main Listing Page (Updated) ---
+# --- Main Listing Page (Unchanged) ---
 @package_mgmt_bp.route('/')
 @login_required_with_role(PACKAGE_VIEW_ROLES)
 def list_all_packages():
@@ -43,7 +43,7 @@ def list_all_packages():
             languages_raw = cursor.fetchall()
             package['languages'] = [lang['LanguageName'] for lang in languages_raw]
 
-            # Fetch sub-packages (no change here)
+            # Fetch sub-packages
             cursor.execute("SELECT * FROM SubPackages WHERE MainPackageID = %s ORDER BY DisplayOrder, Name", (package['PackageID'],))
             package['sub_packages'] = cursor.fetchall()
             
@@ -60,9 +60,7 @@ def list_all_packages():
                            main_packages=main_packages)
     
 
-# WARNING: This code removes explicit transaction boundaries.
-# This is NOT recommended as it can lead to data integrity issues if an error occurs mid-operation.
-
+# --- Main Package CRUD (Unchanged) ---
 @package_mgmt_bp.route('/main-package/add', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_main_package():
@@ -80,9 +78,7 @@ def add_main_package():
                 flash("Package Name and at least one Language are required.", "danger")
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
             
-            # --- `conn.start_transaction()` REMOVED ---
-            
-            # 1. Insert into MainPackages table
+            conn.start_transaction()
             sql_main = """
                 INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, IsActive, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -94,27 +90,19 @@ def add_main_package():
             )
             cursor.execute(sql_main, params_main)
             new_package_id = cursor.lastrowid
-
-            # 2. Insert into the junction table MainPackageLanguages
             sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (new_package_id, lang_id))
-
-            # This is now ESSENTIAL. Without it, nothing will be saved.
             conn.commit()
-
             flash("Main Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
             
     except mysql.connector.Error as err:
-        # --- `conn.rollback()` REMOVED ---
-        # A failure here means the MainPackage might be saved but the languages are not,
-        # leaving corrupted data in your database.
+        if conn and conn.is_connected(): conn.rollback()
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
     
-    # GET request
     return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data={}, languages=languages)
 
 
@@ -139,9 +127,7 @@ def edit_main_package(package_id):
                 current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
 
-            # --- `conn.start_transaction()` REMOVED ---
-            
-            # 1. Update the MainPackages table
+            conn.start_transaction()
             sql_main = """
                 UPDATE MainPackages SET
                 Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
@@ -154,21 +140,14 @@ def edit_main_package(package_id):
                 form_data.get('Notes'), 'IsActive' in form_data, package_id
             )
             cursor.execute(sql_main, params_main)
-            
-            # 2. Update languages by deleting old ones and inserting new ones
             cursor.execute("DELETE FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
-            
             sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (package_id, lang_id))
-            
-            # This is now ESSENTIAL. Without it, nothing will be saved.
             conn.commit()
-
             flash("Main Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
 
-        # GET Request
         cursor.execute("SELECT * FROM MainPackages WHERE PackageID = %s", (package_id,))
         form_data = cursor.fetchone()
         if not form_data:
@@ -177,12 +156,10 @@ def edit_main_package(package_id):
         
         cursor.execute("SELECT LanguageID FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
         form_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
-
         return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=form_data, package_id=package_id, languages=languages)
 
     except mysql.connector.Error as err:
-        # --- `conn.rollback()` REMOVED ---
-        # A failure here can leave data in a broken state.
+        if conn and conn.is_connected(): conn.rollback()
         flash(f"Database Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -196,7 +173,6 @@ def delete_main_package(package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        # Deleting from MainPackages will cascade to SubPackages and then to Enrollments if configured
         cursor.execute("DELETE FROM MainPackages WHERE PackageID = %s", (package_id,))
         conn.commit()
         flash("Main Package and all its sub-packages have been deleted.", "success")
@@ -208,14 +184,13 @@ def delete_main_package(package_id):
     return redirect(url_for('.list_all_packages'))
 
 
+# --- Sub-Package CRUD (Unchanged) ---
 @package_mgmt_bp.route('/sub-package/add/<int:main_package_id>', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_sub_package(main_package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # Fetch parent package's languages to determine form layout
         cursor.execute("""
             SELECT l.LanguageID, l.LanguageName 
             FROM MainPackageLanguages mpl
@@ -233,25 +208,17 @@ def add_sub_package(main_package_id):
             form_data = request.form
             if not form_data.get('Name'):
                 flash("Sub-Package Name is required.", "danger")
-                # Re-render form with entered data and necessary language info
                 return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
-                                       title="Add New Sub-Package", 
-                                       form_data=form_data, 
-                                       main_package_id=main_package_id,
-                                       main_package_languages=main_package_languages)
+                                       title="Add New Sub-Package", form_data=form_data, 
+                                       main_package_id=main_package_id, main_package_languages=main_package_languages)
             
-            # The backend logic can remain simple. The template ensures the correct
-            # form fields (NumSessionsMonolingual/Bilingual) are submitted.
             sql = """
                 INSERT INTO SubPackages (MainPackageID, Name, Description, Price, NumSessionsMonolingual, NumSessionsBilingual, MonolingualDetails, BilingualDetails, IsActive, DisplayOrder, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             price = decimal.Decimal(form_data['Price']) if form_data.get('Price') else decimal.Decimal('0.00')
-            
-            # Get monolingual and bilingual session counts. .get() with a default handles cases where a field isn't submitted.
             num_mono = form_data.get('NumSessionsMonolingual', 0)
             num_bi = form_data.get('NumSessionsBilingual', 0)
-
             params = (
                 main_package_id, form_data['Name'], form_data.get('Description'),
                 price, num_mono, num_bi,
@@ -263,12 +230,9 @@ def add_sub_package(main_package_id):
             flash("Sub-Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
             
-        # GET Request
         return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
-                               title="Add New Sub-Package", 
-                               form_data={}, 
-                               main_package_id=main_package_id,
-                               main_package_languages=main_package_languages)
+                               title="Add New Sub-Package", form_data={}, 
+                               main_package_id=main_package_id, main_package_languages=main_package_languages)
 
     except (mysql.connector.Error, decimal.InvalidOperation) as err:
         if conn and conn.is_connected(): conn.rollback()
@@ -278,7 +242,6 @@ def add_sub_package(main_package_id):
             cursor.close()
             conn.close()
     
-    # Fallback redirect
     return redirect(url_for('.list_all_packages'))
 
 
@@ -288,8 +251,6 @@ def edit_sub_package(sub_package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # GET Request or POST validation failure: Fetch sub-package and its parent's languages
         cursor.execute("SELECT * FROM SubPackages WHERE SubPackageID = %s", (sub_package_id,))
         form_data = cursor.fetchone()
         if not form_data:
@@ -309,12 +270,9 @@ def edit_sub_package(sub_package_id):
             form_data_from_post = request.form
             if not form_data_from_post.get('Name'):
                 flash("Sub-Package Name is required.", "danger")
-                # On failure, render with the original data but pass language info
                 return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
-                                       title="Edit Sub-Package", 
-                                       form_data=form_data, 
-                                       sub_package_id=sub_package_id,
-                                       main_package_languages=main_package_languages)
+                                       title="Edit Sub-Package", form_data=form_data, 
+                                       sub_package_id=sub_package_id, main_package_languages=main_package_languages)
             
             sql = """
                 UPDATE SubPackages SET
@@ -323,10 +281,8 @@ def edit_sub_package(sub_package_id):
                 WHERE SubPackageID = %s
             """
             price = decimal.Decimal(form_data_from_post['Price']) if form_data_from_post.get('Price') else decimal.Decimal('0.00')
-
             num_mono = form_data_from_post.get('NumSessionsMonolingual', 0)
             num_bi = form_data_from_post.get('NumSessionsBilingual', 0)
-
             params = (
                 form_data_from_post['Name'], form_data_from_post.get('Description'), price,
                 num_mono, num_bi,
@@ -338,12 +294,9 @@ def edit_sub_package(sub_package_id):
             flash("Sub-Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
         
-        # GET Request (initial load)
         return render_template('agency_staff_portal/courses/add_edit_sub_package.html', 
-                               title="Edit Sub-Package", 
-                               form_data=form_data, 
-                               sub_package_id=sub_package_id,
-                               main_package_languages=main_package_languages)
+                               title="Edit Sub-Package", form_data=form_data, 
+                               sub_package_id=sub_package_id, main_package_languages=main_package_languages)
     
     except (mysql.connector.Error, decimal.InvalidOperation) as err:
         if conn and request.method == 'POST' and conn.is_connected(): conn.rollback()
@@ -367,7 +320,7 @@ def delete_sub_package(sub_package_id):
         flash("Sub-Package deleted successfully.", "success")
     except mysql.connector.Error as err:
         if conn and conn.is_connected(): conn.rollback()
-        if err.errno == 1451: # Foreign key constraint fails
+        if err.errno == 1451:
             flash("Cannot delete this sub-package as there are active enrollments. Please deactivate it instead.", "danger")
         else:
             flash(f"A database error occurred: {err.msg}", "danger")
@@ -376,23 +329,23 @@ def delete_sub_package(sub_package_id):
     return redirect(url_for('.list_all_packages'))
 
 
-# --- Dashboard & Enrollments ---
+# --- Dashboard & Enrollments (UPDATED SECTION) ---
 @package_mgmt_bp.route('/dashboard')
 @login_required_with_role(PACKAGE_VIEW_ROLES)
 def packages_dashboard():
     dashboard_data = {
         'total_sales_revenue': decimal.Decimal('0.00'),
         'ongoing_students': 0, 'graduated_students': 0, 'active_packages': 0,
-        'pending_applications': 0, 'default_currency': 'EGP'
+        'pending_applications': 0, 'default_currency': 'EGP', 'rejected_applications': 0
     }
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # KPI 1: Active Sub-Packages (the purchasable items)
+        # KPI 1: Active Sub-Packages
         cursor.execute("SELECT COUNT(*) as package_count FROM SubPackages WHERE IsActive = 1")
         dashboard_data['active_packages'] = cursor.fetchone()['package_count']
         
-        # KPI 2: Total Sales Revenue (from confirmed enrollments on sub-packages)
+        # KPI 2: Total Sales Revenue
         cursor.execute("""
             SELECT SUM(sp.Price) as total_revenue
             FROM CourseEnrollments ce
@@ -403,15 +356,20 @@ def packages_dashboard():
         if sales and sales['total_revenue']:
             dashboard_data['total_sales_revenue'] = sales['total_revenue']
         
-        # KPIs 3, 4, 5 query CourseEnrollments directly and need no structural change
+        # Other KPIs
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'InProgress'")
         dashboard_data['ongoing_students'] = cursor.fetchone()['count']
         
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'Completed'")
         dashboard_data['graduated_students'] = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Applied'")
+        # PENDING now includes 'Applied' and 'PendingPayment'
+        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status IN ('Applied', 'PendingPayment')")
         dashboard_data['pending_applications'] = cursor.fetchone()['count']
+
+        # NEW KPI for Rejected
+        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Cancelled'")
+        dashboard_data['rejected_applications'] = cursor.fetchone()['count']
         
     except Exception as e:
         current_app.logger.error(f"Error fetching package dashboard data: {e}", exc_info=True)
@@ -423,6 +381,8 @@ def packages_dashboard():
                            title='Packages Dashboard', 
                            dashboard_data=dashboard_data)
 
+
+# UPDATED to show 'Applied' and 'PendingPayment' statuses
 @package_mgmt_bp.route('/enrollment-requests')
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def manage_enrollment_requests():
@@ -430,42 +390,106 @@ def manage_enrollment_requests():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # SQL updated to join on SubPackages and MainPackages for full context
         sql = """
             SELECT 
-                ce.EnrollmentID,
-                ce.EnrollmentDate AS ApplicationDate,
-                ce.Notes,
-                sp.Name AS SubPackageName,
-                mp.Name AS MainPackageName,
-                u.FirstName AS CandidateFirstName,
-                u.LastName AS CandidateLastName,
-                u.Email AS CandidateEmail,
-                u.PhoneNumber AS CandidatePhone
+                ce.EnrollmentID, ce.Status, ce.EnrollmentDate AS ApplicationDate, ce.Notes,
+                sp.Name AS SubPackageName, mp.Name AS MainPackageName,
+                u.FirstName AS CandidateFirstName, u.LastName AS CandidateLastName,
+                u.Email AS CandidateEmail, u.PhoneNumber AS CandidatePhone
             FROM CourseEnrollments ce
             JOIN SubPackages sp ON ce.SubPackageID = sp.SubPackageID
             JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
             JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
             JOIN Users u ON cand.UserID = u.UserID
-            WHERE ce.Status = 'Applied'
+            WHERE ce.Status IN ('Applied', 'PendingPayment')
             ORDER BY ce.EnrollmentDate ASC
         """
         cursor.execute(sql)
         applications = cursor.fetchall()
     except Exception as e:
-        current_app.logger.error(f"Error fetching enrollment requests: {e}", exc_info=True)
-        flash("Could not load enrollment requests.", "danger")
+        current_app.logger.error(f"Error fetching pending enrollment requests: {e}", exc_info=True)
+        flash("Could not load pending enrollment requests.", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
             
     return render_template('agency_staff_portal/courses/manage_enrollments.html', 
-                           title='Manage Enrollment Requests', 
+                           title='Manage Pending Enrollments', 
                            applications=applications)
+
+
+# NEW ROUTE for approved applications
+@package_mgmt_bp.route('/enrollments/approved')
+@login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
+def manage_approved_enrollments():
+    applications = []
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT 
+                ce.EnrollmentID, ce.Status, ce.EnrollmentDate AS ApplicationDate, ce.Notes,
+                sp.Name AS SubPackageName, mp.Name AS MainPackageName,
+                u.FirstName AS CandidateFirstName, u.LastName AS CandidateLastName,
+                u.Email AS CandidateEmail, u.PhoneNumber AS CandidatePhone
+            FROM CourseEnrollments ce
+            JOIN SubPackages sp ON ce.SubPackageID = sp.SubPackageID
+            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            WHERE ce.Status IN ('Enrolled', 'InProgress', 'Completed')
+            ORDER BY ce.UpdatedAt DESC
+        """
+        cursor.execute(sql)
+        applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching approved enrollments: {e}", exc_info=True)
+        flash("Could not load approved enrollments.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+            
+    return render_template('agency_staff_portal/courses/approved_enrollments.html', 
+                           title='Approved & Active Enrollments', 
+                           applications=applications)
+
+
+# NEW ROUTE for rejected applications
+@package_mgmt_bp.route('/enrollments/rejected')
+@login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
+def manage_rejected_enrollments():
+    applications = []
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT 
+                ce.EnrollmentID, ce.Status, ce.EnrollmentDate AS ApplicationDate, ce.Notes,
+                sp.Name AS SubPackageName, mp.Name AS MainPackageName,
+                u.FirstName AS CandidateFirstName, u.LastName AS CandidateLastName,
+                u.Email AS CandidateEmail, u.PhoneNumber AS CandidatePhone
+            FROM CourseEnrollments ce
+            JOIN SubPackages sp ON ce.SubPackageID = sp.SubPackageID
+            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            WHERE ce.Status = 'Cancelled'
+            ORDER BY ce.UpdatedAt DESC
+        """
+        cursor.execute(sql)
+        applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching rejected enrollments: {e}", exc_info=True)
+        flash("Could not load rejected enrollments.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+            
+    return render_template('agency_staff_portal/courses/rejected_enrollments.html', 
+                           title='Rejected & Cancelled Enrollments', 
+                           applications=applications)
+
 
 @package_mgmt_bp.route('/enrollment/update-status/<int:enrollment_id>', methods=['POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def update_enrollment_status(enrollment_id):
-    # This function is generic and does not depend on the course/package structure, so it remains unchanged.
     new_status = request.form.get('status')
     allowed_statuses = ['Enrolled', 'PendingPayment', 'Cancelled', 'InProgress', 'Completed']
     
@@ -492,8 +516,12 @@ def update_enrollment_status(enrollment_id):
     finally:
         if conn and conn.is_connected(): conn.close()
             
+    # Intelligent redirect based on where the user came from
     referer = request.headers.get("Referer")
-    if referer and 'enrollment-requests' in referer:
-        return redirect(url_for('.manage_enrollment_requests'))
+    if referer:
+        if 'enrollments/approved' in referer:
+            return redirect(url_for('.manage_approved_enrollments'))
+        if 'enrollment-requests' in referer:
+             return redirect(url_for('.manage_enrollment_requests'))
     
     return redirect(url_for('.packages_dashboard'))
