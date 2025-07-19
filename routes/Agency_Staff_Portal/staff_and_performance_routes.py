@@ -2,18 +2,13 @@
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app , jsonify
 from flask_login import current_user
-# --- UPDATED IMPORT: The single source of truth for portal access ---
 from utils.decorators import login_required_with_role, MANAGERIAL_PORTAL_ROLES
 from db import get_db_connection
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import mysql.connector
 import random
 import re
 
-from werkzeug.security import check_password_hash # Add this import at the top
-
-# This blueprint is a unified module for all staff, team, and performance management.
-# It is only accessible to users with roles in MANAGERIAL_PORTAL_ROLES.
 staff_perf_bp = Blueprint('staff_perf_bp', __name__,
                           template_folder='../../../templates',
                           url_prefix='/managerial/staff-performance')
@@ -76,7 +71,7 @@ def list_all_staff():
 @staff_perf_bp.route('/add-staff', methods=['GET', 'POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def add_staff():
-    """Provides a form to add a new User and corresponding Staff entry."""
+    """Provides a form to add a new User and Staff entry, creating them as PENDING."""
     errors, form_data = {}, {}
     conn_data = get_db_connection()
     cursor_data = conn_data.cursor()
@@ -104,21 +99,99 @@ def add_staff():
             if not errors:
                 hashed_password = generate_password_hash(password)
                 cursor = conn.cursor()
-                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 1)", (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
+                # [MODIFIED] New users are now created as IsActive = 0 (pending)
+                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 0)", (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
                 user_id = cursor.lastrowid
                 cursor.execute("INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)", (user_id, form_data.get('role'), form_data.get('employee_id')))
                 conn.commit()
-                flash(f"Staff member '{form_data.get('first_name')}' created successfully!", "success")
-                return redirect(url_for('.list_all_staff'))
+                # [MODIFIED] Flash message and redirect are updated
+                flash(f"Staff member '{form_data.get('first_name')}' created. They are now awaiting activation.", "success")
+                return redirect(url_for('.list_pending_staff'))
         except Exception as e:
             if conn: conn.rollback()
             flash(f"An error occurred while creating the new staff member: {e}", "danger")
         finally:
-            if conn.is_connected(): conn.close()
+            if conn and conn.is_connected(): conn.close()
     
     return render_template('agency_staff_portal/staff/add_staff.html',
                            title="Add New Staff Member",
                            errors=errors, form_data=form_data, possible_roles=possible_roles)
+
+# [NEW] Route to list pending staff members
+@staff_perf_bp.route('/pending-registrations')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def list_pending_staff():
+    """Displays a list of all staff members awaiting activation (IsActive=0)."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.RegistrationDate, s.Role
+        FROM Users u
+        JOIN Staff s ON u.UserID = s.UserID
+        WHERE u.IsActive = 0
+        ORDER BY u.RegistrationDate ASC
+    """)
+    pending_staff = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/pending_staff_registrations.html',
+                           title="Pending Staff Registrations",
+                           pending_staff=pending_staff)
+
+
+# [NEW] Route to activate a staff member
+@staff_perf_bp.route('/staff/<int:staff_id>/activate', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def activate_staff(staff_id):
+    """Sets a user's IsActive flag to 1."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Users u
+            JOIN Staff s ON u.UserID = s.UserID
+            SET u.IsActive = 1
+            WHERE s.StaffID = %s
+        """, (staff_id,))
+        conn.commit()
+        flash("Staff member has been activated successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error activating StaffID {staff_id}: {e}")
+        flash("An error occurred during activation.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    
+    return redirect(request.referrer or url_for('.list_all_staff'))
+
+
+# [NEW] Route to deactivate a staff member
+@staff_perf_bp.route('/staff/<int:staff_id>/deactivate', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def deactivate_staff(staff_id):
+    """Sets a user's IsActive flag to 0 and removes them from reporting lines."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE Users u
+            JOIN Staff s ON u.UserID = s.UserID
+            SET u.IsActive = 0
+            WHERE s.StaffID = %s
+        """, (staff_id,))
+        
+        # Also remove them as a manager for any direct reports
+        cursor.execute("UPDATE Staff SET ReportsToStaffID = NULL WHERE ReportsToStaffID = %s", (staff_id,))
+        
+        conn.commit()
+        flash("Staff member has been deactivated.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error deactivating StaffID {staff_id}: {e}")
+        flash("An error occurred during deactivation.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return redirect(url_for('.list_all_staff'))
 
 # --- REFACTORED: This route now serves both manager view and self-view ---
 @staff_perf_bp.route('/profile/<int:user_id_viewing>')
@@ -282,26 +355,20 @@ def api_team_hierarchy():
     conn.close()
 
     # The root of our organization chart
-    # This node's 'id' should be the parentId of the top-level leader (e.g., the CEO)
-    # or a unique value like 0 or None if the CEO has a NULL ReportsToStaffID.
-    # The name is what will be displayed for the root.
     root_node = {
-        'id': None,  # Corresponds to a NULL ReportsToStaffID for the top leader
-        'parentId': 'root', # A virtual parent for the absolute root
+        'id': None,
+        'parentId': 'root', 
         'FirstName': 'Mosla',
         'LastName': 'Pioneers',
         'Role': 'Organization',
-        'ProfilePictureURL': url_for('static', filename='images/company-logo.png') # Optional: use a company logo
+        'ProfilePictureURL': url_for('static', filename='images/company-logo.png')
     }
     
-    # Combine the virtual root with the actual staff data
     nodes.append(root_node)
 
-    # Convert the flat list into a hierarchical structure (tree)
-    # This is a standard algorithm for creating a tree from a parent-id list
     node_map = {node['id']: node for node in nodes}
     for node in nodes:
-        node['name'] = f"{node['FirstName']} {node['LastName']}" # D3 uses the 'name' key by default
+        node['name'] = f"{node['FirstName']} {node['LastName']}"
         parent_id = node.get('parentId')
         if parent_id in node_map:
             parent = node_map[parent_id]
@@ -309,7 +376,6 @@ def api_team_hierarchy():
                 parent['children'] = []
             parent['children'].append(node)
 
-    # Find the actual root of the tree (the one with the virtual parentId 'root')
     hierarchy_data = None
     for node in nodes:
         if node.get('parentId') == 'root':

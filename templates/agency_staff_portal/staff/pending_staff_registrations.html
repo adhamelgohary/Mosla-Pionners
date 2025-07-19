@@ -1,0 +1,63 @@
+{# templates/agency_staff_portal/staff/pending_staff_registrations.html #}
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-person-plus-fill text-gray-500"></i>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-base font-semibold leading-6 text-gray-900">Pending Staff</h1>
+            <p class="mt-2 text-sm text-gray-700">The following staff members have been added to the system and are awaiting activation. Once activated, they can log in.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Add New Staff
+            </a>
+        </div>
+    </div>
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Name</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Assigned Role</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date Added</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0"><span class="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for staff in pending_staff %}
+                        <tr>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ staff.FirstName }} {{ staff.LastName }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.Email }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.Role }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.RegistrationDate.strftime('%Y-%m-%d') if staff.RegistrationDate else 'N/A' }}</td>
+                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                <form action="{{ url_for('staff_perf_bp.activate_staff', staff_id=staff.StaffID) }}" method="POST">
+                                    <button type="submit" class="text-indigo-600 hover:text-indigo-900">Activate</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-gray-500">
+                                There are no pending staff registrations.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

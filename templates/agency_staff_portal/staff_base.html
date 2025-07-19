@@ -39,6 +39,7 @@
                                         <div class="py-1">
                                             <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Staff</a>
                                             <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Team Structure</a>
+                                            <a href="{{ url_for('staff_perf_bp.list_pending_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Pending Registrations</a>
                                             <a href="{{ url_for('staff_perf_bp.performance_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Performance Leaderboard</a>
                                             <a href="{{ url_for('staff_perf_bp.company_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Company Leaderboard</a>
                                         </div>
@@ -112,6 +113,7 @@
                 <div class="space-y-1 px-2 pb-3 pt-2">
                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
+                    <a href="{{ url_for('staff_perf_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Pending Registrations</a>
                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Job Offers</a>
                     <!-- === UPDATED: Mobile Link === -->
                     <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Packages</a>
