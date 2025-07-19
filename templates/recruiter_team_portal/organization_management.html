@@ -94,7 +94,7 @@
         </div>
     </div>
 
-    <!-- Section 3: Manage All Staff (REPLACES old assignment section) -->
+    <!-- Section 3: Manage All Staff -->
     <div class="bg-white p-6 rounded-lg shadow-sm border">
         <h2 class="text-xl font-semibold text-gray-900">Step 3: Manage Staff Assignments & Status</h2>
         <p class="text-sm text-gray-600 mt-1">A complete overview of all sourcing division staff. Assign roles, teams, and manage account status here.</p>
@@ -116,27 +116,33 @@
                         <td class="py-3 text-sm text-gray-600">{{ member.Role }}</td>
                         <td class="py-3 text-sm text-gray-600">{{ member.TeamName or 'Unassigned' }}</td>
                         <td class="py-3">
-                            {# --- STATUS BADGE --- #}
+                            {# --- [FIXED] STATUS BADGE --- #}
                             <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
-                                {% if member.status == 'Active' %}bg-green-50 text-green-700 ring-green-600/20
-                                {% elif member.status == 'Inactive' %}bg-red-50 text-red-700 ring-red-600/20
-                                {% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">
-                                {{ member.status }}
+                                {% if member.IsActive %}bg-green-50 text-green-700 ring-green-600/20
+                                {% else %}bg-red-50 text-red-700 ring-red-600/20{% endif %}">
+                                {% if member.IsActive %}Active{% else %}Inactive{% endif %}
                             </span>
                         </td>
                         <td class="py-3 space-y-2">
-                            {# --- Form to change status --- #}
-                            <form action="{{ url_for('recruiter_bp.manage_staff_status') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
-                                <select name="new_status" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                    <option value="Active" {% if member.status == 'Active' %}selected{% endif %}>Active</option>
-                                    <option value="Inactive" {% if member.status == 'Inactive' %}selected{% endif %}>Inactive</option>
-                                </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Set Status</button>
-                            </form>
+                            {# --- [FIXED] Forms to change status --- #}
+                            <div class="flex gap-x-4">
+                                <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Profile</a>
+                                
+                                {% if member.IsActive %}
+                                    <form action="{{ url_for('recruiter_bp.deactivate_staff') }}" method="POST">
+                                        <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
+                                        <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-medium">Deactivate</button>
+                                    </form>
+                                {% else %}
+                                    <form action="{{ url_for('recruiter_bp.activate_staff_member') }}" method="POST">
+                                        <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
+                                        <button type="submit" class="text-green-600 hover:text-green-900 text-sm font-medium">Activate</button>
+                                    </form>
+                                {% endif %}
+                            </div>
 
-                            {# --- Form to assign to team (only for recruiters) --- #}
-                            {% if member.Role == 'SourcingRecruiter' and member.status == 'Active' %}
+                            {# --- [FIXED] Form to assign to team (only for recruiters) --- #}
+                            {% if member.Role == 'SourcingRecruiter' and member.IsActive %}
                             <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="recruiter_staff_id" value="{{ member.StaffID }}">
                                 <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>

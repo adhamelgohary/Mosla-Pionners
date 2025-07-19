@@ -789,15 +789,18 @@ def list_pending_staff():
                            pending_users=pending_staff)
 
 
+# in routes/Recruiter_Team_Portal/recruiter_routes.py
+
 @recruiter_bp.route('/activate-staff', methods=['POST'])
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def activate_staff_member():
     """
     Activates a staff member by setting IsActive = 1 in the Users table
-    and confirming their initial role in the Staff table.
+    and can optionally set an initial role if one is provided.
     """
     staff_id = request.form.get('staff_id')
-    initial_role = request.form.get('initial_role', 'SourcingRecruiter')
+    # [MODIFIED] The initial_role is now optional.
+    initial_role = request.form.get('initial_role') 
 
     if not staff_id:
         flash("Staff ID is missing.", "danger")
@@ -807,19 +810,22 @@ def activate_staff_member():
     try:
         cursor = conn.cursor()
         
-        # Step 1: Activate the user in the Users table using their StaffID to find them.
         cursor.execute("""
             UPDATE Users u
             JOIN Staff s ON u.UserID = s.UserID
             SET u.IsActive = 1
-            WHERE s.StaffID = %s AND u.IsActive = 0
+            WHERE s.StaffID = %s
         """, (staff_id,))
         
         if cursor.rowcount == 0:
-            flash("User not found or was already active.", "warning")
+            flash("User not found.", "warning")
         else:
-            # Step 2: Ensure their initial role is set in the Staff table.
-            cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (initial_role, staff_id))
+            # [MODIFIED] Only update the role if an initial_role was passed in the form.
+            # This makes the function safe for re-activating users from the org page
+            # without resetting their role.
+            if initial_role:
+                cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (initial_role, staff_id))
+            
             conn.commit()
             flash("Staff member successfully activated.", "success")
             
@@ -830,7 +836,8 @@ def activate_staff_member():
         if cursor: cursor.close()
         if conn: conn.close()
 
-    return redirect(url_for('.list_pending_staff'))
+    # [MODIFIED] Redirect back to the referrer (e.g., org page or pending users page)
+    return redirect(request.referrer or url_for('.list_pending_staff'))
 
 
 @recruiter_bp.route('/organization/deactivate-staff', methods=['POST'])
