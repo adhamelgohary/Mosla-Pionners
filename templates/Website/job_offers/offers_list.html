@@ -8,12 +8,12 @@
     <div class="bg-card p-6 sm:p-8 rounded-2xl shadow-lg mb-8 border border-border">
         <h1 class="text-2xl sm:text-3xl font-bold text-heading">Jobs Curated For You</h1>
         
-        {# --- UPDATED: Display new filtering criteria from candidate's profile --- #}
         <p class="mt-2 text-text-muted">
             Based on your profile, we've filtered these openings to match your skills.
         </p>
         {% if candidate_profile %}
-        {% set edu_status_map = {'grad': 'Graduate', 'ungrad': 'Undergraduate / Student', 'dropout': 'Dropout', 'gap_year': 'Gap Year'} %}
+        {# --- This map now includes all possible values from the new schema --- #}
+        {% set edu_status_map = {'grad': 'Graduate', 'undergrad': 'Undergraduate', 'gap_year': 'Gap Year', 'dropped-out': 'Dropped Out', 'vocational': 'Vocational Training'} %}
         <div class="mt-3 text-sm text-text-muted border-l-4 border-primary/50 pl-4 py-1">
             <p><strong>Your Profile:</strong></p>
             <ul class="list-disc list-inside ml-1">
