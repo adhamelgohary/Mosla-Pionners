@@ -2460,6 +2460,10 @@ html[data-theme="dark"] {
   max-width: 56rem;
 }
 
+.max-w-6xl {
+  max-width: 72rem;
+}
+
 .max-w-7xl {
   max-width: 80rem;
 }
@@ -3189,10 +3193,6 @@ html[data-theme="dark"] {
   background-color: rgb(107 114 128 / var(--tw-bg-opacity, 1));
 }
 
-.bg-gray-900\/90 {
-  background-color: rgb(17 24 39 / 0.9);
-}
-
 .bg-green-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
@@ -3524,6 +3524,11 @@ html[data-theme="dark"] {
 .px-6 {
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
 }
 
 .py-0\.5 {
@@ -5053,6 +5058,10 @@ body {
   cursor: not-allowed;
 }
 
+.disabled\:cursor-wait:disabled {
+  cursor: wait;
+}
+
 .disabled\:opacity-50:disabled {
   opacity: 0.5;
 }
@@ -5445,6 +5454,11 @@ body {
     line-height: 2.25rem;
   }
 
+  .sm\:text-4xl {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+
   .sm\:text-9xl {
     font-size: 8rem;
     line-height: 1;
@@ -5482,6 +5496,11 @@ body {
   .sm\:text-3xl {
     font-size: clamp(1.802032470703125rem, calc(1.802032470703125rem + ((2.5919999999999996 - 1.802032470703125) * ((100vw - 20rem) / (96 - 20)))), 2.5919999999999996rem);
     line-height: 1.2;
+  }
+
+  .sm\:text-4xl {
+    font-size: clamp(2.0272865295410156rem, calc(2.0272865295410156rem + ((3.1103999999999994 - 2.0272865295410156) * ((100vw - 20rem) / (96 - 20)))), 3.1103999999999994rem);
+    line-height: 1.1;
   }
 
   .sm\:text-9xl {
@@ -5618,10 +5637,6 @@ body {
     --tw-space-y-reverse: 0;
     margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
     margin-bottom: calc(2rem * var(--tw-space-y-reverse));
-  }
-
-  .lg\:p-10 {
-    padding: 2.5rem;
   }
 
   .lg\:p-6 {
