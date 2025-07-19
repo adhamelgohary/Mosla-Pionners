@@ -1,145 +1,104 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-grid-1x2-fill"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="container-fluid">
-
-    <!-- Page Heading -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">{{ title }}</h1>
-        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm">
-            <i class="fas fa-list-alt fa-sm text-white-50"></i> Manage Packages
+<div class="space-y-6">
+    <!-- Quick Action Buttons -->
+    <div class="flex flex-wrap items-center gap-3">
+        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="btn-primary">
+            <i class="bi bi-hourglass-split mr-2"></i> View Pending ({{ dashboard_data.pending_applications }})
+        </a>
+        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="btn-secondary">
+            <i class="bi bi-check2-circle mr-2"></i> View Approved
+        </a>
+        <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="btn-secondary">
+            <i class="bi bi-x-circle mr-2"></i> View Rejected
+        </a>
+        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="btn-secondary ml-auto">
+            <i class="bi bi-collection mr-2"></i> Manage All Packages
         </a>
     </div>
 
-    <!-- Quick Links / Management Views -->
-    <div class="mb-4">
-        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="btn btn-warning shadow-sm">
-            <i class="fas fa-hourglass-half fa-sm text-white-50"></i> View Pending Enrollments
-        </a>
-        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="btn btn-success shadow-sm">
-            <i class="fas fa-check-circle fa-sm text-white-50"></i> View Approved Enrollments
-        </a>
-        <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="btn btn-danger shadow-sm">
-            <i class="fas fa-times-circle fa-sm text-white-50"></i> View Rejected Enrollments
-        </a>
-    </div>
-
-    <!-- Content Row - KPI Cards -->
-    <div class="row">
-
-        <!-- Total Sales Revenue -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Sales Revenue</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.total_sales_revenue|round(2) }} {{ dashboard_data.default_currency }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
+    <!-- Bento Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Main Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Large Card: Total Sales Revenue -->
+            <div class="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Sales Revenue</p>
+                        <p class="text-4xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ "%.2f"|format(dashboard_data.total_sales_revenue) }}</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500">{{ dashboard_data.default_currency }} from confirmed enrollments</p>
+                    </div>
+                    <div class="bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 p-3 rounded-full">
+                        <i class="bi bi-cash-stack text-2xl"></i>
                     </div>
                 </div>
+            </div>
+
+            <!-- Two Smaller Cards in a Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Ongoing Students Card -->
+                <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="block p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transform transition hover:-translate-y-1">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ongoing Students</p>
+                        <i class="bi bi-person-workspace text-xl text-blue-400"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ dashboard_data.ongoing_students }}</p>
+                </a>
+
+                <!-- Graduated Students Card -->
+                <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="block p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 hover:border-green-400 dark:hover:border-green-500 transform transition hover:-translate-y-1">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Graduated Students</p>
+                        <i class="bi bi-mortarboard-fill text-xl text-green-400"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ dashboard_data.graduated_students }}</p>
+                </a>
             </div>
         </div>
 
-        <!-- Pending Applications Card (Clickable) -->
-        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pending Applications</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.pending_applications }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-comments fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
+        <!-- Sidebar Column -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Pending Applications Card -->
+            <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="block p-6 bg-amber-50 dark:bg-amber-900/40 rounded-xl shadow-md border border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-500 transform transition hover:-translate-y-1">
+                <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-amber-700 dark:text-amber-300">Pending Applications</p>
+                    <i class="bi bi-clock-history text-xl text-amber-500"></i>
                 </div>
-            </div>
-        </a>
-
-        <!-- Ongoing Students Card (Clickable) -->
-        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Ongoing Students
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.ongoing_students }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-clock fa-2x text-gray-300"></i>
-                        </div>
+                <p class="text-4xl font-bold text-amber-800 dark:text-amber-200 mt-2">{{ dashboard_data.pending_applications }}</p>
+                <p class="text-xs text-amber-600 dark:text-amber-400">Action Required</p>
+            </a>
+            
+            <!-- Other Stats in a single card -->
+            <div class="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Packages</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.active_packages }}</p>
                     </div>
+                    <i class="bi bi-box-seam text-2xl text-gray-400"></i>
                 </div>
-            </div>
-        </a>
-        
-        <!-- Graduated Students Card (Clickable) -->
-        <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Graduated Students</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.graduated_students }}</div>
+                <hr class="dark:border-slate-700">
+                <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="block">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rejected / Cancelled</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.rejected_applications }}</p>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
-                        </div>
+                        <i class="bi bi-x-circle text-2xl text-red-400"></i>
                     </div>
-                </div>
-            </div>
-        </a>
-
-        <!-- NEW: Rejected/Cancelled Applications Card (Clickable) -->
-        <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="col-xl-3 col-md-6 mb-4 text-decoration-none">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Rejected / Cancelled</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.rejected_applications }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-        
-        <!-- Active Packages Card -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-secondary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                Active Course Packages</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ dashboard_data.active_packages }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-cubes fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+                </a>
             </div>
         </div>
 
     </div>
-
-    <!-- Additional content like charts or recent activity can go here -->
-
 </div>
 {% endblock %}

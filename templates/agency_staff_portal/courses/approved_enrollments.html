@@ -1,58 +1,62 @@
-<!-- templates/agency_staff_portal/courses/approved_enrollments.html -->
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-check2-circle"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
-
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Listing All Approved, In-Progress, and Completed Enrollments</h6>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>Applicant Name</th>
-                            <th>Contact</th>
-                            <th>Package</th>
-                            <th>Application Date</th>
-                            <th>Status</th>
-                            <th>Notes</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for app in applications %}
-                        <tr>
-                            <td>{{ app.CandidateFirstName }} {{ app.CandidateLastName }}</td>
-                            <td>{{ app.CandidateEmail }}<br>{{ app.CandidatePhone }}</td>
-                            <td><strong>{{ app.MainPackageName }}</strong><br>{{ app.SubPackageName }}</td>
-                            <td>{{ app.ApplicationDate.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td><span class="badge badge-success">{{ app.Status }}</span></td>
-                            <td>{{ app.Notes }}</td>
-                            <td>
-                                <!-- Actions can be adapted here, e.g., to move from InProgress to Completed -->
-                                <form action="{{ url_for('package_mgmt_bp.update_enrollment_status', enrollment_id=app.EnrollmentID) }}" method="POST">
-                                    <select name="status" class="form-control mb-2">
-                                        <option value="InProgress" {% if app.Status == 'InProgress' %}selected{% endif %}>In Progress</option>
-                                        <option value="Completed" {% if app.Status == 'Completed' %}selected{% endif %}>Completed</option>
-                                        <option value="Cancelled" {% if app.Status == 'Cancelled' %}selected{% endif %}>Cancel</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center">No approved or active enrollments found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+{% set status_colors = {
+    'Enrolled': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+    'InProgress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+    'Completed': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300'
+} %}
+<div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+        <h3 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Approved, In-Progress, and Completed Enrollments</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <thead class="bg-gray-50 dark:bg-slate-700/50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Applicant</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Package</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                {% for app in applications %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ app.CandidateFirstName }} {{ app.CandidateLastName }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ app.CandidateEmail }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ app.MainPackageName }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ app.SubPackageName }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                         <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ status_colors.get(app.Status, 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300') }}">{{ app.Status }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <form action="{{ url_for('package_mgmt_bp.update_enrollment_status', enrollment_id=app.EnrollmentID) }}" method="POST" class="flex items-center space-x-2">
+                            <select name="status" class="form-select text-xs py-1 px-2">
+                                <option value="Enrolled" {% if app.Status == 'Enrolled' %}selected{% endif %}>Enrolled</option>
+                                <option value="InProgress" {% if app.Status == 'InProgress' %}selected{% endif %}>In Progress</option>
+                                <option value="Completed" {% if app.Status == 'Completed' %}selected{% endif %}>Completed</option>
+                                <option value="Cancelled">Cancel</option>
+                            </select>
+                            <button type="submit" class="btn-primary text-xs py-1 px-2">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center px-6 py-10 text-sm text-gray-500">No approved or active enrollments found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}

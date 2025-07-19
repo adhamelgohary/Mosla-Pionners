@@ -1,46 +1,49 @@
-<!-- templates/agency_staff_portal/courses/rejected_enrollments.html -->
-{% extends "agency_staff_portal/staff_base.html" %}
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-x-circle"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
-
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Listing All Rejected or Cancelled Enrollments</h6>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>Applicant Name</th>
-                            <th>Contact</th>
-                            <th>Package</th>
-                            <th>Application Date</th>
-                            <th>Status</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for app in applications %}
-                        <tr>
-                            <td>{{ app.CandidateFirstName }} {{ app.CandidateLastName }}</td>
-                            <td>{{ app.CandidateEmail }}<br>{{ app.CandidatePhone }}</td>
-                            <td><strong>{{ app.MainPackageName }}</strong><br>{{ app.SubPackageName }}</td>
-                            <td>{{ app.ApplicationDate.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td><span class="badge badge-danger">{{ app.Status }}</span></td>
-                            <td>{{ app.Notes }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center">No rejected enrollments found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+        <h3 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">Rejected & Cancelled Enrollments</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <thead class="bg-gray-50 dark:bg-slate-700/50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Applicant</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Package</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Application Date</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                {% for app in applications %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ app.CandidateFirstName }} {{ app.CandidateLastName }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ app.CandidateEmail }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ app.MainPackageName }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ app.SubPackageName }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ app.ApplicationDate.strftime('%Y-%m-%d %H:%M') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center rounded-md bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 px-2 py-1 text-xs font-medium ring-1 ring-inset">{{ app.Status }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center px-6 py-10 text-sm text-gray-500">No rejected enrollments found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
