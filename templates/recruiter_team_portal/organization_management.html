@@ -23,7 +23,15 @@
                     {% for unit in units %}
                     <tr>
                         <td class="py-3 font-medium">{{ unit.UnitName }}</td>
-                        <td class="py-3">{{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</td>
+                        <td class="py-3">
+                            {# [ENHANCEMENT] Add visual cue for unmanaged units #}
+                            {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}
+                            {% if not unit.UnitManagerStaffID %}
+                                <span class="ml-2 text-xs font-semibold text-yellow-800 bg-yellow-100 px-2 py-0.5 rounded-full">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> No Manager
+                                </span>
+                            {% endif %}
+                        </td>
                         <td class="py-3">
                             <form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
@@ -61,7 +69,15 @@
                     {% for team in teams %}
                     <tr>
                         <td class="py-3 font-medium">{{ team.TeamName }}</td>
-                        <td class="py-3">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</td>
+                        <td class="py-3">
+                            {# [ENHANCEMENT] Add visual cue for un-led teams #}
+                            {{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}
+                            {% if not team.TeamLeadStaffID %}
+                                <span class="ml-2 text-xs font-semibold text-yellow-800 bg-yellow-100 px-2 py-0.5 rounded-full">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> No Lead
+                                </span>
+                            {% endif %}
+                        </td>
                         <td class="py-3">{{ team.UnitName or 'N/A' }}</td>
                         <td class="py-3 space-y-2">
                              <form action="{{ url_for('recruiter_bp.assign_team_lead') }}" method="POST" class="flex gap-2 items-center">
@@ -116,7 +132,6 @@
                         <td class="py-3 text-sm text-gray-600">{{ member.Role }}</td>
                         <td class="py-3 text-sm text-gray-600">{{ member.TeamName or 'Unassigned' }}</td>
                         <td class="py-3">
-                            {# --- [FIXED] STATUS BADGE --- #}
                             <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
                                 {% if member.IsActive %}bg-green-50 text-green-700 ring-green-600/20
                                 {% else %}bg-red-50 text-red-700 ring-red-600/20{% endif %}">
@@ -124,7 +139,6 @@
                             </span>
                         </td>
                         <td class="py-3 space-y-2">
-                            {# --- [FIXED] Forms to change status --- #}
                             <div class="flex gap-x-4">
                                 <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Profile</a>
                                 
@@ -141,7 +155,6 @@
                                 {% endif %}
                             </div>
 
-                            {# --- [FIXED] Form to assign to team (only for recruiters) --- #}
                             {% if member.Role == 'SourcingRecruiter' and member.IsActive %}
                             <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="recruiter_staff_id" value="{{ member.StaffID }}">

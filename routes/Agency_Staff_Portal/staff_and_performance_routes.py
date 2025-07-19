@@ -164,14 +164,15 @@ def activate_staff(staff_id):
     return redirect(request.referrer or url_for('.list_all_staff'))
 
 
-# [NEW] Route to deactivate a staff member
 @staff_perf_bp.route('/staff/<int:staff_id>/deactivate', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def deactivate_staff(staff_id):
-    """Sets a user's IsActive flag to 0 and removes them from reporting lines."""
+    """Sets a user's IsActive flag to 0 and cleans up all structural links."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+        
+        # Step 1: Deactivate the user
         cursor.execute("""
             UPDATE Users u
             JOIN Staff s ON u.UserID = s.UserID
@@ -179,11 +180,18 @@ def deactivate_staff(staff_id):
             WHERE s.StaffID = %s
         """, (staff_id,))
         
-        # Also remove them as a manager for any direct reports
+        # Step 2: Remove them as a manager for any direct reports
         cursor.execute("UPDATE Staff SET ReportsToStaffID = NULL WHERE ReportsToStaffID = %s", (staff_id,))
         
+        # --- [NEW LOGIC] ---
+        # Step 3: Un-assign them as a Team Lead from any team they lead
+        cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = NULL WHERE TeamLeadStaffID = %s", (staff_id,))
+        
+        # Step 4: Un-assign them as a Unit Manager from any unit they manage
+        cursor.execute("UPDATE SourcingUnits SET UnitManagerStaffID = NULL WHERE UnitManagerStaffID = %s", (staff_id,))
+        
         conn.commit()
-        flash("Staff member has been deactivated.", "success")
+        flash("Staff member has been deactivated and removed from all structural roles.", "success")
     except Exception as e:
         if conn: conn.rollback()
         current_app.logger.error(f"Error deactivating StaffID {staff_id}: {e}")
@@ -254,6 +262,15 @@ def view_staff_profile(user_id_viewing):
 def update_role(staff_id_to_edit):
     user_id_redirect = request.form.get('user_id')
     new_role = request.form.get('role')
+    
+    # --- [NEW VALIDATION] ---
+    # These roles have structural implications and should only be assigned
+    # from the Recruiter Portal's Organization Management page.
+    structural_roles = ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
+    if new_role in structural_roles:
+        flash(f"The '{new_role}' role must be assigned from the Recruiter Portal's Organization page to ensure the structure is updated correctly.", "warning")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_edit))

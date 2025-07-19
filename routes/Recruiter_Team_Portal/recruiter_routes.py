@@ -685,6 +685,7 @@ def assign_team_to_unit():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        # Get the Unit Manager's StaffID
         cursor.execute("SELECT UnitManagerStaffID FROM SourcingUnits WHERE UnitID = %s", (unit_id,))
         unit = cursor.fetchone()
         if not unit or not unit['UnitManagerStaffID']:
@@ -692,15 +693,26 @@ def assign_team_to_unit():
             return redirect(url_for('.organization_management'))
 
         manager_staff_id = unit['UnitManagerStaffID']
+
+        # Assign team to unit
         cursor.execute("UPDATE SourcingTeams SET UnitID = %s WHERE TeamID = %s", (unit_id, team_id))
+        
+        # --- [MODIFIED LOGIC] ---
+        # Update the team lead to report to the unit manager ONLY IF they don't already have a manager.
         cursor.execute("""
             UPDATE Staff s
             JOIN SourcingTeams st ON s.StaffID = st.TeamLeadStaffID
             SET s.ReportsToStaffID = %s
-            WHERE st.TeamID = %s
+            WHERE st.TeamID = %s AND s.ReportsToStaffID IS NULL
         """, (manager_staff_id, team_id))
+        
+        # Check if the row was updated. If not, it means a manager was already assigned.
+        if cursor.rowcount == 0:
+            flash("Team assigned to unit. The Team Lead's existing manager was preserved.", "info")
+        else:
+            flash("Team assigned to unit and Team Lead now reports to the Unit Manager.", "success")
+
         conn.commit()
-        flash("Team assigned to unit successfully.", "success")
     except Exception as e:
         current_app.logger.error(f"Error assigning team to unit: {e}")
         flash(f"Error assigning team to unit: {e}", "danger")
