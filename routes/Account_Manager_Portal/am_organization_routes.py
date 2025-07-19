@@ -1,5 +1,6 @@
 # routes/Account_Manager_Portal/am_organization_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_user, abort
+from flask import Blueprint, render_template, request, flash, redirect, url_for, abort
+from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
 
@@ -77,7 +78,7 @@ def organization_management():
                            potential_team_leads=potential_team_leads)
 
 
-# --- Action Routes (No changes needed in the functions below, they are already generic) ---
+# --- Action Routes ---
 
 @am_org_bp.route('/create-unit', methods=['POST'])
 @login_required_with_role(AM_ORG_MANAGEMENT_ROLES)
@@ -118,8 +119,6 @@ def assign_am_unit_manager():
     try:
         cursor = conn.cursor()
         cursor.execute("UPDATE AccountManagerUnits SET UnitManagerStaffID = %s WHERE UnitID = %s", (manager_staff_id, unit_id))
-        # HeadAccountManagers report to the CEO/Founder, which is a manual assignment in the global staff portal
-        # For simplicity, we won't auto-assign a manager here, but you could set it to current_user.specific_role_id if desired.
         conn.commit()
         flash("AM Unit Manager assigned successfully.", "success")
     finally:
@@ -135,10 +134,8 @@ def assign_am_team_lead():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Assign the lead to the team
         cursor.execute("UPDATE AccountManagerTeams SET TeamLeadStaffID = %s WHERE TeamID = %s", (lead_staff_id, team_id))
         
-        # Auto-set reporting line to the Unit Manager
         cursor.execute("SELECT u.UnitManagerStaffID FROM AccountManagerTeams t JOIN AccountManagerUnits u ON t.UnitID = u.UnitID WHERE t.TeamID = %s", (team_id,))
         unit_info = cursor.fetchone()
         if unit_info and unit_info.get('UnitManagerStaffID'):
@@ -163,7 +160,6 @@ def assign_am_team_to_unit():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("UPDATE AccountManagerTeams SET UnitID = %s WHERE TeamID = %s", (unit_id, team_id))
         
-        # Auto-set reporting line for the team lead
         cursor.execute("SELECT u.UnitManagerStaffID, t.TeamLeadStaffID FROM AccountManagerTeams t JOIN AccountManagerUnits u ON t.UnitID = u.UnitID WHERE t.TeamID = %s", (team_id,))
         info = cursor.fetchone()
         if info and info.get('UnitManagerStaffID') and info.get('TeamLeadStaffID'):
