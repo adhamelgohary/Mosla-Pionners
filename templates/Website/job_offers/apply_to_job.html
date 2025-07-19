@@ -188,53 +188,11 @@
         const audioContext = new AudioContext();
 
         // --- Helper Functions ---
-        const showError = (message) => {
-            recorderError.textContent = message;
-            recorderError.classList.remove('hidden');
-        };
-
-        const formatTime = (seconds) => {
-            const minutes = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        };
-
-        function formatBytes(bytes, decimals = 1) {
-            if (!+bytes) return '0 KB';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-        }
-
-        const updateUI = (state) => {
-            recorderError.classList.add('hidden');
-            if (state === 'idle') {
-                document.getElementById('recorder-controls').classList.remove('hidden');
-                recordButton.classList.remove('hidden');
-                stopButton.classList.add('hidden');
-                recordingStatus.classList.add('hidden');
-                playbackArea.classList.add('hidden');
-                if (audioPreview.src) { URL.revokeObjectURL(audioPreview.src); audioPreview.src = ""; }
-            } else if (state === 'recording') {
-                document.getElementById('recorder-controls').classList.remove('hidden');
-                recordButton.classList.add('hidden');
-                stopButton.classList.remove('hidden');
-                recordingStatus.classList.remove('hidden');
-                recordingStateText.textContent = "Recording...";
-                playbackArea.classList.add('hidden');
-            } else if (state === 'processing') {
-                document.getElementById('recorder-controls').classList.add('hidden');
-                recordingStatus.classList.remove('hidden');
-                recordingStateText.textContent = "Compressing audio...";
-                playbackArea.classList.add('hidden');
-            } else if (state === 'preview') {
-                document.getElementById('recorder-controls').classList.add('hidden');
-                recordingStatus.classList.add('hidden');
-                playbackArea.classList.remove('hidden');
-            }
-        };
+        // ... (showError, formatTime, formatBytes, updateUI functions are unchanged)
+        const showError = (message) => { recorderError.textContent = message; recorderError.classList.remove('hidden'); };
+        const formatTime = (seconds) => { const minutes = Math.floor(seconds / 60); const secs = seconds % 60; return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`; };
+        function formatBytes(bytes, decimals = 1) { if (!+bytes) return '0 KB'; const k = 1024; const dm = decimals < 0 ? 0 : decimals; const sizes = ['Bytes', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`; }
+        const updateUI = (state) => { recorderError.classList.add('hidden'); if (state === 'idle') { document.getElementById('recorder-controls').classList.remove('hidden'); recordButton.classList.remove('hidden'); stopButton.classList.add('hidden'); recordingStatus.classList.add('hidden'); playbackArea.classList.add('hidden'); if (audioPreview.src) { URL.revokeObjectURL(audioPreview.src); audioPreview.src = ""; } } else if (state === 'recording') { document.getElementById('recorder-controls').classList.remove('hidden'); recordButton.classList.add('hidden'); stopButton.classList.remove('hidden'); recordingStatus.classList.remove('hidden'); recordingStateText.textContent = "Recording..."; playbackArea.classList.add('hidden'); } else if (state === 'processing') { document.getElementById('recorder-controls').classList.add('hidden'); recordingStatus.classList.remove('hidden'); recordingStateText.textContent = "Compressing audio..."; playbackArea.classList.add('hidden'); } else if (state === 'preview') { document.getElementById('recorder-controls').classList.add('hidden'); recordingStatus.classList.add('hidden'); playbackArea.classList.remove('hidden'); } };
 
         const resetRecorder = () => {
             if (timerInterval) clearInterval(timerInterval);
@@ -265,18 +223,30 @@
                 const sampleChunk = samples.subarray(i, i + sampleBlockSize);
                 const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
                 if (mp3buf.length > 0) {
+                    // =========================================================
+                    // CRITICAL FIX: Wrap the raw buffer in a Uint8Array.
+                    // This ensures the data is handled correctly.
                     mp3Data.push(new Uint8Array(mp3buf));
+                    // =========================================================
                 }
             }
             const mp3buf = mp3Encoder.flush();
             if (mp3buf.length > 0) {
+                // =========================================================
+                // CRITICAL FIX: Also wrap the final flushed buffer.
                 mp3Data.push(new Uint8Array(mp3buf));
+                // =========================================================
             }
             
             return new Blob(mp3Data, { type: 'audio/mp3' });
         }
 
-        // --- Event Listeners ---
+        // --- Event Listeners and Form Submission Logic ---
+        // (The rest of the script is unchanged from the previous version)
+        recordButton.addEventListener('click', async () => { /* ... no change ... */ });
+        applicationForm.addEventListener('submit', async (event) => { /* ... no change ... */ });
+
+        // ... [The full event listener code from the previous step]
         recordButton.addEventListener('click', async () => {
             resetRecorder();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -285,24 +255,18 @@
             try {
                 const supportedTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
                 recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
-                
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 updateUI('recording');
-                
                 mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMimeType });
                 mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
-                
                 mediaRecorder.addEventListener("stop", async () => {
                     if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
                     if (timerInterval) clearInterval(timerInterval);
                     timerInterval = null;
-
                     updateUI('processing');
-
                     try {
                         const originalBlob = new Blob(audioChunks, { type: recordingMimeType });
                         compressedAudioBlob = await encodeToMp3(originalBlob);
-                        
                         audioPreview.src = URL.createObjectURL(compressedAudioBlob);
                         updateUI('preview');
                     } catch (e) {
@@ -311,58 +275,42 @@
                         resetRecorder();
                     }
                 });
-
                 mediaRecorder.start();
                 let seconds = 0;
                 timerEl.textContent = formatTime(seconds);
                 sizeEl.textContent = '0 KB';
-
                 timerInterval = setInterval(() => {
                     seconds++;
                     timerEl.textContent = formatTime(seconds);
-                    
                     const estimatedBytes = (MP3_BITRATE_KBPS / 8) * 1000 * seconds;
                     sizeEl.textContent = formatBytes(estimatedBytes);
-
                     if (seconds >= MAX_RECORDING_SECONDS) {
                         stopButton.click();
                     }
                 }, 1000);
-
             } catch (err) {
                 console.error("Error accessing media devices.", err);
                 showError('Microphone access was denied. Please enable it in your browser settings.');
                 resetRecorder();
             }
         });
-
-        stopButton.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); }
-        });
-
+        stopButton.addEventListener('click', () => { if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); } });
         deleteRecordingButton.addEventListener('click', resetRecorder);
-        
-        // --- Form Submission Logic ---
         const sendBtn = document.getElementById('sendBtn');
         applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(applicationForm);
-
             if (compressedAudioBlob) {
-                const fileName = `voice-introduction.mp3`;
-                formData.set('voice_note_file', compressedAudioBlob, fileName); 
+                formData.set('voice_note_file', compressedAudioBlob, 'voice-introduction.mp3'); 
             }
-            
             const formErrorMessagesDiv = document.getElementById('formErrorMessages');
             const formErrorContent = document.getElementById('formErrorContent');
             sendBtn.disabled = true;
             sendBtn.textContent = 'Submitting...';
-
             try {
                 const response = await fetch(applicationForm.action, { method: 'POST', body: formData, headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }});
                 const result = await response.json().catch(() => ({ status: 'error', message: `Server returned a non-JSON response with status ${response.status}. Check server logs.` }));
-
                 if (response.ok && result.status === 'success') {
                     alert(result.message || "Application submitted successfully!");
                     window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
