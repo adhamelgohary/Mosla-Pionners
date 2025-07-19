@@ -1,0 +1,55 @@
+{% extends "Website/base.html" %}
+
+{% block title %}{{ title }} - Mosla Pioneers{% endblock %}
+
+{% block content %}
+<section class="application-form-section" style="padding: 4rem 20px; background-color: var(--background-color);">
+    <div class="container" style="max-width: 700px;">
+
+        <div class="form-container" style="background: var(--form-bg-color); padding: 2.5rem; border-radius: 16px; box-shadow: var(--card-shadow);">
+            
+            <!-- Form Header -->
+            <div class="form-header" style="text-align: center; margin-bottom: 2rem;">
+                <h1 style="color: var(--heading-color); font-size: 1.8rem; margin-bottom: 0.5rem;">Course Application</h1>
+                <p style="color: var(--text-muted);">You are applying for:</p>
+                <p style="font-weight: 600; font-size: 1.1rem; color: var(--primary-color);">
+                    {{ package.MainPackageName }}: {{ package.SubPackageName }}
+                </p>
+            </div>
+            
+            <!-- Application Form -->
+            <form method="POST" action="{{ url_for('courses_page_bp.submit_package_application', sub_package_id=package.SubPackageID) }}">
+                
+                <!-- Full Name (Read-only) -->
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name }}" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                </div>
+                
+                <!-- Email (Read-only) -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ form_data.email }}" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                </div>
+
+                <!-- Notes / Cover Letter -->
+                <div class="form-group">
+                    <label for="application_notes">Notes (Optional)</label>
+                    <textarea id="application_notes" name="application_notes" rows="5" placeholder="You can add a short message or explain why you are interested in this course."></textarea>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="form-group" style="margin-top: 2rem;">
+                    <button type="submit" class="submit-btn" style="width: 100%;">Submit Application</button>
+                </div>
+            </form>
+
+            <div class="form-footer" style="text-align: center; margin-top: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                    By submitting, you agree to our terms of service. We will review your application and contact you via email.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

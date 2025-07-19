@@ -4633,10 +4633,6 @@ body {
   --tw-ring-color: rgb(var(--primary-color-rgb) / var(--tw-ring-opacity, 1));
 }
 
-.focus\:ring-primary-darker:focus {
-  --tw-ring-color: var(--primary-color-darker);
-}
-
 .focus\:ring-red-500:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
