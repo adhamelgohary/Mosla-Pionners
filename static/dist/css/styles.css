@@ -3259,6 +3259,11 @@ html[data-theme="dark"] {
   background-color: rgb(220 38 38 / var(--tw-bg-opacity, 1));
 }
 
+.bg-sky-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(224 242 254 / var(--tw-bg-opacity, 1));
+}
+
 .bg-slate-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
@@ -3901,6 +3906,11 @@ html[data-theme="dark"] {
 .text-red-800 {
   --tw-text-opacity: 1;
   color: rgb(153 27 27 / var(--tw-text-opacity, 1));
+}
+
+.text-sky-600 {
+  --tw-text-opacity: 1;
+  color: rgb(2 132 199 / var(--tw-text-opacity, 1));
 }
 
 .text-slate-400 {
@@ -5498,6 +5508,10 @@ body {
   background-color: rgb(127 29 29 / 0.5);
 }
 
+.dark\:bg-sky-900\/50:where([data-theme="dark"], [data-theme="dark"] *) {
+  background-color: rgb(12 74 110 / 0.5);
+}
+
 .dark\:bg-slate-700:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-bg-opacity: 1;
   background-color: rgb(51 65 85 / var(--tw-bg-opacity, 1));
@@ -5636,6 +5650,11 @@ body {
 .dark\:text-red-500:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(239 68 68 / var(--tw-text-opacity, 1));
+}
+
+.dark\:text-sky-400:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-text-opacity: 1;
+  color: rgb(56 189 248 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-slate-100:where([data-theme="dark"], [data-theme="dark"] *) {

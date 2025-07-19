@@ -250,33 +250,77 @@ def api_get_all_offers():
 @job_offer_mgmt_bp.route('/dashboard')
 @login_required_with_role(JOB_OFFER_REVIEW_ROLES)
 def dashboard():
-    conn, kpis = None, {}
+    conn = None  # Initialize conn to None
+    kpis = {
+        'total_open_offers': 0,
+        'total_candidates_needed': 0,
+        'pending_submissions': 0,
+        'new_offers_this_month': 0,
+        'avg_time_to_fill': 'N/A',
+        'approval_rate': 'N/A',
+        'oldest_offer_title': 'No open offers',
+        'age_of_oldest_offer': 0,
+        'pending_applications': 0 # Ensure the new KPI is initialized
+    }
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        
+        # All KPI queries are organized here for clarity
         queries = {
             'total_open_offers': "SELECT COUNT(OfferID) as count FROM JobOffers WHERE Status = 'Open'",
             'total_candidates_needed': "SELECT SUM(CandidatesNeeded) as sum FROM JobOffers WHERE Status = 'Open'",
             'avg_time_to_fill': "SELECT AVG(DATEDIFF(FilledDate, DatePosted)) as avg_days FROM JobOffers WHERE Status = 'Filled' AND FilledDate IS NOT NULL AND DatePosted IS NOT NULL",
             'approval_rate': "SELECT (SUM(CASE WHEN ReviewStatus = 'Approved' THEN 1 ELSE 0 END) / COUNT(SubmissionID)) * 100 as approval_rate FROM ClientSubmittedJobOffers WHERE SubmissionDate >= DATE_SUB(NOW(), INTERVAL 90 DAY) AND ReviewStatus IN ('Approved', 'Rejected')",
             'pending_submissions': "SELECT COUNT(SubmissionID) as count FROM ClientSubmittedJobOffers WHERE ReviewStatus = 'Pending'",
-            'new_offers_this_month': "SELECT COUNT(OfferID) as count FROM JobOffers WHERE DatePosted >= DATE_FORMAT(NOW(), '%Y-%m-01')"
+            'new_offers_this_month': "SELECT COUNT(OfferID) as count FROM JobOffers WHERE DatePosted >= DATE_FORMAT(NOW(), '%Y-%m-01')",
+            # === NEW QUERY ADDED HERE ===
+            'pending_applications': "SELECT COUNT(*) as count FROM JobApplications WHERE Status = 'Applied'"
         }
+
+        # Loop through and execute the queries
         for key, sql in queries.items():
             cursor.execute(sql)
             res = cursor.fetchone()
-            if key == 'total_candidates_needed': kpis[key] = int(res['sum'] or 0) if res else 0
-            elif key == 'avg_time_to_fill': kpis[key] = round(res['avg_days'], 1) if res and res['avg_days'] is not None else 'N/A'
-            elif key == 'approval_rate': kpis[key] = f"{round(res['approval_rate'], 1)}%" if res and res['approval_rate'] is not None else 'N/A'
-            else: kpis[key] = res['count'] if res else 0
-        cursor.execute("SELECT jo.Title, c.CompanyName, DATEDIFF(NOW(), jo.DatePosted) as oldest_days FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE jo.Status = 'Open' ORDER BY jo.DatePosted ASC LIMIT 1")
+            if res:
+                if key == 'total_candidates_needed':
+                    kpis[key] = int(res.get('sum') or 0)
+                elif key == 'avg_time_to_fill':
+                    kpis[key] = round(res['avg_days'], 1) if res.get('avg_days') is not None else 'N/A'
+                elif key == 'approval_rate':
+                    kpis[key] = f"{round(res['approval_rate'], 1)}%" if res.get('approval_rate') is not None else 'N/A'
+                else:
+                    kpis[key] = res.get('count', 0)
+
+        # Query for the oldest open offer (remains the same)
+        cursor.execute("""
+            SELECT jo.Title, c.CompanyName, DATEDIFF(NOW(), jo.DatePosted) as oldest_days 
+            FROM JobOffers jo 
+            JOIN Companies c ON jo.CompanyID = c.CompanyID 
+            WHERE jo.Status = 'Open' 
+            ORDER BY jo.DatePosted ASC 
+            LIMIT 1
+        """)
         oldest = cursor.fetchone()
-        kpis.update({'age_of_oldest_offer': oldest['oldest_days'], 'oldest_offer_title': oldest['Title'], 'oldest_offer_company': oldest['CompanyName']} if oldest else {'age_of_oldest_offer': 'N/A', 'oldest_offer_title': 'No open offers', 'oldest_offer_company': ''})
+        if oldest:
+            kpis.update({
+                'age_of_oldest_offer': oldest['oldest_days'], 
+                'oldest_offer_title': oldest['Title'], 
+                'oldest_offer_company': oldest['CompanyName']
+            })
+        else:
+             kpis.update({
+                'age_of_oldest_offer': 'N/A', 
+                'oldest_offer_title': 'No open offers', 
+                'oldest_offer_company': ''
+             })
+        
         return render_template('agency_staff_portal/job_offers/dashboard.html', title="Job Offer Dashboard", kpis=kpis)
+
     except Exception as e:
         current_app.logger.error(f"Error building KPI dashboard: {e}", exc_info=True)
         flash("Could not load dashboard data.", "danger")
-        return render_template('agency_staff_portal/job_offers/dashboard.html', title="Error", kpis={}, error=True)
+        return render_template('agency_staff_portal/job_offers/dashboard.html', title="Error", kpis=kpis, error=True) # Pass initial kpis
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()

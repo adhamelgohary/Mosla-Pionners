@@ -7,7 +7,7 @@ import datetime
 import mysql.connector
 
 # Ensure these roles match your Staff.Role ENUM values
-ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'OperationsManager']
+ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'Founder']
 
 announcement_bp = Blueprint('announcement_bp', __name__,
                             url_prefix='/announcements')

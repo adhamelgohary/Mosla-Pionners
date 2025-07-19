@@ -3,7 +3,7 @@
 {% block staff_title %}{{ title }}{% endblock %}
 
 {% block staff_page_title %}
-    <i class="bi bi-speedometer2"></i> <span>{{ title }}</span>
+    <i class="bi bi-speedometer2"></i> <span class="fluid-text-lg font-semibold text-heading">{{ title }}</span>
 {% endblock %}
 
 {% block staff_content %}
@@ -51,6 +51,7 @@
                 <div class="rounded-lg p-3
                     {% if color == 'primary' %} bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400
                     {% elif color == 'warning' %} bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400
+                    {% elif color == 'sky' %} bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400
                     {% endif %}">
                     <i class="bi {{ icon }} h-6 w-6"></i>
                 </div>
@@ -59,21 +60,32 @@
         </a>
         {% endmacro %}
 
+        <!-- NEW KPI Card: Pending Job Applications -->
+        {{ kpi_card(
+            icon='bi-person-lines-fill',
+            title='Pending Job Applications',
+            value=kpis.pending_applications,
+            footer_text='Review applications',
+            footer_link=url_for('job_offer_mgmt_bp.list_applications_for_review'),
+            color='warning'
+        ) }}
+
         {{ kpi_card(
             icon='bi-briefcase-fill',
             title='Total Open Offers',
             value=kpis.total_open_offers,
             footer_text='View all offers',
-            footer_link=url_for('.list_all_job_offers')
+            footer_link=url_for('.list_all_job_offers'),
+            color='sky'
         ) }}
 
         {{ kpi_card(
             icon='bi-inbox-fill',
-            title='Pending Submissions',
+            title='Pending Client Submissions',
             value=kpis.pending_submissions,
-            footer_text='Review now',
+            footer_text='Review submissions',
             footer_link=url_for('.list_review_client_submissions'),
-            color='warning'
+            color='primary'
         ) }}
     </div>
 
