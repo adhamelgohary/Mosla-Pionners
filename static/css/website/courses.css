@@ -17,7 +17,7 @@
 /* Section styling for this page specifically */
 .page-wrapper-content section {
   padding-top: 80px; /* Offset for fixed header */
-  margin-top: -80px; /* Negative margin to keep layout */
+  margin-top:  80px; /* Negative margin to keep layout */
 }
 
 /* About Section on Courses Page */
