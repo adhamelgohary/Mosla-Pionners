@@ -47,9 +47,9 @@
                                 <a href="{{ url_for('account_manager_bp.my_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">
                                     My Staff
                                 </a>
-                                <a href="{{ url_for('job_offer_mgmt_bp.list_all_job_offers') }}" 
+                                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" 
                                    class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if request.blueprint == 'job_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
+                                          {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
                                     Offer Management
                                 </a>
                                 <a href="{{ url_for('am_org_bp.organization_management') }}" 
