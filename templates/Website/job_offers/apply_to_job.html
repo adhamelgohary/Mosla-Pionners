@@ -182,8 +182,8 @@
         let recorder = null;
         let compressedAudioBlob = null;
         let timerInterval = null;
-        const MAX_RECORDING_SECONDS = 140;
-        const MP3_BITRATE_KBPS = 128; // Standard quality for voice
+        const MAX_RECORDING_SECONDS = 180;
+        const MP3_BITRATE_KBPS = 64; // Standard quality for voice
 
         // --- Helper Functions ---
         const showError = (message) => { recorderError.textContent = message; recorderError.classList.remove('hidden'); };

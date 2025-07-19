@@ -106,6 +106,7 @@ app.jinja_env.filters['format_timedelta_to_time'] = format_timedelta_to_time
 # Configure the upload folder
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB limit
 
 # --- Configure Production Logging ---
 if not app.debug:
