@@ -3471,6 +3471,10 @@ html[data-theme="dark"] {
   padding-left: 2.5rem;
 }
 
+.pl-12 {
+  padding-left: 3rem;
+}
+
 .pl-3 {
   padding-left: 0.75rem;
 }
@@ -5318,6 +5322,11 @@ body {
 
 .dark\:bg-teal-900\/50:where([data-theme="dark"], [data-theme="dark"] *) {
   background-color: rgb(19 78 74 / 0.5);
+}
+
+.dark\:text-amber-300:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-text-opacity: 1;
+  color: rgb(252 211 77 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-blue-200:where([data-theme="dark"], [data-theme="dark"] *) {

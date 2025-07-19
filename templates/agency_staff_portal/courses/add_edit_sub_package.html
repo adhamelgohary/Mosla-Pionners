@@ -1,102 +1,116 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
-
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Sub-Package Details</h6>
-        </div>
-        <div class="card-body">
-            
-            <form method="POST" action="">
-                
-                <!-- Common Fields -->
-                <div class="form-group">
-                    <label for="Name">Sub-Package Name*</label>
-                    <input type="text" class="form-control" id="Name" name="Name" value="{{ form_data.Name or '' }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="Description">Description</label>
-                    <textarea class="form-control" id="Description" name="Description" rows="3">{{ form_data.Description or '' }}</textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="Price">Price</label>
-                        <div class="input-group">
-                             <div class="input-group-prepend">
-                                <span class="input-group-text">EGP</span>
-                            </div>
-                            <input type="number" step="0.01" class="form-control" id="Price" name="Price" value="{{ form_data.Price or '0.00' }}">
-                        </div>
-                    </div>
-                    <div class="form-group col-md-6">
-                        <label for="DisplayOrder">Display Order</label>
-                        <input type="number" class="form-control" id="DisplayOrder" name="DisplayOrder" value="{{ form_data.DisplayOrder or '0' }}">
-                        <small class="form-text text-muted">Lower numbers appear first.</small>
-                    </div>
-                </div>
-
-                <hr>
-                <h5 class="mb-3">Session Details</h5>
-
-                {# --- DYNAMIC SESSION FIELDS START --- #}
-                {% if main_package_languages|length == 1 %}
-                    {# Monolingual Case #}
-                    {% set lang = main_package_languages[0] %}
-                    <div class="form-group">
-                        <label for="NumSessionsMonolingual">Number of Sessions ({{ lang.LanguageName }})</label>
-                        <input type="number" class="form-control" id="NumSessionsMonolingual" name="NumSessionsMonolingual" value="{{ form_data.NumSessionsMonolingual or '0' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="MonolingualDetails">Details for {{ lang.LanguageName }} Sessions</label>
-                        <textarea class="form-control" id="MonolingualDetails" name="MonolingualDetails" rows="3">{{ form_data.MonolingualDetails or '' }}</textarea>
-                    </div>
-
-                {% elif main_package_languages|length >= 2 %}
-                    {# Bilingual Case - We use the first two languages #}
-                    {% set lang1 = main_package_languages[0] %}
-                    {% set lang2 = main_package_languages[1] %}
-                    <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="NumSessionsMonolingual">Number of Sessions ({{ lang1.LanguageName }})</label>
-                            <input type="number" class="form-control" id="NumSessionsMonolingual" name="NumSessionsMonolingual" value="{{ form_data.NumSessionsMonolingual or '0' }}">
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="NumSessionsBilingual">Number of Sessions ({{ lang2.LanguageName }})</label>
-                            <input type="number" class="form-control" id="NumSessionsBilingual" name="NumSessionsBilingual" value="{{ form_data.NumSessionsBilingual or '0' }}">
-                        </div>
-                    </div>
-                     <div class="form-group">
-                        <label for="MonolingualDetails">Details for {{ lang1.LanguageName }} Sessions</label>
-                        <textarea class="form-control" id="MonolingualDetails" name="MonolingualDetails" rows="3">{{ form_data.MonolingualDetails or '' }}</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="BilingualDetails">Details for {{ lang2.LanguageName }} Sessions</label>
-                        <textarea class="form-control" id="BilingualDetails" name="BilingualDetails" rows="3">{{ form_data.BilingualDetails or '' }}</textarea>
-                    </div>
-
-                {% else %}
-                    <div class="alert alert-warning">
-                        Cannot set sessions. The parent Main Package has no languages assigned.
-                    </div>
-                {% endif %}
-                {# --- DYNAMIC SESSION FIELDS END --- #}
-                
-                <hr>
-
-                <div class="form-group form-check">
-                    <input type="checkbox" class="form-check-input" id="IsActive" name="IsActive" {% if form_data.IsActive or sub_package_id is none %}checked{% endif %}>
-                    <label class="form-check-label" for="IsActive">Sub-Package is Active</label>
-                </div>
-
-                <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Save Sub-Package</button>
-            </form>
-        </div>
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-heading">{{ title }}</h1>
     </div>
+
+    <form method="POST" action="">
+        <div class="bg-card shadow-lg rounded-lg overflow-hidden">
+            <div class="px-6 py-5 border-b border-border">
+                <h2 class="text-lg font-semibold leading-6 text-heading">Sub-Package Details</h2>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Common Fields -->
+                <div>
+                    <label for="Name" class="form-label">Sub-Package Name*</label>
+                    <input type="text" id="Name" name="Name" value="{{ form_data.Name or '' }}" class="form-input" required>
+                </div>
+
+                <div>
+                    <label for="Description" class="form-label">Description</label>
+                    <textarea id="Description" name="Description" rows="3" class="form-textarea">{{ form_data.Description or '' }}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                        <label for="Price" class="form-label">Price</label>
+                        <div class="relative">
+                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-text-muted sm:text-sm">EGP</span>
+                            </div>
+                            <input type="number" step="0.01" id="Price" name="Price" value="{{ form_data.Price or '0.00' }}" class="form-input pl-12">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="DisplayOrder" class="form-label">Display Order</label>
+                        <input type="number" id="DisplayOrder" name="DisplayOrder" value="{{ form_data.DisplayOrder or '0' }}" class="form-input">
+                        <p class="mt-1 text-xs text-text-muted">Lower numbers appear first.</p>
+                    </div>
+                </div>
+
+                <!-- Session Details Section -->
+                <div class="border-t border-border pt-6 space-y-4">
+                    <h3 class="text-base font-semibold leading-6 text-heading">Session Details</h3>
+
+                    {# --- DYNAMIC SESSION FIELDS START --- #}
+                    {% if main_package_languages|length == 1 %}
+                        {# Monolingual Case #}
+                        {% set lang = main_package_languages[0] %}
+                        <div>
+                            <label for="NumSessionsMonolingual" class="form-label">Number of Sessions ({{ lang.LanguageName }})</label>
+                            <input type="number" id="NumSessionsMonolingual" name="NumSessionsMonolingual" value="{{ form_data.NumSessionsMonolingual or '0' }}" class="form-input">
+                        </div>
+                        <div>
+                            <label for="MonolingualDetails" class="form-label">Details for {{ lang.LanguageName }} Sessions</label>
+                            <textarea id="MonolingualDetails" name="MonolingualDetails" rows="3" class="form-textarea">{{ form_data.MonolingualDetails or '' }}</textarea>
+                        </div>
+
+                    {% elif main_package_languages|length >= 2 %}
+                        {# Bilingual Case - We use the first two languages #}
+                        {% set lang1 = main_package_languages[0] %}
+                        {% set lang2 = main_package_languages[1] %}
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <label for="NumSessionsMonolingual" class="form-label">Sessions ({{ lang1.LanguageName }})</label>
+                                <input type="number" id="NumSessionsMonolingual" name="NumSessionsMonolingual" value="{{ form_data.NumSessionsMonolingual or '0' }}" class="form-input">
+                            </div>
+                            <div>
+                                <label for="NumSessionsBilingual" class="form-label">Sessions ({{ lang2.LanguageName }})</label>
+                                <input type="number" id="NumSessionsBilingual" name="NumSessionsBilingual" value="{{ form_data.NumSessionsBilingual or '0' }}" class="form-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="MonolingualDetails" class="form-label">Details for {{ lang1.LanguageName }} Sessions</label>
+                            <textarea id="MonolingualDetails" name="MonolingualDetails" rows="3" class="form-textarea">{{ form_data.MonolingualDetails or '' }}</textarea>
+                        </div>
+                        <div>
+                            <label for="BilingualDetails" class="form-label">Details for {{ lang2.LanguageName }} Sessions</label>
+                            <textarea id="BilingualDetails" name="BilingualDetails" rows="3" class="form-textarea">{{ form_data.BilingualDetails or '' }}</textarea>
+                        </div>
+
+                    {% else %}
+                        <div class="rounded-md bg-warning/10 p-4 border border-warning/20">
+                            <p class="text-sm font-medium text-amber-700 dark:text-amber-300">
+                                Cannot set sessions. The parent Main Package has no languages assigned.
+                            </p>
+                        </div>
+                    {% endif %}
+                    {# --- DYNAMIC SESSION FIELDS END --- #}
+                </div>
+
+                <!-- Status Checkbox -->
+                <div class="border-t border-border pt-6">
+                    <div class="relative flex items-start">
+                        <div class="flex h-6 items-center">
+                            <input type="checkbox" id="IsActive" name="IsActive" class="form-checkbox" {% if form_data.IsActive or sub_package_id is none %}checked{% endif %}>
+                        </div>
+                        <div class="ml-3 text-sm leading-6">
+                            <label for="IsActive" class="font-medium text-text">Sub-Package is Active</label>
+                            <p class="text-text-muted">Allow this sub-package to be viewed and enrolled in.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="bg-background/50 px-6 py-4 flex items-center justify-end gap-x-3">
+                <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">Save Sub-Package</button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}
