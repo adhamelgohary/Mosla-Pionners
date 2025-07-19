@@ -269,7 +269,8 @@ def submit_application_form(offer_id):
     if not phone_number: errors['phone_number'] = "Phone number is required."
     if not candidate_questions: errors['candidateQuestions'] = "Please answer why you are interested in this role."
     if not cv_file or not cv_file.filename: errors['cv_file'] = "CV upload is required."
-    if not voice_note_file or not voice_note_file.filename: errors['voice_note_file'] = "Voice note upload is required."
+    # [MODIFIED] - Updated error message for voice note
+    if not voice_note_file or not voice_note_file.filename: errors['voice_note_file'] = "A voice note recording is required."
     
     referring_staff_id, referring_staff_team_lead_id = None, None
     if referral_code_input:
