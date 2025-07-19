@@ -60,13 +60,14 @@
         </a>
         {% endmacro %}
 
-        <!-- NEW KPI Card: Pending Job Applications -->
+        <!-- Pending Job Applications KPI Card -->
         {{ kpi_card(
             icon='bi-person-lines-fill',
-            title='Pending Job Applications',
+            title='New Applications to Review',
             value=kpis.pending_applications,
-            footer_text='Review applications',
-            footer_link=url_for('job_offer_mgmt_bp.list_applications_for_review'),
+            footer_text='Review new applications',
+            {# --- FIX: This link now points to the unified application list, filtered to the 'Applied' status tab --- #}
+            footer_link=url_for('job_offer_mgmt_bp.list_all_applications', filter_status='Applied'),
             color='warning'
         ) }}
 

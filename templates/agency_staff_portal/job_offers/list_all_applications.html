@@ -9,9 +9,35 @@
 
 {% block staff_content %}
 <div class="px-4 sm:px-0">
+
+    <!-- Tab Navigation -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <a href="{{ url_for('.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id) }}" 
+                   class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if not selected_filter_status %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    All Applications
+                </a>
+                <a href="{{ url_for('.list_all_applications', filter_status='Applied', company_id=selected_company_id, offer_id=selected_offer_id) }}" 
+                   class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if selected_filter_status == 'Applied' %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    New for Review
+                </a>
+                <a href="{{ url_for('.list_all_applications', filter_status='Shortlisted', company_id=selected_company_id, offer_id=selected_offer_id) }}" 
+                   class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if selected_filter_status == 'Shortlisted' %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    Shortlisted Pipeline
+                </a>
+                 <a href="{{ url_for('.list_all_applications', filter_status='Interview Scheduled', company_id=selected_company_id, offer_id=selected_offer_id) }}" 
+                   class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm {% if selected_filter_status == 'Interview Scheduled' %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %}">
+                    Interview Scheduled
+                </a>
+            </nav>
+        </div>
+    </div>
+
     <!-- Filter Section -->
     <div class="bg-white p-4 rounded-xl shadow-lg mb-6 border border-gray-200">
         <form method="GET" action="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <input type="hidden" name="filter_status" value="{{ selected_filter_status or '' }}">
             <div>
                 <label for="company_id" class="form-label">Company</label>
                 <select name="company_id" id="company_id" class="form-select transition-all duration-300">
@@ -30,7 +56,7 @@
             </div>
             <div class="flex space-x-2 md:col-span-2">
                 <button type="submit" class="btn-primary w-full"><i class="bi bi-funnel-fill mr-2"></i>Filter</button>
-                <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="btn-secondary w-full text-center">Clear</a>
+                <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications') }}" class="btn-secondary w-full text-center">Clear All</a>
             </div>
         </form>
     </div>
@@ -49,8 +75,8 @@
             </div>
             <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
                 <div class="py-1">
-                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='xlsx') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-file-earmark-spreadsheet-fill text-green-600 mr-3"></i>Styled Report (.xlsx)</a>
-                    <a href="{{ url_for('job_offer_mgmt_bp.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id, format='csv') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-filetype-csv text-gray-500 mr-3"></i>Plain Data (.csv)</a>
+                    <a href="{{ request.url_root.rstrip('/') + request.path + '?' + request.query_string.decode('utf-8') + '&format=xlsx' }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-file-earmark-spreadsheet-fill text-green-600 mr-3"></i>Styled Report (.xlsx)</a>
+                    <a href="{{ request.url_root.rstrip('/') + request.path + '?' + request.query_string.decode('utf-8') + '&format=csv' }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-200"><i class="bi bi-filetype-csv text-gray-500 mr-3"></i>Plain Data (.csv)</a>
                 </div>
             </div>
         </div>
@@ -88,7 +114,6 @@
                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                {# --- THIS IS THE CORRECTED LINK --- #}
                                 <a href="{{ url_for('job_offer_mgmt_bp.view_application_details', application_id=app.ApplicationID) }}" class="text-primary-600 hover:text-primary-900 font-medium">View Details</a>
                             </td>
                         </tr>
