@@ -110,7 +110,7 @@
                                     </div>
                                     <div id="recording-status" class="hidden flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                         <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                                        <span>Recording...</span>
+                                        <span id="recording-state-text">Recording...</span>
                                         <span id="timer" class="font-mono text-gray-500 dark:text-gray-400">00:00</span>
                                     </div>
                                 </div>
@@ -150,33 +150,37 @@
         </div>
     </main>
 </div>
-
-<!-- Removed the sticky bar, as the button is now integrated into the main flow -->
-
 {% endblock %}
 
 {% block page_scripts %}
     {{ super() }}
+    <!-- NEW: Include the lamejs MP3 encoder library -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return;
 
-        // --- Voice Recorder Logic (No changes needed here) ---
-        const recorderControls = document.getElementById('recorder-controls');
+        // --- Voice Recorder Logic ---
         const recordButton = document.getElementById('recordButton');
         const stopButton = document.getElementById('stopButton');
         const audioPreview = document.getElementById('audioPreview');
         const playbackArea = document.getElementById('audio-playback-area');
         const deleteRecordingButton = document.getElementById('deleteRecordingButton');
         const recordingStatus = document.getElementById('recording-status');
+        const recordingStateText = document.getElementById('recording-state-text');
         const timerEl = document.getElementById('timer');
         const recorderError = document.getElementById('recorder-error');
 
-        let mediaRecorder, audioChunks = [], recordedBlob = null, timerInterval = null, stream = null;
+        // MODIFIED: 'recordedBlob' is now 'compressedAudioBlob' to reflect its new state
+        let mediaRecorder, audioChunks = [], compressedAudioBlob = null, timerInterval = null, stream = null;
         let recordingMimeType = '';
-        let recordingFileExtension = '';
         const MAX_RECORDING_SECONDS = 140;
+
+        // NEW: AudioContext for decoding browser audio to raw PCM for the encoder
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
 
         const showError = (message) => {
             recorderError.textContent = message;
@@ -192,20 +196,27 @@
         const updateUI = (state) => {
             recorderError.classList.add('hidden');
             if (state === 'idle') {
-                recorderControls.classList.remove('hidden');
+                document.getElementById('recorder-controls').classList.remove('hidden');
                 recordButton.classList.remove('hidden');
                 stopButton.classList.add('hidden');
                 recordingStatus.classList.add('hidden');
                 playbackArea.classList.add('hidden');
-                if (audioPreview.src) { audioPreview.src = ""; }
+                if (audioPreview.src) { URL.revokeObjectURL(audioPreview.src); audioPreview.src = ""; }
             } else if (state === 'recording') {
-                recorderControls.classList.remove('hidden');
+                document.getElementById('recorder-controls').classList.remove('hidden');
                 recordButton.classList.add('hidden');
                 stopButton.classList.remove('hidden');
                 recordingStatus.classList.remove('hidden');
+                recordingStateText.textContent = "Recording...";
+                playbackArea.classList.add('hidden');
+            } else if (state === 'processing') {
+                // NEW: A state for when we are compressing the audio
+                document.getElementById('recorder-controls').classList.add('hidden');
+                recordingStatus.classList.remove('hidden');
+                recordingStateText.textContent = "Compressing audio...";
                 playbackArea.classList.add('hidden');
             } else if (state === 'preview') {
-                recorderControls.classList.add('hidden');
+                document.getElementById('recorder-controls').classList.add('hidden');
                 recordingStatus.classList.add('hidden');
                 playbackArea.classList.remove('hidden');
             }
@@ -217,25 +228,52 @@
             timerEl.textContent = '00:00';
             if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
             audioChunks = [];
-            recordedBlob = null;
+            compressedAudioBlob = null;
             updateUI('idle');
         };
+
+        // NEW: MP3 encoding function
+        async function encodeToMp3(audioBlob) {
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            
+            // Using 1 channel (mono) and a low bitrate of 64 for good compression
+            const mp3Encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 64);
+            const pcmData = audioBuffer.getChannelData(0);
+            const samples = new Int16Array(pcmData.length);
+
+            // Convert float samples to 16-bit PCM
+            for (let i = 0; i < pcmData.length; i++) {
+                samples[i] = pcmData[i] * 32767.5;
+            }
+
+            const mp3Data = [];
+            const sampleBlockSize = 1152; // According to lamejs docs
+            for (let i = 0; i < samples.length; i += sampleBlockSize) {
+                const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+                const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
+                if (mp3buf.length > 0) {
+                    mp3Data.push(mp3buf);
+                }
+            }
+            const mp3buf = mp3Encoder.flush();
+            if (mp3buf.length > 0) {
+                mp3Data.push(mp3buf);
+            }
+            
+            return new Blob(mp3Data, { type: 'audio/mp3' });
+        }
+
 
         recordButton.addEventListener('click', async () => {
             resetRecorder();
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showError('Recording is not supported by your browser.');
-                return;
+                showError('Recording is not supported by your browser.'); return;
             }
             try {
-                const supportedTypes = ['audio/mp4', 'audio/webm', 'audio/ogg'];
-                recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type));
-                
-                if (!recordingMimeType) {
-                    showError('No supported audio format found for recording.');
-                    return;
-                }
-                recordingFileExtension = recordingMimeType.split('/')[1].split(';')[0];
+                // We let the browser record in its preferred high-quality format first
+                const supportedTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
+                recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
                 
                 stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 updateUI('recording');
@@ -243,16 +281,25 @@
                 mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMimeType });
                 mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
                 
-                mediaRecorder.addEventListener("stop", () => {
+                // MODIFIED: This 'stop' event now triggers the compression process
+                mediaRecorder.addEventListener("stop", async () => {
                     if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
                     if (timerInterval) clearInterval(timerInterval);
                     timerInterval = null;
-                    recordedBlob = new Blob(audioChunks, { type: recordingMimeType });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(recordedBlob); 
-                    reader.onloadend = function() {
-                        audioPreview.src = reader.result;                
+
+                    updateUI('processing'); // Show "Compressing..." message
+
+                    try {
+                        const originalBlob = new Blob(audioChunks, { type: recordingMimeType });
+                        // The magic happens here!
+                        compressedAudioBlob = await encodeToMp3(originalBlob);
+                        
+                        audioPreview.src = URL.createObjectURL(compressedAudioBlob);
                         updateUI('preview');
+                    } catch (e) {
+                        console.error("Failed to encode audio", e);
+                        showError("Sorry, there was an error processing your audio. Please try again.");
+                        resetRecorder();
                     }
                 });
 
@@ -278,15 +325,17 @@
 
         deleteRecordingButton.addEventListener('click', resetRecorder);
         
-        // --- Form Submission Logic (Simplified) ---
+        // --- Form Submission Logic ---
         const sendBtn = document.getElementById('sendBtn');
         applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(applicationForm);
-            if (recordedBlob) {
-                const fileName = `voice-introduction.${recordingFileExtension}`;
-                formData.set('voice_note_file', recordedBlob, fileName); 
+
+            // MODIFIED: Append the compressed MP3 blob
+            if (compressedAudioBlob) {
+                const fileName = `voice-introduction.mp3`; // Use .mp3 extension
+                formData.set('voice_note_file', compressedAudioBlob, fileName); 
             }
             
             const formErrorMessagesDiv = document.getElementById('formErrorMessages');
@@ -308,7 +357,6 @@
                     }
                     formErrorContent.innerHTML = errorHtml;
                     formErrorMessagesDiv.classList.remove('hidden');
-                    // Scroll to the error message div, which is now at the top of the form
                     formErrorMessagesDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             } catch (error) {
@@ -325,5 +373,4 @@
     </script>
 {% endblock %}
 
-{# Remove footer from this specific page #}
 {% block footer %}{% endblock footer %}
