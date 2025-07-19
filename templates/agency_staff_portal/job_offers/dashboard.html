@@ -66,7 +66,6 @@
             title='New Applications to Review',
             value=kpis.pending_applications,
             footer_text='Review new applications',
-            {# --- FIX: This link now points to the unified application list, filtered to the 'Applied' status tab --- #}
             footer_link=url_for('job_offer_mgmt_bp.list_all_applications', filter_status='Applied'),
             color='warning'
         ) }}
