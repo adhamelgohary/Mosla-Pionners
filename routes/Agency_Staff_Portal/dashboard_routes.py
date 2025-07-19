@@ -2,7 +2,6 @@
 
 from flask import Blueprint, flash, render_template, current_app
 from flask_login import current_user
-# --- UPDATED IMPORT --- Now uses MANAGERIAL_PORTAL_ROLES which excludes SalesManager
 from utils.decorators import login_required_with_role, MANAGERIAL_PORTAL_ROLES
 from db import get_db_connection
 import datetime
@@ -12,18 +11,20 @@ managerial_dashboard_bp = Blueprint('managerial_dashboard_bp', __name__,
                                     url_prefix='/managerial')
 
 @managerial_dashboard_bp.route('/')
-# --- SECURITY UPDATED --- This decorator now correctly blocks SalesManagers
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def main_dashboard():
     current_app.logger.info(f"Managerial user {current_user.email} accessed main dashboard.")
     
     dashboard_stats = {}
     manual_announcements = []
+    # --- ADDED ---: Initialize list for contact messages
+    contact_messages = [] 
     
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
 
+        # ... (all your existing COUNT(*) queries remain the same) ...
         cursor.execute("SELECT COUNT(*) AS count FROM Candidates")
         dashboard_stats['total_candidates_system'] = cursor.fetchone()['count']
         
@@ -48,6 +49,16 @@ def main_dashboard():
                 ORDER BY FIELD(sa.Priority, 'Urgent', 'High', 'Normal'), sa.CreatedAt DESC LIMIT 5
             """)
         manual_announcements = cursor.fetchall()
+
+        # --- ADDED ---: Query to fetch recent unread contact messages
+        cursor.execute("""
+            SELECT MessageID, Name, Subject, SubmittedAt
+            FROM ContactMessages
+            WHERE Status = 'Unread'
+            ORDER BY SubmittedAt DESC
+            LIMIT 5
+        """)
+        contact_messages = cursor.fetchall()
     
     except Exception as e:
         current_app.logger.error(f"Error loading managerial dashboard: {e}", exc_info=True)
@@ -61,5 +72,7 @@ def main_dashboard():
         'agency_staff_portal/staff_dashboard.html',
         title='Managerial Dashboard',
         dashboard_stats=dashboard_stats,
-        manual_announcements=manual_announcements
+        manual_announcements=manual_announcements,
+        # --- ADDED ---: Pass the new messages to the template
+        contact_messages=contact_messages
     )

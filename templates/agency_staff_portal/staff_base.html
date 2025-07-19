@@ -22,7 +22,6 @@
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            {# --- [MODIFIED] Portal Title is now conditional --- #}
                             {% if current_user.role_type != 'SalesManager' %}
                                 <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="text-slate-900 font-bold text-lg">Managerial Portal</a>
                             {% else %}
@@ -78,6 +77,21 @@
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
+                            
+                            {# --- START: NEW NOTIFICATION ICON --- #}
+                            {% if current_user.role_type != 'SalesManager' and unread_message_count > 0 %}
+                            <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}#contact-messages-panel" title="{{ unread_message_count }} unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                                <span class="sr-only">View messages</span>
+                                <i class="bi bi-envelope-exclamation-fill h-6 w-6"></i>
+                                <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ unread_message_count }}</span>
+                            </a>
+                            {% elif current_user.role_type != 'SalesManager' %}
+                            <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}#contact-messages-panel" title="No unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500">
+                                <i class="bi bi-envelope-fill h-6 w-6"></i>
+                            </a>
+                            {% endif %}
+                            {# --- END: NEW NOTIFICATION ICON --- #}
+
                             <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
                                 <div>
                                     <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">

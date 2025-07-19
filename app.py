@@ -2,7 +2,7 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, current_app, jsonify, session, request, url_for, render_template
+from flask import Flask, current_app, g, jsonify, session, request, url_for, render_template
 from flask_login import current_user
 from dotenv import load_dotenv
 import humanize
@@ -13,6 +13,8 @@ from datetime import datetime, timezone, date, timedelta
 load_dotenv()
 
 # --- Import Utility Functions ---
+from db import get_db_connection
+from utils.decorators import MANAGERIAL_PORTAL_ROLES
 from utils.directory_configs import configure_directories
 from utils.template_helpers import register_template_helpers
 
@@ -144,6 +146,42 @@ app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
+
+
+@app.context_processor
+def inject_global_vars():
+    """
+    Injects variables into the context of all templates.
+    This provides the count of unread contact messages for the navbar.
+    """
+    # Initialize a default dictionary
+    global_vars = {'unread_message_count': 0}
+    
+    # Check if a user is logged in and has a managerial role
+    if current_user.is_authenticated and hasattr(current_user, 'role_type') and current_user.role_type in MANAGERIAL_PORTAL_ROLES:
+        
+        # Use Flask's 'g' object to cache the DB call and avoid re-querying on the same request
+        if 'unread_message_count' not in g:
+            conn = None
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute("SELECT COUNT(*) as count FROM ContactMessages WHERE Status = 'Unread'")
+                result = cursor.fetchone()
+                # Store the count in the request context 'g'
+                g.unread_message_count = result['count'] if result else 0
+            except Exception:
+                g.unread_message_count = 0 # Default to 0 on any database error
+            finally:
+                if conn and conn.is_connected():
+                    if 'cursor' in locals() and cursor: cursor.close()
+                    conn.close()
+        
+        # Set the variable for the template
+        global_vars['unread_message_count'] = g.unread_message_count
+        
+    return global_vars
+
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)
