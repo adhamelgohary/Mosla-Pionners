@@ -72,7 +72,6 @@ def get_user_by_id(user_id):
         cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE UserID = %s", (user_id,))
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
-            # Create a dictionary of arguments to pass to the LoginUser constructor
             user_args = {
                 'user_id': user_data['UserID'],
                 'email': user_data['Email'],
@@ -140,10 +139,13 @@ def init_login_manager(app):
 def login():
     if current_user.is_authenticated:
         role = current_user.role_type
-        if role in MANAGERIAL_PORTAL_ROLES:
+        # [MODIFIED] Added special case for SalesManager
+        if role == 'SalesManager':
+            return redirect(url_for('package_mgmt_bp.packages_dashboard'))
+        elif role in MANAGERIAL_PORTAL_ROLES:
             return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
         elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
-            return redirect(url_for('account_manager_bp.portal_home'))
+            return redirect(url_for('account_manager_bp.dashboard'))
         elif role in RECRUITER_PORTAL_ROLES:
             return redirect(url_for('recruiter_bp.dashboard'))
         elif role in CLIENT_ROLES:
@@ -178,11 +180,14 @@ def login():
                     except Exception as e_update:
                         current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
 
+                    # [MODIFIED] Added special case for SalesManager
                     role = user_obj.role_type
-                    if role in MANAGERIAL_PORTAL_ROLES:
+                    if role == 'SalesManager':
+                        return redirect(url_for('package_mgmt_bp.packages_dashboard'))
+                    elif role in MANAGERIAL_PORTAL_ROLES:
                         return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
                     elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
-                        return redirect(url_for('account_manager_bp.portal_home'))
+                        return redirect(url_for('account_manager_bp.dashboard'))
                     elif role in RECRUITER_PORTAL_ROLES:
                         return redirect(url_for('recruiter_bp.dashboard'))
                     elif role in CLIENT_ROLES:
@@ -196,7 +201,7 @@ def login():
                         current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
                         return redirect(url_for('public_routes_bp.home_page'))
                 else:
-                    flash('Your account is inactive. Please contact support.', 'warning')
+                    flash('Your account is inactive. It may be pending activation or has been deactivated. Please contact an administrator.', 'warning')
             else:
                 flash('Invalid email or password. Please try again.', 'danger')
         else:
