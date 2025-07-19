@@ -60,14 +60,14 @@
         </a>
         {% endmacro %}
 
-        <!-- Pending Job Applications KPI Card -->
+        <!-- MODIFIED KPI Card: Now shows total applicants -->
         {{ kpi_card(
-            icon='bi-person-lines-fill',
-            title='New Applications to Review',
-            value=kpis.pending_applications,
-            footer_text='Review new applications',
-            footer_link=url_for('job_offer_mgmt_bp.list_all_applications', filter_status='Applied'),
-            color='warning'
+            icon='bi-people-fill',
+            title='Total Job Applicants',
+            value=kpis.total_applications,
+            footer_text='View all applicants',
+            footer_link=url_for('job_offer_mgmt_bp.list_all_applications'),
+            color='sky'
         ) }}
 
         {{ kpi_card(

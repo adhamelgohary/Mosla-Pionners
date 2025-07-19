@@ -251,7 +251,7 @@ def api_get_all_offers():
 @job_offer_mgmt_bp.route('/dashboard')
 @login_required_with_role(JOB_OFFER_REVIEW_ROLES)
 def dashboard():
-    conn = None  # Initialize conn to None
+    conn = None
     kpis = {
         'total_open_offers': 0,
         'total_candidates_needed': 0,
@@ -261,13 +261,12 @@ def dashboard():
         'approval_rate': 'N/A',
         'oldest_offer_title': 'No open offers',
         'age_of_oldest_offer': 0,
-        'pending_applications': 0 # Ensure the new KPI is initialized
+        'total_applications': 0 # Renamed from 'pending_applications'
     }
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # All KPI queries are organized here for clarity
         queries = {
             'total_open_offers': "SELECT COUNT(OfferID) as count FROM JobOffers WHERE Status = 'Open'",
             'total_candidates_needed': "SELECT SUM(CandidatesNeeded) as sum FROM JobOffers WHERE Status = 'Open'",
@@ -275,11 +274,10 @@ def dashboard():
             'approval_rate': "SELECT (SUM(CASE WHEN ReviewStatus = 'Approved' THEN 1 ELSE 0 END) / COUNT(SubmissionID)) * 100 as approval_rate FROM ClientSubmittedJobOffers WHERE SubmissionDate >= DATE_SUB(NOW(), INTERVAL 90 DAY) AND ReviewStatus IN ('Approved', 'Rejected')",
             'pending_submissions': "SELECT COUNT(SubmissionID) as count FROM ClientSubmittedJobOffers WHERE ReviewStatus = 'Pending'",
             'new_offers_this_month': "SELECT COUNT(OfferID) as count FROM JobOffers WHERE DatePosted >= DATE_FORMAT(NOW(), '%Y-%m-01')",
-            # === NEW QUERY ADDED HERE ===
-            'pending_applications': "SELECT COUNT(*) as count FROM JobApplications WHERE Status = 'Applied'"
+            # --- MODIFIED: This now counts ALL applications ---
+            'total_applications': "SELECT COUNT(*) as count FROM JobApplications"
         }
 
-        # Loop through and execute the queries
         for key, sql in queries.items():
             cursor.execute(sql)
             res = cursor.fetchone()
@@ -293,7 +291,6 @@ def dashboard():
                 else:
                     kpis[key] = res.get('count', 0)
 
-        # Query for the oldest open offer (remains the same)
         cursor.execute("""
             SELECT jo.Title, c.CompanyName, DATEDIFF(NOW(), jo.DatePosted) as oldest_days 
             FROM JobOffers jo 
@@ -321,7 +318,7 @@ def dashboard():
     except Exception as e:
         current_app.logger.error(f"Error building KPI dashboard: {e}", exc_info=True)
         flash("Could not load dashboard data.", "danger")
-        return render_template('agency_staff_portal/job_offers/dashboard.html', title="Error", kpis=kpis, error=True) # Pass initial kpis
+        return render_template('agency_staff_portal/job_offers/dashboard.html', title="Error", kpis=kpis, error=True)
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
