@@ -972,7 +972,8 @@ def list_all_applications():
     sql = """
         SELECT
             u.FirstName, u.LastName, ja.ApplicationDate, jo.Title AS JobTitle,
-            c.CompanyName, ja.Status, cand.CandidateID
+            c.CompanyName, ja.Status, cand.CandidateID,
+            ja.ApplicationID  -- <<< ADD THIS LINE
         FROM JobApplications ja
         JOIN Candidates cand ON ja.CandidateID = cand.CandidateID
         JOIN Users u ON cand.UserID = u.UserID
@@ -1244,3 +1245,56 @@ def delete_schedule_slot(schedule_id):
             conn.close()
 
     return redirect(url_for('.view_company_schedules', company_id=company_id))
+
+# routes/Agency_Staff_Portal/job_offer_mgmt_routes.py
+
+# ... (keep all your existing imports and routes)
+
+@job_offer_mgmt_bp.route('/applications/view/<int:application_id>')
+@login_required_with_role(EXECUTIVE_ROLES)
+def view_application_details(application_id):
+    """
+    Displays a comprehensive view of a single job application, including
+    candidate profile, interview details, and notes.
+    """
+    conn = get_db_connection()
+    details = {}
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # This is the main query to get all related data in one go
+        sql = """
+            SELECT
+                ja.ApplicationID, ja.ApplicationDate, ja.Status AS ApplicationStatus,
+                ja.NotesByCandidate, ja.NotesByStaff,
+                u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL,
+                cand.CandidateID, cand.DateOfBirth, cand.Nationality, cand.EducationalStatus, cand.Languages, cand.LanguageLevel,
+                jo.OfferID, jo.Title AS JobTitle,
+                c.CompanyID, c.CompanyName,
+                i.InterviewID, i.ScheduledDateTime, i.Status AS InterviewStatus, i.Notes AS InterviewNotes
+            FROM JobApplications ja
+            JOIN Candidates cand ON ja.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            LEFT JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
+            WHERE ja.ApplicationID = %s
+        """
+        cursor.execute(sql, (application_id,))
+        details = cursor.fetchone()
+
+        if not details:
+            flash("Application not found.", "danger")
+            return redirect(url_for('.list_all_applications'))
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching application details for ID {application_id}: {e}", exc_info=True)
+        flash("Could not load application details.", "danger")
+        return redirect(url_for('.list_all_applications'))
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return render_template('agency_staff_portal/job_offers/view_application_detail.html',
+                           title=f"Reviewing {details['FirstName']} for {details['JobTitle']}",
+                           details=details)

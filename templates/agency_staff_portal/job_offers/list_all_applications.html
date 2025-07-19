@@ -58,7 +58,7 @@
 
     <!-- Applications Table -->
     <div class="overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200">
-        <div class="overflow-x-auto">
+        <div class="overflow-x--auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -88,7 +88,8 @@
                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                <a href="{{ url_for('staff_candidate_bp.view_candidate_profile', candidate_id=app.CandidateID) }}" class="text-primary-600 hover:text-primary-900 font-medium">View Profile</a>
+                                {# --- THIS IS THE CORRECTED LINK --- #}
+                                <a href="{{ url_for('job_offer_mgmt_bp.view_application_details', application_id=app.ApplicationID) }}" class="text-primary-600 hover:text-primary-900 font-medium">View Details</a>
                             </td>
                         </tr>
                         {% endfor %}
