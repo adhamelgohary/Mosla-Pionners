@@ -122,7 +122,7 @@
                                     <p class="text-sm font-medium text-text">Your recording is ready:</p>
                                     <audio id="audioPreview" controls class="w-full"></audio>
                                     <button type="button" id="deleteRecordingButton" class="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent border border-gray-300 rounded-full hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-                                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.046A12.705 12.705 0 0115.682 15L14.5 14.5a.75.75 0 00-1.061 1.061l1.5 1.5a.75.75 0 001.06 0l1.5-1.5a.75.75 0 00-1.06-1.06l-1.092 1.092a11.208 11.208 0 00-9.287-9.044l-.046.149a.75.75 0 001.482.23l.468-2.365A2.75 2.75 0 008.75 1zM10 5.5a.75.75 0 01.75.75v6.5a.75.75 0 01-1.5 0v-6.5A.75.75 0 0110 5.5z" clip-rule="evenodd" /></svg>
+                                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.323 4.677a.75.75 0 0 0-1.06-1.06l-1.12 1.12A6.5 6.5 0 0 0 10 4.5a6.5 6.5 0 0 0-6.5 6.5.75.75 0 0 0 1.5 0A5 5 0 0 1 10 6a5.002 5.002 0 0 1 4.132 2.318l-1.182-1.182a.75.75 0 0 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.06 0l2.5-2.5zM4.677 15.323a.75.75 0 0 0 1.06 1.06l1.12-1.12A6.5 6.5 0 0 0 10 15.5a6.5 6.5 0 0 0 6.5-6.5.75.75 0 0 0-1.5 0A5 5 0 0 1 10 14a5.002 5.002 0 0 1-4.132-2.318l1.182 1.182a.75.75 0 0 0 1.06-1.061l-2.5-2.5a.75.75 0 0 0-1.06 0l-2.5 2.5z" clip-rule="evenodd" /></svg>
                                         Re-record
                                     </button>
                                 </div>
@@ -158,8 +158,8 @@
 
 {% block page_scripts %}
     {{ super() }}
-    <!-- Include the lamejs MP3 encoder library -->
-    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+    <!-- NEW: Include the MicRecorder library for simplified MP3 recording -->
+    <script src="https://unpkg.com/mic-recorder-to-mp3"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -178,107 +178,72 @@
         const sizeEl = document.getElementById('estimated-size');
         const recorderError = document.getElementById('recorder-error');
 
-        // --- Voice Recorder State ---
-        let mediaRecorder, audioChunks = [], compressedAudioBlob = null, timerInterval = null, stream = null;
-        let recordingMimeType = '';
+        // --- Voice Recorder State & Config ---
+        let recorder = null;
+        let compressedAudioBlob = null;
+        let timerInterval = null;
         const MAX_RECORDING_SECONDS = 140;
-        const MP3_BITRATE_KBPS = 64;
-
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const audioContext = new AudioContext();
+        const MP3_BITRATE_KBPS = 128; // Standard quality for voice
 
         // --- Helper Functions ---
-        // ... (showError, formatTime, formatBytes, updateUI functions are unchanged)
         const showError = (message) => { recorderError.textContent = message; recorderError.classList.remove('hidden'); };
         const formatTime = (seconds) => { const minutes = Math.floor(seconds / 60); const secs = seconds % 60; return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`; };
         function formatBytes(bytes, decimals = 1) { if (!+bytes) return '0 KB'; const k = 1024; const dm = decimals < 0 ? 0 : decimals; const sizes = ['Bytes', 'KB', 'MB', 'GB']; const i = Math.floor(Math.log(bytes) / Math.log(k)); return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`; }
-        const updateUI = (state) => { recorderError.classList.add('hidden'); if (state === 'idle') { document.getElementById('recorder-controls').classList.remove('hidden'); recordButton.classList.remove('hidden'); stopButton.classList.add('hidden'); recordingStatus.classList.add('hidden'); playbackArea.classList.add('hidden'); if (audioPreview.src) { URL.revokeObjectURL(audioPreview.src); audioPreview.src = ""; } } else if (state === 'recording') { document.getElementById('recorder-controls').classList.remove('hidden'); recordButton.classList.add('hidden'); stopButton.classList.remove('hidden'); recordingStatus.classList.remove('hidden'); recordingStateText.textContent = "Recording..."; playbackArea.classList.add('hidden'); } else if (state === 'processing') { document.getElementById('recorder-controls').classList.add('hidden'); recordingStatus.classList.remove('hidden'); recordingStateText.textContent = "Compressing audio..."; playbackArea.classList.add('hidden'); } else if (state === 'preview') { document.getElementById('recorder-controls').classList.add('hidden'); recordingStatus.classList.add('hidden'); playbackArea.classList.remove('hidden'); } };
+        
+        const updateUI = (state) => {
+            recorderError.classList.add('hidden');
+            const controls = document.getElementById('recorder-controls');
+            if (state === 'idle') {
+                controls.classList.remove('hidden');
+                recordButton.classList.remove('hidden');
+                stopButton.classList.add('hidden');
+                recordingStatus.classList.add('hidden');
+                playbackArea.classList.add('hidden');
+                if (audioPreview.src) { URL.revokeObjectURL(audioPreview.src); audioPreview.src = ""; }
+            } else if (state === 'recording') {
+                controls.classList.remove('hidden');
+                recordButton.classList.add('hidden');
+                stopButton.classList.remove('hidden');
+                recordingStatus.classList.remove('hidden');
+                recordingStateText.textContent = "Recording...";
+                playbackArea.classList.add('hidden');
+            } else if (state === 'processing') {
+                controls.classList.add('hidden');
+                recordingStatus.classList.remove('hidden');
+                recordingStateText.textContent = "Compressing audio...";
+                playbackArea.classList.add('hidden');
+            } else if (state === 'preview') {
+                controls.classList.add('hidden');
+                recordingStatus.classList.add('hidden');
+                playbackArea.classList.remove('hidden');
+            }
+        };
 
         const resetRecorder = () => {
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = null;
             timerEl.textContent = '00:00';
             sizeEl.textContent = '0 KB';
-            if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-            audioChunks = [];
             compressedAudioBlob = null;
             updateUI('idle');
         };
 
-        async function encodeToMp3(audioBlob) {
-            const arrayBuffer = await audioBlob.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            
-            const mp3Encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, MP3_BITRATE_KBPS);
-            const pcmData = audioBuffer.getChannelData(0);
-            const samples = new Int16Array(pcmData.length);
-
-            for (let i = 0; i < pcmData.length; i++) {
-                samples[i] = pcmData[i] * 32767.5;
-            }
-
-            const mp3Data = [];
-            const sampleBlockSize = 1152;
-            for (let i = 0; i < samples.length; i += sampleBlockSize) {
-                const sampleChunk = samples.subarray(i, i + sampleBlockSize);
-                const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
-                if (mp3buf.length > 0) {
-                    // =========================================================
-                    // CRITICAL FIX: Wrap the raw buffer in a Uint8Array.
-                    // This ensures the data is handled correctly.
-                    mp3Data.push(new Uint8Array(mp3buf));
-                    // =========================================================
-                }
-            }
-            const mp3buf = mp3Encoder.flush();
-            if (mp3buf.length > 0) {
-                // =========================================================
-                // CRITICAL FIX: Also wrap the final flushed buffer.
-                mp3Data.push(new Uint8Array(mp3buf));
-                // =========================================================
-            }
-            
-            return new Blob(mp3Data, { type: 'audio/mp3' });
+        // Initialize the recorder on page load
+        try {
+            recorder = new MicRecorder({ bitRate: MP3_BITRATE_KBPS });
+        } catch (e) {
+            console.error("Failed to initialize recorder", e);
+            showError("Audio recording is not supported on this browser.");
+            recordButton.disabled = true;
         }
 
-        // --- Event Listeners and Form Submission Logic ---
-        // (The rest of the script is unchanged from the previous version)
-        recordButton.addEventListener('click', async () => { /* ... no change ... */ });
-        applicationForm.addEventListener('submit', async (event) => { /* ... no change ... */ });
-
-        // ... [The full event listener code from the previous step]
-        recordButton.addEventListener('click', async () => {
+        // --- Event Listeners ---
+        recordButton.addEventListener('click', () => {
+            if (!recorder) return;
             resetRecorder();
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                showError('Recording is not supported by your browser.'); return;
-            }
-            try {
-                const supportedTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
-                recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'audio/webm';
-                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            recorder.start().then(() => {
                 updateUI('recording');
-                mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMimeType });
-                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
-                mediaRecorder.addEventListener("stop", async () => {
-                    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-                    if (timerInterval) clearInterval(timerInterval);
-                    timerInterval = null;
-                    updateUI('processing');
-                    try {
-                        const originalBlob = new Blob(audioChunks, { type: recordingMimeType });
-                        compressedAudioBlob = await encodeToMp3(originalBlob);
-                        audioPreview.src = URL.createObjectURL(compressedAudioBlob);
-                        updateUI('preview');
-                    } catch (e) {
-                        console.error("Failed to encode audio", e);
-                        showError("Sorry, there was an error processing your audio. Please try again.");
-                        resetRecorder();
-                    }
-                });
-                mediaRecorder.start();
                 let seconds = 0;
-                timerEl.textContent = formatTime(seconds);
-                sizeEl.textContent = '0 KB';
                 timerInterval = setInterval(() => {
                     seconds++;
                     timerEl.textContent = formatTime(seconds);
@@ -288,36 +253,75 @@
                         stopButton.click();
                     }
                 }, 1000);
-            } catch (err) {
-                console.error("Error accessing media devices.", err);
+            }).catch((e) => {
+                console.error("Recording start failed:", e);
                 showError('Microphone access was denied. Please enable it in your browser settings.');
                 resetRecorder();
-            }
+            });
         });
-        stopButton.addEventListener('click', () => { if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); } });
+
+        stopButton.addEventListener('click', () => {
+            if (!recorder) return;
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            updateUI('processing');
+
+            recorder.stop().getMp3().then(([buffer, blob]) => {
+                compressedAudioBlob = blob;
+                audioPreview.src = URL.createObjectURL(blob);
+                updateUI('preview');
+            }).catch((e) => {
+                console.error("MP3 conversion failed:", e);
+                showError("Sorry, there was an error processing your audio. Please try again.");
+                resetRecorder();
+            });
+        });
+
         deleteRecordingButton.addEventListener('click', resetRecorder);
+        
+        // --- Form Submission Logic ---
         const sendBtn = document.getElementById('sendBtn');
         applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
+        
         applicationForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(applicationForm);
+
+            // Add the recorded voice note to the form data
             if (compressedAudioBlob) {
                 formData.set('voice_note_file', compressedAudioBlob, 'voice-introduction.mp3'); 
             }
+
             const formErrorMessagesDiv = document.getElementById('formErrorMessages');
             const formErrorContent = document.getElementById('formErrorContent');
             sendBtn.disabled = true;
             sendBtn.textContent = 'Submitting...';
+
+            // Clear previous errors
+            formErrorMessagesDiv.classList.add('hidden');
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+
             try {
-                const response = await fetch(applicationForm.action, { method: 'POST', body: formData, headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }});
-                const result = await response.json().catch(() => ({ status: 'error', message: `Server returned a non-JSON response with status ${response.status}. Check server logs.` }));
+                const response = await fetch(applicationForm.action, { 
+                    method: 'POST', 
+                    body: formData, 
+                    headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }
+                });
+                const result = await response.json().catch(() => ({ status: 'error', message: `Server returned a non-JSON response (Status: ${response.status}). Please contact support.` }));
+                
                 if (response.ok && result.status === 'success') {
+                    // Use a more user-friendly confirmation before redirecting
                     alert(result.message || "Application submitted successfully!");
                     window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
                 } else {
                     let errorHtml = result.message || 'An unknown error occurred.';
                     if (result.errors) {
-                         errorHtml = `Please correct the following errors:<ul>${Object.values(result.errors).map(e => `<li>- ${e}</li>`).join('')}</ul>`;
+                         const errorList = Object.entries(result.errors).map(([key, msg]) => {
+                            const errorEl = document.getElementById(`error_${key}`);
+                            if(errorEl) errorEl.textContent = msg;
+                            return `<li>- ${msg}</li>`;
+                         }).join('');
+                         errorHtml = `Please correct the following errors:<ul>${errorList}</ul>`;
                     }
                     formErrorContent.innerHTML = errorHtml;
                     formErrorMessagesDiv.classList.remove('hidden');
