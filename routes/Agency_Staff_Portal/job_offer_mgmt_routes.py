@@ -1027,3 +1027,78 @@ def list_all_applications():
                            job_offers=job_offers,
                            selected_company_id=selected_company_id,
                            selected_offer_id=selected_offer_id)
+
+@job_offer_mgmt_bp.route('/applications/review')
+@login_required_with_role(EXECUTIVE_ROLES)
+def list_applications_for_review():
+    """Displays a list of new job applications that require staff review."""
+    applications = []
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT
+                ja.ApplicationID, ja.ApplicationDate, ja.Status,
+                u.FirstName, u.LastName, u.Email, u.PhoneNumber,
+                jo.Title AS JobTitle,
+                c.CompanyName,
+                cand.CandidateID
+            FROM JobApplications ja
+            JOIN Candidates cand ON ja.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            WHERE ja.Status = 'Applied'
+            ORDER BY ja.ApplicationDate ASC
+        """
+        cursor.execute(sql)
+        applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching applications for review: {e}", exc_info=True)
+        flash("Could not load the list of applications for review.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return render_template('agency_staff_portal/job_offers/list_applications_for_review.html',
+                           title="Review New Job Applications",
+                           applications=applications)
+
+
+@job_offer_mgmt_bp.route('/applications/update-status/<int:application_id>', methods=['POST'])
+@login_required_with_role(EXECUTIVE_ROLES)
+def update_application_status(application_id):
+    """Updates the status of a specific job application."""
+    new_status = request.form.get('status')
+    # Add any other valid statuses for your workflow here
+    allowed_statuses = ['Under Review', 'Shortlisted', 'Rejected', 'Hired']
+
+    if not new_status or new_status not in allowed_statuses:
+        flash("Invalid status update provided.", "danger")
+        return redirect(url_for('.list_applications_for_review'))
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = "UPDATE JobApplications SET Status = %s, UpdatedAt = NOW() WHERE ApplicationID = %s"
+        cursor.execute(sql, (new_status, application_id))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            flash(f"Application status successfully updated to '{new_status}'.", "success")
+        else:
+            flash("Could not update status. The application may no longer exist.", "warning")
+
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error updating application status for ID {application_id}: {e}", exc_info=True)
+        flash("A database error occurred while updating the status.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return redirect(url_for('.list_applications_for_review'))

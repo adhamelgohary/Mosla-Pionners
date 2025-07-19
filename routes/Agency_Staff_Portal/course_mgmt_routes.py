@@ -60,13 +60,14 @@ def list_all_packages():
                            main_packages=main_packages)
     
 
-# --- Main Package CRUD (Unchanged) ---
+# --- Main Package CRUD (FIXED) ---
 @package_mgmt_bp.route('/main-package/add', methods=['GET', 'POST'])
 @login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
 def add_main_package():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        # This SELECT statement implicitly starts a transaction
         cursor.execute("SELECT LanguageID, LanguageName FROM Languages ORDER BY LanguageName")
         languages = cursor.fetchall()
 
@@ -78,7 +79,9 @@ def add_main_package():
                 flash("Package Name and at least one Language are required.", "danger")
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
             
-            conn.start_transaction()
+            # --- FIX: REMOVED EXPLICIT TRANSACTION START ---
+            # conn.start_transaction() # This line was causing the error and is now removed.
+
             sql_main = """
                 INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, IsActive, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -90,10 +93,12 @@ def add_main_package():
             )
             cursor.execute(sql_main, params_main)
             new_package_id = cursor.lastrowid
+            
             sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (new_package_id, lang_id))
-            conn.commit()
+            
+            conn.commit() # This now commits the entire transaction
             flash("Main Package added successfully!", "success")
             return redirect(url_for('.list_all_packages'))
             
@@ -112,6 +117,7 @@ def edit_main_package(package_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        # This SELECT statement implicitly starts a transaction
         cursor.execute("SELECT LanguageID, LanguageName FROM Languages ORDER BY LanguageName")
         languages = cursor.fetchall()
 
@@ -127,7 +133,9 @@ def edit_main_package(package_id):
                 current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
 
-            conn.start_transaction()
+            # --- FIX: REMOVED EXPLICIT TRANSACTION START ---
+            # conn.start_transaction() # This line was causing the error and is now removed.
+
             sql_main = """
                 UPDATE MainPackages SET
                 Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
@@ -140,10 +148,13 @@ def edit_main_package(package_id):
                 form_data.get('Notes'), 'IsActive' in form_data, package_id
             )
             cursor.execute(sql_main, params_main)
+            
             cursor.execute("DELETE FROM MainPackageLanguages WHERE PackageID = %s", (package_id,))
+            
             sql_lang = "INSERT INTO MainPackageLanguages (PackageID, LanguageID) VALUES (%s, %s)"
             for lang_id in selected_languages:
                 cursor.execute(sql_lang, (package_id, lang_id))
+            
             conn.commit()
             flash("Main Package updated successfully!", "success")
             return redirect(url_for('.list_all_packages'))
