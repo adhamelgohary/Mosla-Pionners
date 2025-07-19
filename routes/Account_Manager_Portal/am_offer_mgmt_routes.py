@@ -98,6 +98,37 @@ def get_column_options(conn, cursor, table_name, column_name):
     except Exception as e:
         current_app.logger.error(f"Could not fetch options for {table_name}.{column_name}: {e}", exc_info=True)
         return []
+    
+def get_form_options(conn, cursor):
+    """
+    Helper to fetch all dynamic options for the job offer form and process them.
+    """
+    options = {}
+    table = 'JobOffers'
+    columns_to_fetch = [
+        'HiringPlan', 'GraduationStatusRequirement', 'HiringCadence',
+        'WorkLocationType', 'ShiftType', 'AvailableShifts', 'BenefitsIncluded',
+        'Nationality', 'RequiredLanguages', 'RequiredLevel', 'Status', 'PaymentTerm',
+        'LanguagesType', 'Gender', 'MilitaryStatus'
+    ]
+    for col in columns_to_fetch:
+        options[col] = get_column_options(conn, cursor, table, col)
+    
+    # This is the crucial logic that was missing:
+    all_benefits_from_schema = options.get('BenefitsIncluded', [])
+    transportation_options = []
+    other_benefits = []
+    
+    for benefit in all_benefits_from_schema:
+        if 'transportation' in benefit.lower():
+            transportation_options.append(benefit)
+        else:
+            other_benefits.append(benefit)
+            
+    options['transportation_options'] = transportation_options
+    options['benefits_checkboxes'] = other_benefits
+    
+    return options
 
 def validate_job_offer_data(form_data, is_editing=False):
     """A comprehensive validation helper for the offer form."""
@@ -186,31 +217,28 @@ def staff_direct_create_job_offer():
         companies = cursor.fetchall()
         cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor.fetchall()
-        
-        # This function fetches ENUM/SET options
-        def get_form_options(conn, cursor):
-            options = {}
-            table = 'JobOffers'
-            columns_to_fetch = [
-                'HiringPlan', 'GraduationStatusRequirement', 'HiringCadence',
-                'WorkLocationType', 'ShiftType', 'AvailableShifts', 'BenefitsIncluded',
-                'Nationality', 'RequiredLanguages', 'RequiredLevel', 'Status', 'PaymentTerm',
-                'LanguagesType', 'Gender', 'MilitaryStatus'
-            ]
-            for col in columns_to_fetch:
-                options[col] = get_column_options(conn, cursor, table, col)
-            return options
         form_options = get_form_options(conn_data, cursor)
-
+    except Exception as e:
+        current_app.logger.error(f"Error fetching form data for create offer: {e}", exc_info=True)
+        flash("Error loading form support data.", "danger")
+        if conn_data and conn_data.is_connected(): conn_data.close()
+        return redirect(url_for('.list_all_job_offers'))
     finally:
         if conn_data and conn_data.is_connected(): conn_data.close()
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
-        form_data['benefits_included'] = request.form.getlist('benefits_checkboxes')
+        
+        benefits_list = request.form.getlist('benefits_checkboxes')
+        # Combine transportation benefit back into the list
+        if form_data.get('transportation') == 'yes' and form_data.get('transport_type'):
+            benefits_list.append(form_data.get('transport_type'))
+        
+        form_data['benefits_included'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         form_data['required_languages'] = request.form.getlist('required_languages')
         form_data['grad_status_req'] = request.form.getlist('grad_status_req')
+
         errors = validate_job_offer_data(form_data, is_editing=False)
 
         if not errors:
@@ -219,16 +247,24 @@ def staff_direct_create_job_offer():
                 cursor = conn_tx.cursor(dictionary=True)
                 conn_tx.start_transaction()
                 
-                company_id, company_name = None, ''
+                company_id = None
+                company_name = ''
                 if form_data.get('company_selection_mode') == 'new':
                     new_company_name = form_data.get('new_company_name').strip()
+                    cursor.execute("SELECT CompanyID FROM Companies WHERE CompanyName = %s", (new_company_name,))
+                    if cursor.fetchone():
+                        errors['new_company_name'] = f"A company named '{new_company_name}' already exists."
+                        raise ValueError("Duplicate company name")
                     cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (new_company_name,))
                     company_id = cursor.lastrowid
                     company_name = new_company_name
                 else:
                     company_id = form_data.get('selected_company_id')
                     cursor.execute("SELECT CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
-                    company_name = cursor.fetchone()['CompanyName']
+                    company_result = cursor.fetchone()
+                    if company_result:
+                        company_name = company_result['CompanyName']
+
 
                 params = {
                     "company_id": company_id,
@@ -240,8 +276,10 @@ def staff_direct_create_job_offer():
                     "max_age": int(form_data['max_age']) if form_data.get('max_age') else None,
                     "has_contract": 1 if form_data.get('has_contract') == 'yes' else 0,
                     "grad_status_req": ",".join(form_data.get('grad_status_req', [])),
-                    "languages_type": form_data.get('languages_type'), "required_languages": ",".join(form_data.get('required_languages', [])),
-                    "required_level": form_data.get('required_level'), "candidates_needed": int(form_data.get('candidates_needed', 1)),
+                    "languages_type": form_data.get('languages_type'),
+                    "required_languages": ",".join(form_data.get('required_languages', [])),
+                    "required_level": form_data.get('required_level'),
+                    "candidates_needed": int(form_data.get('candidates_needed', 1)),
                     "hiring_cadence": form_data.get('hiring_cadence'), "work_location_type": form_data.get('work_location_type'),
                     "shift_type": form_data.get('shift_type'), "available_shifts": ",".join(form_data.get('available_shifts', [])),
                     "benefits_included": ",".join(form_data.get('benefits_included', [])),
@@ -266,16 +304,28 @@ def staff_direct_create_job_offer():
                         %(gender)s, %(military_status)s, %(working_days)s, %(working_hours)s, %(experience_requirement)s
                     )"""
                 cursor.execute(sql, params)
-                
+
                 _create_automated_announcement(cursor, 'Automated_Offer', f"New Job: {params['title']} with {company_name}", "A new job offer has been posted.", posted_by_user_id=current_user.id)
                 conn_tx.commit()
                 flash(f"New job offer '{params['title']}' created and announced!", 'success')
                 return redirect(url_for('.list_all_job_offers'))
+            except ValueError: 
+                if conn_tx: conn_tx.rollback()
             except Exception as e:
                 if conn_tx: conn_tx.rollback()
-                flash(f'An error occurred: {e}', 'danger')
+                flash(f'An error occurred while creating the offer: {e}', 'danger')
             finally:
                 if conn_tx and conn_tx.is_connected(): conn_tx.close()
+        
+        if errors:
+            flash('Please correct the errors shown in the form.', 'warning')
+    else: # GET Request
+        form_data = {
+            'work_location_type': 'site', 'hiring_plan': 'long-term', 'shift_type': 'fixed',
+            'transportation': 'no', 'has_contract': 'yes', 'hiring_cadence': 'month',
+            'grad_status_req': ['grad'], 'nationality': 'Egyptians Only', 'payment_term': 'Monthly',
+            'candidates_needed': 1, 'status': 'Open', 'gender': 'Both', 'military_status': 'Not Applicable'
+        }
 
     return render_template('account_manager_portal/offers/add_edit_job_offer.html', 
         title='Create Job Offer', form_data=form_data, errors=errors, companies=companies, 
@@ -285,9 +335,6 @@ def staff_direct_create_job_offer():
 @am_offer_mgmt_bp.route('/edit-live/<int:offer_id>', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
 def edit_live_job_offer(offer_id):
-    # This function is a direct copy of the one from job_offer_mgmt_routes.py,
-    # but redirects and renders templates appropriate for the AM portal.
-    # The full logic is included for completeness.
     errors, companies, categories, form_options = {}, [], [], {}
     form_data_for_template = {}
     
@@ -298,19 +345,11 @@ def edit_live_job_offer(offer_id):
         companies = cursor_deps.fetchall()
         cursor_deps.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName")
         categories = cursor_deps.fetchall()
-        def get_form_options(conn, cursor):
-            options = {}
-            table = 'JobOffers'
-            columns_to_fetch = [
-                'HiringPlan', 'GraduationStatusRequirement', 'HiringCadence',
-                'WorkLocationType', 'ShiftType', 'AvailableShifts', 'BenefitsIncluded',
-                'Nationality', 'RequiredLanguages', 'RequiredLevel', 'Status', 'PaymentTerm',
-                'LanguagesType', 'Gender', 'MilitaryStatus'
-            ]
-            for col in columns_to_fetch:
-                options[col] = get_column_options(conn, cursor, table, col)
-            return options
         form_options = get_form_options(conn_deps, cursor_deps)
+    except Exception as e:
+        flash("Error loading form support data.", "danger")
+        if conn_deps and conn_deps.is_connected(): conn_deps.close()
+        return redirect(url_for('.list_all_job_offers'))
     finally:
         if conn_deps and conn_deps.is_connected(): conn_deps.close()
 
@@ -328,7 +367,11 @@ def edit_live_job_offer(offer_id):
 
     if request.method == 'POST':
         form_data = request.form.to_dict()
-        form_data['benefits_included'] = request.form.getlist('benefits_checkboxes')
+        benefits_list = request.form.getlist('benefits_checkboxes')
+        if form_data.get('transportation') == 'yes' and form_data.get('transport_type'):
+            benefits_list.append(form_data.get('transport_type'))
+        
+        form_data['benefits_included'] = benefits_list
         form_data['available_shifts'] = request.form.getlist('available_shifts')
         form_data['required_languages'] = request.form.getlist('required_languages')
         form_data['grad_status_req'] = request.form.getlist('grad_status_req')
@@ -372,7 +415,7 @@ def edit_live_job_offer(offer_id):
 
                 new_status = params['status']
                 if old_status != new_status:
-                    _create_automated_announcement(cursor_update, 'Automated_Status_Change', f"Offer Status Updated: {original_title}", f"The status for the job offer '{original_title}' has been changed from '{old_status}' to '{new_status}'.", posted_by_user_id=current_user.id)
+                    _create_automated_announcement(cursor_update, 'Automated_Status_Change', f"Offer Status Updated: {original_title}", f"The status for the job offer '{original_title}' has changed from '{old_status}' to '{new_status}'.", posted_by_user_id=current_user.id)
                     flash(f"Job offer status updated and an announcement was posted.", 'info')
 
                 conn_update.commit()
@@ -393,13 +436,29 @@ def edit_live_job_offer(offer_id):
             cursor_fetch.execute("SELECT * FROM JobOffers WHERE OfferID = %s", (offer_id,))
             db_data = cursor_fetch.fetchone()
             form_data_for_template = db_data.copy()
+
             def parse_set_or_text_column(value):
                 if isinstance(value, (bytes, str)): return [v.strip() for v in value.split(',') if v.strip()]
                 return []
+
             form_data_for_template['required_languages'] = parse_set_or_text_column(db_data.get('RequiredLanguages'))
             form_data_for_template['available_shifts'] = parse_set_or_text_column(db_data.get('AvailableShifts'))
             form_data_for_template['grad_status_req'] = parse_set_or_text_column(db_data.get('GraduationStatusRequirement'))
-            form_data_for_template['benefits_included'] = parse_set_or_text_column(db_data.get('BenefitsIncluded'))
+            
+            all_benefits_from_db = parse_set_or_text_column(db_data.get('BenefitsIncluded'))
+            dynamic_transport_options = form_options.get('transportation_options', [])
+            form_data_for_template['transportation'] = 'no'
+            form_data_for_template['transport_type'] = ''
+            final_benefits_for_checkboxes = []
+            
+            for benefit in all_benefits_from_db:
+                if benefit in dynamic_transport_options:
+                    form_data_for_template['transportation'] = 'yes'
+                    form_data_for_template['transport_type'] = benefit
+                else:
+                    final_benefits_for_checkboxes.append(benefit)
+            form_data_for_template['benefits_checkboxes'] = final_benefits_for_checkboxes
+
             form_data_for_template['has_contract'] = 'yes' if db_data.get('HasContract') else 'no'
             form_data_for_template['net_salary'] = str(db_data['NetSalary']) if db_data.get('NetSalary') is not None else ''
             form_data_for_template['closing_date'] = db_data['ClosingDate'].isoformat() if db_data.get('ClosingDate') else ''
@@ -410,6 +469,7 @@ def edit_live_job_offer(offer_id):
         title=f'Edit Offer: {form_data_for_template.get("Title", "N/A")}', 
         form_data=form_data_for_template, errors=errors, companies=companies, categories=categories, 
         offer_id=offer_id, is_editing_live=True, action_verb="Update Offer", form_options=form_options)
+    
 
 
 @am_offer_mgmt_bp.route('/delete-live/<int:offer_id>', methods=['POST'])
