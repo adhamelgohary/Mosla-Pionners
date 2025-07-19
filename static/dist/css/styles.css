@@ -2344,10 +2344,6 @@ html[data-theme="dark"] {
   height: 80vh;
 }
 
-.h-\[90vh\] {
-  height: 90vh;
-}
-
 .h-full {
   height: 100%;
 }
@@ -3615,6 +3611,10 @@ html[data-theme="dark"] {
 
 .pb-4 {
   padding-bottom: 1rem;
+}
+
+.pb-5 {
+  padding-bottom: 1.25rem;
 }
 
 .pl-10 {
@@ -4896,11 +4896,6 @@ body {
   color: rgb(220 38 38 / var(--tw-text-opacity, 1));
 }
 
-.hover\:text-red-800:hover {
-  --tw-text-opacity: 1;
-  color: rgb(153 27 27 / var(--tw-text-opacity, 1));
-}
-
 .hover\:text-red-900:hover {
   --tw-text-opacity: 1;
   color: rgb(127 29 29 / var(--tw-text-opacity, 1));
@@ -5249,10 +5244,6 @@ body {
 
   .sm\:h-20 {
     height: 5rem;
-  }
-
-  .sm\:h-\[85vh\] {
-    height: 85vh;
   }
 
   .sm\:w-10 {
