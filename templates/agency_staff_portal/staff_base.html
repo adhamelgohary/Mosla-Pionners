@@ -60,6 +60,8 @@
                                 </div>
                                 
                                 {% if current_user.role_type != 'SalesManager' %}
+                                    <!-- ADDED: Inquiries Link for Desktop -->
+                                    <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('inquiry_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Inquiries</a>
                                     <a href="{{ url_for('announcement_bp.list_announcements') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('announcement_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Announcements</a>
                                     <div class="relative" x-on:click.away="reportsMenuOpen = false">
                                          <button @click="reportsMenuOpen = !reportsMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('reporting_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">
@@ -78,19 +80,17 @@
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
                             
-                            {# --- START: NEW NOTIFICATION ICON --- #}
                             {% if current_user.role_type != 'SalesManager' and unread_message_count > 0 %}
-                            <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}#contact-messages-panel" title="{{ unread_message_count }} unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                            <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" title="{{ unread_message_count }} unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                                 <span class="sr-only">View messages</span>
                                 <i class="bi bi-envelope-exclamation-fill h-6 w-6"></i>
                                 <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ unread_message_count }}</span>
                             </a>
                             {% elif current_user.role_type != 'SalesManager' %}
-                            <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}#contact-messages-panel" title="No unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500">
+                            <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" title="No unread messages" class="relative mr-3 p-1 rounded-full text-gray-400 hover:text-gray-500">
                                 <i class="bi bi-envelope-fill h-6 w-6"></i>
                             </a>
                             {% endif %}
-                            {# --- END: NEW NOTIFICATION ICON --- #}
 
                             <div class="relative ml-3" x-on:click.away="profileMenuOpen = false">
                                 <div>
@@ -127,9 +127,10 @@
                     {% endif %}
                     <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Packages</a>
                     {% if current_user.role_type != 'SalesManager' %}
-                        <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Reports</a>
+                        <!-- ADDED: Inquiries Link for Mobile -->
+                        <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Inquiries</a>
                         <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Announcements</a>
-                        <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('inquiry_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Inquiries</a>
+                        <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Reports</a>
                     {% endif %}
                 </div>
                 <div class="border-t border-gray-200 pb-3 pt-4">

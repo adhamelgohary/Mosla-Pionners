@@ -75,37 +75,37 @@
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Here are your quick actions.</p>
             <div class="mt-6 flex flex-col space-y-3">
                 <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="btn-primary w-full"><i class="bi bi-person-plus-fill mr-2"></i> Add New Staff</a>
+                <!-- CORRECTED LINK for Add Announcement -->
                 <a href="{{ url_for('announcement_bp.add_announcement') }}" class="btn-secondary w-full"><i class="bi bi-megaphone-fill mr-2"></i> Add Announcement</a>
             </div>
         </div>
         
-        <!-- ======================================= -->
-        <!-- START: New Recent Contact Messages Panel -->
-        <!-- ======================================= -->
         <div id="contact-messages-panel" x-show="isLoaded" x-transition:enter="transition ease-out duration-300 delay-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
              class="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-xl p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Recent Inquiries</h3>
-                <!-- Optional: Link to a full message management page -->
+                <!-- CORRECTED LINK for View All Inquiries -->
                 <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">View All</a>
             </div>
             <div class="space-y-4">
                 {% if contact_messages %}
                     {% for message in contact_messages %}
-                    <div class="flex items-start space-x-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                            <i class="bi bi-envelope-paper-heart-fill text-blue-500 dark:text-blue-400"></i>
+                    <a href="{{ url_for('inquiry_mgmt_bp.view_inquiry', message_id=message.MessageID) }}" class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-start space-x-4">
+                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                <i class="bi bi-envelope-paper-heart-fill text-blue-500 dark:text-blue-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title="{{ message.Subject }}">{{ message.Subject }}</p>
+                                <p class="text-sm text-slate-500 dark:text-slate-400">
+                                    From: <span class="font-medium">{{ message.Name }}</span>
+                                </p>
+                                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                    {{ message.SubmittedAt.strftime('%b %d, %Y at %I:%M %p') }}
+                                </p>
+                            </div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title="{{ message.Subject }}">{{ message.Subject }}</p>
-                            <p class="text-sm text-slate-500 dark:text-slate-400">
-                                From: <span class="font-medium">{{ message.Name }}</span>
-                            </p>
-                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                {{ message.SubmittedAt.strftime('%b %d, %Y at %I:%M %p') }}
-                            </p>
-                        </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 {% else %}
                     <div class="text-center py-8">
@@ -118,9 +118,6 @@
                 {% endif %}
             </div>
         </div>
-        <!-- ===================================== -->
-        <!-- END: New Recent Contact Messages Panel -->
-        <!-- ===================================== -->
 
     </div>
 

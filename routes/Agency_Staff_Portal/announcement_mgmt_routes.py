@@ -10,7 +10,8 @@ import mysql.connector
 ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'Founder']
 
 announcement_bp = Blueprint('announcement_bp', __name__,
-                            url_prefix='/announcements')
+                            # --- CORRECTED URL PREFIX ---
+                            url_prefix='/staff-portal/announcements')
 
 def validate_announcement_data(form_data):
     errors = {}
@@ -34,7 +35,8 @@ def validate_announcement_data(form_data):
     return errors
 
 @announcement_bp.route('/')
-@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+# --- CORRECTED REDIRECT ---
+@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')
 def list_announcements():
     announcements = []
     show_all = request.args.get('show_all', 'false').lower() == 'true'
@@ -51,14 +53,18 @@ def list_announcements():
         cursor.execute(query)
         announcements = cursor.fetchall()
     except Exception as e:
+        current_app.logger.error(f"Error loading announcements list: {e}", exc_info=True)
         flash("Could not load announcements.", "danger")
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected(): 
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
     return render_template('agency_staff_portal/announcements/list_announcements.html', 
                            title='Manage Announcements', announcements=announcements, show_all=show_all)
 
 @announcement_bp.route('/add', methods=['GET', 'POST'])
-@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+# --- CORRECTED REDIRECT ---
+@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')
 def add_announcement():
     form_data = {'audience': 'AllStaff', 'priority': 'Normal', 'is_active': True}
     errors = {}
@@ -80,43 +86,46 @@ def add_announcement():
                 return redirect(url_for('.list_announcements'))
             except Exception as e:
                 if conn: conn.rollback()
-                flash(f'Error: {e}', 'danger'); errors['form'] = str(e)
+                current_app.logger.error(f"Error adding announcement: {e}", exc_info=True)
+                flash(f'An unexpected error occurred. Please check the logs.', 'danger')
+                errors['form'] = str(e)
             finally:
-                if conn and conn.is_connected(): conn.close()
+                if conn and conn.is_connected(): 
+                    if 'cursor' in locals() and cursor: cursor.close()
+                    conn.close()
         else:
-            flash('Please correct errors.', 'warning')
+            flash('Please correct the errors below.', 'warning')
     return render_template('agency_staff_portal/announcements/add_edit_announcement.html', title='Add Announcement', form_data=form_data, errors=errors, action_verb='Add')
 
 @announcement_bp.route('/edit/<int:announcement_id>', methods=['GET', 'POST'])
-@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+# --- CORRECTED REDIRECT ---
+@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')
 def edit_announcement(announcement_id):
     form_data, errors = {}, {}
     original_title_hidden = "Announcement"
-    if request.method == 'GET':
-        conn = get_db_connection()
-        if conn:
-            try:
-                cursor = conn.cursor(dictionary=True)
-                cursor.execute("SELECT * FROM SystemAnnouncements WHERE AnnouncementID = %s", (announcement_id,))
-                data = cursor.fetchone()
-                if data:
-                    form_data = data
-                    original_title_hidden = data.get('Title', 'Announcement')
-                    if data.get('DisplayUntil') and isinstance(data['DisplayUntil'], datetime.datetime):
-                        form_data['DisplayUntil'] = data['DisplayUntil'].strftime('%Y-%m-%dT%H:%M')
-                    form_data['IsActive'] = bool(data.get('IsActive'))
-                else:
-                    flash('Announcement not found.', 'danger'); return redirect(url_for('.list_announcements'))
-            finally: conn.close()
-    elif request.method == 'POST':
-        form_data = request.form.to_dict()
-        form_data['is_active'] = request.form.get('is_active') == 'on'
-        original_title_hidden = request.form.get('original_title_hidden', form_data.get('title', 'Announcement'))
-        errors = validate_announcement_data(form_data)
-        if not errors:
-            conn = None
-            try:
-                conn = get_db_connection()
+    conn = get_db_connection()
+
+    try:
+        if request.method == 'GET':
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM SystemAnnouncements WHERE AnnouncementID = %s", (announcement_id,))
+            data = cursor.fetchone()
+            if data:
+                form_data = data
+                original_title_hidden = data.get('Title', 'Announcement')
+                if data.get('DisplayUntil') and isinstance(data['DisplayUntil'], datetime.datetime):
+                    form_data['DisplayUntil'] = data['DisplayUntil'].strftime('%Y-%m-%dT%H:%M')
+                form_data['IsActive'] = bool(data.get('IsActive'))
+            else:
+                flash('Announcement not found.', 'danger')
+                return redirect(url_for('.list_announcements'))
+        
+        elif request.method == 'POST':
+            form_data = request.form.to_dict()
+            form_data['is_active'] = request.form.get('is_active') == 'on'
+            original_title_hidden = request.form.get('original_title_hidden', form_data.get('title', 'Announcement'))
+            errors = validate_announcement_data(form_data)
+            if not errors:
                 cursor = conn.cursor()
                 sql = "UPDATE SystemAnnouncements SET Title=%s, Content=%s, IsActive=%s, DisplayUntil=%s, Audience=%s, Priority=%s, UpdatedAt=NOW() WHERE AnnouncementID=%s"
                 display_until = datetime.datetime.strptime(form_data['display_until'], '%Y-%m-%dT%H:%M').strftime('%Y-%m-%d %H:%M:%S') if form_data.get('display_until') else None
@@ -125,16 +134,23 @@ def edit_announcement(announcement_id):
                 conn.commit()
                 flash('Announcement updated!', 'success')
                 return redirect(url_for('.list_announcements'))
-            except Exception as e:
-                if conn: conn.rollback()
-                flash(f'Error: {e}', 'danger'); errors['form'] = str(e)
-            finally:
-                if conn and conn.is_connected(): conn.close()
-        else: flash('Correct errors.', 'warning')
+            else: 
+                flash('Please correct the errors below.', 'warning')
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error editing announcement {announcement_id}: {e}", exc_info=True)
+        flash(f'An unexpected error occurred. Please check the logs.', 'danger')
+        if request.method == 'POST': errors['form'] = str(e)
+    finally:
+        if conn and conn.is_connected(): 
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
     return render_template('agency_staff_portal/announcements/add_edit_announcement.html', title=f"Edit: {original_title_hidden}", form_data=form_data, errors=errors, action_verb='Update', announcement_id=announcement_id, original_title_hidden=original_title_hidden)
 
 @announcement_bp.route('/delete/<int:announcement_id>', methods=['POST'])
-@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='staff_dashboard_bp.main_dashboard')
+# --- CORRECTED REDIRECT ---
+@login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')
 def delete_announcement(announcement_id):
     conn = None
     try:
@@ -142,10 +158,16 @@ def delete_announcement(announcement_id):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM SystemAnnouncements WHERE AnnouncementID = %s", (announcement_id,))
         conn.commit()
-        flash('Announcement deleted!', 'success' if cursor.rowcount > 0 else 'warning')
+        if cursor.rowcount > 0:
+            flash('Announcement deleted successfully!', 'success')
+        else:
+            flash('Announcement could not be found or was already deleted.', 'warning')
     except Exception as e:
         if conn: conn.rollback()
-        flash(f'Error deleting: {e}', 'danger')
+        current_app.logger.error(f"Error deleting announcement {announcement_id}: {e}", exc_info=True)
+        flash(f'An error occurred while deleting the announcement.', 'danger')
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
     return redirect(url_for('.list_announcements'))

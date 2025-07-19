@@ -498,24 +498,28 @@ def my_profile_update_details():
 
 
 @staff_perf_bp.route('/my-profile/update-password', methods=['POST'])
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+# --- MODIFIED: Explicitly add 'SalesManager' to the list of allowed roles ---
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
 def my_profile_update_password():
     """Handles updating the user's own password."""
     current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
     confirm_password = request.form.get('confirm_password')
 
+    # Central redirect point
+    redirect_url = url_for('.view_staff_profile', user_id_viewing=current_user.id)
+
     if not all([current_password, new_password, confirm_password]):
         flash("All password fields are required.", "danger")
-        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+        return redirect(redirect_url)
     
     if len(new_password) < 8:
         flash("New password must be at least 8 characters long.", "danger")
-        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+        return redirect(redirect_url)
         
     if new_password != confirm_password:
         flash("New passwords do not match.", "danger")
-        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+        return redirect(redirect_url)
         
     conn = get_db_connection()
     try:
@@ -525,7 +529,7 @@ def my_profile_update_password():
         
         if not user or not check_password_hash(user['PasswordHash'], current_password):
             flash("Your current password is not correct.", "danger")
-            return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+            return redirect(redirect_url)
             
         new_hashed_password = generate_password_hash(new_password)
         cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (new_hashed_password, current_user.id))
@@ -541,4 +545,4 @@ def my_profile_update_password():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
             
-    return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+    return redirect(redirect_url)
