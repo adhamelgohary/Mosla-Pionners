@@ -203,6 +203,58 @@ def list_all_job_offers():
         offers_by_company=offers_by_company
     )
 
+# --- [NEW ROUTE] ---
+# This new route is added to fix the BuildError from single_company_view.html
+@am_offer_mgmt_bp.route('/for-company/<int:company_id>')
+@login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)
+def list_offers_for_company(company_id):
+    """Lists job offers for a single, specified company."""
+    offers_by_company = OrderedDict()
+    title = 'Company Offers'
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
+        company = cursor.fetchone()
+        if not company:
+            flash("Company not found.", "danger")
+            return redirect(url_for('.list_all_job_offers'))
+        title = f"Offers for: {company['CompanyName']}"
+
+        cursor.execute("""
+            SELECT 
+                jo.OfferID, jo.Title, jo.Status, jo.DatePosted, 
+                c.CompanyID, c.CompanyName, 
+                jc.CategoryName 
+            FROM JobOffers jo 
+            JOIN Companies c ON jo.CompanyID = c.CompanyID 
+            LEFT JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
+            WHERE c.CompanyID = %s
+            ORDER BY jo.DatePosted DESC
+        """, (company_id,))
+        all_offers = cursor.fetchall()
+
+        if all_offers:
+            offers_by_company[company_id] = {
+                "company_id": company_id,
+                "company_name": company['CompanyName'],
+                "offers": all_offers
+            }
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching job offers for company {company_id}: {e}", exc_info=True)
+        flash("Could not load job offers for the specified company.", "danger")
+        return redirect(url_for('.list_all_job_offers'))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    
+    # Reuse the same template as the main offer list
+    return render_template('account_manager_portal/offers/list_all_job_offers.html', 
+        title=title, 
+        offers_by_company=offers_by_company
+    )
+
 
 @am_offer_mgmt_bp.route('/create-live', methods=['GET', 'POST'])
 @login_required_with_role(AM_OFFER_MANAGEMENT_ROLES)

@@ -51,7 +51,7 @@ def view_schedules(company_id):
 
     conn, cursor, company = check_auth_and_get_company(company_id, staff_id)
     if not conn:
-        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
 
     schedules = []
     try:
@@ -90,7 +90,7 @@ def add_schedule(company_id):
 
     conn, _, company = check_auth_and_get_company(company_id, staff_id)
     if not conn:
-        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
     
     try:
         cursor = conn.cursor()
@@ -133,14 +133,14 @@ def edit_schedule(schedule_id):
 
         if not slot_to_edit:
             flash("Schedule slot not found.", "warning")
-            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+            return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
         
         # Authorization check
         is_owner = slot_to_edit.get('ManagedByStaffID') == staff_id
         is_senior_manager = current_user.role_type in ['HeadAccountManager', 'CEO' , 'Founder', 'Admin']
         if not (is_owner or is_senior_manager):
             flash("You are not authorized to edit this schedule.", "danger")
-            return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+            return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
 
         company_id = slot_to_edit['CompanyID']
         company = {'CompanyID': company_id, 'CompanyName': slot_to_edit['CompanyName']}
@@ -176,7 +176,7 @@ def edit_schedule(schedule_id):
         if conn: conn.rollback()
         flash("An error occurred.", "danger")
         current_app.logger.error(f"Error editing schedule {schedule_id}: {e}", exc_info=True)
-        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
     finally:
         if conn: conn.close()
 
@@ -191,11 +191,11 @@ def delete_schedule(schedule_id):
     company_id = request.form.get('company_id', type=int)
     if not company_id:
         flash("Missing company context for deletion.", "danger")
-        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
 
     conn, _, _ = check_auth_and_get_company(company_id, staff_id)
     if not conn:
-        return redirect(url_for('am_offer_mgmt_bp.list_companies_for_offers'))
+        return redirect(url_for('am_offer_mgmt_bp.list_all_job_offers'))
         
     try:
         cursor = conn.cursor()
