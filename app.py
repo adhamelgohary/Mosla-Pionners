@@ -7,9 +7,8 @@ from flask_login import current_user
 from dotenv import load_dotenv
 import humanize
 # --- [CORRECTED] ---
-# Removed the redundant and problematic `import datetime`. 
-# The line below is all that's needed.
-from datetime import datetime, timezone, date
+# Import the 'date' and 'timedelta' classes alongside 'datetime'
+from datetime import datetime, timezone, date, timedelta
 
 load_dotenv()
 
@@ -58,36 +57,48 @@ from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 # --- Create Flask App ---
 app = Flask(__name__)
 
-# --- Jinja Filter Definition ---
+# --- Jinja Filter Definitions ---
+
 @app.template_filter('humanize_date')
 def humanize_date(dt, default=None):
     """
     Returns a human-readable string for a datetime object.
     e.g., "2 hours ago", "3 days ago"
     """
-    if not isinstance(dt, (datetime, date)): # Check against both classes
+    if not isinstance(dt, (datetime, date)):
         return default
     
     now = datetime.now(dt.tzinfo if hasattr(dt, 'tzinfo') else None)
     
-    # [CORRECTED] This check will now work because `date` and `datetime` are imported as classes
     if isinstance(dt, date) and not isinstance(dt, datetime):
-        # Convert date object to datetime object for comparison
         dt = datetime.combine(dt, datetime.min.time(), tzinfo=now.tzinfo)
 
     return humanize.naturaltime(now - dt)
 
+@app.template_filter('format_timedelta_to_time')
+def format_timedelta_to_time(td_object, time_format='%I:%M %p'):
+    """
+    Custom Jinja filter to format a timedelta object into a time string.
+    Example: a timedelta of 9 hours becomes '09:00 AM'.
+    """
+    if not isinstance(td_object, timedelta):
+        return td_object
+    
+    dummy_date = datetime(2000, 1, 1, 0, 0, 0)
+    result_time = (dummy_date + td_object).time()
+    return result_time.strftime(time_format)
+
 # --- Core App Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
-
 if not app.config['SECRET_KEY']:
     raise ValueError("FATAL ERROR: FLASK_SECRET_KEY environment variable not set. App cannot run.")
 
 app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('FLASK_SESSION_LIFETIME', 3600))
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB upload limit
 
-# The filter is now defined before being assigned to jinja_env
+# Register the filters with Jinja
 app.jinja_env.filters['humanize_date'] = humanize_date
+app.jinja_env.filters['format_timedelta_to_time'] = format_timedelta_to_time
 
 # Configure the upload folder
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
@@ -133,15 +144,6 @@ app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
-
-# --- Custom Filter for timedelta formatting ---
-@app.template_filter('format_timedelta_to_time')
-def format_timedelta_to_time(td_object, time_format='%I:%M %p'):
-    if not isinstance(td_object, datetime.timedelta):
-        return td_object
-    dummy_date = datetime(2000, 1, 1, 0, 0, 0)
-    result_time = (dummy_date + td_object).time()
-    return result_time.strftime(time_format)
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)
