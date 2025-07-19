@@ -14,11 +14,10 @@ module.exports = {
   ],
   
   theme: {
-    // [REVERTED] - Reverted to original fluid type settings for better scaling.
     fluidType: {
       settings: {
-        fontSizeMin: 1.125, // 18px
-        fontSizeMax: 1.25,  // 20px
+        fontSizeMin: 1.125,
+        fontSizeMax: 1.25,
         ratioMin: 1.125,     
         ratioMax: 1.2,      
         screenMin: 20,       
@@ -28,7 +27,6 @@ module.exports = {
       },
     },
     extend: {
-      // (The rest of your theme.extend section remains the same)
       colors: {
         primary: {
           DEFAULT: 'rgb(var(--primary-color-rgb) / <alpha-value>)',
@@ -94,12 +92,9 @@ module.exports = {
   },
   
   plugins: [
-    // --- OFFICIAL PLUGINS ---
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
     require('@tailwindcss/aspect-ratio'),
-    
-    // --- 3RD PARTY PLUGINS ---
     require('@tailwindcss/container-queries'),
     require('tailwindcss-text-balance'),
     require('tailwindcss-fluid-type'),
@@ -111,12 +106,9 @@ module.exports = {
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
 
-    // --- CUSTOM IN-LINE PLUGIN ---
     plugin(function({ addBase, addComponents, addVariant }) {
-      // 1. ADD BASE STYLES AND CSS VARIABLES
       addBase({
         ':root': {
-          // [REVERTED] - Removed 'font-size: 14px' to restore Tailwind's default 16px base.
           '--primary-color-rgb': '59 130 246', '--primary-color-darker': '#1d4ed8', '--secondary-color-rgb': '16 185 129',
           '--danger-color': '#ef4444', '--background-color': '#f9fafb', '--card-bg': '#ffffff', '--input-bg-color': '#ffffff',
           '--text-color': '#374151', '--text-muted': '#6b7280', '--heading-color': '#111827',
@@ -132,9 +124,10 @@ module.exports = {
         }
       });
 
-      // 2. [REVERTED] REMOVED the overly specific/compact component styles.
-      // The Bento Grid page uses standard utility classes which are more appropriate for that design.
-      // Keeping this section empty prevents conflicts with custom page designs.
+      // --- [THE FIX] ---
+      // This section is now empty. By not defining global .form-input or .btn-primary styles here,
+      // we prevent conflicts with pages like the Bento grid that use specific, local utility classes for styling.
+      // Other pages can now use the default styles from the @tailwindcss/forms plugin without issue.
       addComponents({
         // Intentionally left blank to avoid global style overrides.
       });
