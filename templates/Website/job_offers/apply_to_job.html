@@ -6,189 +6,141 @@
     {{ super() }}
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
     <style>
-        /* Bento Grid Background Pattern */
-        body {
-            background-color: #f8fafc; /* light gray fallback */
-            background-image:
-                linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-                linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
-            background-size: 2rem 2rem;
-        }
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #0f172a; /* slate-900 */
-                background-image:
-                    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-            }
-        }
-        
-        /* General invalid feedback styling (remains the same) */
-        .invalid-feedback { display: none; }
-        .is-invalid + .invalid-feedback,
-        .is-invalid ~ .invalid-feedback { display: block; }
+      .invalid-feedback { display: none; }
+      .is-invalid + .invalid-feedback,
+      .is-invalid ~ .invalid-feedback { display: block; }
+
+      details > summary { list-style: none; }
+      details > summary::-webkit-details-marker { display: none; }
+      details summary .accordion-arrow { transition: transform 0.2s; }
+      details[open] summary .accordion-arrow { transform: rotate(90deg); }
     </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen w-full px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-    <div 
-        id="applicationContainer" 
-        class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6"
-        x-data="applicationForm()"
-        x-init="init()"
-    >
-        <!-- Main Form Section -->
-        <form 
-            id="applicationForm" 
-            method="POST" 
-            @submit.prevent="submitForm"
-            class="lg:col-span-3 space-y-6"
-        >
-            <!-- Bento Box: Intro -->
-            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
-                <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Apply for {{ offer.Title }}</h1>
-                <p class="mt-2 text-slate-600 dark:text-slate-400">Complete the steps on the right. Fields marked with <span class="text-red-500">*</span> are required.</p>
-            </section>
+<div class="job-detail-page-wrapper">
+    <main id="mainContent" class="relative z-10 bg-transparent py-8 sm:py-12">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            {% if offer and current_user.is_authenticated and current_user.role_type == 'Candidate' %}
+                <form id="applicationForm" method="POST" enctype="multipart/form-data" class="bg-card/90 backdrop-blur-sm p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl space-y-8 border border-border/50">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-heading">Apply for {{ offer.Title }}</h2>
+                        <p class="mt-2 text-sm text-text-muted">Please complete the form below. Fields marked with <span class="text-danger-500">*</span> are required. <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="font-medium text-primary hover:text-primary-darker">View job details again</a>.</p>
+                    </div>
 
-            <!-- Bento Box: Personal Details -->
-            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                        <i class="bi bi-person-fill text-lg"></i>
+                    <div id="formErrorMessages" class="hidden rounded-md bg-danger/10 p-4 ring-1 ring-inset ring-danger/20">
+                        <div class="flex">
+                            <div class="flex-shrink-0"><svg class="h-5 w-5 text-danger-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg></div>
+                            <div class="ml-3"><div id="formErrorContent" class="text-sm text-danger-700 dark:text-danger-300"></div></div>
+                        </div>
                     </div>
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Personal Details</h2>
-                </div>
-                <div class="mt-6 space-y-4">
-                    <div>
-                        <label for="fullName" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
-                    </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Email <span class="text-red-500">*</span></label>
-                        <input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
-                    </div>
-                    <div>
-                        <label for="phoneNumber" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number <span class="text-red-500">*</span></label>
-                        <input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
-                    </div>
-                     <div>
-                        <label for="referralCode" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Referral Code (Optional)</label>
-                        <input type="text" id="referralCode" name="referral_code" placeholder="e.g., JOHN123" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Bento Box: Application Question -->
-            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
-                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                        <i class="bi bi-patch-question-fill text-lg"></i>
-                    </div>
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Application Question</h2>
-                </div>
-                <div class="mt-6">
-                    <label for="candidateQuestions" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Why are you interested in this role? <span class="text-red-500">*</span></label>
-                    <textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm min-h-[100px]" @input="updateProgress('question')">{{ form_data.get('candidateQuestions', '') }}</textarea>
-                </div>
-            </section>
-        </form>
 
-        <!-- Sidebar Section -->
-        <div class="lg:col-span-2 space-y-6">
-            <!-- Bento Box: Job at a Glance -->
-            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
-                <div class="flex items-center gap-4">
-                    <img src="{{ offer.CompanyLogoURL or url_for('static', filename='images/default-logo.svg') }}" alt="{{ offer.CompanyName }} logo" class="w-14 h-14 rounded-lg object-contain bg-slate-100 dark:bg-slate-700 p-1">
-                    <div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">{{ offer.Title }}</h3>
-                        <p class="text-sm text-slate-600 dark:text-slate-400">{{ offer.CompanyName }}</p>
-                    </div>
-                </div>
-                <div class="mt-4 space-y-2 text-sm border-t border-slate-200 dark:border-slate-700 pt-4">
-                    <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300"><i class="bi bi-geo-alt-fill text-slate-400"></i> {{ offer.Location }} ({{ offer.WorkLocationType }})</div>
-                    <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300"><i class="bi bi-cash-coin text-slate-400"></i> {{ offer.NetSalary|default('Not disclosed') }} EGP</div>
-                </div>
-                <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="mt-4 inline-block text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">View full job details →</a>
-            </section>
+                    <div class="border-t border-border pt-8 space-y-6">
+                        <!-- Personal Information Section -->
+                        <div class="space-y-6">
+                             <div>
+                                <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
+                                <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_full_name"></p>
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium leading-6 text-text">Email <span class="text-danger-500">*</span></label>
+                                <div class="mt-2"><input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_email"></p>
+                            </div>
+                            <div>
+                                <label for="phoneNumber" class="block text-sm font-medium leading-6 text-text">Phone Number <span class="text-danger-500">*</span></label>
+                                <div class="mt-2"><input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_phone_number"></p>
+                            </div>
+                            <div>
+                                <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code (Optional)</label>
+                                <div class="mt-2"><input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
+                                <div id="referralCodeFeedback" class="text-sm mt-2"></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_referral_code"></p>
+                            </div>
+                        </div>
 
-            <!-- Bento Box: Application Checklist & Actions -->
-            <div class="sticky top-6 space-y-6">
-                <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Your Application Checklist</h2>
-                    <ul class="mt-4 space-y-3">
-                        <template x-for="item in progress" :key="item.id">
-                            <li class="flex items-center gap-3 transition-colors" :class="item.done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-500 dark:text-slate-400'">
-                                <div class="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300" :class="item.done ? 'bg-green-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'">
-                                    <i class="bi" :class="item.done ? 'bi-check-lg' : item.icon"></i>
+                        <!-- Application Questions Section -->
+                        <div class="space-y-6 pt-6 border-t border-border">
+                             <div>
+                                <label for="candidateQuestions" class="block text-sm font-medium leading-6 text-text">Why are you interested in this role? <span class="text-danger-500">*</span></label>
+                                <div class="mt-2"><textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input">{{ form_data.get('candidateQuestions', '') }}</textarea></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_candidateQuestions"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- File Uploads Section -->
+                        <div class="space-y-6 pt-6 border-t border-border">
+                            <div class="bg-background/50 p-4 rounded-lg border border-border">
+                                <h3 class="text-sm font-medium leading-6 text-text">Your Voice Introduction <span class="text-danger-500">*</span></h3>
+                                <!-- [MODIFIED] - Updated prompt text -->
+                                <p class="mt-1 text-xs text-text-muted">Record a voice introduction (up to 140 seconds). Introduce yourself and briefly answer: 1. Why a call center role? 2. What makes you a great fit?</p>
+
+                                <div id="recorder-container" class="mt-4 p-4 border border-dashed border-border/70 rounded-lg space-y-4">
+                                    <div class="flex items-center justify-between flex-wrap gap-4">
+                                        <div id="recorder-controls" class="flex items-center gap-3">
+                                            <button type="button" id="recordButton" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" /><path d="M5.5 4a.5.5 0 00-1 0v6a4.5 4.5 0 009 0V4a.5.5 0 00-1 0v6a3.5 3.5 0 01-7 0V4z" /></svg>
+                                                <span>Record</span>
+                                            </button>
+                                            <button type="button" id="stopButton" class="hidden flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><rect width="10" height="10" x="5" y="5" rx="1" /></svg>
+                                                <span>Stop</span>
+                                            </button>
+                                        </div>
+                                        <div id="recording-status" class="hidden flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                            <span>Recording...</span>
+                                            <span id="timer" class="font-mono text-gray-500 dark:text-gray-400">00:00</span>
+                                        </div>
+                                    </div>
+                                    <div id="audio-playback-area" class="hidden pt-4 border-t border-border/50 space-y-3">
+                                        <p class="text-sm font-medium text-text">Your recording is ready:</p>
+                                        <audio id="audioPreview" controls class="w-full"></audio>
+                                        <button type="button" id="deleteRecordingButton" class="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-transparent border border-gray-300 rounded-full hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
+                                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.046A12.705 12.705 0 0115.682 15L14.5 14.5a.75.75 0 00-1.061 1.061l1.5 1.5a.75.75 0 001.06 0l1.5-1.5a.75.75 0 00-1.06-1.06l-1.092 1.092a11.208 11.208 0 00-9.287-9.044l-.046.149a.75.75 0 001.482.23l.468-2.365A2.75 2.75 0 008.75 1zM10 5.5a.75.75 0 01.75.75v6.5a.75.75 0 01-1.5 0v-6.5A.75.75 0 0110 5.5z" clip-rule="evenodd" /></svg>
+                                            Re-record
+                                        </button>
+                                    </div>
+                                    <div id="recorder-error" class="hidden mt-2 text-sm text-red-600 dark:text-red-500"></div>
                                 </div>
-                                <span class="font-medium" x-text="item.label"></span>
-                            </li>
-                        </template>
-                    </ul>
+                                <!-- [MODIFIED] - Moved validation message here from removed file input -->
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_voice_note_file"></p>
+                                
+                                <!-- [REMOVED] - Fallback file upload and instruction accordion have been deleted. -->
+                            </div>
 
-                    <!-- Action items are placed here -->
-                    <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                        <!-- Voice Note Recorder -->
-                        <div>
-                            <h3 class="font-semibold text-slate-800 dark:text-slate-200">Record Voice Intro <span class="text-red-500">*</span></h3>
-                            <div class="mt-2" x-show="!isRecording && !hasRecording">
-                                <button type="button" @click="startRecording" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900">
-                                    <i class="bi bi-mic-fill"></i><span>Start Recording</span>
-                                </button>
-                            </div>
-                            <!-- Recording State -->
-                            <div x-show="isRecording" class="mt-2 p-3 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center gap-4">
-                                <button type="button" @click="stopRecording" class="w-10 h-10 flex-shrink-0 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-slate-900">
-                                    <i class="bi bi-stop-fill text-2xl"></i>
-                                </button>
-                                <div class="w-full h-8 relative flex items-center">
-                                    <div id="audio-visualizer" class="w-full h-full flex items-end gap-px"></div>
-                                </div>
-                                <span x-text="timer" class="font-mono text-sm text-red-800 dark:text-red-200">00:00</span>
-                            </div>
-                             <!-- Preview State -->
-                            <div x-show="hasRecording" class="mt-2 space-y-2">
-                                <audio id="audioPreview" controls class="w-full"></audio>
-                                <button type="button" @click="startRecording" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">Re-record</button>
-                            </div>
-                            <div id="recorder-error" class="hidden mt-2 text-sm text-red-600"></div>
-                        </div>
-
-                        <!-- CV Uploader -->
-                        <div>
-                            <h3 class="font-semibold text-slate-800 dark:text-slate-200">Upload Your CV <span class="text-red-500">*</span></h3>
-                            <div 
-                                id="drop-zone"
-                                class="mt-2 p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg text-center cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors"
-                                :class="{ 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20': isDragging }"
-                            >
-                                <input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required class="hidden" @change="handleFileSelect">
-                                <i class="bi bi-cloud-arrow-up-fill text-4xl text-slate-400 dark:text-slate-500"></i>
-                                <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                                    <span class="font-semibold text-indigo-600 dark:text-indigo-400">Click to upload</span> or drag and drop
-                                </p>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">PDF, DOC, DOCX</p>
-                                <p id="file-name" class="mt-2 text-sm font-medium text-green-700 dark:text-green-400"></p>
+                            <div class="bg-background/50 p-4 rounded-lg border border-border">
+                                <label for="cv_file" class="block text-sm font-medium leading-6 text-text">Upload Your CV <span class="text-danger-500">*</span></label>
+                                <p class="mt-1 text-xs text-text-muted">Please upload your most recent CV in .pdf, .doc, or .docx format.</p>
+                                <div class="mt-3"><input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required class="block w-full text-sm text-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"></div>
+                                <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_cv_file"></p>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Submission Button -->
-                    <div class="mt-6">
-                        <button type="submit" id="sendBtn" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-slate-900 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed" :disabled="!isComplete() || isSubmitting">
-                            <span x-show="!isSubmitting">Send Application</span>
-                            <span x-show="isSubmitting">Submitting...</span>
-                        </button>
-                         <div id="formErrorMessages" x-show="formError" class="mt-4 rounded-md bg-red-100 dark:bg-red-900/50 p-4">
-                            <div class="flex">
-                                <div class="flex-shrink-0"><i class="bi bi-x-circle-fill text-red-500"></i></div>
-                                <div class="ml-3"><div id="formErrorContent" class="text-sm text-red-800 dark:text-red-200" x-html="formError"></div></div>
-                            </div>
-                        </div>
+                    
+                    <button type="submit" id="hiddenSubmitBtn" class="hidden">Submit</button>
+                </form>
+            {% else %}
+                 <div class="bg-card/90 backdrop-blur-sm p-10 rounded-2xl shadow-xl text-center border border-border/50">
+                    <h3 class="text-xl font-bold text-heading">Application Error</h3>
+                    <div class="mt-4 rounded-md bg-danger/10 p-4 ring-1 ring-inset ring-danger/20">
+                        <p class="text-sm text-danger-700 dark:text-danger-300">There was a problem loading the application form. You must be logged in as a Candidate to apply.</p>
                     </div>
-                </section>
-            </div>
+                    <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) if offer else url_for('job_board_bp.job_offers_list') }}" class="mt-6 inline-block rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker">Return to Job Details</a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Sticky Send Application Bar -->
+<div id="stickyBar" class="fixed bottom-0 left-0 w-full bg-gray-900/90 backdrop-blur-lg border-t border-white/10 shadow-2xl z-50">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between gap-4 py-3">
+            <div class="text-left"><p class="text-sm text-gray-300">Ready to submit?</p></div>
+            <div class="flex-shrink-0 w-full sm:w-auto"><button type="button" id="sendBtn" class="w-full rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-primary-darker focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-75">Send Application</button></div>
         </div>
     </div>
 </div>
@@ -197,242 +149,180 @@
 
 {% block page_scripts %}
     {{ super() }}
-    <!-- Lightweight animation library -->
-    <script type="module">
-        import { animate, stagger } from "https://cdn.skypack.dev/motion";
-        document.addEventListener('DOMContentLoaded', () => {
-            animate(".bento-box", { opacity: 1, transform: "none" }, { duration: 0.5, delay: stagger(0.1), easing: "ease-out" });
-        });
-    </script>
     <script>
-    function applicationForm() {
-        return {
-            // State
-            progress: [
-                { id: 'personalInfo', label: 'Fill in personal details', done: false, icon: 'bi-person' },
-                { id: 'question', label: 'Answer application question', done: false, icon: 'bi-patch-question' },
-                { id: 'voice', label: 'Record your voice introduction', done: false, icon: 'bi-mic' },
-                { id: 'cv', label: 'Upload your CV', done: false, icon: 'bi-file-earmark-person' },
-            ],
-            isRecording: false,
-            hasRecording: false,
-            isSubmitting: false,
-            isDragging: false,
-            timer: '00:00',
-            formError: null,
-            // Voice recorder specific state
-            mediaRecorder: null,
-            audioChunks: [],
-            recordedBlob: null,
-            timerInterval: null,
-            stream: null,
-            audioVisualizer: {
-                analyser: null,
-                source: null,
-                dataArray: null,
-                animationFrameId: null,
-                audioContext: null,
-            },
+    document.addEventListener('DOMContentLoaded', () => {
+        const applicationForm = document.getElementById('applicationForm');
+        if (!applicationForm) return;
 
-            // Init
-            init() {
-                this.setupDragAndDrop();
-            },
+        // --- Voice Recorder Logic ---
+        const recorderControls = document.getElementById('recorder-controls');
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const audioPreview = document.getElementById('audioPreview');
+        const playbackArea = document.getElementById('audio-playback-area');
+        const deleteRecordingButton = document.getElementById('deleteRecordingButton');
+        const recordingStatus = document.getElementById('recording-status');
+        const timerEl = document.getElementById('timer');
+        const recorderError = document.getElementById('recorder-error');
+        // [REMOVED] - voiceNoteFileInput is no longer needed
 
-            // Computed
-            isComplete() {
-                return this.progress.every(item => item.done);
-            },
-            
-            // Methods
-            updateProgress(id) {
-                const item = this.progress.find(p => p.id === id);
-                if (!item) return;
+        let mediaRecorder, audioChunks = [], recordedBlob = null, timerInterval = null, stream = null;
+        let recordingMimeType = '';
+        let recordingFileExtension = '';
+        // [MODIFIED] - Increased max recording time
+        const MAX_RECORDING_SECONDS = 140;
 
-                if (id === 'personalInfo') {
-                    const name = document.getElementById('fullName').value.trim();
-                    const email = document.getElementById('email').value.trim();
-                    const phone = document.getElementById('phoneNumber').value.trim();
-                    item.done = name && email && phone;
-                } else if (id === 'question') {
-                    item.done = document.getElementById('candidateQuestions').value.trim() !== '';
-                } else {
-                    item.done = true;
-                }
-            },
-            
-            showRecorderError(message) {
-                const el = document.getElementById('recorder-error');
-                el.textContent = message;
-                el.classList.remove('hidden');
-            },
+        const showError = (message) => {
+            recorderError.textContent = message;
+            recorderError.classList.remove('hidden');
+        };
 
-            resetRecorder() {
-                this.isRecording = false;
-                this.hasRecording = false;
-                this.recordedBlob = null;
-                if(this.timerInterval) clearInterval(this.timerInterval);
-                this.timer = '00:00';
-                if(this.stream) this.stream.getTracks().forEach(track => track.stop());
-                this.audioChunks = [];
-                const item = this.progress.find(p => p.id === 'voice');
-                if(item) item.done = false;
-                this.stopVisualization();
-            },
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        };
 
-            async startRecording() {
-                this.resetRecorder();
-                if (!navigator.mediaDevices?.getUserMedia) {
-                    this.showRecorderError('Recording is not supported by your browser.');
+        const updateUI = (state) => {
+            recorderError.classList.add('hidden');
+            if (state === 'idle') {
+                recorderControls.classList.remove('hidden');
+                recordButton.classList.remove('hidden');
+                stopButton.classList.add('hidden');
+                recordingStatus.classList.add('hidden');
+                playbackArea.classList.add('hidden');
+                if (audioPreview.src) { audioPreview.src = ""; }
+            } else if (state === 'recording') {
+                recorderControls.classList.remove('hidden');
+                recordButton.classList.add('hidden');
+                stopButton.classList.remove('hidden');
+                recordingStatus.classList.remove('hidden');
+                playbackArea.classList.add('hidden');
+            } else if (state === 'preview') {
+                recorderControls.classList.add('hidden');
+                recordingStatus.classList.add('hidden');
+                playbackArea.classList.remove('hidden');
+            }
+        };
+
+        const resetRecorder = () => {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = null;
+            timerEl.textContent = '00:00';
+            if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+            audioChunks = [];
+            recordedBlob = null;
+            // [REMOVED] - No file input to reset anymore
+            updateUI('idle');
+        };
+
+        recordButton.addEventListener('click', async () => {
+            resetRecorder();
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('Recording is not supported by your browser.');
+                return;
+            }
+            try {
+                const supportedTypes = ['audio/mp4', 'audio/webm', 'audio/ogg'];
+                recordingMimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type));
+                
+                if (!recordingMimeType) {
+                    showError('No supported audio format found for recording.');
                     return;
                 }
-                try {
-                    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    this.isRecording = true;
-                    
-                    const mimeType = ['audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t)) || 'audio/webm';
-                    this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
-
-                    this.mediaRecorder.addEventListener("dataavailable", e => this.audioChunks.push(e.data));
-                    this.mediaRecorder.addEventListener("stop", () => {
-                        this.isRecording = false;
-                        this.hasRecording = true;
-                        this.recordedBlob = new Blob(this.audioChunks, { type: mimeType });
-                        document.getElementById('audioPreview').src = URL.createObjectURL(this.recordedBlob);
-                        const item = this.progress.find(p => p.id === 'voice');
-                        if (item) item.done = true;
-                        this.stopVisualization();
-                    });
-
-                    this.mediaRecorder.start();
-                    this.startVisualization();
-                    let seconds = 0;
-                    this.timerInterval = setInterval(() => {
-                        seconds++;
-                        this.timer = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-                        if (seconds >= 140) this.stopRecording();
-                    }, 1000);
-
-                } catch (err) {
-                    this.showRecorderError('Microphone access was denied. Please enable it in browser settings.');
-                    this.resetRecorder();
-                }
-            },
-
-            stopRecording() {
-                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-                    this.mediaRecorder.stop();
-                    if(this.timerInterval) clearInterval(this.timerInterval);
-                }
-            },
-            
-            startVisualization() {
-                this.audioVisualizer.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                this.audioVisualizer.analyser = this.audioVisualizer.audioContext.createAnalyser();
-                this.audioVisualizer.source = this.audioVisualizer.audioContext.createMediaStreamSource(this.stream);
-                this.audioVisualizer.source.connect(this.audioVisualizer.analyser);
-                this.audioVisualizer.analyser.fftSize = 256;
+                recordingFileExtension = recordingMimeType.split('/')[1].split(';')[0]; // Handle cases like 'audio/webm;codecs=opus'
                 
-                const bufferLength = this.audioVisualizer.analyser.frequencyBinCount;
-                this.audioVisualizer.dataArray = new Uint8Array(bufferLength);
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                updateUI('recording');
                 
-                const visualizerContainer = document.getElementById('audio-visualizer');
-                visualizerContainer.innerHTML = '';
-                for (let i = 0; i < bufferLength / 4; i++) { // Draw fewer bars for a cleaner look
-                    const bar = document.createElement('div');
-                    bar.style.width = '3px';
-                    bar.style.backgroundColor = '#6366f1'; // indigo-500
-                    bar.style.borderRadius = '2px';
-                    visualizerContainer.appendChild(bar);
-                }
+                mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMimeType });
 
-                const draw = () => {
-                    if (!this.isRecording) return;
-                    this.audioVisualizer.animationFrameId = requestAnimationFrame(draw);
-                    this.audioVisualizer.analyser.getByteFrequencyData(this.audioVisualizer.dataArray);
+                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+                
+                mediaRecorder.addEventListener("stop", () => {
+                    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = null;
+
+                    recordedBlob = new Blob(audioChunks, { type: recordingMimeType });
                     
-                    const bars = visualizerContainer.children;
-                    for (let i = 0; i < bars.length; i++) {
-                        const barHeight = this.audioVisualizer.dataArray[i * 4] / 255 * 100;
-                        bars[i].style.height = `${Math.max(barHeight, 5)}%`; // min height of 5%
+                    const reader = new FileReader();
+                    reader.readAsDataURL(recordedBlob); 
+                    reader.onloadend = function() {
+                        audioPreview.src = reader.result;                
+                        updateUI('preview');
                     }
-                };
-                draw();
-            },
-
-            stopVisualization() {
-                if(this.audioVisualizer.animationFrameId) cancelAnimationFrame(this.audioVisualizer.animationFrameId);
-                if(this.audioVisualizer.audioContext && this.audioVisualizer.audioContext.state !== 'closed') this.audioVisualizer.audioContext.close();
-                document.getElementById('audio-visualizer').innerHTML = '';
-            },
-            
-            setupDragAndDrop() {
-                const dropZone = document.getElementById('drop-zone');
-                if (!dropZone) return;
-                dropZone.addEventListener('click', () => document.getElementById('cv_file').click());
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    });
                 });
-                ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, () => this.isDragging = true));
-                ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, () => this.isDragging = false));
-                dropZone.addEventListener('drop', e => this.handleFileSelect(e));
-            },
 
-            handleFileSelect(event) {
-                const files = event.dataTransfer ? event.dataTransfer.files : event.target.files;
-                if (files.length > 0) {
-                    document.getElementById('cv_file').files = files;
-                    document.getElementById('file-name').textContent = files[0].name;
-                    this.updateProgress('cv');
-                }
-            },
-            
-            async submitForm() {
-                this.isSubmitting = true;
-                this.formError = null;
-                const form = document.getElementById('applicationForm');
-                const formData = new FormData(form);
+                mediaRecorder.start();
+                let seconds = 0;
+                timerEl.textContent = formatTime(seconds);
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    timerEl.textContent = formatTime(seconds);
+                    if (seconds >= MAX_RECORDING_SECONDS) { stopButton.click(); }
+                }, 1000);
 
-                if (this.recordedBlob) {
-                    const mimeType = this.recordedBlob.type || 'audio/webm';
-                    const extension = mimeType.split('/')[1].split(';')[0];
-                    formData.set('voice_note_file', this.recordedBlob, `voice-introduction.${extension}`);
-                }
-
-                try {
-                    const response = await fetch("{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}", {
-                        method: 'POST',
-                        body: formData,
-                        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }
-                    });
-                    const result = await response.json().catch(() => ({ status: 'error', message: `Server returned a non-JSON response.` }));
-
-                    if (response.ok && result.status === 'success') {
-                        alert(result.message || "Application submitted successfully!");
-                        window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
-                    } else {
-                        let errorHtml = result.message || 'An unknown error occurred.';
-                        if (result.errors) {
-                             errorHtml = `Please correct the following:<ul>${Object.values(result.errors).map(e => `<li class="list-disc list-inside">- ${e}</li>`).join('')}</ul>`;
-                        }
-                        this.formError = errorHtml;
-                    }
-                } catch (error) {
-                    this.formError = "A network error occurred. Please check your connection and try again.";
-                } finally {
-                    this.isSubmitting = false;
-                }
+            } catch (err) {
+                console.error("Error accessing media devices.", err);
+                showError('Microphone access was denied. Please enable it in your browser settings.');
+                resetRecorder();
             }
-        }
-    }
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('applicationForm', applicationForm)
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); }
+        });
+
+        deleteRecordingButton.addEventListener('click', resetRecorder);
+        
+        // --- Form Submission Logic ---
+        const sendBtn = document.getElementById('sendBtn');
+        const hiddenSubmitBtn = document.getElementById('hiddenSubmitBtn');
+        if (sendBtn && hiddenSubmitBtn) { sendBtn.addEventListener('click', () => { hiddenSubmitBtn.click(); }); }
+        applicationForm.action = "{{ url_for('job_board_bp.submit_application_form', offer_id=offer.OfferID) }}";
+        applicationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(applicationForm);
+            if (recordedBlob) {
+                const fileName = `voice-introduction.${recordingFileExtension}`;
+                formData.set('voice_note_file', recordedBlob, fileName); 
+            }
+            
+            const formErrorMessagesDiv = document.getElementById('formErrorMessages');
+            const formErrorContent = document.getElementById('formErrorContent');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Submitting...';
+
+            try {
+                const response = await fetch(applicationForm.action, { method: 'POST', body: formData, headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }});
+                const result = await response.json().catch(() => ({ status: 'error', message: `Server returned a non-JSON response with status ${response.status}. Check server logs.` }));
+
+                if (response.ok && result.status === 'success') {
+                    alert(result.message || "Application submitted successfully!");
+                    window.location.href = result.redirect_url || "{{ url_for('job_board_bp.job_offers_list') }}";
+                } else {
+                    let errorHtml = result.message || 'An unknown error occurred.';
+                    if (result.errors) {
+                         errorHtml = `Please correct the following errors:<ul>${Object.values(result.errors).map(e => `<li>- ${e}</li>`).join('')}</ul>`;
+                    }
+                    formErrorContent.innerHTML = errorHtml;
+                    formErrorMessagesDiv.classList.remove('hidden');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error("Submission failed:", error);
+                formErrorContent.innerHTML = "A network error occurred. Please check your connection and try again.";
+                formErrorMessagesDiv.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Application';
+            }
+        });
     });
     </script>
 {% endblock %}
 
-{# Remove footer from this specific page for a cleaner, app-like feel #}
+{# Remove footer from this specific page #}
 {% block footer %}{% endblock footer %}
