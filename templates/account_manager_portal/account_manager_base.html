@@ -42,18 +42,19 @@
                                     Interview Pipeline
                                 </a>
                                 
-                                {# [MODIFIED] Using a more specific role list for org management #}
                                 {% set AM_ORG_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
                                 {% if current_user.role_type in AM_ORG_MANAGEMENT_ROLES %}
                                 <a href="{{ url_for('account_manager_bp.my_staff') }}" class="{{ 'bg-slate-900 text-white' if request.endpoint == 'account_manager_bp.my_staff' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">
                                     My Staff
                                 </a>
-                                <a href="{{ url_for('am_offer_mgmt_bp.list_companies_for_offers') }}" 
+
+                                {# --- [CORRECTED LINK] --- #}
+                                {# This now points to the new, powerful main page of the AM offer blueprint #}
+                                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" 
                                    class="px-3 py-2 rounded-md text-sm font-medium 
                                           {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-slate-900 text-white{% else %}text-gray-300 hover:bg-slate-700 hover:text-white{% endif %}">
                                     Offer Management
                                 </a>
-                                {# --- [NEW LINK ADDED] --- #}
                                 <a href="{{ url_for('am_org_bp.organization_management') }}" 
                                    class="px-3 py-2 rounded-md text-sm font-medium 
                                           {% if request.blueprint == 'am_org_bp' %}bg-slate-900 text-white{% else %}text-gray-300 hover:bg-slate-700 hover:text-white{% endif %}">
@@ -69,12 +70,8 @@
                             <a href="{{ url_for('login_bp.logout') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-slate-700 hover:text-white">Logout</a>
                         </div>
                     </div>
-                    <!-- Mobile Menu Button (No changes here) -->
                 </div>
             </div>
-
-            <!-- Mobile menu (No changes here, but ensure your full template has it) -->
-
         </nav>
 
         <!-- Page Header -->
