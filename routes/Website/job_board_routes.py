@@ -26,7 +26,6 @@ def check_candidate_role():
 def job_offers_list():
     """
     Displays a personalized job board for the logged-in candidate.
-    NOTE: The filtering logic here is already robust and works correctly with the new schema's SET types.
     """
     role_redirect = check_candidate_role()
     if role_redirect:
@@ -39,7 +38,6 @@ def job_offers_list():
     
     try:
         cursor = conn.cursor(dictionary=True)
-        # Fetch all necessary profile fields at once
         cursor.execute("SELECT Nationality, Languages, LanguageLevel, EducationalStatus, Gender FROM Candidates WHERE UserID = %s", (current_user.id,))
         candidate_profile = cursor.fetchone()
         
@@ -47,7 +45,6 @@ def job_offers_list():
             flash("Your candidate profile could not be found. Please complete your profile to see relevant jobs.", "danger")
             return redirect(url_for('candidate_bp.dashboard'))
 
-        # Base query to select all fields needed for the offers list page
         base_sql = """
             SELECT jo.OfferID, jo.Title, jo.Location, jo.WorkLocationType, jo.RequiredLevel,
                    jo.NetSalary, jo.DatePosted, c.CompanyName, c.CompanyLogoURL, jc.CategoryName
@@ -59,7 +56,6 @@ def job_offers_list():
         params = []
         conditions = []
 
-        # --- Gender Filtering Logic ---
         candidate_gender = candidate_profile.get('Gender')
         if candidate_gender in ['Male', 'Female']:
             conditions.append("jo.Gender IN ('Both', %s)")
@@ -67,7 +63,6 @@ def job_offers_list():
         else:
             conditions.append("jo.Gender = 'Both'")
 
-        # --- Existing Filters (Verified Correct) ---
         candidate_nationality = candidate_profile.get('Nationality')
         if candidate_nationality == 'Egyptian':
             conditions.append("jo.Nationality IN ('Egyptians Only', 'Foreigners & Egyptians')")
@@ -134,7 +129,7 @@ def job_detail(offer_id, job_title_slug=None):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- UPDATED: Query now fetches all new fields from the JobOffers table ---
+        # --- FIX 1: The SQL query now selects ALL the required columns from the database. ---
         cursor.execute("""
             SELECT 
                 jo.OfferID, jo.Title, jo.Location, jo.NetSalary, jo.PaymentTerm, jo.MaxAge,
@@ -157,14 +152,16 @@ def job_detail(offer_id, job_title_slug=None):
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
             
-        # Process multi-value fields for the template (works for SET and comma-separated strings)
+        # --- FIX 2: The loop now includes 'GraduationStatusRequirement' to process it correctly for the template. ---
         for field in ['BenefitsIncluded', 'RequiredLanguages', 'AvailableShifts', 'GraduationStatusRequirement']:
             template_key = f"{field}_list"
             db_value = offer.get(field)
+            # The database driver returns SET types as a comma-separated string, so we split it.
             if isinstance(db_value, (bytes, str)) and db_value.strip():
                 offer[template_key] = [item.strip() for item in db_value.split(',')]
             else:
-                offer[template_key] = []
+                offer[template_key] = [] # Ensure it's an empty list if there's no data
+                
     except Exception as e:
         current_app.logger.error(f"Error fetching job detail for OfferID {offer_id}: {e}", exc_info=True)
         flash("Could not load job details.", "danger")
@@ -176,9 +173,6 @@ def job_detail(offer_id, job_title_slug=None):
             
     return render_template('Website/job_offers/job_detail.html', offer=offer, title=offer.get('Title', 'Job Details'))
 
-
-# --- The rest of the file (apply_to_job, validate_referral_code_api, submit_application_form) remains unchanged ---
-# ... (paste the rest of your existing job_board_routes.py file here) ...
 
 @job_board_bp.route('/offer/<int:offer_id>/apply', methods=['GET'])
 @login_required
