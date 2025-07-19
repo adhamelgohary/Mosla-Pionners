@@ -8,20 +8,18 @@
 
 {% block staff_content %}
 <div class="max-w-4xl mx-auto">
-    <form method="POST" action="{{ url_for('.manage_company_schedules', company_id=company_id) }}" 
+    <!-- Main form for adding and updating existing slots -->
+    <form method="POST" action="{{ url_for('.update_company_schedules', company_id=company_id) }}" 
           x-data="{ 
               schedules: {{ schedules|tojson|safe if schedules else [] }},
               addSchedule() {
-                  this.schedules.push({ DayOfWeek: '', StartTime: '09:00', EndTime: '17:00' });
-              },
-              removeSchedule(index) {
-                  this.schedules.splice(index, 1);
+                  this.schedules.push({ ScheduleID: null, DayOfWeek: '', StartTime: '09:00', EndTime: '17:00' });
               }
           }">
         
         <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg border border-gray-200 dark:border-slate-700">
             <div class="p-6">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Set the standard weekly days and times this company is available for interviews. Candidates will be scheduled within these slots.</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Set the standard weekly days and times this company is available for interviews. Add or remove slots and click "Save Schedule" to apply all changes.</p>
 
                 <!-- Schedule Rows Container -->
                 <div class="space-y-4">
@@ -34,16 +32,14 @@
                         </div>
                     </template>
 
-                    <template x-for="(schedule, index) in schedules" :key="index">
+                    <template x-for="(schedule, index) in schedules" :key="schedule.ScheduleID || index">
                         <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
                             <!-- Day of Week -->
                             <div class="flex-1">
                                 <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Day</label>
                                 <select name="day" x-model="schedule.DayOfWeek" class="form-input w-full mt-1">
                                     <option value="">Select Day</option>
-                                    {% for day in day_options %}
-                                        <option value="{{ day }}">{{ day }}</option>
-                                    {% endfor %}
+                                    {% for day in day_options %}<option value="{{ day }}">{{ day }}</option>{% endfor %}
                                 </select>
                             </div>
                             <!-- Start Time -->
@@ -56,11 +52,22 @@
                                 <label class="text-xs font-medium text-gray-600 dark:text-gray-300">End Time</label>
                                 <input type="time" name="end_time" x-model="schedule.EndTime" class="form-input w-full mt-1">
                             </div>
-                            <!-- Remove Button -->
+                            <!-- Delete Button Logic -->
                             <div class="pt-5">
-                                <button type="button" @click="removeSchedule(index)" class="text-gray-400 hover:text-red-500 transition">
-                                    <i class="bi bi-trash-fill"></i>
-                                </button>
+                                <!-- Show a form-based delete button for existing slots -->
+                                <template x-if="schedule.ScheduleID">
+                                    <form :action="'/staff-portal/job-offers/schedules/delete/' + schedule.ScheduleID" method="POST" onsubmit="return confirm('Are you sure you want to delete this time slot?');">
+                                        <button type="submit" class="text-gray-400 hover:text-red-500 transition">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
+                                </template>
+                                <!-- Show a simple remove button for new, unsaved slots -->
+                                <template x-if="!schedule.ScheduleID">
+                                    <button type="button" @click="schedules.splice(index, 1)" class="text-gray-400 hover:text-red-500 transition">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </template>
                             </div>
                         </div>
                     </template>

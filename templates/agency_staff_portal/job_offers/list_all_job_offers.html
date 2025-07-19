@@ -27,7 +27,8 @@
                     </span>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <a href="{{ url_for('.manage_company_schedules', company_id=company_id) }}" 
+                    <!-- THIS LINE IS UPDATED -->
+                    <a href="{{ url_for('.view_company_schedules', company_id=company_id) }}" 
                        @click.stop 
                        class="btn-secondary text-xs py-1 px-2">
                         <i class="bi bi-calendar-week-fill mr-1"></i> Manage Schedule

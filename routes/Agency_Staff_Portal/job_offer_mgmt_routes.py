@@ -1130,34 +1130,16 @@ def update_application_status(application_id):
     return redirect(url_for('.list_applications_for_review'))
 
 
-@job_offer_mgmt_bp.route('/company/<int:company_id>/schedules', methods=['GET', 'POST'])
+@job_offer_mgmt_bp.route('/company/<int:company_id>/schedules', methods=['GET'])
 @login_required_with_role(EXECUTIVE_ROLES)
-def manage_company_schedules(company_id):
+def view_company_schedules(company_id):
+    """
+    Displays the form for managing a company's interview schedule. (GET)
+    """
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-
-        if request.method == 'POST':
-            # This POST logic is correct and does not need to be changed
-            days = request.form.getlist('day')
-            start_times = request.form.getlist('start_time')
-            end_times = request.form.getlist('end_time')
-
-            conn.start_transaction()
-            cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE CompanyID = %s", (company_id,))
-            insert_sql = """
-                INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
-                VALUES (%s, %s, %s, %s)
-            """
-            for i in range(len(days)):
-                if days[i] and start_times[i] and end_times[i]:
-                    cursor.execute(insert_sql, (company_id, days[i], start_times[i], end_times[i]))
-            
-            conn.commit()
-            flash("Interview schedule updated successfully!", "success")
-            return redirect(url_for('.list_all_job_offers'))
-
-        # GET Request Logic
+        
         cursor.execute("SELECT CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
         company = cursor.fetchone()
         if not company:
@@ -1172,11 +1154,8 @@ def manage_company_schedules(company_id):
         """, (company_id,))
         schedules = cursor.fetchall()
         
-        # --- FIX IS HERE ---
-        # Convert timedelta objects to 'HH:MM' strings for the template
         for schedule in schedules:
             if isinstance(schedule['StartTime'], datetime.timedelta):
-                # Convert timedelta to string ('HH:MM:SS') and slice the first 5 characters
                 schedule['StartTime'] = str(schedule['StartTime'])[:5]
             if isinstance(schedule['EndTime'], datetime.timedelta):
                 schedule['EndTime'] = str(schedule['EndTime'])[:5]
@@ -1184,9 +1163,8 @@ def manage_company_schedules(company_id):
         day_options = get_column_options(conn, cursor, 'CompanyInterviewSchedules', 'DayOfWeek')
 
     except Exception as e:
-        if conn and conn.is_connected(): conn.rollback()
-        current_app.logger.error(f"Error managing schedules for company {company_id}: {e}", exc_info=True)
-        flash("An error occurred while managing schedules.", "danger")
+        current_app.logger.error(f"Error viewing schedules for company {company_id}: {e}", exc_info=True)
+        flash("An error occurred while loading the schedule page.", "danger")
         return redirect(url_for('.list_all_job_offers'))
     finally:
         if conn and conn.is_connected():
@@ -1199,3 +1177,83 @@ def manage_company_schedules(company_id):
                            schedules=schedules,
                            day_options=day_options,
                            company_id=company_id)
+
+@job_offer_mgmt_bp.route('/company/<int:company_id>/schedules/update', methods=['POST'])
+@login_required_with_role(EXECUTIVE_ROLES)
+def update_company_schedules(company_id):
+    """
+    Updates the entire set of schedules for a company. (POST)
+    """
+    conn = get_db_connection()
+    try:
+        days = request.form.getlist('day')
+        start_times = request.form.getlist('start_time')
+        end_times = request.form.getlist('end_time')
+
+        cursor = conn.cursor()
+        conn.start_transaction()
+        
+        # 1. Delete all existing schedules for this company
+        cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE CompanyID = %s", (company_id,))
+
+        # 2. Insert the new schedules submitted from the form
+        insert_sql = """
+            INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+            VALUES (%s, %s, %s, %s)
+        """
+        for i in range(len(days)):
+            if days[i] and start_times[i] and end_times[i]:
+                cursor.execute(insert_sql, (company_id, days[i], start_times[i], end_times[i]))
+        
+        conn.commit()
+        flash("Interview schedule saved successfully!", "success")
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error updating schedules for company {company_id}: {e}", exc_info=True)
+        flash("An error occurred while saving the schedule.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return redirect(url_for('.view_company_schedules', company_id=company_id))
+
+@job_offer_mgmt_bp.route('/schedules/delete/<int:schedule_id>', methods=['POST'])
+@login_required_with_role(EXECUTIVE_ROLES)
+def delete_schedule_slot(schedule_id):
+    """
+    Deletes a single interview schedule slot. (POST)
+    """
+    conn = get_db_connection()
+    company_id = None
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # First, find the company_id for redirection before deleting
+        cursor.execute("SELECT CompanyID FROM CompanyInterviewSchedules WHERE ScheduleID = %s", (schedule_id,))
+        result = cursor.fetchone()
+        if result:
+            company_id = result['CompanyID']
+        
+        # Now, perform the deletion
+        cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE ScheduleID = %s", (schedule_id,))
+        conn.commit()
+        
+        if cursor.rowcount > 0:
+            flash("Schedule slot deleted successfully.", "success")
+        else:
+            flash("Schedule slot not found.", "warning")
+
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error deleting schedule slot {schedule_id}: {e}", exc_info=True)
+        flash("An error occurred while deleting the schedule slot.", "danger")
+        # Fallback redirect if company_id could not be found
+        if not company_id:
+            return redirect(url_for('.list_all_job_offers'))
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
+    return redirect(url_for('.view_company_schedules', company_id=company_id))
