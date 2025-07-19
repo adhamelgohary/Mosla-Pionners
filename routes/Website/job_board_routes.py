@@ -147,31 +147,37 @@ def job_detail(offer_id, job_title_slug=None):
         """, (offer_id,))
         offer = cursor.fetchone()
 
-        # ======================================================================
-        # --- THIS IS THE DIAGNOSTIC LINE TO ADD ---
+        # You can remove the diagnostic logger line now, or keep it for future debugging
         current_app.logger.info(f"RAW OFFER DATA FROM DB for OfferID {offer_id}: {offer}")
-        # ======================================================================
 
         if not offer:
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
             
-        # The processing loop from before
+        # ===================================================================================
+        # --- FINAL FIX: This loop now correctly handles Python sets, strings, AND bytes. ---
+        # ===================================================================================
         for field in ['BenefitsIncluded', 'RequiredLanguages', 'AvailableShifts', 'GraduationStatusRequirement']:
             template_key = f"{field}_list"
             db_value = offer.get(field)
             
-            value_str = ''
-            if isinstance(db_value, bytes):
-                value_str = db_value.decode('utf-8')
-            elif isinstance(db_value, str):
-                value_str = db_value
-            
-            if value_str and value_str.strip():
-                offer[template_key] = [item.strip() for item in value_str.split(',')]
+            if isinstance(db_value, set):
+                # If it's already a Python set, just convert it to a list. This is the main fix.
+                offer[template_key] = list(db_value)
             else:
-                offer[template_key] = []
+                # Fallback for when the driver returns strings or bytes (for other environments)
+                value_str = ''
+                if isinstance(db_value, bytes):
+                    value_str = db_value.decode('utf-8')
+                elif isinstance(db_value, str):
+                    value_str = db_value
                 
+                if value_str and value_str.strip():
+                    offer[template_key] = [item.strip() for item in value_str.split(',')]
+                else:
+                    offer[template_key] = [] # Default to an empty list
+        # ===================================================================================
+
     except Exception as e:
         current_app.logger.error(f"Error fetching job detail for OfferID {offer_id}: {e}", exc_info=True)
         flash("Could not load job details.", "danger")
