@@ -55,14 +55,16 @@
         </div>
         {% endif %}
 
-        {# RENDER MONOLINGUAL SUB-PACKAGES #}
-        {% set mono_packages = package.sub_packages|selectattr('BilingualDetails', 'none')|list %}
-        {% if mono_packages %}
-          {% if package.MonolingualOverview %}
-            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.MonolingualOverview }}</h4>
-          {% endif %}
-          <div class="course-cards">
-            {% for sub in mono_packages %}
+        {# ===================== START: CORRECTED LOGIC ===================== #}
+        
+        {# --- RENDER MONOLINGUAL SUB-PACKAGES --- #}
+        {# This new logic checks if BilingualDetails is None OR an empty string. #}
+        {% if package.MonolingualOverview %}
+          <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.MonolingualOverview }}</h4>
+        {% endif %}
+        <div class="course-cards">
+          {% for sub in package.sub_packages %}
+            {% if not sub.BilingualDetails or sub.BilingualDetails|trim == '' %}
             <div class="course-card">
               <h3>{{ sub.Name }}</h3>
               <p>{{ sub.Description|safe }}</p>
@@ -70,18 +72,18 @@
                 <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
               </div>
             </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
 
-        {# RENDER BILINGUAL SUB-PACKAGES #}
-        {% set bi_packages = package.sub_packages|selectattr('BilingualDetails')|list %}
-        {% if bi_packages %}
-          {% if package.BilingualOverview %}
-            <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.BilingualOverview }}</h4>
-          {% endif %}
-          <div class="course-cards">
-            {% for sub in bi_packages %}
+        {# --- RENDER BILINGUAL SUB-PACKAGES --- #}
+        {# This new logic checks if BilingualDetails has a value (is not None and not an empty string). #}
+        {% if package.BilingualOverview %}
+          <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.BilingualOverview }}</h4>
+        {% endif %}
+        <div class="course-cards">
+          {% for sub in package.sub_packages %}
+            {% if sub.BilingualDetails and sub.BilingualDetails|trim != '' %}
             <div class="course-card">
               <h3>{{ sub.Name }}</h3>
               <p>{{ sub.Description|safe }}</p>
@@ -89,9 +91,11 @@
                 <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
               </div>
             </div>
-            {% endfor %}
-          </div>
-        {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+        
+        {# ====================== END: CORRECTED LOGIC ====================== #}
         
         {% if package.Notes %}
         <div class="pricing">
