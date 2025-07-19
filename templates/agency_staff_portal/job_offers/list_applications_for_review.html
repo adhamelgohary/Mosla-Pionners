@@ -9,8 +9,8 @@
 {% block staff_content %}
 <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700">
     <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-        <h3 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">New Applications</h3>
-        <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">These are new applications that need initial screening.</p>
+        <h3 class="text-base font-semibold leading-7 text-gray-900 dark:text-gray-100">New Applications Inbox</h3>
+        <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">These are new applications with the status 'Applied' that need initial screening. They will be removed from this list after an action is taken.</p>
     </div>
 
     {% if applications %}
@@ -39,14 +39,20 @@
                         {{ app.ApplicationDate.strftime('%Y-%m-%d %H:%M') }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <form action="{{ url_for('job_offer_mgmt_bp.update_application_status', application_id=app.ApplicationID) }}" method="POST" class="flex items-center space-x-2">
-                            <select name="status" class="form-select text-xs py-1 px-2">
-                                <option value="Under Review">Mark as Under Review</option>
-                                <option value="Shortlisted">Shortlist</option>
-                                <option value="Rejected">Reject</option>
-                            </select>
-                            <button type="submit" class="btn-primary text-xs py-1 px-2">Update</button>
-                        </form>
+                        <div class="flex items-center space-x-4">
+                            <!-- Link to the full detail page -->
+                            <a href="{{ url_for('job_offer_mgmt_bp.view_application_details', application_id=app.ApplicationID) }}" class="text-primary-600 hover:text-primary-800 font-semibold">View Details</a>
+                            
+                            <!-- Quick action form -->
+                            <form action="{{ url_for('job_offer_mgmt_bp.update_application_status', application_id=app.ApplicationID) }}" method="POST" class="flex items-center space-x-2">
+                                <select name="status" class="form-select text-xs py-1 px-2">
+                                    <option value="Under Review">Mark as Under Review</option>
+                                    <option value="Shortlisted">Shortlist</option>
+                                    <option value="Rejected">Reject</option>
+                                </select>
+                                <button type="submit" class="btn-primary text-xs py-1 px-2">Update</button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
