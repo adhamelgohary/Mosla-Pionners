@@ -36,6 +36,7 @@
         id="applicationContainer" 
         class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6"
         x-data="applicationForm()"
+        x-init="init()"
     >
         <!-- Main Form Section -->
         <form 
@@ -45,13 +46,13 @@
             class="lg:col-span-3 space-y-6"
         >
             <!-- Bento Box: Intro -->
-            <section class="bento-box opacity-0" style="transform: translateY(20px);">
+            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
                 <h1 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Apply for {{ offer.Title }}</h1>
                 <p class="mt-2 text-slate-600 dark:text-slate-400">Complete the steps on the right. Fields marked with <span class="text-red-500">*</span> are required.</p>
             </section>
 
             <!-- Bento Box: Personal Details -->
-            <section class="bento-box opacity-0" style="transform: translateY(20px);">
+            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                         <i class="bi bi-person-fill text-lg"></i>
@@ -60,26 +61,26 @@
                 </div>
                 <div class="mt-6 space-y-4">
                     <div>
-                        <label for="fullName" class="form-label">Full Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="form-input" @input="updateProgress('personalInfo')">
+                        <label for="fullName" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
                     </div>
                     <div>
-                        <label for="email" class="form-label">Email <span class="text-red-500">*</span></label>
-                        <input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="form-input" @input="updateProgress('personalInfo')">
+                        <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Email <span class="text-red-500">*</span></label>
+                        <input type="email" id="email" name="email" value="{{ form_data.get('email', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
                     </div>
                     <div>
-                        <label for="phoneNumber" class="form-label">Phone Number <span class="text-red-500">*</span></label>
-                        <input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="form-input" @input="updateProgress('personalInfo')">
+                        <label for="phoneNumber" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Phone Number <span class="text-red-500">*</span></label>
+                        <input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', '') }}" required class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" @input="updateProgress('personalInfo')">
                     </div>
                      <div>
-                        <label for="referralCode" class="form-label">Referral Code (Optional)</label>
-                        <input type="text" id="referralCode" name="referral_code" placeholder="e.g., JOHN123" class="form-input">
+                        <label for="referralCode" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Referral Code (Optional)</label>
+                        <input type="text" id="referralCode" name="referral_code" placeholder="e.g., JOHN123" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                     </div>
                 </div>
             </section>
             
             <!-- Bento Box: Application Question -->
-            <section class="bento-box opacity-0" style="transform: translateY(20px);">
+            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
                  <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                         <i class="bi bi-patch-question-fill text-lg"></i>
@@ -87,8 +88,8 @@
                     <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Application Question</h2>
                 </div>
                 <div class="mt-6">
-                    <label for="candidateQuestions" class="form-label">Why are you interested in this role? <span class="text-red-500">*</span></label>
-                    <textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="form-input min-h-[100px]" @input="updateProgress('question')">{{ form_data.get('candidateQuestions', '') }}</textarea>
+                    <label for="candidateQuestions" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Why are you interested in this role? <span class="text-red-500">*</span></label>
+                    <textarea id="candidateQuestions" name="candidateQuestions" required rows="4" class="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm min-h-[100px]" @input="updateProgress('question')">{{ form_data.get('candidateQuestions', '') }}</textarea>
                 </div>
             </section>
         </form>
@@ -96,7 +97,7 @@
         <!-- Sidebar Section -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Bento Box: Job at a Glance -->
-            <section class="bento-box opacity-0" style="transform: translateY(20px);">
+            <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
                 <div class="flex items-center gap-4">
                     <img src="{{ offer.CompanyLogoURL or url_for('static', filename='images/default-logo.svg') }}" alt="{{ offer.CompanyName }} logo" class="w-14 h-14 rounded-lg object-contain bg-slate-100 dark:bg-slate-700 p-1">
                     <div>
@@ -113,7 +114,7 @@
 
             <!-- Bento Box: Application Checklist & Actions -->
             <div class="sticky top-6 space-y-6">
-                <section class="bento-box opacity-0" style="transform: translateY(20px);">
+                <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6 bento-box opacity-0" style="transform: translateY(20px);">
                     <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Your Application Checklist</h2>
                     <ul class="mt-4 space-y-3">
                         <template x-for="item in progress" :key="item.id">
@@ -132,13 +133,13 @@
                         <div>
                             <h3 class="font-semibold text-slate-800 dark:text-slate-200">Record Voice Intro <span class="text-red-500">*</span></h3>
                             <div class="mt-2" x-show="!isRecording && !hasRecording">
-                                <button type="button" @click="startRecording" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus-ring">
+                                <button type="button" @click="startRecording" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900">
                                     <i class="bi bi-mic-fill"></i><span>Start Recording</span>
                                 </button>
                             </div>
                             <!-- Recording State -->
                             <div x-show="isRecording" class="mt-2 p-3 bg-red-100 dark:bg-red-900/50 rounded-lg flex items-center gap-4">
-                                <button type="button" @click="stopRecording" class="w-10 h-10 flex-shrink-0 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 focus-ring">
+                                <button type="button" @click="stopRecording" class="w-10 h-10 flex-shrink-0 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-offset-slate-900">
                                     <i class="bi bi-stop-fill text-2xl"></i>
                                 </button>
                                 <div class="w-full h-8 relative flex items-center">
@@ -175,7 +176,7 @@
 
                     <!-- Submission Button -->
                     <div class="mt-6">
-                        <button type="submit" id="sendBtn" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all focus-ring disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed" :disabled="!isComplete() || isSubmitting">
+                        <button type="submit" id="sendBtn" class="w-full h-12 flex items-center justify-center gap-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-slate-900 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed" :disabled="!isComplete() || isSubmitting">
                             <span x-show="!isSubmitting">Send Application</span>
                             <span x-show="isSubmitting">Submitting...</span>
                         </button>
@@ -199,7 +200,9 @@
     <!-- Lightweight animation library -->
     <script type="module">
         import { animate, stagger } from "https://cdn.skypack.dev/motion";
-        animate(".bento-box", { opacity: 1, transform: "none" }, { duration: 0.5, delay: stagger(0.1), easing: "ease-out" });
+        document.addEventListener('DOMContentLoaded', () => {
+            animate(".bento-box", { opacity: 1, transform: "none" }, { duration: 0.5, delay: stagger(0.1), easing: "ease-out" });
+        });
     </script>
     <script>
     function applicationForm() {
@@ -365,6 +368,7 @@
             
             setupDragAndDrop() {
                 const dropZone = document.getElementById('drop-zone');
+                if (!dropZone) return;
                 dropZone.addEventListener('click', () => document.getElementById('cv_file').click());
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     dropZone.addEventListener(eventName, e => {
@@ -427,17 +431,6 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('applicationForm', applicationForm)
     });
-
-    // Simple helper classes for repeated styles
-    const formLabelClass = 'block text-sm font-medium text-slate-700 dark:text-slate-300';
-    const formInputClass = 'block w-full rounded-md border-slate-300 dark:border-slate-600 bg-white/50 dark:bg-slate-900/50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm';
-    const bentoBoxClass = 'bg-white/70 dark:bg-slate-800/70 backdrop-blur-lg border border-slate-200/80 dark:border-slate-700/80 shadow-lg rounded-2xl p-6';
-    const focusRingClass = 'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-slate-900';
-    
-    document.querySelectorAll('.form-label').forEach(el => el.className = formLabelClass);
-    document.querySelectorAll('.form-input').forEach(el => el.className = formInputClass);
-    document.querySelectorAll('.bento-box').forEach(el => el.className = bentoBoxClass + ' ' + el.className);
-    document.querySelectorAll('.focus-ring').forEach(el => el.className = focusRingClass + ' ' + el.className);
     </script>
 {% endblock %}
 
