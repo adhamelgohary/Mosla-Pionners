@@ -5,19 +5,19 @@
 {% block page_title %}<i class="bi bi-pencil-square text-text-muted"></i><span>{{ title }}</span>{% endblock %}
 
 {% block content %}
-<div class="bg-card p-6 md:p-8 rounded-lg shadow-sm border border-border">
-    <form method="POST" action="{{ url_for('am_offer_mgmt_bp.staff_direct_create_job_offer') if not is_editing_live else url_for('am_offer_mgmt_bp.edit_live_job_offer', offer_id=offer_id) }}" class="space-y-8 divide-y divide-border">
+<div class="bg-card p-4 lg:p-6 xl:p-8 rounded-lg shadow-sm border border-border">
+    <form method="POST" action="{{ url_for('am_offer_mgmt_bp.staff_direct_create_job_offer') if not is_editing_live else url_for('am_offer_mgmt_bp.edit_live_job_offer', offer_id=offer_id) }}" class="space-y-6 lg:space-y-8 divide-y divide-border">
         
         <!-- SECTION 1: CORE DETAILS -->
-        <div class="pt-8">
-            <div>
+        <div class="pt-4 lg:pt-8">
+            <div class="mb-6">
                 <h3 class="text-base font-semibold leading-6 text-heading">Core Offer Details</h3>
                 <p class="mt-1 text-sm text-text-muted">Start with the most important information about the job.</p>
             </div>
-            <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+            <div class="space-y-6">
                 <!-- Company Selection -->
                 {% if not is_editing_live %}
-                <div class="sm:col-span-6">
+                <div class="w-full">
                     <label class="form-label">Company</label>
                     <div class="mt-2 space-y-4">
                         <div class="flex items-center">
@@ -36,43 +36,46 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="sm:col-span-3">
+                <div class="w-full">
                     <label class="form-label">Company</label>
                     <p class="mt-2 text-base font-semibold text-heading">{{ form_data.CompanyName }}</p>
                     <input type="hidden" name="CompanyID" value="{{ form_data.CompanyID }}">
                 </div>
                 {% endif %}
 
-                <!-- Title -->
-                <div class="sm:col-span-3">
-                    <label for="title" class="form-label">Job Title</label>
-                    <input type="text" name="title" id="title" value="{{ form_data.get('title', '') }}" class="form-input">
-                </div>
-                <!-- Category -->
-                <div class="sm:col-span-3">
-                    <label for="category_id" class="form-label">Job Category</label>
-                    <select id="category_id" name="category_id" class="form-select">
-                        <option value="">-- Select Category --</option>
-                        {% for category in categories %}<option value="{{ category.CategoryID }}" {% if category.CategoryID == form_data.get('CategoryID')|int %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
-                    </select>
-                </div>
-                <!-- Location -->
-                <div class="sm:col-span-3">
-                    <label for="location" class="form-label">Location</label>
-                    <input type="text" name="location" id="location" value="{{ form_data.get('location', '') }}" class="form-input">
+                <!-- Title, Category, Location - Responsive Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    <!-- Title -->
+                    <div class="lg:col-span-1">
+                        <label for="title" class="form-label">Job Title</label>
+                        <input type="text" name="title" id="title" value="{{ form_data.get('title', '') }}" class="form-input">
+                    </div>
+                    <!-- Category -->
+                    <div class="lg:col-span-1">
+                        <label for="category_id" class="form-label">Job Category</label>
+                        <select id="category_id" name="category_id" class="form-select">
+                            <option value="">-- Select Category --</option>
+                            {% for category in categories %}<option value="{{ category.CategoryID }}" {% if category.CategoryID == form_data.get('CategoryID')|int %}selected{% endif %}>{{ category.CategoryName }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <!-- Location -->
+                    <div class="lg:col-span-2">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" name="location" id="location" value="{{ form_data.get('location', '') }}" class="form-input">
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- SECTION 2: SALARY & COMPENSATION -->
-        <div class="pt-8">
-            <h3 class="text-base font-semibold leading-6 text-heading">Salary & Compensation</h3>
-            <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                <div class="sm:col-span-3">
+        <div class="pt-6 lg:pt-8">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Salary & Compensation</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div>
                     <label for="net_salary" class="form-label">Net Salary (EGP)</label>
                     <input type="number" step="0.01" name="net_salary" id="net_salary" value="{{ form_data.get('net_salary', '') }}" class="form-input">
                 </div>
-                <div class="sm:col-span-3">
+                <div>
                     <label for="payment_term" class="form-label">Payment Term</label>
                     <select id="payment_term" name="payment_term" class="form-select">
                         {% for term in form_options.get('PaymentTerm', []) %}<option value="{{ term }}" {% if term == form_data.get('PaymentTerm') %}selected{% endif %}>{{ term }}</option>{% endfor %}
@@ -82,83 +85,133 @@
         </div>
 
         <!-- SECTION 3: CANDIDATE REQUIREMENTS -->
-        <div class="pt-8">
-            <h3 class="text-base font-semibold leading-6 text-heading">Candidate Requirements</h3>
-             <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                <div class="sm:col-span-2">
-                    <label for="max_age" class="form-label">Maximum Age</label>
-                    <input type="number" name="max_age" id="max_age" value="{{ form_data.get('max_age', '') }}" class="form-input">
-                </div>
-                <div class="sm:col-span-4">
-                    <label class="form-label">Graduation Status</label>
-                    <div class="mt-2 flex flex-wrap gap-4">
-                        {% for status in form_options.get('GraduationStatusRequirement', []) %}<div class="flex items-center">
-                            <input id="grad_status_{{ status }}" name="grad_status_req" type="checkbox" value="{{ status }}" {% if status in form_data.get('grad_status_req', []) %}checked{% endif %} class="form-checkbox">
-                            <label for="grad_status_{{ status }}" class="ml-2 text-sm text-text-muted">{{ status|replace('_', ' ')|title }}</label>
-                        </div>{% endfor %}
+        <div class="pt-6 lg:pt-8">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Candidate Requirements</h3>
+            <div class="space-y-6">
+                <!-- Age and Graduation Status -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
+                    <div class="lg:col-span-1">
+                        <label for="max_age" class="form-label">Maximum Age</label>
+                        <input type="number" name="max_age" id="max_age" value="{{ form_data.get('max_age', '') }}" class="form-input">
+                    </div>
+                    <div class="lg:col-span-3">
+                        <label class="form-label">Graduation Status</label>
+                        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {% for status in form_options.get('GraduationStatusRequirement', []) %}
+                            <div class="flex items-center">
+                                <input id="grad_status_{{ status }}" name="grad_status_req" type="checkbox" value="{{ status }}" {% if status in form_data.get('grad_status_req', []) %}checked{% endif %} class="form-checkbox">
+                                <label for="grad_status_{{ status }}" class="ml-2 text-sm text-text-muted">{{ status|replace('_', ' ')|title }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-                <div class="sm:col-span-3">
-                    <label class="form-label">Required Gender</label>
-                    <select name="gender" class="form-select">
-                        {% for opt in form_options.get('Gender', []) %}<option value="{{ opt }}" {% if opt == form_data.get('Gender') %}selected{% endif %}>{{ opt }}</option>{% endfor %}
-                    </select>
+                
+                <!-- Gender and Military Status -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    <div>
+                        <label class="form-label">Required Gender</label>
+                        <select name="gender" class="form-select">
+                            {% for opt in form_options.get('Gender', []) %}<option value="{{ opt }}" {% if opt == form_data.get('Gender') %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Military Status (for Males)</label>
+                        <select name="military_status" class="form-select">
+                            {% for opt in form_options.get('MilitaryStatus', []) %}<option value="{{ opt }}" {% if opt == form_data.get('MilitaryStatus') %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+                        </select>
+                    </div>
                 </div>
-                <div class="sm:col-span-3">
-                    <label class="form-label">Military Status (for Males)</label>
-                    <select name="military_status" class="form-select">
-                        {% for opt in form_options.get('MilitaryStatus', []) %}<option value="{{ opt }}" {% if opt == form_data.get('MilitaryStatus') %}selected{% endif %}>{{ opt }}</option>{% endfor %}
-                    </select>
-                </div>
-                <div class="sm:col-span-6">
+                
+                <!-- Experience Requirement -->
+                <div class="w-full">
                     <label for="experience_requirement" class="form-label">Experience Requirement</label>
                     <textarea name="experience_requirement" id="experience_requirement" rows="3" class="form-textarea">{{ form_data.get('experience_requirement', '') }}</textarea>
                 </div>
-             </div>
+            </div>
         </div>
         
         <!-- SECTION 4: LANGUAGE REQUIREMENTS -->
-        <div class="pt-8">
-            <h3 class="text-base font-semibold leading-6 text-heading">Language Requirements</h3>
-             <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                <div class="sm:col-span-6">
+        <div class="pt-6 lg:pt-8">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Language Requirements</h3>
+            <div class="space-y-6">
+                <div class="w-full">
                     <label class="form-label">Required Languages</label>
-                    <div class="mt-2 flex flex-wrap gap-4">
-                        {% for lang in form_options.get('RequiredLanguages', []) %}<div class="flex items-center">
+                    <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for lang in form_options.get('RequiredLanguages', []) %}
+                        <div class="flex items-center">
                             <input id="lang_{{ lang }}" name="required_languages" type="checkbox" value="{{ lang }}" {% if lang in form_data.get('required_languages', []) %}checked{% endif %} class="form-checkbox">
                             <label for="lang_{{ lang }}" class="ml-2 text-sm text-text-muted">{{ lang }}</label>
-                        </div>{% endfor %}
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="sm:col-span-3">
-                    <label class="form-label">Required Level</label>
-                    <select name="required_level" class="form-select">
-                        {% for level in form_options.get('RequiredLevel', []) %}<option value="{{ level }}" {% if level == form_data.get('RequiredLevel') %}selected{% endif %}>{{ level }}</option>{% endfor %}
-                    </select>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Required Level</label>
+                        <select name="required_level" class="form-select">
+                            {% for level in form_options.get('RequiredLevel', []) %}<option value="{{ level }}" {% if level == form_data.get('RequiredLevel') %}selected{% endif %}>{{ level }}</option>{% endfor %}
+                        </select>
+                    </div>
                 </div>
-             </div>
+            </div>
         </div>
 
         <!-- SECTION 5: WORK SCHEDULE -->
-        <div class="pt-8">
-            <h3 class="text-base font-semibold leading-6 text-heading">Work Schedule</h3>
-             <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                <div class="sm:col-span-3"><label class="form-label">Work Location</label><select name="work_location_type" class="form-select">{% for opt in form_options.get('WorkLocationType', []) %}<option value="{{ opt }}" {% if opt == form_data.get('WorkLocationType') %}selected{% endif %}>{{ opt|replace('wfh', 'Work From Home')|title }}</option>{% endfor %}</select></div>
-                <div class="sm:col-span-3"><label class="form-label">Shift Type</label><select name="shift_type" class="form-select">{% for opt in form_options.get('ShiftType', []) %}<option value="{{ opt }}" {% if opt == form_data.get('ShiftType') %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}</select></div>
-                <div class="sm:col-span-3"><label for="working_days" class="form-label">Working Days</label><input type="text" name="working_days" id="working_days" value="{{ form_data.get('working_days', '') }}" class="form-input" placeholder="e.g., 5 days, rotational"></div>
-                <div class="sm:col-span-3"><label for="working_hours" class="form-label">Working Hours</label><input type="text" name="working_hours" id="working_hours" value="{{ form_data.get('working_hours', '') }}" class="form-input" placeholder="e.g., 9 hours"></div>
-                <div class="sm:col-span-6"><label class="form-label">Available Shifts</label><div class="mt-2 flex flex-wrap gap-4">{% for shift in form_options.get('AvailableShifts', []) %}<div class="flex items-center"><input id="shift_{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in form_data.get('available_shifts', []) %}checked{% endif %} class="form-checkbox"><label for="shift_{{ shift }}" class="ml-2 text-sm text-text-muted">{{ shift|title }}</label></div>{% endfor %}</div></div>
-             </div>
+        <div class="pt-6 lg:pt-8">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Work Schedule</h3>
+            <div class="space-y-6">
+                <!-- Work Location and Shift Type -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    <div>
+                        <label class="form-label">Work Location</label>
+                        <select name="work_location_type" class="form-select">
+                            {% for opt in form_options.get('WorkLocationType', []) %}<option value="{{ opt }}" {% if opt == form_data.get('WorkLocationType') %}selected{% endif %}>{{ opt|replace('wfh', 'Work From Home')|title }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Shift Type</label>
+                        <select name="shift_type" class="form-select">
+                            {% for opt in form_options.get('ShiftType', []) %}<option value="{{ opt }}" {% if opt == form_data.get('ShiftType') %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Working Days and Hours -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    <div>
+                        <label for="working_days" class="form-label">Working Days</label>
+                        <input type="text" name="working_days" id="working_days" value="{{ form_data.get('working_days', '') }}" class="form-input" placeholder="e.g., 5 days, rotational">
+                    </div>
+                    <div>
+                        <label for="working_hours" class="form-label">Working Hours</label>
+                        <input type="text" name="working_hours" id="working_hours" value="{{ form_data.get('working_hours', '') }}" class="form-input" placeholder="e.g., 9 hours">
+                    </div>
+                </div>
+                
+                <!-- Available Shifts -->
+                <div class="w-full">
+                    <label class="form-label">Available Shifts</label>
+                    <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for shift in form_options.get('AvailableShifts', []) %}
+                        <div class="flex items-center">
+                            <input id="shift_{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in form_data.get('available_shifts', []) %}checked{% endif %} class="form-checkbox">
+                            <label for="shift_{{ shift }}" class="ml-2 text-sm text-text-muted">{{ shift|title }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- SECTION 6: BENEFITS & PERKS -->
-        <div class="pt-8" x-data="{ transportation: '{{ form_data.get('transportation', 'no') }}' }">
-            <h3 class="text-base font-semibold leading-6 text-heading">Benefits & Perks</h3>
-             <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
+        <div class="pt-6 lg:pt-8" x-data="{ transportation: '{{ form_data.get('transportation', 'no') }}' }">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Benefits & Perks</h3>
+            <div class="space-y-6">
                 <!-- Transportation Section -->
-                <div class="sm:col-span-6">
+                <div class="w-full">
                     <label class="form-label">Transportation Provided?</label>
-                    <div class="mt-2 flex gap-6">
+                    <div class="mt-2 flex flex-col sm:flex-row gap-4">
                         <div class="flex items-center">
                             <input id="transport_yes" name="transportation" type="radio" value="yes" x-model="transportation" class="form-radio">
                             <label for="transport_yes" class="ml-2 text-sm text-text">Yes</label>
@@ -169,7 +222,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="sm:col-span-6" x-show="transportation === 'yes'" x-collapse>
+                <div class="w-full" x-show="transportation === 'yes'" x-collapse>
                     <label for="transport_type" class="form-label">Transportation Type</label>
                     <select name="transport_type" id="transport_type" class="form-select">
                         <option value="">-- Select Type --</option>
@@ -180,9 +233,9 @@
                 </div>
                 
                 <!-- Other Benefits Section -->
-                <div class="sm:col-span-6">
+                <div class="w-full">
                     <label class="form-label">Other Included Benefits</label>
-                    <div class="mt-2 space-y-2">
+                    <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {% for benefit in form_options.get('benefits_checkboxes', []) %}
                         <div class="flex items-center">
                             <input id="benefit_{{ loop.index }}" name="benefits_checkboxes" type="checkbox" value="{{ benefit }}" {% if benefit in form_data.get('benefits_checkboxes', []) %}checked{% endif %} class="form-checkbox">
@@ -191,24 +244,42 @@
                         {% endfor %}
                     </div>
                 </div>
-             </div>
+            </div>
         </div>
 
         <!-- SECTION 7: LOGISTICS -->
-        <div class="pt-8">
-            <h3 class="text-base font-semibold leading-6 text-heading">Hiring Logistics</h3>
-             <div class="mt-6 grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-6">
-                <div class="sm:col-span-2"><label for="candidates_needed" class="form-label">Candidates Needed</label><input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('candidates_needed', '1') }}" class="form-input"></div>
-                <div class="sm:col-span-2"><label class="form-label">Hiring Cadence</label><select name="hiring_cadence" class="form-select">{% for opt in form_options.get('HiringCadence', []) %}<option value="{{ opt }}" {% if opt == form_data.get('HiringCadence') %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}</select></div>
-                <div class="sm:col-span-2"><label for="closing_date" class="form-label">Closing Date</label><input type="date" name="closing_date" id="closing_date" value="{{ form_data.get('closing_date', '') }}" class="form-input"></div>
-                {% if is_editing_live %}<div class="sm:col-span-2"><label class="form-label">Offer Status</label><select name="status" class="form-select">{% for opt in form_options.get('Status', []) %}<option value="{{ opt }}" {% if opt == form_data.get('Status') %}selected{% endif %}>{{ opt }}</option>{% endfor %}</select></div>{% endif %}
-             </div>
+        <div class="pt-6 lg:pt-8">
+            <h3 class="text-base font-semibold leading-6 text-heading mb-6">Hiring Logistics</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <div>
+                    <label for="candidates_needed" class="form-label">Candidates Needed</label>
+                    <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('candidates_needed', '1') }}" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Hiring Cadence</label>
+                    <select name="hiring_cadence" class="form-select">
+                        {% for opt in form_options.get('HiringCadence', []) %}<option value="{{ opt }}" {% if opt == form_data.get('HiringCadence') %}selected{% endif %}>{{ opt|title }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="closing_date" class="form-label">Closing Date</label>
+                    <input type="date" name="closing_date" id="closing_date" value="{{ form_data.get('closing_date', '') }}" class="form-input">
+                </div>
+                {% if is_editing_live %}
+                <div class="sm:col-span-1">
+                    <label class="form-label">Offer Status</label>
+                    <select name="status" class="form-select">
+                        {% for opt in form_options.get('Status', []) %}<option value="{{ opt }}" {% if opt == form_data.get('Status') %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+            </div>
         </div>
         
         <!-- SUBMIT BUTTONS -->
         <div class="pt-5">
-            <div class="flex justify-end gap-x-3">
-                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="btn-secondary">Cancel</a>
+            <div class="flex flex-col sm:flex-row justify-end gap-3">
+                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="btn-secondary text-center">Cancel</a>
                 <button type="submit" class="btn-primary">{{ action_verb }}</button>
             </div>
         </div>

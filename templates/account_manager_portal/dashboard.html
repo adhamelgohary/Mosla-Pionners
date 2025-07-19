@@ -2,12 +2,12 @@
 {% extends "account_manager_portal/account_manager_base.html" %}
 
 {% block content %}
-<!-- [REWRITTEN] Bento Grid Layout -->
-<div class="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-2 gap-6">
+<!-- [UPDATED] Responsive Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-    <!-- Main Widget: Company Portfolio -->
-    <div class="lg:col-span-2 lg:row-span-2 bg-card rounded-lg border border-border shadow-sm flex flex-col">
-        <div class="px-6 py-4 border-b border-border">
+    <!-- Main Widget: Company Portfolio (Spans full width on mobile/tablet) -->
+    <div class="md:col-span-2 lg:col-span-2 lg:row-span-2 bg-card rounded-lg border border-border shadow-sm flex flex-col">
+        <div class="px-5 py-4 border-b border-border">
             <h3 class="text-base font-semibold text-heading">My Company Portfolio</h3>
             <p class="text-sm text-text-muted mt-1">Companies you directly manage.</p>
         </div>
@@ -59,9 +59,9 @@
         </div>
     </div>
 
-    <!-- Widget: Recent Applicants -->
-    <div class="lg:col-span-1 bg-card rounded-lg border border-border shadow-sm flex flex-col">
-        <div class="px-6 py-4 border-b border-border">
+    <!-- Widget: Recent Applicants (Spans full width on mobile/tablet) -->
+    <div class="md:col-span-2 lg:col-span-1 bg-card rounded-lg border border-border shadow-sm flex flex-col">
+        <div class="px-5 py-4 border-b border-border">
             <h3 class="text-base font-semibold text-heading">Recent Applicants</h3>
             <p class="text-sm text-text-muted mt-1">New candidates for your managed companies.</p>
         </div>

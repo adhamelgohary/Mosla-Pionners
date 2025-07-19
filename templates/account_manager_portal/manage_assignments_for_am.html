@@ -1,24 +1,30 @@
-{% extends "account_manager_portal/account_manager_base.html" %}
+{# templates/account_manager_portal/manage_assignments_for_am.html #}
+{% extends "account_manager_portal/am_base.html" %}
+
+{% block page_title %}
+    <i class="bi bi-building-add text-text-muted"></i>
+    <span>Manage Assignments</span>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="space-y-6">
     <!-- Header -->
-    <div class="mb-8">
-        <a href="{{ url_for('account_manager_bp.my_staff') }}" class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-2 inline-block">
-            ← Back to All Managers
+    <div>
+        <a href="{{ url_for('account_manager_bp.my_staff') }}" class="text-sm font-medium text-text-muted hover:text-primary mb-2 inline-block">
+            ← Back to My Staff
         </a>
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Manage Assignments</h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">For: <span class="font-semibold">{{ manager.FirstName }} {{ manager.LastName }}</span></p>
+        <h1 class="text-xl font-semibold text-heading">Manage Company Assignments</h1>
+        <p class="mt-1 text-sm text-text-muted">For: <span class="font-semibold">{{ manager.FirstName }} {{ manager.LastName }}</span></p>
     </div>
 
     <!-- Assignment Capacity Progress Bar -->
-    <div class="mb-8">
+    <div class="bg-card p-4 rounded-lg border border-border shadow-sm">
         <div class="flex justify-between text-sm font-medium">
-            <span class="text-gray-700 dark:text-gray-300">Assignment Capacity</span>
-            <span class="text-gray-500 dark:text-gray-400">{{ manager.CurrentAssignedCount }} / {{ max_total_companies_per_am }} Assigned</span>
+            <span class="text-text">Assignment Capacity</span>
+            <span class="text-text-muted">{{ manager.CurrentAssignedCount }} / {{ max_total_companies_per_am }} Assigned</span>
         </div>
-        <div class="mt-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-            <div class="bg-blue-600 h-2.5 rounded-full" style="width: {{ (manager.CurrentAssignedCount / max_total_companies_per_am) * 100 }}%"></div>
+        <div class="mt-2 w-full bg-background rounded-full h-2">
+            <div class="bg-primary h-2 rounded-full transition-all duration-500" style="width: {{ (manager.CurrentAssignedCount / max_total_companies_per_am) * 100 }}%"></div>
         </div>
     </div>
 
@@ -26,56 +32,56 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         <!-- Left Column: Assigned Companies -->
-        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">Currently Assigned</h2>
-            <ul class="space-y-3">
+        <div class="bg-card rounded-lg border border-border shadow-sm">
+            <div class="p-5 border-b border-border">
+                <h2 class="text-base font-semibold text-heading">Currently Assigned</h2>
+            </div>
+            <ul class="divide-y divide-border">
                 {% for company in assigned_companies %}
-                <li class="flex items-center justify-between p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
-                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ company.CompanyName }}</span>
+                <li class="flex items-center justify-between gap-4 p-4">
+                    <span class="text-sm font-medium text-text">{{ company.CompanyName }}</span>
                     <form method="POST" action="{{ url_for('.manage_assignments_for_am', manager_staff_id=manager.StaffID) }}">
                         <input type="hidden" name="action" value="unassign">
                         <input type="hidden" name="unassign_company_id" value="{{ company.CompanyID }}">
-                        <button type="submit" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-red-50 hover:text-red-700 dark:bg-gray-600 dark:text-gray-200 dark:ring-gray-500 dark:hover:bg-red-900/50 dark:hover:text-red-300 transition-colors">
-                            Unassign
-                        </button>
+                        <button type="submit" class="text-xs font-medium text-danger hover:text-danger-700">Unassign</button>
                     </form>
                 </li>
                 {% else %}
-                <li class="text-center text-sm text-gray-500 dark:text-gray-400 py-6">No companies are currently assigned.</li>
+                <li class="text-center text-sm text-text-muted py-8">No companies are currently assigned.</li>
                 {% endfor %}
             </ul>
         </div>
 
         <!-- Right Column: Available Companies -->
-        <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
+        <div class="bg-card rounded-lg border border-border shadow-sm">
             <form method="POST" action="{{ url_for('.manage_assignments_for_am', manager_staff_id=manager.StaffID) }}">
                 <input type="hidden" name="action" value="assign_selected">
-                <div class="border-b border-gray-200 dark:border-gray-700 pb-3 mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Available to Assign</h2>
+                <div class="p-5 border-b border-border">
+                    <h2 class="text-base font-semibold text-heading">Available to Assign</h2>
                 </div>
                 
-                <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                <div class="space-y-4 p-5 max-h-96 overflow-y-auto">
                     {% for company in available_companies %}
                     <div class="relative flex items-start">
                         <div class="flex h-6 items-center">
-                            <input id="company-{{ company.CompanyID }}" name="companies_to_assign[]" value="{{ company.CompanyID }}" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600">
+                            <input id="company-{{ company.CompanyID }}" name="companies_to_assign" value="{{ company.CompanyID }}" type="checkbox" class="form-checkbox">
                         </div>
                         <div class="ml-3 text-sm leading-6">
-                            <label for="company-{{ company.CompanyID }}" class="font-medium text-gray-900 dark:text-gray-100">{{ company.CompanyName }}</label>
+                            <label for="company-{{ company.CompanyID }}" class="font-medium text-text">{{ company.CompanyName }}</label>
                         </div>
                     </div>
                     {% else %}
-                    <p class="text-center text-sm text-gray-500 dark:text-gray-400 py-6">No unassigned companies are available.</p>
+                    <p class="text-center text-sm text-text-muted py-8">No unassigned companies are available.</p>
                     {% endfor %}
                 </div>
 
                 {% if available_companies %}
-                <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <button type="submit" class="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50" {% if manager.CurrentAssignedCount >= max_total_companies_per_am %}disabled{% endif %}>
-                        Assign Selected
+                <div class="mt-auto p-5 border-t border-border">
+                    <button type="submit" class="btn-primary w-full" {% if manager.CurrentAssignedCount >= max_total_companies_per_am %}disabled{% endif %}>
+                        Assign Selected Companies
                     </button>
                     {% if manager.CurrentAssignedCount >= max_total_companies_per_am %}
-                    <p class="text-xs text-center text-red-600 dark:text-red-400 mt-2">Assignment limit reached.</p>
+                    <p class="text-xs text-center text-danger mt-2">Assignment limit reached for this manager.</p>
                     {% endif %}
                 </div>
                 {% endif %}

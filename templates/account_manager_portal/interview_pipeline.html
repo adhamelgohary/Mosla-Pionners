@@ -1,93 +1,92 @@
 {# templates/account_manager_portal/interview_pipeline.html #}
-{% extends "account_manager_portal/account_manager_base.html" %}
+{% extends "account_manager_portal/am_base.html" %}
 
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="px-4 sm:px-6 lg:px-8">
-    <div class="sm:flex sm:items-center sm:justify-between">
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between gap-4">
         <div class="sm:flex-auto">
-            <h1 class="text-xl font-semibold text-gray-900">Interview Pipeline</h1>
-            <p class="mt-2 text-sm text-gray-700">A prioritized list of candidates awaiting scheduling and those with upcoming interviews.</p>
+            <h1 class="text-xl font-semibold text-heading">Interview Pipeline</h1>
+            <p class="mt-1 text-sm text-text-muted">A prioritized list of candidates awaiting scheduling and those with upcoming interviews.</p>
         </div>
         
-        {# Conditionally render the export form only if there are interviews to export #}
         {% if companies_with_scheduled_interviews %}
-        <div class="mt-4 sm:mt-0 sm:ml-4">
+        <div class="mt-4 sm:mt-0">
             <form action="{{ url_for('account_manager_bp.export_scheduled_interviews') }}" method="GET" class="flex items-center gap-x-2">
-                <div class="flex-grow">
-                    <label for="company_id" class="sr-only">Filter by Company</label>
-                    <select id="company_id" name="company_id" class="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
-                        <option value="all">Export All Companies</option>
-                        {% for company in companies_with_scheduled_interviews %}
-                            <option value="{{ company.CompanyID }}">{{ company.CompanyName }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto flex-shrink-0">
-                    <i class="bi bi-download -ml-1 mr-2"></i>
-                    Export
+                <select name="company_id" class="form-select flex-grow">
+                    <option value="all">Export All Companies</option>
+                    {% for company in companies_with_scheduled_interviews %}
+                        <option value="{{ company.CompanyID }}">{{ company.CompanyName }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary flex-shrink-0">
+                    <i class="bi bi-download -ml-1 mr-2"></i>Export
                 </button>
             </form>
         </div>
         {% endif %}
     </div>
 
-    <div class="mt-8 flow-root">
-        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-300">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Candidate</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Applied For</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Interview Details</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Current Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 bg-white">
-                            {% if pipeline_apps %}
-                                {% for app in pipeline_apps %}
-                                <tr class="{% if app.Status == 'Shortlisted' %}bg-yellow-50{% endif %}">
-                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                                        <div class="font-medium text-gray-900">{{ app.FirstName }} {{ app.LastName }}</div>
-                                        <div class="text-gray-500">{{ app.Email }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                        <div class="font-medium text-gray-900">{{ app.OfferTitle }}</div>
-                                        <div class="text-gray-500">{{ app.CompanyName }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                        {% if app.InterviewID %}
-                                            <div class="font-medium text-gray-900">{{ app.ScheduledDateTime.strftime('%A, %d %b %Y') }}</div>
-                                            <div class="text-gray-500">{{ app.ScheduledDateTime.strftime('%I:%M %p') }}</div>
-                                        {% else %}
-                                            <div class="font-medium text-yellow-800">Awaiting Candidate</div>
-                                            <div class="text-xs text-yellow-700">Candidate needs to select a time.</div>
-                                        {% endif %}
-                                    </td>
-                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                        {% if app.Status == 'Interview Scheduled' %}
-                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-blue-50 text-blue-700 ring-blue-600/20">Interview Scheduled</span>
-                                        {% elif app.Status == 'Shortlisted' %}
-                                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-yellow-50 text-yellow-800 ring-yellow-600/20">Pending Selection</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
-                                        You have no shortlisted candidates in the interview pipeline.
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Responsive List/Table -->
+    <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <!-- Desktop Table -->
+        <div class="hidden sm:block">
+            <table class="min-w-full divide-y divide-border">
+                <thead class="bg-background/50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-heading sm:pl-6">Candidate</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-heading">Applied For</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-heading">Interview Details</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-heading">Current Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border bg-card">
+                    {% for app in pipeline_apps %}
+                    <tr class="{% if app.Status == 'Shortlisted' %}bg-yellow-500/5{% endif %}">
+                        <td class="py-4 pl-4 pr-3 text-sm sm:pl-6"><div class="font-medium text-heading">{{ app.FirstName }} {{ app.LastName }}</div><div class="text-text-muted">{{ app.Email }}</div></td>
+                        <td class="px-3 py-4 text-sm text-text-muted"><div class="font-medium text-heading">{{ app.OfferTitle }}</div><div>{{ app.CompanyName }}</div></td>
+                        <td class="px-3 py-4 text-sm text-text-muted">
+                            {% if app.InterviewID %}<div class="font-medium text-heading">{{ app.ScheduledDateTime.strftime('%a, %d %b %Y') }}</div><div>{{ app.ScheduledDateTime.strftime('%I:%M %p') }}</div>
+                            {% else %}<div class="font-medium text-amber-600">Awaiting Candidate</div><div class="text-xs text-amber-500">Candidate to select time.</div>{% endif %}
+                        </td>
+                        <td class="px-3 py-4 text-sm"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {% if app.Status == 'Interview Scheduled' %}bg-blue-50 text-blue-700 ring-blue-600/20{% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">{{ app.Status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        
+        <!-- Mobile Card List -->
+        <div class="sm:hidden">
+            <ul class="divide-y divide-border">
+                {% for app in pipeline_apps %}
+                <li class="p-4 {% if app.Status == 'Shortlisted' %}bg-yellow-500/5{% endif %}">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold text-heading">{{ app.FirstName }} {{ app.LastName }}</p>
+                            <p class="text-sm text-text-muted">{{ app.OfferTitle }} at {{ app.CompanyName }}</p>
+                        </div>
+                        <span class="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {% if app.Status == 'Interview Scheduled' %}bg-blue-50 text-blue-700 ring-blue-600/20{% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">{{ app.Status }}</span>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-border/50">
+                        <p class="text-sm font-medium text-heading">Interview:</p>
+                        {% if app.InterviewID %}
+                            <p class="text-sm text-text-muted">{{ app.ScheduledDateTime.strftime('%a, %d %b %Y') }} at {{ app.ScheduledDateTime.strftime('%I:%M %p') }}</p>
+                        {% else %}
+                            <p class="text-sm text-amber-600">Awaiting candidate to select a time slot.</p>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if not pipeline_apps %}
+            <div class="text-center py-12 px-6">
+                <p class="text-text-muted">You have no shortlisted candidates in the interview pipeline.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

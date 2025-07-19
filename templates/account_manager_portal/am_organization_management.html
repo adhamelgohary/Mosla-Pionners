@@ -1,37 +1,53 @@
 {# templates/account_manager_portal/am_organization_management.html #}
-{% extends "account_manager_portal/account_manager_base.html" %}
+{% extends "account_manager_portal/am_base.html" %}
 
 {% block title %}{{ title }}{% endblock %}
-{% block page_title %}<i class="bi bi-diagram-3-fill text-gray-500"></i><span>{{ title }}</span>{% endblock %}
+{% block page_title %}<i class="bi bi-diagram-3-fill text-text-muted"></i><span>{{ title }}</span>{% endblock %}
 
 {% block content %}
 <div class="space-y-12">
 
     <!-- Section 1: Manage AM Units -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <div class="sm:flex sm:items-center sm:justify-between">
-            <h2 class="text-xl font-semibold text-gray-900">Step 1: Create & Manage AM Units</h2>
+    <div class="bg-card p-6 rounded-lg shadow-sm border border-border">
+        <div class="sm:flex sm:items-center sm:justify-between gap-4">
+            <div class="sm:flex-auto">
+                <h2 class="text-lg font-semibold text-heading">Step 1: Create & Manage AM Units</h2>
+            </div>
             <form action="{{ url_for('am_org_bp.create_am_unit') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
-                <input type="text" name="unit_name" required placeholder="New AM Unit Name" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-                <button type="submit" class="rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500">Create Unit</button>
+                <input type="text" name="unit_name" required placeholder="New AM Unit Name" class="form-input flex-grow">
+                <button type="submit" class="btn-primary flex-shrink-0">Create Unit</button>
             </form>
         </div>
-        <div class="mt-4 flow-root">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Unit Name</th><th class="py-2 text-left text-sm font-medium text-gray-500">Unit Manager (Head AM)</th><th class="py-2 text-left text-sm font-medium text-gray-500">Actions</th></tr></thead>
-                <tbody class="divide-y divide-gray-100">
+        <div class="mt-6 flow-root">
+            <!-- Mobile View: Cards -->
+            <div class="sm:hidden">
+                <ul class="divide-y divide-border">
+                    {% for unit in units %}
+                    <li class="py-4 space-y-3">
+                        <p class="font-semibold text-heading">{{ unit.UnitName }}</p>
+                        <p class="text-sm text-text-muted">Manager: <span class="font-medium text-text">{{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</span></p>
+                        <form action="{{ url_for('am_org_bp.assign_am_unit_manager') }}" method="POST" class="space-y-2">
+                            <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
+                            <select name="manager_staff_id" class="form-select w-full" required><option value="">-- Assign Head AM --</option>{% for manager in potential_unit_managers %}<option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }}</option>{% endfor %}</select>
+                            <button type="submit" class="btn-secondary w-full">Assign Manager</button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <!-- Desktop View: Table -->
+            <table class="min-w-full divide-y divide-border hidden sm:table">
+                <thead class="bg-background/50"><tr><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Unit Name</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Unit Manager</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Actions</th></tr></thead>
+                <tbody class="divide-y divide-border">
                     {% for unit in units %}
                     <tr>
-                        <td class="py-3 font-medium">{{ unit.UnitName }}</td>
-                        <td class="py-3">{{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</td>
-                        <td class="py-3">
+                        <td class="py-3 px-3 font-medium text-heading">{{ unit.UnitName }}</td>
+                        <td class="py-3 px-3 text-text-muted">{{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</td>
+                        <td class="py-3 px-3">
                             <form action="{{ url_for('am_org_bp.assign_am_unit_manager') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
-                                <select name="manager_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                    <option value="">-- Assign Head AM --</option>
-                                    {% for manager in potential_unit_managers %}<option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }}</option>{% endfor %}
-                                </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
+                                <select name="manager_staff_id" class="form-select w-full" required><option value="">-- Assign Head AM --</option>{% for manager in potential_unit_managers %}<option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }}</option>{% endfor %}</select>
+                                <button type="submit" class="btn-secondary">Assign</button>
                             </form>
                         </td>
                     </tr>
@@ -41,71 +57,82 @@
         </div>
     </div>
 
-    <!-- Section 2: Manage AM Teams -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 class="text-xl font-semibold text-gray-900">Step 2: Create & Manage AM Teams</h2>
-        <div class="mt-4 flow-root">
-             <table class="min-w-full divide-y divide-gray-200">
-                <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Team Name</th><th class="py-2 text-left text-sm font-medium text-gray-500">Team Lead (Senior AM)</th><th class="py-2 text-left text-sm font-medium text-gray-500">Assigned to Unit</th><th class="py-2 text-left text-sm font-medium text-gray-500">Actions</th></tr></thead>
-                <tbody class="divide-y divide-gray-100">
+    <!-- Section 2 & 3 Combined for better UX -->
+    <div class="bg-card p-6 rounded-lg shadow-sm border border-border">
+        <div class="sm:flex sm:items-center sm:justify-between gap-4">
+            <h2 class="text-lg font-semibold text-heading">Step 2: Manage Teams & Staff</h2>
+            <form action="{{ url_for('am_org_bp.create_am_team') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
+                <input type="text" name="team_name" required placeholder="New AM Team Name" class="form-input flex-grow">
+                <button type="submit" class="btn-primary flex-shrink-0">Create Team</button>
+            </form>
+        </div>
+        <div class="mt-6 flow-root">
+             <!-- Mobile View: Cards -->
+             <div class="sm:hidden">
+                <ul class="divide-y divide-border">
+                    {% for team in teams %}
+                    <li class="py-4 space-y-3">
+                        <p class="font-semibold text-heading">{{ team.TeamName }}</p>
+                        <p class="text-sm text-text-muted">Lead: <span class="font-medium text-text">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</span></p>
+                        <p class="text-sm text-text-muted">Unit: <span class="font-medium text-text">{{ team.UnitName or 'N/A' }}</span></p>
+                        <div class="pt-3 border-t border-border space-y-2">
+                            <form action="{{ url_for('am_org_bp.assign_am_team_lead') }}" method="POST" class="space-y-2"><input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="lead_staff_id" class="form-select w-full" required><option value="">-- Assign Senior AM --</option>{% for lead in potential_team_leads %}<option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary w-full">Assign Lead</button></form>
+                            <form action="{{ url_for('am_org_bp.assign_am_team_to_unit') }}" method="POST" class="space-y-2"><input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="unit_id" class="form-select w-full" required><option value="">-- Assign to Unit --</option>{% for unit in units %}<option value="{{ unit.UnitID }}" {% if unit.UnitID == team.UnitID %}selected{% endif %}>{{ unit.UnitName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary w-full">Assign Unit</button></form>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <!-- Desktop View: Table -->
+             <table class="min-w-full divide-y divide-border hidden sm:table">
+                <thead class="bg-background/50"><tr><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Team</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Lead & Unit</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Actions</th></tr></thead>
+                <tbody class="divide-y divide-border">
                     {% for team in teams %}
                     <tr>
-                        <td class="py-3 font-medium">{{ team.TeamName }}</td>
-                        <td class="py-3">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</td>
-                        <td class="py-3">{{ team.UnitName or 'N/A' }}</td>
-                        <td class="py-3 space-y-2">
-                             <form action="{{ url_for('am_org_bp.assign_am_team_lead') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                                <select name="lead_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                    <option value="">-- Assign Senior AM --</option>
-                                    {% for lead in potential_team_leads %}<option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>{% endfor %}
-                                </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
-                            </form>
-                            <form action="{{ url_for('am_org_bp.assign_am_team_to_unit') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                                <select name="unit_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                    <option value="">-- Assign to Unit --</option>
-                                    {% for unit in units %}<option value="{{ unit.UnitID }}" {% if unit.UnitID == team.UnitID %}selected{% endif %}>{{ unit.UnitName }}</option>{% endfor %}
-                                </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
-                            </form>
+                        <td class="py-3 px-3 font-medium text-heading align-top">{{ team.TeamName }}</td>
+                        <td class="py-3 px-3 text-sm text-text-muted align-top">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}<br><span class="text-xs">Unit: {{ team.UnitName or 'N/A' }}</span></td>
+                        <td class="py-3 px-3 space-y-2 align-top">
+                             <form action="{{ url_for('am_org_bp.assign_am_team_lead') }}" method="POST" class="flex gap-2 items-center"><input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="lead_staff_id" class="form-select w-full" required><option value="">-- Assign Senior AM --</option>{% for lead in potential_team_leads %}<option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary">Assign</button></form>
+                            <form action="{{ url_for('am_org_bp.assign_am_team_to_unit') }}" method="POST" class="flex gap-2 items-center"><input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="unit_id" class="form-select w-full" required><option value="">-- Assign to Unit --</option>{% for unit in units %}<option value="{{ unit.UnitID }}" {% if unit.UnitID == team.UnitID %}selected{% endif %}>{{ unit.UnitName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary">Assign</button></form>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- Section 3: Manage AM Staff Assignments -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 class="text-xl font-semibold text-gray-900">Step 3: Assign Staff to AM Teams</h2>
-        <div class="mt-4 flow-root">
-             <table class="min-w-full divide-y divide-gray-200">
-                <thead><tr><th class="py-2 text-left text-sm font-medium text-gray-500">Staff Member</th><th class="py-2 text-left text-sm font-medium text-gray-500">Current Team</th><th class="py-2 text-left text-sm font-medium text-gray-500">Actions</th></tr></thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for staff in all_am_staff %}
-                        {% if staff.Role == 'AccountManager' %} {# Only show assignment for base-level AMs #}
-                        <tr>
-                            <td class="py-3 font-medium">{{ staff.FirstName }} {{ staff.LastName }}</td>
-                            <td class="py-3 text-sm text-gray-600">{{ staff.TeamName or 'Unassigned' }}</td>
-                            <td class="py-3">
-                                <form action="{{ url_for('am_org_bp.assign_am_to_team') }}" method="POST" class="flex gap-2 items-center">
-                                    <input type="hidden" name="am_staff_id" value="{{ staff.StaffID }}">
-                                    <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                        <option value="">-- Assign to Team --</option>
-                                        {% for team in teams %}<option value="{{ team.TeamID }}" {% if team.TeamName == staff.TeamName %}selected{% endif %}>{{ team.TeamName }}</option>{% endfor %}
-                                    </select>
-                                    <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    {% endfor %}
+        
+        <!-- Staff Assignment Section -->
+        <div class="mt-8 pt-6 border-t border-border">
+            <h3 class="text-base font-semibold text-heading">Assign Staff to AM Teams</h3>
+            <!-- Mobile View -->
+            <div class="sm:hidden mt-4">
+                <ul class="divide-y divide-border">
+                    {% for staff in all_am_staff %}{% if staff.Role == 'AccountManager' %}
+                    <li class="py-4 space-y-3">
+                        <p class="font-semibold text-heading">{{ staff.FirstName }} {{ staff.LastName }}</p>
+                        <p class="text-sm text-text-muted">Current Team: <span class="font-medium text-text">{{ staff.TeamName or 'Unassigned' }}</span></p>
+                        <form action="{{ url_for('am_org_bp.assign_am_to_team') }}" method="POST" class="space-y-2"><input type="hidden" name="am_staff_id" value="{{ staff.StaffID }}"><select name="team_id" class="form-select w-full" required><option value="">-- Assign to Team --</option>{% for team in teams %}<option value="{{ team.TeamID }}" {% if team.TeamName == staff.TeamName %}selected{% endif %}>{{ team.TeamName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary w-full">Assign Team</button></form>
+                    </li>
+                    {% endif %}{% endfor %}
+                </ul>
+            </div>
+            <!-- Desktop View -->
+             <table class="min-w-full divide-y divide-border mt-4 hidden sm:table">
+                <thead class="bg-background/50"><tr><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Staff Member</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Current Team</th><th class="py-3 px-3 text-left text-sm font-semibold text-heading">Actions</th></tr></thead>
+                <tbody class="divide-y divide-border">
+                    {% for staff in all_am_staff %}{% if staff.Role == 'AccountManager' %}
+                    <tr>
+                        <td class="py-3 px-3 font-medium text-heading">{{ staff.FirstName }} {{ staff.LastName }}</td>
+                        <td class="py-3 px-3 text-sm text-text-muted">{{ staff.TeamName or 'Unassigned' }}</td>
+                        <td class="py-3 px-3">
+                            <form action="{{ url_for('am_org_bp.assign_am_to_team') }}" method="POST" class="flex gap-2 items-center"><input type="hidden" name="am_staff_id" value="{{ staff.StaffID }}"><select name="team_id" class="form-select w-full" required><option value="">-- Assign to Team --</option>{% for team in teams %}<option value="{{ team.TeamID }}" {% if team.TeamName == staff.TeamName %}selected{% endif %}>{{ team.TeamName }}</option>{% endfor %}</select><button type="submit" class="btn-secondary">Assign</button></form>
+                        </td>
+                    </tr>
+                    {% endif %}{% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 {% endblock %}

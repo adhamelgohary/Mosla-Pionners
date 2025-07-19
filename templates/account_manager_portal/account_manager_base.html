@@ -16,7 +16,7 @@
 </head>
 <body class="h-full font-sans text-text">
     <div class="min-h-full">
-        <!-- [REWRITTEN] Main Navigation Bar -->
+        <!-- Main Navigation Bar -->
         <nav class="bg-card border-b border-border sticky top-0 z-50" x-data="{ open: false, profileMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
@@ -26,37 +26,15 @@
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-1">
-                                <a href="{{ url_for('account_manager_bp.dashboard') }}" 
-                                   class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
-                                    Dashboard
-                                </a>
-                                <a href="{{ url_for('account_manager_bp.my_portfolio') }}" 
-                                   class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
-                                    My Portfolio
-                                </a>
-                                <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" 
-                                   class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
-                                    Interview Pipeline
-                                </a>
+                                <a href="{{ url_for('account_manager_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Dashboard</a>
+                                <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
+                                <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
                                 
                                 {% set AM_ORG_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
                                 {% if current_user.role_type in AM_ORG_MANAGEMENT_ROLES %}
-                                <a href="{{ url_for('account_manager_bp.my_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">
-                                    My Staff
-                                </a>
-                                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" 
-                                   class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
-                                    Offer Management
-                                </a>
-                                <a href="{{ url_for('am_org_bp.organization_management') }}" 
-                                   class="px-3 py-2 rounded-md text-sm font-medium 
-                                          {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
-                                    AM Organization
-                                </a>
+                                <a href="{{ url_for('account_manager_bp.my_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
+                                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
+                                <a href="{{ url_for('am_org_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -68,17 +46,38 @@
                         </div>
                     </div>
                     <div class="-mr-2 flex md:hidden">
-                        <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-text focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card">
+                        <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-text focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card" aria-controls="mobile-menu" aria-expanded="false">
                             <span class="sr-only">Open main menu</span>
-                            <i class="bi" :class="{ 'bi-x-lg': open, 'bi-list': !open }"></i>
+                            <i class="bi text-xl" :class="{ 'bi-x': open, 'bi-list': !open }"></i>
                         </button>
                     </div>
                 </div>
             </div>
-            <!-- Mobile Menu -->
-            <div class="md:hidden" x-show="open" x-collapse>
+            
+            <!-- [NEW] Mobile Menu Implementation -->
+            <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-                    <!-- Mobile links here -->
+                    <a href="{{ url_for('account_manager_bp.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Dashboard</a>
+                    <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
+                    <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
+                    
+                    {% set AM_ORG_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
+                    {% if current_user.role_type in AM_ORG_MANAGEMENT_ROLES %}
+                    <a href="{{ url_for('account_manager_bp.my_staff') }}" class="block px-3 py-2 rounded-md text-base font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
+                    <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
+                    <a href="{{ url_for('am_org_bp.organization_management') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
+                    {% endif %}
+                </div>
+                <div class="border-t border-border pt-4 pb-3">
+                    <div class="flex items-center px-5">
+                        <div class="ml-3">
+                            <div class="text-base font-medium text-heading">{{ current_user.first_name }} {{ current_user.last_name }}</div>
+                            <div class="text-sm font-medium text-text-muted">{{ current_user.role_type }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1 px-2">
+                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-text">Logout</a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -86,7 +85,7 @@
         <!-- Page Header -->
         <header class="bg-card border-b border-border">
             <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                <h1 class="text-2xl font-bold leading-6 text-heading flex items-center gap-x-3">
+                <h1 class="text-xl sm:text-2xl font-bold leading-6 text-heading flex items-center gap-x-3">
                     {% block page_title %}{{ title|default('Dashboard') }}{% endblock %}
                 </h1>
             </div>
@@ -94,21 +93,8 @@
 
         <!-- Main Content Area -->
         <main>
-            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="space-y-4 mb-6">
-                        {% for category, message in messages %}
-                            {% set color_classes = {'success': 'bg-success/10 border-success/20 text-success-700', 'danger': 'bg-danger/10 border-danger/20 text-danger-700', 'warning': 'bg-warning/10 border-warning/20 text-warning-700', 'info': 'bg-primary/10 border-primary/20 text-primary-700'} %}
-                            <div class="border-l-4 p-4 rounded-r-md {{ color_classes.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}">
-                                <p>{{ message }}</p>
-                            </div>
-                        {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-                
+            <div class="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
+                {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="space-y-4 mb-6">{% for category, message in messages %}{% set color_classes = {'success': 'bg-success/10 border-success/20 text-success-700', 'danger': 'bg-danger/10 border-danger/20 text-danger-700', 'warning': 'bg-warning/10 border-warning/20 text-warning-700', 'info': 'bg-primary/10 border-primary/20 text-primary-700'} %}<div class="border-l-4 p-4 rounded-r-md {{ color_classes.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}"><p>{{ message }}</p></div>{% endfor %}</div>{% endif %}{% endwith %}
                 {% block content %}{% endblock %}
             </div>
         </main>
