@@ -1,0 +1,90 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-person-circle"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="space-y-8">
+
+    <!-- Section 1: Update Personal Information -->
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg border border-gray-200 dark:border-slate-700">
+        <div class="p-6 border-b border-gray-200 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Personal Information</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Update your name and contact details.</p>
+        </div>
+        <form method="POST" action="{{ url_for('.my_profile_update_details') }}">
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" name="first_name" id="first_name" value="{{ user_profile.FirstName }}" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" name="last_name" id="last_name" value="{{ user_profile.LastName }}" class="form-input" required>
+                    </div>
+                </div>
+                <div>
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <input type="tel" name="phone_number" id="phone_number" value="{{ user_profile.PhoneNumber or '' }}" class="form-input">
+                </div>
+                <div>
+                    <label for="email" class="form-label">Email Address (Cannot be changed)</label>
+                    <input type="email" name="email" id="email" value="{{ user_profile.Email }}" class="form-input bg-gray-100 dark:bg-slate-700 cursor-not-allowed" readonly disabled>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-slate-700/50 px-6 py-4 flex justify-end">
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Section 2: Change Password -->
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg border border-gray-200 dark:border-slate-700">
+        <div class="p-6 border-b border-gray-200 dark:border-slate-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Password</h3>
+        </div>
+        <form method="POST" action="{{ url_for('.my_profile_update_password') }}">
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="current_password" class="form-label">Current Password</label>
+                    <input type="password" name="current_password" id="current_password" class="form-input" required>
+                </div>
+                <div>
+                    <label for="new_password" class="form-label">New Password</label>
+                    <input type="password" name="new_password" id="new_password" class="form-input" required>
+                </div>
+                <div>
+                    <label for="confirm_password" class="form-label">Confirm New Password</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-input" required>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-slate-700/50 px-6 py-4 flex justify-end">
+                <button type="submit" class="btn-primary">Update Password</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Section 3: Referral Code -->
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg border border-gray-200 dark:border-slate-700">
+        <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Referral Code</h3>
+            {% if user_profile.ReferralCode %}
+                <p class="mt-2 text-gray-600 dark:text-gray-300">Your unique referral code is:</p>
+                <div class="mt-2 text-2xl font-bold text-primary-600 dark:text-primary-400 bg-gray-100 dark:bg-slate-700 inline-block px-4 py-2 rounded-lg">
+                    {{ user_profile.ReferralCode }}
+                </div>
+            {% else %}
+                <p class="mt-2 text-gray-500 dark:text-gray-400">You do not have a referral code yet.</p>
+                <form method="POST" action="{{ url_for('.generate_referral_code', target_staff_id=user_profile.StaffID) }}" class="mt-4">
+                    <input type="hidden" name="user_id_redirect" value="{{ current_user.id }}">
+                    <button type="submit" class="btn-secondary">Generate My Code</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

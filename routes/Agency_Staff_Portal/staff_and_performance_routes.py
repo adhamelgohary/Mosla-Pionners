@@ -10,6 +10,8 @@ import mysql.connector
 import random
 import re
 
+from werkzeug.security import check_password_hash # Add this import at the top
+
 # This blueprint is a unified module for all staff, team, and performance management.
 # It is only accessible to users with roles in MANAGERIAL_PORTAL_ROLES.
 staff_perf_bp = Blueprint('staff_perf_bp', __name__,
@@ -118,38 +120,58 @@ def add_staff():
                            title="Add New Staff Member",
                            errors=errors, form_data=form_data, possible_roles=possible_roles)
 
+# --- REFACTORED: This route now serves both manager view and self-view ---
 @staff_perf_bp.route('/profile/<int:user_id_viewing>')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def view_staff_profile(user_id_viewing):
-    """Displays the detailed profile page for a specific staff member."""
+    """
+    Displays the profile page for a staff member.
+    - If viewing another user, it shows the managerial view.
+    - If viewing oneself, it shows the personal profile management view.
+    """
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
-    user_profile_data = cursor.fetchone()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
+        user_profile_data = cursor.fetchone()
 
-    if not user_profile_data:
-        flash("Staff profile not found.", "danger"); return redirect(url_for('.list_all_staff'))
-    
-    cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
-    team_leaders = cursor.fetchall()
-    
-    cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
-    possible_roles = cursor.fetchone()['Type'].replace("enum('", "").replace("')", "").split("','")
-    
-    points_log, direct_reports = [], []
-    if user_profile_data.get('StaffID'):
-        cursor.execute("SELECT * FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
-        points_log = cursor.fetchall()
-        cursor.execute("SELECT u_report.UserID, u_report.FirstName, u_report.LastName, s_report.Role FROM Staff s_report JOIN Users u_report ON s_report.UserID = u_report.UserID WHERE s_report.ReportsToStaffID = %s", (user_profile_data['StaffID'],))
-        direct_reports = cursor.fetchall()
-    
-    conn.close()
-    return render_template('agency_staff_portal/staff/view_staff_profile.html',
-                           title=f"Profile: {user_profile_data['FirstName']}",
-                           user_profile=user_profile_data, team_leaders=team_leaders,
-                           points_log=points_log, possible_roles=possible_roles,
-                           direct_reports=direct_reports)
+        if not user_profile_data:
+            flash("Staff profile not found.", "danger")
+            return redirect(url_for('.list_all_staff'))
+        
+        # --- LOGIC FOR SELF-VIEW vs MANAGER-VIEW ---
+        is_self_view = (current_user.id == user_id_viewing)
+
+        if is_self_view:
+            # Render the personal "My Profile" template
+            return render_template('agency_staff_portal/staff/my_profile.html',
+                                   title="My Profile",
+                                   user_profile=user_profile_data)
+        else:
+            # Render the managerial view for another user
+            cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
+            team_leaders = cursor.fetchall()
+            
+            cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
+            possible_roles = cursor.fetchone()['Type'].replace("enum('", "").replace("')", "").split("','")
+            
+            points_log, direct_reports = [], []
+            if user_profile_data.get('StaffID'):
+                cursor.execute("SELECT * FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
+                points_log = cursor.fetchall()
+                cursor.execute("SELECT u_report.UserID, u_report.FirstName, u_report.LastName, s_report.Role FROM Staff s_report JOIN Users u_report ON s_report.UserID = u_report.UserID WHERE s_report.ReportsToStaffID = %s", (user_profile_data['StaffID'],))
+                direct_reports = cursor.fetchall()
+            
+            return render_template('agency_staff_portal/staff/view_staff_profile.html',
+                                   title=f"Profile: {user_profile_data['FirstName']}",
+                                   user_profile=user_profile_data, team_leaders=team_leaders,
+                                   points_log=points_log, possible_roles=possible_roles,
+                                   direct_reports=direct_reports)
+    finally:
+        if conn and conn.is_connected():
+             if 'cursor' in locals() and cursor: cursor.close()
+             conn.close()
 
 
 # --- Staff Profile Action Routes ---
@@ -350,3 +372,82 @@ def company_leaderboard():
                            title="Top Partner Companies",
                            subtitle="Ranked by number of successfully filled positions.",
                            top_companies=top_companies)
+    
+@staff_perf_bp.route('/my-profile/update-details', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def my_profile_update_details():
+    """Handles updates to the user's own basic details."""
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    phone_number = request.form.get('phone_number', '').strip()
+
+    if not first_name or not last_name:
+        flash("First and last names are required.", "danger")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE Users SET FirstName = %s, LastName = %s, PhoneNumber = %s WHERE UserID = %s",
+            (first_name, last_name, phone_number, current_user.id)
+        )
+        conn.commit()
+        flash("Your profile details have been updated successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error updating user details for UserID {current_user.id}: {e}")
+        flash("A database error occurred. Please try again.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
+    return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+
+
+@staff_perf_bp.route('/my-profile/update-password', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def my_profile_update_password():
+    """Handles updating the user's own password."""
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+
+    if not all([current_password, new_password, confirm_password]):
+        flash("All password fields are required.", "danger")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+    
+    if len(new_password) < 8:
+        flash("New password must be at least 8 characters long.", "danger")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+        
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "danger")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+        
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT PasswordHash FROM Users WHERE UserID = %s", (current_user.id,))
+        user = cursor.fetchone()
+        
+        if not user or not check_password_hash(user['PasswordHash'], current_password):
+            flash("Your current password is not correct.", "danger")
+            return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+            
+        new_hashed_password = generate_password_hash(new_password)
+        cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (new_hashed_password, current_user.id))
+        conn.commit()
+        flash("Your password has been changed successfully.", "success")
+    
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error updating password for UserID {current_user.id}: {e}")
+        flash("A database error occurred while changing your password.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+            
+    return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
