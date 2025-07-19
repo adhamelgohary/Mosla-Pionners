@@ -1,13 +1,15 @@
 # app.py
 import os
 import logging
-from logging.handlers import RotatingFileHandler # ADDED for production logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask, current_app, jsonify, session, request, url_for, render_template
 from flask_login import current_user
-from dotenv import load_dotenv # ADDED: To load environment variables from .env file
+from dotenv import load_dotenv
 import humanize
-from datetime import datetime
-import datetime 
+# --- [CORRECTED] ---
+# Removed the redundant and problematic `import datetime`. 
+# The line below is all that's needed.
+from datetime import datetime, timezone 
 
 load_dotenv()
 
@@ -17,14 +19,11 @@ from utils.template_helpers import register_template_helpers
 
 # --- Import Blueprints ---
 
-
 # Authentication Routes
-
 from routes.Auth.login_routes import login_bp, init_login_manager
 from routes.Auth.register_routes import register_bp
 
 # Agency Staff Portal Routes
-
 from routes.Agency_Staff_Portal.dashboard_routes import managerial_dashboard_bp
 from routes.Agency_Staff_Portal.course_mgmt_routes import package_mgmt_bp
 from routes.Agency_Staff_Portal.announcement_mgmt_routes import announcement_bp
@@ -34,22 +33,18 @@ from routes.Agency_Staff_Portal.reporting_routes import reporting_bp
 from routes.Agency_Staff_Portal.staff_and_performance_routes import staff_perf_bp
 
 # Candidate Portal Routes
-
 from routes.Candidate_Portal.candidate_routes import candidate_bp
 
 # Client Portal Routes
-
 from routes.Client_Portal.dashboard_routes import client_dashboard_bp
 from routes.Client_Portal.offer_routes import client_offers_bp
 
 # Website Routes
-
 from routes.Website.courses_page_routes import courses_page_bp
 from routes.Website.public_routes import public_routes_bp
 from routes.Website.job_board_routes import job_board_bp
 
 # Account Manager Portal Routes
-
 from routes.Account_Manager_Portal.am_offer_mgmt_routes import am_offer_mgmt_bp
 from routes.Account_Manager_Portal.am_schedule_mgmt_routes import am_schedule_mgmt_bp
 from routes.Account_Manager_Portal.am_interview_mgmt_routes import am_interview_mgmt_bp
@@ -58,35 +53,40 @@ from routes.Account_Manager_Portal.am_portal_routes import account_manager_bp
 from routes.Account_Manager_Portal.am_organization_routes import am_org_bp
 
 # Recruiter Portal Routes
-
 from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
 
-# 1. Define the function that will act as the filter
+# --- Create Flask App ---
+app = Flask(__name__)
+
+# --- Jinja Filter Definition ---
+@app.template_filter('humanize_date')
 def humanize_date(dt, default=None):
     """
     Returns a human-readable string for a datetime object.
     e.g., "2 hours ago", "3 days ago"
     """
-    if dt is None:
+    if not isinstance(dt, (datetime, datetime.date)):
         return default
-    now = datetime.now(dt.tzinfo) # Make sure timezones are handled if applicable
+    
+    # This call now works correctly because `datetime` refers to the class, not the module.
+    now = datetime.now(dt.tzinfo if hasattr(dt, 'tzinfo') else None)
+    
+    # Check if dt is a date object without time, and handle appropriately
+    if isinstance(dt, datetime.date) and not isinstance(dt, datetime):
+        dt = datetime.combine(dt, datetime.min.time(), tzinfo=now.tzinfo)
+
     return humanize.naturaltime(now - dt)
 
-# --- Create Flask App ---
-app = Flask(__name__)
-
 # --- Core App Configuration ---
-# CHANGED: Reads the secret key from the .env file
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY')
 
-# CHANGED: This check is now hardened. The app will crash on startup if the key is missing.
-# This is a "fail-fast" approach, which is good for production setup.
 if not app.config['SECRET_KEY']:
     raise ValueError("FATAL ERROR: FLASK_SECRET_KEY environment variable not set. App cannot run.")
 
 app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('FLASK_SESSION_LIFETIME', 3600))
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB upload limit
 
+# The filter is now defined before being assigned to jinja_env
 app.jinja_env.filters['humanize_date'] = humanize_date
 
 # Configure the upload folder
@@ -94,18 +94,11 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # --- Configure Production Logging ---
-# REMOVED: logging.basicConfig(...) - it's not flexible enough for production.
-# ADDED: Production-ready logging to a file.
 if not app.debug:
-    # Create a log file that rotates when it reaches 1MB, keeping 5 old copies.
     log_file = os.environ.get('LOG_FILE_PATH', 'app.log')
     file_handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=5)
-    
-    # Define the format for the log messages
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s [in %(pathname)s:%(lineno)d]')
     file_handler.setFormatter(formatter)
-    
-    # Set the logging level and add the handler to the app
     app.logger.addHandler(file_handler)
     app.logger.setLevel(logging.INFO)
     app.logger.info('Mosla Pioneers App startup')
@@ -118,7 +111,6 @@ register_template_helpers(app)
 init_login_manager(app) # Initialize Flask-Login
 
 # --- Register Blueprints ---
-# (No changes needed in this section)
 app.register_blueprint(login_bp, url_prefix='/auth')
 app.register_blueprint(register_bp, url_prefix='/auth')
 app.register_blueprint(managerial_dashboard_bp, url_prefix='/staff-portal')
@@ -142,23 +134,14 @@ app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
 
-
-# === ADD THIS CUSTOM FILTER ===
+# --- Custom Filter for timedelta formatting ---
 @app.template_filter('format_timedelta_to_time')
 def format_timedelta_to_time(td_object, time_format='%I:%M %p'):
-    """
-    Custom Jinja filter to format a timedelta object into a time string.
-    Example: a timedelta of 9 hours becomes '09:00 AM'.
-    """
     if not isinstance(td_object, datetime.timedelta):
-        # Return the original value if it's not a timedelta, preventing errors
         return td_object
-    
-    # Create a dummy date, add the timedelta, then format the resulting time
-    dummy_date = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    dummy_date = datetime(2000, 1, 1, 0, 0, 0)
     result_time = (dummy_date + td_object).time()
     return result_time.strftime(time_format)
-
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)
