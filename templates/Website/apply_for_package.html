@@ -3,53 +3,82 @@
 {% block title %}{{ title }} - Mosla Pioneers{% endblock %}
 
 {% block content %}
-<section class="application-form-section" style="padding: 4rem 20px; background-color: var(--background-color);">
-    <div class="container" style="max-width: 700px;">
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl w-full space-y-8">
+        
+        <!-- Animated Form Card -->
+        <div class="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-2xl p-6 md:p-10 transform transition-all duration-500 animate-fade-in-up">
 
-        <div class="form-container" style="background: var(--form-bg-color); padding: 2.5rem; border-radius: 16px; box-shadow: var(--card-shadow);">
-            
             <!-- Form Header -->
-            <div class="form-header" style="text-align: center; margin-bottom: 2rem;">
-                <h1 style="color: var(--heading-color); font-size: 1.8rem; margin-bottom: 0.5rem;">Course Application</h1>
-                <p style="color: var(--text-muted);">You are applying for:</p>
-                <p style="font-weight: 600; font-size: 1.1rem; color: var(--primary-color);">
-                    {{ package.MainPackageName }}: {{ package.SubPackageName }}
-                </p>
+            <div class="text-center mb-8">
+                <div class="inline-block bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full p-3 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">Course Application</h1>
+                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">You're one step closer to your new career path.</p>
             </div>
             
+            <!-- Package Details -->
+            <div class="bg-slate-50 dark:bg-slate-700/50 border-l-4 border-blue-500 rounded-r-lg p-4 mb-8">
+                <p class="text-sm text-slate-600 dark:text-slate-400">Applying for:</p>
+                <p class="text-lg font-semibold text-slate-800 dark:text-slate-200">{{ package.MainPackageName }}</p>
+                <p class="font-medium text-blue-600 dark:text-blue-400"><i class="bi bi-mortarboard-fill mr-2"></i>{{ package.SubPackageName }}</p>
+            </div>
+
             <!-- Application Form -->
-            <form method="POST" action="{{ url_for('courses_page_bp.submit_package_application', sub_package_id=package.SubPackageID) }}">
+            <form method="POST" action="{{ url_for('courses_page_bp.submit_package_application', sub_package_id=package.SubPackageID) }}" class="space-y-6">
                 
                 <!-- Full Name (Read-only) -->
-                <div class="form-group">
-                    <label for="full_name">Full Name</label>
-                    <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name }}" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                <div>
+                    <label for="full_name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="bi bi-person-fill text-slate-400"></i>
+                        </div>
+                        <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name }}" readonly class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none sm:text-sm">
+                    </div>
                 </div>
                 
                 <!-- Email (Read-only) -->
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" value="{{ form_data.email }}" readonly style="background-color: #f0f0f0; cursor: not-allowed;">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
+                     <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <i class="bi bi-envelope-fill text-slate-400"></i>
+                        </div>
+                        <input type="email" id="email" name="email" value="{{ form_data.email }}" readonly class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none sm:text-sm">
+                    </div>
                 </div>
 
                 <!-- Notes / Cover Letter -->
-                <div class="form-group">
-                    <label for="application_notes">Notes (Optional)</label>
-                    <textarea id="application_notes" name="application_notes" rows="5" placeholder="You can add a short message or explain why you are interested in this course."></textarea>
+                <div>
+                    <label for="application_notes" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Notes (Optional)</label>
+                    <div class="mt-1">
+                        <textarea id="application_notes" name="application_notes" rows="4" placeholder="Why are you a great fit for this course?" class="block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900/50 text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"></textarea>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500">You can share a brief message about your motivation.</p>
                 </div>
                 
                 <!-- Submit Button -->
-                <div class="form-group" style="margin-top: 2rem;">
-                    <button type="submit" class="submit-btn" style="width: 100%;">Submit Application</button>
+                <div class="pt-4">
+                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-800 shadow-lg hover:shadow-blue-500/50 dark:hover:shadow-blue-400/40 transform hover:-translate-y-0.5 transition-all duration-300">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i class="bi bi-send-fill text-blue-300 group-hover:text-white transition-colors"></i>
+                        </span>
+                        Submit Application
+                    </button>
                 </div>
             </form>
 
-            <div class="form-footer" style="text-align: center; margin-top: 1.5rem;">
-                <p style="font-size: 0.85rem; color: var(--text-muted);">
-                    By submitting, you agree to our terms of service. We will review your application and contact you via email.
-                </p>
+            <div class="text-center mt-6">
+                <a href="{{ url_for('courses_page_bp.view_packages') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+                    ← Back to all courses
+                </a>
             </div>
         </div>
+
     </div>
-</section>
+</div>
 {% endblock %}
