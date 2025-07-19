@@ -115,8 +115,6 @@ def job_offers_list():
                            job_offers_list=job_offers_list,
                            candidate_profile=candidate_profile,
                            search_term=search_term)
-
-
 # In job_board_routes.py
 
 @job_board_bp.route('/offer/<int:offer_id>')
@@ -131,7 +129,6 @@ def job_detail(offer_id, job_title_slug=None):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # --- FINAL FIX: The SQL query now selects EVERY required column. ---
         cursor.execute("""
             SELECT 
                 jo.OfferID, jo.Title, jo.Location, jo.NetSalary, jo.PaymentTerm, jo.MaxAge,
@@ -150,29 +147,30 @@ def job_detail(offer_id, job_title_slug=None):
         """, (offer_id,))
         offer = cursor.fetchone()
 
+        # ======================================================================
+        # --- THIS IS THE DIAGNOSTIC LINE TO ADD ---
+        current_app.logger.info(f"RAW OFFER DATA FROM DB for OfferID {offer_id}: {offer}")
+        # ======================================================================
+
         if not offer:
             flash("Job offer not found or is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
             
-        # --- FINAL FIX: This loop now robustly handles both `str` and `bytes` types from the DB. ---
+        # The processing loop from before
         for field in ['BenefitsIncluded', 'RequiredLanguages', 'AvailableShifts', 'GraduationStatusRequirement']:
             template_key = f"{field}_list"
             db_value = offer.get(field)
             
-            # Create a clean string representation to work with
             value_str = ''
             if isinstance(db_value, bytes):
-                # If it's bytes, decode it to a UTF-8 string
                 value_str = db_value.decode('utf-8')
             elif isinstance(db_value, str):
-                # If it's already a string, just use it
                 value_str = db_value
             
-            # Now process the guaranteed string
             if value_str and value_str.strip():
                 offer[template_key] = [item.strip() for item in value_str.split(',')]
             else:
-                offer[template_key] = [] # Ensure it's an empty list if there's no data
+                offer[template_key] = []
                 
     except Exception as e:
         current_app.logger.error(f"Error fetching job detail for OfferID {offer_id}: {e}", exc_info=True)
@@ -184,7 +182,6 @@ def job_detail(offer_id, job_title_slug=None):
             conn.close()
             
     return render_template('Website/job_offers/job_detail.html', offer=offer, title=offer.get('Title', 'Job Details'))
-
 
 @job_board_bp.route('/offer/<int:offer_id>/apply', methods=['GET'])
 @login_required
