@@ -3,139 +3,131 @@ from flask import Blueprint, render_template, current_app, flash, request, url_f
 from flask_login import current_user, login_required
 from db import get_db_connection
 import mysql.connector
-from collections import OrderedDict
 
 # This blueprint will handle public-facing pages like Home, About, Courses, etc.
 courses_page_bp = Blueprint('courses_page_bp', __name__,
                             template_folder='../../../templates')
 
-# Helper function to get CandidateID from UserID
+# Helper function to get CandidateID from UserID (remains unchanged)
 def get_candidate_id(user_id):
     conn = get_db_connection()
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True) # Using dictionary=True for consistency
         cursor.execute("SELECT CandidateID FROM Candidates WHERE UserID = %s", (user_id,))
         result = cursor.fetchone()
-        return result[0] if result else None
+        return result['CandidateID'] if result else None
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
 
+# --- UPDATED: Route to display new Package structure ---
 @courses_page_bp.route('/courses')
-def view_courses():
+def view_packages():
     """
-    Fetches all active course and language information from the new database schema,
-    structures it, and passes it to the courses_page.html template.
+    Fetches all active Main Packages and their associated Sub-Packages
+    and passes the structured data to the courses_page.html template.
     """
+    main_packages = []
     conn = get_db_connection()
-    courses_by_language = OrderedDict()
-    
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # SQL query to get all active languages and their associated active courses
-        sql = """
-            SELECT
-                cl.LanguageID,
-                cl.LanguageName,
-                cl.PageTitle,
-                cl.PageDescription,
-                cl.Benefits,
-                cl.PricingNotes,
-                cl.ImportantNotes,
-                c.CourseID,
-                c.Title AS CourseTitle,
-                c.Description AS CourseDescription,
-                c.Price AS CoursePrice,
-                c.OriginalPrice AS CourseOriginalPrice
-            FROM CourseLanguages cl
-            LEFT JOIN Courses c ON cl.LanguageID = c.LanguageID AND c.IsActive = TRUE
-            WHERE cl.IsActive = TRUE
-            ORDER BY cl.DisplayOrder, cl.LanguageName, c.DisplayOrder, c.Title;
-        """ # <<< FIX 1: Changed c.CourseTitle to c.Title in the ORDER BY clause
-        cursor.execute(sql)
-        results = cursor.fetchall()
-        
-        # Process the flat list of results into a nested, ordered dictionary
-        for row in results:
-            lang_id = row['LanguageID']
-            if lang_id not in courses_by_language:
-                courses_by_language[lang_id] = {
-                    'language_name': row['LanguageName'],
-                    'title': row['PageTitle'],
-                    'description': row['PageDescription'],
-                    'benefits': [b.strip() for b in row['Benefits'].split(',') if b.strip()] if row['Benefits'] else [],
-                    'pricing_notes': row['PricingNotes'],
-                    'important_notes': row['ImportantNotes'],
-                    'courses': []
-                }
-            
-            if row['CourseID']:
-                courses_by_language[lang_id]['courses'].append({
-                    'id': row['CourseID'],
-                    'title': row['CourseTitle'],
-                    'description': row['CourseDescription'],
-                    'price': row['CoursePrice'],
-                    'original_price': row['CourseOriginalPrice'] # <<< FIX 2: Changed 'a' to 'row'
-                })
+        # 1. Fetch all active MainPackages
+        cursor.execute("SELECT * FROM MainPackages WHERE IsActive = TRUE ORDER BY Name")
+        main_packages = cursor.fetchall()
 
+        # 2. For each package, fetch its languages and active sub-packages
+        for package in main_packages:
+            # Fetch languages for this package
+            cursor.execute("""
+                SELECT l.LanguageName 
+                FROM MainPackageLanguages mpl
+                JOIN Languages l ON mpl.LanguageID = l.LanguageID
+                WHERE mpl.PackageID = %s
+            """, (package['PackageID'],))
+            languages_raw = cursor.fetchall()
+            package['languages'] = [lang['LanguageName'] for lang in languages_raw]
+
+            # Fetch its active sub-packages (the items candidates can apply for)
+            cursor.execute("""
+                SELECT * FROM SubPackages 
+                WHERE MainPackageID = %s AND IsActive = TRUE 
+                ORDER BY DisplayOrder, Name
+            """, (package['PackageID'],))
+            package['sub_packages'] = cursor.fetchall()
+            
     except Exception as e:
-        current_app.logger.error(f"Error fetching courses page data: {e}", exc_info=True)
+        current_app.logger.error(f"Error fetching public packages page data: {e}", exc_info=True)
         flash("Could not load course information at this time. Please try again later.", "warning")
-        courses_by_language = {}
+        main_packages = [] # Ensure it's an empty list on error
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
             
+    # The template 'Website/courses_page.html' will need to be updated
+    # to loop through this new `main_packages` data structure.
     return render_template('Website/courses_page.html', 
-                           title="Train To Hire Courses",
-                           courses_by_language=courses_by_language)
+                           title="Our Programs & Courses",
+                           main_packages=main_packages)
 
-@courses_page_bp.route('/course/<int:course_id>/apply', methods=['GET'])
+# --- UPDATED: Application form for a Sub-Package ---
+@courses_page_bp.route('/package/<int:sub_package_id>/apply', methods=['GET'])
 @login_required
-def apply_for_course_form(course_id):
+def apply_for_package_form(sub_package_id):
     """
-    Displays the application form for a specific course.
+    Displays the application form for a specific Sub-Package.
     """
     if not hasattr(current_user, 'role_type') or current_user.role_type != 'Candidate':
         flash("Only registered candidates can apply for courses.", "warning")
         return redirect(url_for('login_bp.login', next=request.url))
 
     conn = get_db_connection()
-    course = None
+    package_details = None
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT CourseID, Title as CourseName FROM Courses WHERE CourseID = %s AND IsActive = 1", (course_id,))
-        course = cursor.fetchone()
+        # Fetch details for the sub-package and its parent main package for context
+        sql = """
+            SELECT 
+                sp.SubPackageID, 
+                sp.Name AS SubPackageName,
+                mp.Name AS MainPackageName
+            FROM SubPackages sp
+            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE sp.SubPackageID = %s AND sp.IsActive = 1 AND mp.IsActive = 1
+        """
+        cursor.execute(sql, (sub_package_id,))
+        package_details = cursor.fetchone()
     finally:
         if conn and conn.is_connected(): conn.close()
 
-    if not course:
-        flash("This course is not available or does not exist.", "danger")
-        return redirect(url_for('.view_courses'))
+    if not package_details:
+        flash("This package is not available or does not exist.", "danger")
+        return redirect(url_for('.view_packages'))
 
     form_data = {
         'full_name': f"{current_user.first_name} {current_user.last_name}",
         'email': current_user.email
     }
 
-    return render_template('Website/apply_for_course.html', 
-                           title=f"Apply for {course['CourseName']}",
-                           course=course,
+    # The template 'Website/apply_for_course.html' should be renamed or updated
+    # to handle this new `package_details` context.
+    return render_template('Website/apply_for_package.html', 
+                           title=f"Apply for {package_details['MainPackageName']}: {package_details['SubPackageName']}",
+                           package=package_details,
                            form_data=form_data)
 
 
-@courses_page_bp.route('/course/<int:course_id>/submit-application', methods=['POST'])
+# --- UPDATED: Submission logic for a Sub-Package application ---
+@courses_page_bp.route('/package/<int:sub_package_id>/submit-application', methods=['POST'])
 @login_required
-def submit_course_application(course_id):
+def submit_package_application(sub_package_id):
     """
-    Handles the submission of the course application form.
+    Handles the submission of the sub-package application form.
     """
     if not hasattr(current_user, 'role_type') or current_user.role_type != 'Candidate':
         flash("Only candidates can submit applications.", "danger")
-        return redirect(url_for('.view_courses'))
+        return redirect(url_for('.view_packages'))
         
     candidate_id = get_candidate_id(current_user.id)
     if not candidate_id:
@@ -148,13 +140,15 @@ def submit_course_application(course_id):
     try:
         cursor = conn.cursor()
 
-        cursor.execute("SELECT EnrollmentID FROM CourseEnrollments WHERE CourseID = %s AND CandidateID = %s", (course_id, candidate_id))
+        # Check if the candidate has already applied for this specific sub-package
+        cursor.execute("SELECT EnrollmentID FROM CourseEnrollments WHERE SubPackageID = %s AND CandidateID = %s", (sub_package_id, candidate_id))
         if cursor.fetchone():
-            flash("You have already applied for this course.", "info")
-            return redirect(url_for('.view_courses'))
+            flash("You have already applied for this package.", "info")
+            return redirect(url_for('.view_packages'))
             
-        sql = "INSERT INTO CourseEnrollments (CourseID, CandidateID, Status, Notes) VALUES (%s, %s, 'Applied', %s)"
-        cursor.execute(sql, (course_id, candidate_id, notes))
+        # Insert the enrollment record with SubPackageID, leaving CourseID as NULL
+        sql = "INSERT INTO CourseEnrollments (SubPackageID, CandidateID, Status, Notes) VALUES (%s, %s, 'Applied', %s)"
+        cursor.execute(sql, (sub_package_id, candidate_id, notes))
         conn.commit()
         
         flash("Your application has been submitted successfully! We will review it and get back to you.", "success")
@@ -162,13 +156,13 @@ def submit_course_application(course_id):
 
     except mysql.connector.Error as err:
         if conn: conn.rollback()
-        current_app.logger.error(f"DB Error submitting course application: {err}")
+        current_app.logger.error(f"DB Error submitting package application: {err}")
         flash("A database error occurred. Please try again.", "danger")
     except Exception as e:
         if conn: conn.rollback()
-        current_app.logger.error(f"General Error submitting course application: {e}")
+        current_app.logger.error(f"General Error submitting package application: {e}")
         flash("An unexpected error occurred. Please try again.", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
             
-    return redirect(url_for('.apply_for_course_form', course_id=course_id))
+    return redirect(url_for('.apply_for_package_form', sub_package_id=sub_package_id))
