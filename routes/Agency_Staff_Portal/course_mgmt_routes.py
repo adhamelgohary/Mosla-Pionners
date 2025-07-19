@@ -9,7 +9,7 @@ import mysql.connector
 # Roles with full management access (add/edit/delete)
 PACKAGE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder']
 # Roles that can only view the main list and dashboard
-PACKAGE_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder', 'HeadSourcingTeamLead', 'UnitManager']
+PACKAGE_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder']
 
 # Renaming blueprint for clarity to align with the new structure
 package_mgmt_bp = Blueprint('package_mgmt_bp', __name__,

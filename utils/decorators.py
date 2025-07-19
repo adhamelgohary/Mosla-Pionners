@@ -3,28 +3,31 @@ from functools import wraps
 from flask import flash, redirect, url_for, current_app, request
 from flask_login import current_user
 
-# --- ROLE LISTS ---
-AGENCY_STAFF_ROLES = [
-    'CEO', 
-    'SalesManager',
-    'Founder'
-]
+# --- [MODIFIED] ROLE LISTS ---
+
+# This role list is now only for top-level execs who see the main dashboard.
+AGENCY_STAFF_ROLES = ['CEO', 'Founder']
+
+# This is the single source of truth for who can access the main managerial portal.
+# SalesManager is REMOVED from this list.
+MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder']
+
+# These roles have full management access to packages.
+PACKAGE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder']
+
+# These roles can view the package dashboard and lists.
+PACKAGE_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder']
+
+# All other role lists (ADMIN_ROLES, etc.)
 ADMIN_ROLES = ['Admin'] 
 CANDIDATE_ROLES = ['Candidate']
 ANNOUNCEMENT_MANAGEMENT_ROLES = ['Admin', 'CEO', 'Founder'] 
 JOB_OFFER_MANAGEMENT_ROLES = ['CEO', 'Founder'] 
-COURSE_MANAGEMENT_ROLES_DECORATOR = ['SalesManager', 'CEO', 'Founder']
-SALES_MANAGER_SPECIFIC_ROLES = ['SalesManager', 'CEO', 'Founder']
-
-# --- NEW: Central Authority for Managerial Access ---
-# This is the single source of truth for who can access the new portal.
-MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder']
-
-# --- You can now also update EXECUTIVE_ROLES if you wish, or just use the new list ---
-EXECUTIVE_ROLES = ['CEO', 'Founder'] # OM might still be exec but not see the portal
+EXECUTIVE_ROLES = ['CEO', 'Founder']
 LEADER_ROLES = ['CEO', 'Founder', 'HeadSourcingTeamLead', 'HeadAccountManager', 'SeniorAccountManager', 'SalesManager']
 
-# --- CORE DECORATOR ---
+
+# --- [MODIFIED] CORE DECORATOR ---
 def login_required_with_role(allowed_roles, insufficient_role_redirect='public_routes_bp.home_page'):
     def decorator(f):
         @wraps(f)
@@ -37,27 +40,34 @@ def login_required_with_role(allowed_roles, insufficient_role_redirect='public_r
             
             current_app.logger.debug(
                 f"Decorator Check: User: {getattr(current_user, 'email', 'N/A')}, "
-                f"Role Type from current_user: {repr(user_role)}, "
-                f"Required: {allowed_roles}, Path: {request.path}"
+                f"Role Type: {repr(user_role)}, Required: {allowed_roles}, Path: {request.path}"
             )
             
+            # --- [NEW LOGIC] Special redirection for SalesManager ---
+            # If a SalesManager tries to access a page they shouldn't,
+            # redirect them to their dedicated packages dashboard.
+            if user_role == 'SalesManager' and user_role not in allowed_roles:
+                current_app.logger.warning(
+                    f"Access DENIED for SalesManager {current_user.email} to {request.path}. Redirecting to packages dashboard."
+                )
+                flash('You do not have permission to access this page.', 'danger')
+                return redirect(url_for('package_mgmt_bp.packages_dashboard'))
+
             if user_role not in allowed_roles:
                 current_app.logger.warning(
-                    f"Access DENIED for user {getattr(current_user, 'email', 'N/A')} "
-                    f"with role '{user_role}' to {request.path}. Required one of: {allowed_roles}"
+                    f"Access DENIED for user {current_user.email} with role '{user_role}' to {request.path}. Required: {allowed_roles}"
                 )
                 flash('You do not have permission to access this page.', 'danger')
                 return redirect(url_for(insufficient_role_redirect))
             
             current_app.logger.debug(
-                f"Access GRANTED for user {getattr(current_user, 'email', 'N/A')} "
-                f"with role '{user_role}' to {request.path}."
+                f"Access GRANTED for user {current_user.email} with role '{user_role}' to {request.path}."
             )
             return f(*args, **kwargs)
         return decorated_function
     return decorator
 
-# --- GENERAL & SPECIFIC DECORATORS ---
+# --- GENERAL & SPECIFIC DECORATORS (Unchanged, but now use the new core logic) ---
 def agency_staff_required(f):
     return login_required_with_role(AGENCY_STAFF_ROLES)(f)
 
@@ -68,10 +78,12 @@ def candidate_portal_required(f):
     return login_required_with_role(CANDIDATE_ROLES, insufficient_role_redirect='public_routes_bp.home_page')(f)
 
 def course_management_access_required(f):
-    return login_required_with_role(COURSE_MANAGEMENT_ROLES_DECORATOR, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
+    # This specific decorator might now be redundant if you directly use login_required_with_role
+    # in the package_mgmt_bp, but we'll leave it for compatibility.
+    return login_required_with_role(PACKAGE_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
 
 def sales_manager_portal_specific_access_required(f):
-     return login_required_with_role(SALES_MANAGER_SPECIFIC_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
+     return login_required_with_role(PACKAGE_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
 
 def announcement_management_access_required(f):
     return login_required_with_role(ANNOUNCEMENT_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
