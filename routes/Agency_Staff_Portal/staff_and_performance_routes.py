@@ -201,15 +201,26 @@ def deactivate_staff(staff_id):
         
     return redirect(url_for('.list_all_staff'))
 
-# --- REFACTORED: This route now serves both manager view and self-view ---
 @staff_perf_bp.route('/profile/<int:user_id_viewing>')
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager']) # Allow both managers and SalesManager to HIT the route
 def view_staff_profile(user_id_viewing):
     """
-    Displays the profile page for a staff member.
-    - If viewing another user, it shows the managerial view.
-    - If viewing oneself, it shows the personal profile management view.
+    Displays the profile page for a staff member with strict access control.
+    - Top-level managers can view any profile.
+    - A SalesManager can ONLY view their own profile.
     """
+    is_self_view = (current_user.id == user_id_viewing)
+    user_role = getattr(current_user, 'role_type', None)
+
+    # --- Granular Access Control Inside the Function ---
+    # A SalesManager is only allowed if they are viewing their own profile.
+    if user_role == 'SalesManager' and not is_self_view:
+        flash("You only have permission to view your own profile.", "danger")
+        # Redirect them to their own profile page if they try to access someone else's
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+
+    # All other roles in MANAGERIAL_PORTAL_ROLES can proceed.
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
@@ -221,11 +232,9 @@ def view_staff_profile(user_id_viewing):
             flash("Staff profile not found.", "danger")
             return redirect(url_for('.list_all_staff'))
         
-        # --- LOGIC FOR SELF-VIEW vs MANAGER-VIEW ---
-        is_self_view = (current_user.id == user_id_viewing)
-
+        # --- Render different templates based on who is viewing ---
         if is_self_view:
-            # Render the personal "My Profile" template
+            # Render the personal "My Profile" template for self-view
             return render_template('agency_staff_portal/staff/my_profile.html',
                                    title="My Profile",
                                    user_profile=user_profile_data)
@@ -253,7 +262,6 @@ def view_staff_profile(user_id_viewing):
         if conn and conn.is_connected():
              if 'cursor' in locals() and cursor: cursor.close()
              conn.close()
-
 
 # --- Staff Profile Action Routes ---
 
@@ -457,7 +465,7 @@ def company_leaderboard():
                            top_companies=top_companies)
     
 @staff_perf_bp.route('/my-profile/update-details', methods=['POST'])
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
 def my_profile_update_details():
     """Handles updates to the user's own basic details."""
     first_name = request.form.get('first_name', '').strip()
