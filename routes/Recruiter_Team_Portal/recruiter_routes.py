@@ -655,6 +655,7 @@ def assign_team_lead():
     try:
         cursor = conn.cursor(dictionary=True)
 
+        # Security check for Unit Managers (remains unchanged)
         if current_user.role_type == 'UnitManager':
             cursor.execute("SELECT su.UnitID FROM SourcingUnits su WHERE su.UnitManagerStaffID = %s", (current_user.specific_role_id,))
             manager_unit = cursor.fetchone()
@@ -664,15 +665,46 @@ def assign_team_lead():
             if not manager_unit or not team_unit or manager_unit['UnitID'] != team_unit['UnitID']:
                 abort(403, "You can only assign leads to teams within your own unit.")
 
+        # Step 1: Assign lead to the team
         cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = %s WHERE TeamID = %s", (lead_staff_id, team_id))
+        
+        # Step 2: Update the staff member's role and make them part of the team they lead
         cursor.execute("UPDATE Staff SET Role = 'SourcingTeamLead', TeamID = %s WHERE StaffID = %s", (team_id, lead_staff_id))
+        
+        # --- [NEW LOGIC] ---
+        # Step 3: Automatically set the reporting line to the Unit Manager.
+        
+        # First, find the UnitID and UnitManagerStaffID for the team's unit.
+        cursor.execute("""
+            SELECT su.UnitManagerStaffID
+            FROM SourcingTeams st
+            JOIN SourcingUnits su ON st.UnitID = su.UnitID
+            WHERE st.TeamID = %s
+        """, (team_id,))
+        
+        unit_info = cursor.fetchone()
+        
+        # If the team is in a unit and that unit has a manager...
+        if unit_info and unit_info.get('UnitManagerStaffID'):
+            unit_manager_staff_id = unit_info['UnitManagerStaffID']
+            # ...update the new team lead to report to that unit manager.
+            cursor.execute("UPDATE Staff SET ReportsToStaffID = %s WHERE StaffID = %s", (unit_manager_staff_id, lead_staff_id))
+            flash("Team Lead assigned successfully and now reports to the Unit Manager.", "success")
+        else:
+            # If the team is not in a unit, or the unit has no manager, clear the reporting line.
+            cursor.execute("UPDATE Staff SET ReportsToStaffID = NULL WHERE StaffID = %s", (lead_staff_id,))
+            flash("Team Lead assigned successfully. Note: The team is not in a managed unit, so no manager was set.", "info")
+
         conn.commit()
-        flash("Team Lead assigned successfully.", "success")
+        
     except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error assigning team lead: {e}")
         flash(f"Error assigning team lead: {e}", "danger")
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+        
     return redirect(request.referrer or url_for('.organization_management'))
 
 
