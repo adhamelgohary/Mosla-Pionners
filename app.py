@@ -9,7 +9,7 @@ import humanize
 # --- [CORRECTED] ---
 # Removed the redundant and problematic `import datetime`. 
 # The line below is all that's needed.
-from datetime import datetime, timezone 
+from datetime import datetime, timezone, date
 
 load_dotenv()
 
@@ -65,14 +65,14 @@ def humanize_date(dt, default=None):
     Returns a human-readable string for a datetime object.
     e.g., "2 hours ago", "3 days ago"
     """
-    if not isinstance(dt, (datetime, datetime.date)):
+    if not isinstance(dt, (datetime, date)): # Check against both classes
         return default
     
-    # This call now works correctly because `datetime` refers to the class, not the module.
     now = datetime.now(dt.tzinfo if hasattr(dt, 'tzinfo') else None)
     
-    # Check if dt is a date object without time, and handle appropriately
-    if isinstance(dt, datetime.date) and not isinstance(dt, datetime):
+    # [CORRECTED] This check will now work because `date` and `datetime` are imported as classes
+    if isinstance(dt, date) and not isinstance(dt, datetime):
+        # Convert date object to datetime object for comparison
         dt = datetime.combine(dt, datetime.min.time(), tzinfo=now.tzinfo)
 
     return humanize.naturaltime(now - dt)
