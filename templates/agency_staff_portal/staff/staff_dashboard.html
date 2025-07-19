@@ -1,32 +1,43 @@
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
-{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-people-fill"></i> {{ title }}
+{% endblock %}
 
 {% block staff_content %}
-<div class="mb-6">
-    <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
-        <i class="bi bi-people-fill -ml-1 mr-2"></i> View All Staff
-    </a>
-</div>
-
-<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-    <h3 class="text-lg font-semibold text-gray-900">Team Composition</h3>
-    <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="bg-gray-50 p-4 rounded-lg text-center border border-gray-200">
-            <dt class="text-sm font-medium text-gray-500 truncate">Total Active Staff</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-primary-600">{{ kpis.get('total_staff', '0') }}</dd>
+<div class="space-y-8">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Team Composition</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">An overview of all active staff roles in the agency.</p>
         </div>
+        <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="btn-secondary">
+             View All Staff Details <i class="bi bi-arrow-right-short ml-1"></i>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Main KPI Card -->
+        <div class="md:col-span-2 lg:col-span-2 bg-primary-500 text-white p-6 rounded-xl shadow-lg">
+            <p class="font-medium">Total Active Staff</p>
+            <p class="text-5xl font-bold mt-2">{{ kpis.get('total_staff', '0') }}</p>
+        </div>
+
+        <!-- Role Breakdown Cards -->
         {% for role, count in kpis.get('role_breakdown', {}).items() %}
-        <div class="bg-gray-50 p-4 rounded-lg text-center border border-gray-200">
-            <dt class="text-sm font-medium text-gray-500 truncate">{{ role | replace('_', ' ') | title }}s</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ count }}</dd>
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ role | replace('_', ' ') | title }}s</p>
+            <p class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ count }}</p>
         </div>
         {% endfor %}
-        <div class="bg-gray-50 p-4 rounded-lg text-center border border-gray-200">
-            <dt class="text-sm font-medium text-gray-500 truncate">New Staff (Last 30 Days)</dt>
-            <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-600">{{ kpis.get('new_staff_30_days', '0') }}</dd>
+
+        <!-- New Staff Card -->
+        <div class="bg-green-50 dark:bg-green-900/50 p-6 rounded-xl border border-green-200 dark:border-green-800">
+            <p class="text-sm font-medium text-green-700 dark:text-green-300">New Staff (Last 30 Days)</p>
+            <p class="mt-1 text-3xl font-semibold tracking-tight text-green-800 dark:text-green-200">+{{ kpis.get('new_staff_30_days', '0') }}</p>
         </div>
-    </dl>
+    </div>
 </div>
 {% endblock %}
