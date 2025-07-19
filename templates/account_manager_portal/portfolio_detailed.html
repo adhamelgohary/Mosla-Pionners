@@ -2,53 +2,63 @@
 {% extends "account_manager_portal/account_manager_base.html" %}
 
 {% block page_title %}
-    Portfolio for {{ manager.FirstName }} {{ manager.LastName }}
+    <i class="bi bi-person-workspace text-text-muted"></i>
+    <span>Portfolio for {{ manager.FirstName }} {{ manager.LastName }}</span>
 {% endblock %}
 
 {% block content %}
 <div class="space-y-8">
     {% for company in companies_data %}
-    <div class="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
-        <!-- Company Header (Now a link) -->
-        <a href="{{ url_for('.view_single_company', company_id=company.CompanyID) }}" class="block p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
-            <h3 class="text-xl font-semibold text-indigo-600 hover:text-indigo-700">{{ company.CompanyName }}</h3>
-            <p class="text-sm text-gray-500">{{ company.Industry or 'No industry specified' }}</p>
-        </a>
+    <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <!-- Company Header -->
+        <div class="p-5 border-b border-border bg-background/50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-heading">{{ company.CompanyName }}</h3>
+                    <p class="text-sm text-text-muted">{{ company.Industry or 'No industry specified' }}</p>
+                </div>
+                <a href="{{ url_for('.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary">
+                    View Company Details
+                </a>
+            </div>
+        </div>
 
-        <!-- Job Offers List for this company -->
-        <div class="divide-y divide-gray-200">
+        <!-- Job Offers List -->
+        <ul class="divide-y divide-border">
             {% for offer in company.job_offers %}
-            <div class="p-6">
-                <div class="w-full flex justify-between items-center text-left">
-                    <!-- Offer Title (Now a link) -->
+            <li class="p-5 hover:bg-background transition-colors">
+                <div class="flex items-center justify-between gap-4">
+                    <!-- Left Side: Title and Status -->
                     <div>
-                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-lg text-gray-800 hover:text-indigo-600">{{ offer.Title }}</a>
+                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-text hover:text-primary">{{ offer.Title }}</a>
                         <div class="mt-1">
-                            <span class="text-sm px-2 py-0.5 rounded-full {{ 'bg-green-100 text-green-800' if offer.Status == 'Open' else 'bg-yellow-100 text-yellow-800' }}">
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset 
+                                {% if offer.Status == 'Open' %}bg-green-50 text-green-700 ring-green-600/20
+                                {% else %}bg-yellow-50 text-yellow-800 ring-yellow-600/20{% endif %}">
                                 {{ offer.Status }}
                             </span>
                         </div>
                     </div>
-                    <!-- Applicant Count and Link to Offer Page -->
-                    <div class="flex items-center gap-4">
+                    <!-- Right Side: Applicant Count and Action -->
+                    <div class="flex items-center gap-6">
                         <div class="text-right">
-                           <p class="text-sm font-semibold text-gray-900">{{ offer.NewApplicantCount }}</p>
-                           <p class="text-xs text-gray-500">New Applicant(s)</p>
+                           <p class="text-2xl font-semibold text-heading">{{ offer.NewApplicantCount }}</p>
+                           <p class="text-xs text-text-muted">New Applicant(s)</p>
                         </div>
-                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="inline-block px-4 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700">
-                            Review →
+                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="btn-primary">
+                            Review
                         </a>
                     </div>
                 </div>
-            </div>
+            </li>
             {% else %}
-            <p class="text-sm text-gray-500 p-6">No job offers found for this company.</p>
+            <li class="p-5 text-center text-sm text-text-muted">No job offers found for this company.</li>
             {% endfor %}
-        </div>
+        </ul>
     </div>
     {% else %}
-    <div class="text-center py-12 bg-white rounded-lg shadow">
-        <p class="text-gray-500">No companies are currently assigned to this portfolio.</p>
+    <div class="text-center py-12 bg-card rounded-lg border border-border shadow-sm">
+        <p class="text-text-muted">No companies are currently assigned to this portfolio.</p>
     </div>
     {% endfor %}
 </div>

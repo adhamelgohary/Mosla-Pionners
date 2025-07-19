@@ -1,68 +1,57 @@
+{# templates/account_manager_portal/my_staff.html #}
 {% extends "account_manager_portal/account_manager_base.html" %}
 
+{% block page_title %}
+    <i class="bi bi-people-fill text-text-muted"></i>
+    <span>My Staff</span>
+{% endblock %}
+
 {% block content %}
-<div class="px-4 sm:px-6 lg:px-8">
-    
-    <!-- =================== THIS HEADER BLOCK IS UPDATED =================== -->
-    <div class="sm:flex sm:items-center sm:justify-between mb-8">
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="sm:flex sm:items-center sm:justify-between">
         <div class="sm:flex-auto">
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">My Staff</h1>
-            <p class="mt-2 text-sm text-gray-700 dark:text-gray-400">A list of all Account Managers in your team. View their portfolios or manage their company assignments.</p>
+            <h1 class="text-xl font-semibold text-heading">My Staff</h1>
+            <p class="mt-1 text-sm text-text-muted">A list of all Account Managers in your team. View their portfolios or manage their company assignments.</p>
         </div>
 
-        {# Define the roles that can see this special button #}
-        {% set self_assignment_roles = ['HeadAccountManager', 'CEO', 'Founder', 'OperationsManager'] %}
-        
+        {% set self_assignment_roles = ['HeadAccountManager', 'CEO', 'Founder'] %}
         {% if current_user.role_type in self_assignment_roles %}
         <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            {# This button now correctly points to the assignment blueprint #}
-            <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=current_user.specific_role_id) }}" 
-               class="inline-flex items-center gap-x-2 rounded-md bg-primary-600 dark:bg-dark-primary px-3.5 py-2.5 text-sm font-semibold text-white dark:text-gray-900 shadow-sm hover:bg-primary-700 dark:hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
-                <i class="bi bi-person-plus-fill -ml-0.5 h-5 w-5"></i>
-                Assign to Myself
+            <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=current_user.specific_role_id) }}" class="btn-primary">
+                <i class="bi bi-person-plus-fill -ml-1 mr-2 h-5 w-5"></i>
+                Assign Companies to Myself
             </a>
         </div>
         {% endif %}
     </div>
-    <!-- ================= END OF THE UPDATED BLOCK ================= -->
 
+    <!-- Staff Bento Grid -->
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {% for manager in staff_list %}
-        <div class="col-span-1 flex flex-col divide-y divide-gray-200 dark:divide-gray-700 rounded-lg bg-white dark:bg-gray-800 text-center shadow">
-            <div class="flex flex-1 flex-col p-8">
-                <img class="mx-auto h-32 w-32 flex-shrink-0 rounded-full object-cover" src="{{ url_for('static', filename=manager.ProfilePictureURL) if manager.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" alt="{{ manager.FirstName }}'s profile picture">
-                <h3 class="mt-6 text-sm font-medium text-gray-900 dark:text-gray-100">{{ manager.FirstName }} {{ manager.LastName }}</h3>
-                <dl class="mt-1 flex flex-grow flex-col justify-between">
-                    <dt class="sr-only">Role</dt>
-                    <dd class="text-sm text-gray-500 dark:text-gray-400">{{ manager.Role }}</dd>
-                    <dt class="sr-only">Assigned Companies</dt>
-                    <dd class="mt-3">
-                        <span class="rounded-full bg-green-100 dark:bg-green-900/50 px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300">{{ manager.AssignedCompanyCount }} Companies</span>
-                    </dd>
-                </dl>
-            </div>
-            <div>
-                <div class="-mt-px flex divide-x divide-gray-200 dark:divide-gray-700">
-                    <div class="flex w-0 flex-1">
-                        <!-- Link to the company assignment page -->
-                        <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=manager.StaffID) }}" class="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="bi bi-briefcase-fill h-5 w-5 text-gray-400"></i>
-                            Assign Companies
-                        </a>
-                    </div>
-                    <div class="-ml-px flex w-0 flex-1">
-                        <!-- Link to the portfolio view -->
-                        <a href="{{ url_for('account_manager_bp.view_manager_portfolio', manager_staff_id=manager.StaffID) }}" class="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="bi bi-person-lines-fill h-5 w-5 text-gray-400"></i>
-                            View Portfolio
-                        </a>
-                    </div>
+        <div class="col-span-1 bg-card rounded-lg border border-border shadow-sm flex flex-col">
+            <!-- Profile Info -->
+            <div class="flex-1 p-6 flex flex-col items-center text-center">
+                <img class="h-24 w-24 flex-shrink-0 rounded-full object-cover ring-2 ring-offset-2 ring-offset-card ring-border" src="{{ url_for('static', filename=manager.ProfilePictureURL) if manager.ProfilePictureURL else url_for('static', filename='images/default-profile.png') }}" alt="">
+                <h3 class="mt-4 text-base font-semibold text-heading">{{ manager.FirstName }} {{ manager.LastName }}</h3>
+                <p class="text-xs text-text-muted">{{ manager.Role }}</p>
+                <div class="mt-4">
+                    <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">{{ manager.AssignedCompanyCount }} Companies</span>
                 </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="border-t border-border grid grid-cols-2">
+                <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=manager.StaffID) }}" class="flex items-center justify-center gap-x-2 py-3 text-sm font-medium text-text-muted hover:bg-background hover:text-primary transition-colors rounded-bl-lg">
+                    <i class="bi bi-building-add"></i> Assign
+                </a>
+                <a href="{{ url_for('account_manager_bp.view_manager_portfolio', manager_staff_id=manager.StaffID) }}" class="border-l border-border flex items-center justify-center gap-x-2 py-3 text-sm font-medium text-text-muted hover:bg-background hover:text-primary transition-colors rounded-br-lg">
+                    <i class="bi bi-eye-fill"></i> View Portfolio
+                </a>
             </div>
         </div>
         {% else %}
-        <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 dark:text-gray-400">There are no staff members to display.</p>
+        <div class="col-span-full text-center py-12 bg-card rounded-lg border border-border">
+            <p class="text-text-muted">There are no staff members in your team.</p>
         </div>
         {% endfor %}
     </div>

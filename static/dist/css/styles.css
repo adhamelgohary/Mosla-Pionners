@@ -2103,14 +2103,6 @@ html[data-theme="dark"] {
   margin-right: -0.75rem;
 }
 
-.-mr-px {
-  margin-right: -1px;
-}
-
-.-mt-px {
-  margin-top: -1px;
-}
-
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -2355,10 +2347,6 @@ html[data-theme="dark"] {
   min-height: 100vh;
 }
 
-.w-0 {
-  width: 0px;
-}
-
 .w-1\/2 {
   width: 50%;
 }
@@ -2397,10 +2385,6 @@ html[data-theme="dark"] {
 
 .w-3 {
   width: 0.75rem;
-}
-
-.w-32 {
-  width: 8rem;
 }
 
 .w-36 {
@@ -2928,6 +2912,10 @@ html[data-theme="dark"] {
 
 .border-b {
   border-bottom-width: 1px;
+}
+
+.border-l {
+  border-left-width: 1px;
 }
 
 .border-l-2 {
@@ -3761,6 +3749,10 @@ html[data-theme="dark"] {
   color: rgb(30 64 175 / var(--tw-text-opacity, 1));
 }
 
+.text-danger {
+  color: var(--danger-color);
+}
+
 .text-danger-400 {
   --tw-text-opacity: 1;
   color: rgb(248 113 113 / var(--tw-text-opacity, 1));
@@ -4232,6 +4224,14 @@ html[data-theme="dark"] {
   --tw-ring-opacity: 0.05;
 }
 
+.ring-offset-2 {
+  --tw-ring-offset-width: 2px;
+}
+
+.ring-offset-card {
+  --tw-ring-offset-color: var(--card-bg);
+}
+
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
@@ -4640,11 +4640,6 @@ body {
   background-color: rgb(14 165 233 / var(--tw-bg-opacity, 1));
 }
 
-.hover\:bg-sky-700:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(3 105 161 / var(--tw-bg-opacity, 1));
-}
-
 .hover\:bg-slate-700:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(51 65 85 / var(--tw-bg-opacity, 1));
@@ -4673,6 +4668,11 @@ body {
 .hover\:text-blue-600:hover {
   --tw-text-opacity: 1;
   color: rgb(37 99 235 / var(--tw-text-opacity, 1));
+}
+
+.hover\:text-danger-700:hover {
+  --tw-text-opacity: 1;
+  color: rgb(185 28 28 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-danger-900:hover {
@@ -4708,11 +4708,6 @@ body {
 .hover\:text-indigo-600:hover {
   --tw-text-opacity: 1;
   color: rgb(79 70 229 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-indigo-700:hover {
-  --tw-text-opacity: 1;
-  color: rgb(67 56 202 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-indigo-800:hover {
@@ -4757,11 +4752,6 @@ body {
 .hover\:text-red-900:hover {
   --tw-text-opacity: 1;
   color: rgb(127 29 29 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-sky-900:hover {
-  --tw-text-opacity: 1;
-  color: rgb(12 74 110 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-text:hover {
@@ -4822,11 +4812,6 @@ body {
   border-color: rgb(99 102 241 / var(--tw-border-opacity, 1));
 }
 
-.focus\:border-sky-500:focus {
-  --tw-border-opacity: 1;
-  border-color: rgb(14 165 233 / var(--tw-border-opacity, 1));
-}
-
 .focus\:outline-none:focus {
   outline: 2px solid transparent;
   outline-offset: 2px;
@@ -4877,11 +4862,6 @@ body {
   --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
 }
 
-.focus\:ring-sky-500:focus {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(14 165 233 / var(--tw-ring-opacity, 1));
-}
-
 .focus\:ring-white:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(255 255 255 / var(--tw-ring-opacity, 1));
@@ -4917,10 +4897,6 @@ body {
 
 .focus-visible\:outline-primary:focus-visible {
   outline-color: rgb(var(--primary-color-rgb) / 1);
-}
-
-.focus-visible\:outline-sky-600:focus-visible {
-  outline-color: #0284c7;
 }
 
 .disabled\:cursor-not-allowed:disabled {
@@ -5695,11 +5671,6 @@ body {
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
 }
 
-.dark\:text-gray-900:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
-}
-
 .dark\:text-green-200:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(187 247 208 / var(--tw-text-opacity, 1));
@@ -5929,11 +5900,6 @@ body {
 .dark\:hover\:shadow-blue-400\/40:hover:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-shadow-color: rgb(96 165 250 / 0.4);
   --tw-shadow: var(--tw-shadow-colored);
-}
-
-.dark\:hover\:brightness-110:hover:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-brightness: brightness(1.1);
-  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
 .dark\:hover\:file\:bg-indigo-900\/80:where([data-theme="dark"], [data-theme="dark"] *)::file-selector-button:hover {
