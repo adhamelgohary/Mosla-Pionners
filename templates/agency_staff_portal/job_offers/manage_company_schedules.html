@@ -1,0 +1,87 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-calendar-week-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="max-w-4xl mx-auto">
+    <form method="POST" action="{{ url_for('.manage_company_schedules', company_id=company_id) }}" 
+          x-data="{ 
+              schedules: {{ schedules|tojson|safe if schedules else [] }},
+              addSchedule() {
+                  this.schedules.push({ DayOfWeek: '', StartTime: '09:00', EndTime: '17:00' });
+              },
+              removeSchedule(index) {
+                  this.schedules.splice(index, 1);
+              }
+          }">
+        
+        <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg border border-gray-200 dark:border-slate-700">
+            <div class="p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Set the standard weekly days and times this company is available for interviews. Candidates will be scheduled within these slots.</p>
+
+                <!-- Schedule Rows Container -->
+                <div class="space-y-4">
+                    <template x-if="schedules.length === 0">
+                        <div class="text-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-8">
+                            <p class="text-gray-500 dark:text-gray-400">No schedules defined for this company yet.</p>
+                            <button type="button" @click="addSchedule()" class="mt-4 btn-secondary">
+                                <i class="bi bi-plus-circle-fill mr-2"></i> Add First Schedule
+                            </button>
+                        </div>
+                    </template>
+
+                    <template x-for="(schedule, index) in schedules" :key="index">
+                        <div class="flex items-center gap-4 p-3 bg-gray-50 dark:bg-slate-700/50 rounded-lg">
+                            <!-- Day of Week -->
+                            <div class="flex-1">
+                                <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Day</label>
+                                <select name="day" x-model="schedule.DayOfWeek" class="form-input w-full mt-1">
+                                    <option value="">Select Day</option>
+                                    {% for day in day_options %}
+                                        <option value="{{ day }}">{{ day }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <!-- Start Time -->
+                            <div class="flex-1">
+                                <label class="text-xs font-medium text-gray-600 dark:text-gray-300">Start Time</label>
+                                <input type="time" name="start_time" x-model="schedule.StartTime" class="form-input w-full mt-1">
+                            </div>
+                            <!-- End Time -->
+                            <div class="flex-1">
+                                <label class="text-xs font-medium text-gray-600 dark:text-gray-300">End Time</label>
+                                <input type="time" name="end_time" x-model="schedule.EndTime" class="form-input w-full mt-1">
+                            </div>
+                            <!-- Remove Button -->
+                            <div class="pt-5">
+                                <button type="button" @click="removeSchedule(index)" class="text-gray-400 hover:text-red-500 transition">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <div class="mt-6">
+                    <button type="button" @click="addSchedule()" class="btn-secondary">
+                        <i class="bi bi-plus-lg mr-2"></i> Add Another Day
+                    </button>
+                </div>
+
+            </div>
+            
+            <!-- Form Actions Footer -->
+            <div class="bg-gray-50 dark:bg-slate-700/50 px-6 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-3">
+                <a href="{{ url_for('.list_all_job_offers') }}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-save-fill mr-1"></i> Save Schedule
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

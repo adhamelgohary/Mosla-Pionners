@@ -9,6 +9,7 @@ import mysql.connector
 import re
 import io
 import csv
+from collections import OrderedDict 
 
 # Imports for styled Excel generation
 import openpyxl
@@ -329,26 +330,51 @@ def dashboard():
 @job_offer_mgmt_bp.route('/')
 @login_required_with_role(EXECUTIVE_ROLES)
 def list_all_job_offers():
-    offers, conn = [], None
+    """
+    Lists all job offers, grouped by company, for management.
+    """
+    offers_by_company = OrderedDict()
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        # Fetch all offers, ordered by company name first
         cursor.execute("""
-            SELECT jo.OfferID, jo.Title, jo.Status, jo.DatePosted, c.CompanyName, jc.CategoryName 
+            SELECT 
+                jo.OfferID, jo.Title, jo.Status, jo.DatePosted, 
+                c.CompanyID, c.CompanyName, 
+                jc.CategoryName 
             FROM JobOffers jo 
             JOIN Companies c ON jo.CompanyID = c.CompanyID 
             LEFT JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID 
-            ORDER BY jo.DatePosted DESC
+            ORDER BY c.CompanyName, jo.DatePosted DESC
         """)
-        offers = cursor.fetchall()
+        all_offers = cursor.fetchall()
+
+        # Group the flat list into a dictionary of companies
+        for offer in all_offers:
+            company_id = offer['CompanyID']
+            if company_id not in offers_by_company:
+                offers_by_company[company_id] = {
+                    "company_id": company_id,
+                    "company_name": offer['CompanyName'],
+                    "offers": []
+                }
+            offers_by_company[company_id]['offers'].append(offer)
+
     except Exception as e:
-        current_app.logger.error(f"Error fetching all job offers: {e}", exc_info=True)
+        current_app.logger.error(f"Error fetching and grouping job offers: {e}", exc_info=True)
         flash("Could not load job offers list.", "danger")
     finally:
         if conn and conn.is_connected():
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
-    return render_template('agency_staff_portal/job_offers/list_all_job_offers.html', title='Manage Live Offers', offers=offers)
+
+    return render_template(
+        'agency_staff_portal/job_offers/list_all_job_offers.html', 
+        title='Manage Live Offers', 
+        offers_by_company=offers_by_company
+    )
 
 
 def get_form_options(conn, cursor):
@@ -1102,3 +1128,73 @@ def update_application_status(application_id):
             conn.close()
             
     return redirect(url_for('.list_applications_for_review'))
+
+
+# --- NEW: Manage Company Interview Schedules ---
+@job_offer_mgmt_bp.route('/company/<int:company_id>/schedules', methods=['GET', 'POST'])
+@login_required_with_role(EXECUTIVE_ROLES)
+def manage_company_schedules(company_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        if request.method == 'POST':
+            # Delete and re-insert logic for simplicity and atomicity
+            days = request.form.getlist('day')
+            start_times = request.form.getlist('start_time')
+            end_times = request.form.getlist('end_time')
+
+            conn.start_transaction()
+            # 1. Delete all existing schedules for this company
+            cursor.execute("DELETE FROM CompanyInterviewSchedules WHERE CompanyID = %s", (company_id,))
+
+            # 2. Insert the new schedules
+            insert_sql = """
+                INSERT INTO CompanyInterviewSchedules (CompanyID, DayOfWeek, StartTime, EndTime)
+                VALUES (%s, %s, %s, %s)
+            """
+            for i in range(len(days)):
+                if days[i] and start_times[i] and end_times[i]:
+                    cursor.execute(insert_sql, (company_id, days[i], start_times[i], end_times[i]))
+            
+            conn.commit()
+            flash("Interview schedule updated successfully!", "success")
+            return redirect(url_for('.list_all_job_offers'))
+
+        # GET Request Logic
+        cursor.execute("SELECT CompanyName FROM Companies WHERE CompanyID = %s", (company_id,))
+        company = cursor.fetchone()
+        if not company:
+            flash("Company not found.", "danger")
+            return redirect(url_for('.list_all_job_offers'))
+
+        cursor.execute("""
+            SELECT ScheduleID, DayOfWeek, StartTime, EndTime 
+            FROM CompanyInterviewSchedules 
+            WHERE CompanyID = %s
+            ORDER BY FIELD(DayOfWeek, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), StartTime
+        """, (company_id,))
+        schedules = cursor.fetchall()
+        
+        # Format time objects to strings for Alpine.js
+        for schedule in schedules:
+            schedule['StartTime'] = schedule['StartTime'].strftime('%H:%M')
+            schedule['EndTime'] = schedule['EndTime'].strftime('%H:%M')
+
+        day_options = get_column_options(conn, cursor, 'CompanyInterviewSchedules', 'DayOfWeek')
+
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error managing schedules for company {company_id}: {e}", exc_info=True)
+        flash("An error occurred while managing schedules.", "danger")
+        return redirect(url_for('.list_all_job_offers'))
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
+    return render_template('agency_staff_portal/job_offers/manage_company_schedules.html',
+                           title=f"Interview Schedule for {company['CompanyName']}",
+                           company=company,
+                           schedules=schedules,
+                           day_options=day_options)
