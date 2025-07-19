@@ -961,19 +961,16 @@ def list_all_applications():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # --- Get all filter parameters from the URL ---
     selected_company_id = request.args.get('company_id', type=int)
     selected_offer_id = request.args.get('offer_id', type=int)
-    filter_status = request.args.get('filter_status') # For tab-based filtering
+    filter_status = request.args.get('filter_status')
     export_format = request.args.get('format')
 
-    # Fetch data for filter dropdowns
     cursor.execute("SELECT CompanyID, CompanyName FROM Companies ORDER BY CompanyName")
     companies = cursor.fetchall()
     cursor.execute("SELECT OfferID, Title FROM JobOffers ORDER BY Title")
     job_offers = cursor.fetchall()
     
-    # --- Build the SQL query dynamically based on filters ---
     sql = """
         SELECT
             u.FirstName, u.LastName, ja.ApplicationDate, jo.Title AS JobTitle,
@@ -993,7 +990,7 @@ def list_all_applications():
     if selected_offer_id:
         conditions.append("jo.OfferID = %s")
         params.append(selected_offer_id)
-    if filter_status: # This is the new part for the tabs
+    if filter_status:
         conditions.append("ja.Status = %s")
         params.append(filter_status)
 
@@ -1007,16 +1004,65 @@ def list_all_applications():
     cursor.close()
     conn.close()
 
-    # --- Handle Export Logic (Unchanged) ---
+    # --- FIX: FULL EXPORT LOGIC IS NOW IMPLEMENTED ---
     if export_format:
         if not applications:
             flash("No data to export for the selected filters.", "warning")
-            return redirect(url_for('.list_all_applications', company_id=selected_company_id, offer_id=selected_offer_id))
+            return redirect(url_for('.list_all_applications', 
+                                    company_id=selected_company_id, 
+                                    offer_id=selected_offer_id, 
+                                    filter_status=filter_status))
         
-        # (The rest of the export logic for xlsx and csv remains the same)
-        # ...
+        # --- XLSX Export Logic ---
+        if export_format == 'xlsx':
+            header_map = {
+                'Candidate Name': 'FullName',
+                'Application Date': 'ApplicationDate',
+                'Job Title': 'JobTitle',
+                'Company': 'CompanyName',
+                'Status': 'Status'
+            }
+            excel_data = []
+            for app in applications:
+                new_app = app.copy()
+                new_app['FullName'] = f"{app['FirstName']} {app['LastName']}"
+                excel_data.append(new_app)
+            
+            excel_file = _create_styled_excel(excel_data, "All Job Applications", header_map)
+            response = make_response(excel_file.read())
+            filename = f"all_applications_{datetime.date.today()}.xlsx"
+            response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+            response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            return response
 
-    # --- Render the single, unified template ---
+        # --- CSV Export Logic ---
+        if export_format == 'csv':
+            output = io.StringIO()
+            # Prepare data with a 'Candidate Name' field
+            csv_data = []
+            if not applications: # Should be caught above, but safe check
+                writer = csv.writer(output)
+                writer.writerow(['No Data Found'])
+            else:
+                fieldnames = ['Candidate Name', 'Application Date', 'Job Title', 'Company', 'Status']
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                for app in applications:
+                    writer.writerow({
+                        'Candidate Name': f"{app['FirstName']} {app['LastName']}",
+                        'Application Date': app['ApplicationDate'].strftime('%Y-%m-%d') if app['ApplicationDate'] else '',
+                        'Job Title': app['JobTitle'],
+                        'Company': app['CompanyName'],
+                        'Status': app['Status']
+                    })
+            
+            output.seek(0)
+            response = make_response(output.read())
+            response.headers["Content-Disposition"] = f"attachment; filename=all_applications_{datetime.date.today()}.csv"
+            response.headers["Content-type"] = "text/csv"
+            return response
+
+    # This only runs if 'export_format' is not provided
     return render_template('agency_staff_portal/job_offers/list_all_applications.html',
                            title="Job Applications",
                            applications=applications,
@@ -1024,7 +1070,7 @@ def list_all_applications():
                            job_offers=job_offers,
                            selected_company_id=selected_company_id,
                            selected_offer_id=selected_offer_id,
-                           selected_filter_status=filter_status) # Pass the status to the template
+                           selected_filter_status=filter_status)
 
 @job_offer_mgmt_bp.route('/company/<int:company_id>/schedules', methods=['GET'])
 @login_required_with_role(EXECUTIVE_ROLES)
