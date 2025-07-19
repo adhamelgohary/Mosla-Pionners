@@ -13,17 +13,16 @@ login_manager = LoginManager()
 # --- DEFINITIVE ROLE CONSTANTS FOR REDIRECTION ---
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder', 'SalesManager', 'Admin', 'OperationsManager']
 ACCOUNT_MANAGER_PORTAL_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
-RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadSourcingTeamLead', 'HeadUnitManager', 'UnitManager']
+RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitManager', 'UnitManager']
 CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
-    # [REFACTORED] Removed 'status' from the constructor and class attributes.
-    def __init__(self, user_id, email, first_name, last_name, is_active_from_db, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
+    def __init__(self, user_id, email, first_name, last_name, is_active_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
         self.id = int(user_id)
         self.email = email
         self.first_name = first_name
         self.last_name = last_name
-        self._is_active_from_db = bool(is_active_from_db)
+        self._is_active_status = bool(is_active_status)
         self.role_type = role_type
         self.specific_role_id = specific_role_id
         self.company_id = company_id
@@ -32,8 +31,7 @@ class LoginUser(UserMixin):
 
     @property
     def is_active(self):
-        # [REFACTORED] Simplified active check. The Users.IsActive field is now the single source of truth.
-        return self._is_active_from_db
+        return self._is_active_status
 
     def check_password(self, password_to_check):
         if self.password_hash is None: return False
@@ -41,10 +39,8 @@ class LoginUser(UserMixin):
 
 def determine_user_identity(user_id, db_connection):
     cursor = db_connection.cursor(dictionary=True)
-    # [REFACTORED] The 'identity' dictionary no longer includes a 'status' field.
     identity = {'role': "Unknown", 'id': None, 'company_id': None, 'reports_to_id': None}
     try:
-        # [REFACTORED] Query no longer fetches the 'status' column from the Staff table.
         cursor.execute("SELECT StaffID, Role, ReportsToStaffID FROM Staff WHERE UserID = %s", (user_id,))
         if record := cursor.fetchone():
             identity['role'] = record['Role']
@@ -76,13 +72,13 @@ def get_user_by_id(user_id):
         cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE UserID = %s", (user_id,))
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
-            # [REFACTORED] Removed 'status' from the arguments passed to the LoginUser constructor.
+            # Create a dictionary of arguments to pass to the LoginUser constructor
             user_args = {
                 'user_id': user_data['UserID'],
                 'email': user_data['Email'],
                 'first_name': user_data['FirstName'],
                 'last_name': user_data['LastName'],
-                'is_active_from_db': user_data['IsActive'],
+                'is_active_status': user_data['IsActive'],
                 'password_hash': user_data.get('PasswordHash'),
                 'role_type': identity['role'],
                 'specific_role_id': identity.get('id'),
@@ -104,13 +100,12 @@ def get_user_by_email(email):
         cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE Email = %s", (email,))
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
-            # [REFACTORED] Removed 'status' from the arguments passed to the LoginUser constructor.
             user_args = {
                 'user_id': user_data['UserID'],
                 'email': user_data['Email'],
                 'first_name': user_data['FirstName'],
                 'last_name': user_data['LastName'],
-                'is_active_from_db': user_data['IsActive'],
+                'is_active_status': user_data['IsActive'],
                 'password_hash': user_data.get('PasswordHash'),
                 'role_type': identity['role'],
                 'specific_role_id': identity.get('id'),
@@ -170,11 +165,7 @@ def login():
         if not errors:
             user_obj = get_user_by_email(email)
             if user_obj and user_obj.check_password(password):
-                # [REFACTORED] Simplified check. The is_active property solely relies on Users.IsActive.
-                # This single check now covers both pending users (IsActive=0) and intentionally deactivated users (IsActive=0).
-                if not user_obj.is_active:
-                    flash('Your account is not currently active. It may be pending activation or has been deactivated. Please contact an administrator.', 'warning')
-                else: # User is active, proceed with login
+                if user_obj.is_active:
                     login_user(user_obj, remember=remember)
                     current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in successfully.")
                     try:
@@ -204,6 +195,8 @@ def login():
                     else: 
                         current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
                         return redirect(url_for('public_routes_bp.home_page'))
+                else:
+                    flash('Your account is inactive. Please contact support.', 'warning')
             else:
                 flash('Invalid email or password. Please try again.', 'danger')
         else:
