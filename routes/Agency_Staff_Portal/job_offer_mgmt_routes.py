@@ -1197,4 +1197,6 @@ def manage_company_schedules(company_id):
                            title=f"Interview Schedule for {company['CompanyName']}",
                            company=company,
                            schedules=schedules,
-                           day_options=day_options)
+                           day_options=day_options,
+                           company_id=company_id
+                           )
