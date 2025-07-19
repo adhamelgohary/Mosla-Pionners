@@ -129,6 +129,7 @@
                     {% if current_user.role_type != 'SalesManager' %}
                         <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Reports</a>
                         <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Announcements</a>
+                        <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('inquiry_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Inquiries</a>
                     {% endif %}
                 </div>
                 <div class="border-t border-gray-200 pb-3 pt-4">

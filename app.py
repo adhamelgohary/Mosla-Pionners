@@ -32,6 +32,7 @@ from routes.Agency_Staff_Portal.job_offer_mgmt_routes import job_offer_mgmt_bp
 from routes.Agency_Staff_Portal.staff_candidate_routes import staff_candidate_bp
 from routes.Agency_Staff_Portal.reporting_routes import reporting_bp
 from routes.Agency_Staff_Portal.staff_and_performance_routes import staff_perf_bp
+from routes.Agency_Staff_Portal.inquiry_mgmt_routes import inquiry_mgmt_bp
 
 # Candidate Portal Routes
 from routes.Candidate_Portal.candidate_routes import candidate_bp
@@ -132,6 +133,7 @@ app.register_blueprint(announcement_bp, url_prefix='/staff-portal/announcements'
 app.register_blueprint(job_offer_mgmt_bp, url_prefix='/staff-portal/job-offers')
 app.register_blueprint(company_assignment_bp, url_prefix='/staff-portal/company-assignments')
 app.register_blueprint(staff_candidate_bp, url_prefix='/staff-portal/candidates')
+app.register_blueprint(inquiry_mgmt_bp, url_prefix='/staff-portal/inquiries')
 app.register_blueprint(staff_perf_bp)
 app.register_blueprint(reporting_bp)
 app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
