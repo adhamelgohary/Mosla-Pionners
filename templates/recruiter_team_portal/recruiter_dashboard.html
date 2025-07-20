@@ -11,46 +11,69 @@
 {% endblock %}
 
 {% block recruiter_content %}
-<div class="px-4 sm:px-0 mb-8">
-    <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ current_user.first_name }}!</h2>
-    <p class="mt-1 text-sm text-gray-600">This is the aggregated performance and pipeline overview for your scope.</p>
+<div class="px-1 mb-8">
+    <h2 class="text-2xl font-bold text-heading">Welcome, {{ current_user.first_name }}!</h2>
+    <p class="mt-1 text-sm text-text-muted">This is the aggregated performance and pipeline overview for your scope.</p>
 </div>
 
-<!-- [MODIFIED] System Announcements Section as a Collapsible Accordion -->
+<!-- Referral Code Card -->
+<div class="mb-8 bg-card p-6 rounded-lg shadow border border-border">
+    <h3 class="text-lg font-semibold text-heading">Your Referral Code</h3>
+    <p class="mt-1 text-sm text-text-muted">Share this code with candidates to link their applications to you.</p>
+    {% if referral_code %}
+        <div x-data="{ code: '{{ referral_code }}', copied: false }" class="mt-4">
+            <div class="flex items-center justify-between p-3 bg-background rounded-md border border-border">
+                <p id="referralCode" class="text-2xl font-mono font-bold text-primary tracking-widest" x-text="code"></p>
+                <button @click="navigator.clipboard.writeText(code); copied = true; setTimeout(() => copied = false, 2000)" class="btn-secondary" title="Copy to clipboard">
+                    <i class="bi" :class="copied ? 'bi-check-lg text-green-500' : 'bi-clipboard'"></i>
+                </button>
+            </div>
+            <p x-show="copied" x-transition class="text-xs text-green-600 mt-1">Copied!</p>
+        </div>
+    {% else %}
+        <div class="mt-4 text-center bg-background p-4 rounded-md">
+            <p class="text-sm text-text-muted">You don't have a referral code yet.</p>
+            <a href="{{ url_for('recruiter_bp.my_profile') }}" class="btn-primary mt-2">Generate One Now</a>
+        </div>
+    {% endif %}
+</div>
+
+
+<!-- System Announcements Section as a Collapsible Accordion -->
 {% if announcements %}
-<div class="mb-8 bg-white p-6 rounded-lg shadow-sm border" x-data="{ openAnnouncement: 1 }">
+<div class="mb-8 bg-card p-6 rounded-lg shadow border border-border" x-data="{ openAnnouncement: 1 }">
     <div class="sm:flex sm:items-center sm:justify-between">
-        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <i class="bi bi-megaphone-fill text-indigo-600"></i>
+        <h3 class="text-lg font-semibold text-heading flex items-center gap-2">
+            <i class="bi bi-megaphone-fill text-primary"></i>
             <span>Latest Announcements</span>
         </h3>
-        <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 mt-2 sm:mt-0">
-            View All Announcements →
+        <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="text-sm font-medium text-primary hover:underline mt-2 sm:mt-0">
+            View All Announcements »
         </a>
     </div>
     <div class="mt-4 space-y-2">
         {% for announcement in announcements %}
             {% set priority_classes = {
-                'Urgent': 'border-red-500 text-red-700',
-                'High': 'border-amber-500 text-amber-700',
-                'Normal': 'border-gray-400 text-gray-800'
+                'Urgent': 'border-danger text-danger',
+                'High': 'border-amber-500 text-amber-600',
+                'Normal': 'border-border text-heading'
             } %}
-            <div class="border-t">
+            <div class="border-t border-border">
                 <button @click="openAnnouncement = (openAnnouncement === {{ loop.index }} ? null : {{ loop.index }})" class="w-full text-left p-4 focus:outline-none">
                     <div class="flex items-center justify-between">
-                        <span class="font-medium flex items-center gap-2 {{ priority_classes.get(announcement.Priority, 'text-gray-800') }}">
+                        <span class="font-medium flex items-center gap-2 {{ priority_classes.get(announcement.Priority, 'text-heading') }}">
                             {% if announcement.Priority == 'Urgent' %}<i class="bi bi-exclamation-octagon-fill"></i>{% endif %}
                             {% if announcement.Priority == 'High' %}<i class="bi bi-exclamation-triangle-fill"></i>{% endif %}
                             {{ announcement.Title }}
                         </span>
                         <div class="flex items-center gap-4">
-                            <span class="text-xs text-gray-500 hidden sm:block">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
-                            <i class="bi" :class="{ 'bi-chevron-down': openAnnouncement !== {{ loop.index }}, 'bi-chevron-up': openAnnouncement === {{ loop.index }} }"></i>
+                            <span class="text-xs text-text-muted hidden sm:block">{{ announcement.CreatedAt.strftime('%b %d, %Y') }}</span>
+                            <i class="bi text-text-muted" :class="{ 'bi-chevron-down': openAnnouncement !== {{ loop.index }}, 'bi-chevron-up': openAnnouncement === {{ loop.index }} }"></i>
                         </div>
                     </div>
                 </button>
-                <div x-show="openAnnouncement === {{ loop.index }}" x-collapse class="px-4 pb-4 text-sm text-gray-600">
-                    {{ announcement.Content }}
+                <div x-show="openAnnouncement === {{ loop.index }}" x-collapse class="px-4 pb-4 text-sm text-text-muted prose prose-sm max-w-none dark:prose-invert">
+                    {{ announcement.Content | safe }} {# Use safe if content contains HTML/Markdown #}
                 </div>
             </div>
         {% endfor %}
@@ -63,20 +86,20 @@
 
     <!-- Left Column: Key Stats & Status Breakdown -->
     <div class="lg:col-span-1 space-y-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 class="text-lg font-semibold text-gray-900">All-Time Snapshot</h3>
+        <div class="bg-card p-6 rounded-lg shadow border border-border">
+            <h3 class="text-lg font-semibold text-heading">All-Time Snapshot</h3>
             <dl class="mt-4 space-y-4">
                 <div class="flex items-center justify-between">
-                    <dt class="text-sm font-medium text-gray-500">Total Referrals</dt>
-                    <dd class="text-lg font-bold text-indigo-600">{{ kpis.get('total_referrals', 0) }}</dd>
+                    <dt class="text-sm font-medium text-text-muted">Total Referrals</dt>
+                    <dd class="text-lg font-bold text-primary">{{ kpis.get('total_referrals', 0) }}</dd>
                 </div>
                 <div class="flex items-center justify-between">
-                    <dt class="text-sm font-medium text-gray-500">Total Hires</dt>
-                    <dd class="text-lg font-bold text-green-600">{{ kpis.funnel.get('Hired', 0) }}</dd>
+                    <dt class="text-sm font-medium text-text-muted">Total Hires</dt>
+                    <dd class="text-lg font-bold text-success-600 dark:text-success-400">{{ kpis.funnel.get('Hired', 0) }}</dd>
                 </div>
                 <div class="flex items-center justify-between">
-                    <dt class="text-sm font-medium text-gray-500">Success Rate</dt>
-                    <dd class="text-lg font-bold text-gray-800">
+                    <dt class="text-sm font-medium text-text-muted">Success Rate</dt>
+                    <dd class="text-lg font-bold text-heading">
                         {% if kpis.get('total_referrals', 0) > 0 %}
                             {{ "%.1f"|format(kpis.funnel.get('Hired', 0) * 100 / kpis.get('total_referrals', 1)) }}%
                         {% else %}
@@ -87,36 +110,36 @@
             </dl>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 class="text-lg font-semibold text-gray-900">Application Status Breakdown</h3>
+        <div class="bg-card p-6 rounded-lg shadow border border-border">
+            <h3 class="text-lg font-semibold text-heading">Application Status Breakdown</h3>
             <div id="status-donut-chart" class="mt-4 -mb-4"></div>
         </div>
     </div>
 
     <!-- Right Column: Monthly Performance Chart -->
-    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border">
-        <h3 class="text-lg font-semibold text-gray-900">Monthly Performance (Last 6 Months)</h3>
+    <div class="lg:col-span-2 bg-card p-6 rounded-lg shadow border border-border">
+        <h3 class="text-lg font-semibold text-heading">Monthly Performance (Last 6 Months)</h3>
         <div id="monthly-performance-chart" class="mt-4"></div>
     </div>
 </div>
 
 <!-- Navigation Links -->
 <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
+    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
         <div class="flex items-center">
-            <div class="flex-shrink-0 bg-indigo-500 rounded-lg p-3"><i class="bi bi-card-list text-2xl text-white"></i></div>
+            <div class="flex-shrink-0 bg-primary rounded-lg p-3"><i class="bi bi-card-list text-2xl text-white"></i></div>
             <div class="ml-4">
-                <h4 class="text-lg font-semibold text-gray-800">View My Referrals</h4>
-                <p class="text-sm text-gray-500">See a detailed list of every application.</p>
+                <h4 class="text-lg font-semibold text-heading">View My Referrals</h4>
+                <p class="text-sm text-text-muted">See a detailed list of every application.</p>
             </div>
         </div>
     </a>
-    <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block p-6 bg-white rounded-lg shadow-sm border hover:bg-gray-50 transition-colors">
+    <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
         <div class="flex items-center">
             <div class="flex-shrink-0 bg-amber-500 rounded-lg p-3"><i class="bi bi-trophy-fill text-2xl text-white"></i></div>
             <div class="ml-4">
-                <h4 class="text-lg font-semibold text-gray-800">Team Leaderboard</h4>
-                <p class="text-sm text-gray-500">Check the rankings and top performers.</p>
+                <h4 class="text-lg font-semibold text-heading">Team Leaderboard</h4>
+                <p class="text-sm text-text-muted">Check the rankings and top performers.</p>
             </div>
         </div>
     </a>
@@ -124,18 +147,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Determine chart theme based on dark mode
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    const chartTheme = {
+        mode: isDarkMode ? 'dark' : 'light',
+        background: 'transparent'
+    };
+    const chartForeColor = isDarkMode ? '#d1d5db' : '#374151'; // Corresponds to text-color
+    const chartGridColor = isDarkMode ? '#374151' : '#e5e7eb'; // Corresponds to border-color
+
     // --- Donut Chart for Application Status ---
     const statusData = {{ kpis.get('status_breakdown_for_chart', {})|tojson }};
     const statusLabels = Object.keys(statusData);
     const statusSeries = Object.values(statusData);
 
-    if (statusLabels.length > 0) {
+    if (statusLabels.length > 0 && statusSeries.some(v => v > 0)) {
         const donutOptions = {
             series: statusSeries,
-            chart: { type: 'donut', height: 250 },
+            chart: { type: 'donut', height: 250, background: chartTheme.background },
             labels: statusLabels,
+            theme: { mode: chartTheme.mode },
+            dataLabels: { enabled: false },
             colors: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#6B7280', '#8B5CF6'], // Green, Amber, Blue, Red, Gray, Purple
-            legend: { position: 'bottom' },
+            legend: { position: 'bottom', labels: { colors: [chartForeColor] } },
             responsive: [{
                 breakpoint: 480,
                 options: { chart: { width: 200 }, legend: { position: 'bottom' } }
@@ -144,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const donutChart = new ApexCharts(document.querySelector("#status-donut-chart"), donutOptions);
         donutChart.render();
     } else {
-        document.querySelector("#status-donut-chart").innerHTML = '<div class="text-center text-gray-500 py-8">No status data to display.</div>';
+        document.querySelector("#status-donut-chart").innerHTML = '<div class="text-center text-text-muted py-8">No status data to display.</div>';
     }
 
     // --- Bar Chart for Monthly Performance ---
@@ -158,20 +192,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 name: 'Hires',
                 data: monthlyData.map(item => item.total_hires)
             }],
-            chart: { type: 'bar', height: 350, toolbar: { show: false } },
+            chart: { type: 'bar', height: 350, toolbar: { show: false }, background: chartTheme.background, foreColor: chartForeColor },
             plotOptions: { bar: { horizontal: false, columnWidth: '55%', endingShape: 'rounded' } },
             dataLabels: { enabled: false },
             stroke: { show: true, width: 2, colors: ['transparent'] },
             xaxis: { categories: monthlyData.map(item => new Date(item.month + '-02').toLocaleString('default', { month: 'short', year: 'numeric' })) },
             yaxis: { title: { text: 'Count' } },
             fill: { opacity: 1 },
-            colors: ['#4F46E5', '#10B981'], // Indigo, Green
-            tooltip: { y: { formatter: function (val) { return val } } }
+            grid: { borderColor: chartGridColor },
+            colors: ['#3B82F6', '#10B981'], // primary, success
+            tooltip: { theme: chartTheme.mode, y: { formatter: function (val) { return val } } }
         };
         const barChart = new ApexCharts(document.querySelector("#monthly-performance-chart"), monthlyOptions);
         barChart.render();
     } else {
-        document.querySelector("#monthly-performance-chart").innerHTML = '<div class="text-center text-gray-500 py-8">No monthly performance data yet.</div>';
+        document.querySelector("#monthly-performance-chart").innerHTML = '<div class="text-center text-text-muted py-8">No monthly performance data yet.</div>';
     }
 });
 </script>

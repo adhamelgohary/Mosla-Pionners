@@ -61,8 +61,16 @@ def dashboard():
     }
     
     announcements = []
+    referral_code = None # Initialize variable for the referral code
 
     try:
+        # Fetch the current user's referral code
+        cursor.execute("SELECT ReferralCode FROM Staff WHERE StaffID = %s", (user_staff_id,))
+        result = cursor.fetchone()
+        if result:
+            referral_code = result.get('ReferralCode')
+
+        # Fetch active announcements
         cursor.execute("""
             SELECT Title, Content, CreatedAt, Priority
             FROM SystemAnnouncements
@@ -146,7 +154,8 @@ def dashboard():
     return render_template('recruiter_team_portal/recruiter_dashboard.html',
                            title=dashboard_title, 
                            kpis=kpis,
-                           announcements=announcements)
+                           announcements=announcements,
+                           referral_code=referral_code)
 
 @recruiter_bp.route('/application/<int:application_id>/review')
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
