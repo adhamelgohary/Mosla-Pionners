@@ -19,9 +19,19 @@
 
     <!-- Section 2: Manage Existing Units -->
     <div class="bg-card rounded-lg shadow border border-border overflow-hidden">
-        <div class="p-6">
-            <h2 class="text-lg font-semibold text-heading">Manage Units</h2>
-            <p class="mt-1 text-sm text-text-muted">Assign managers to units and navigate to manage their teams.</p>
+        <div class="p-6 flex justify-between items-center">
+            <div>
+                <h2 class="text-lg font-semibold text-heading">Manage Units</h2>
+                <p class="mt-1 text-sm text-text-muted">Assign managers to units and navigate to manage their teams.</p>
+            </div>
+            <!-- [NEW] Toggle Link -->
+            <div>
+                {% if show_all %}
+                    <a href="{{ url_for('recruiter_bp.list_units') }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Active Only</a>
+                {% else %}
+                    <a href="{{ url_for('recruiter_bp.list_units', show_all='true') }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Inactive Units</a>
+                {% endif %}
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-border">
@@ -29,39 +39,45 @@
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Unit Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Unit Manager</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider" colspan="2">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider" colspan="3">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
                     {% for unit in units %}
-                    <tr class="hover:bg-background/50">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">{{ unit.UnitName }}</td>
+                    <tr class="hover:bg-background/50 {{ 'opacity-50 bg-slate-50 dark:bg-slate-800' if not unit.IsActive }}">
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">
+                            {{ unit.UnitName }}
+                            {% if not unit.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">Inactive</span>{% endif %}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-text">
                             {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}
-                            {% if not unit.UnitManagerStaffID %}
-                                <span class="ml-2 text-xs font-semibold rounded-full bg-warning/10 text-amber-700 px-2 py-0.5">
-                                    <i class="bi bi-exclamation-triangle-fill"></i> No Manager
-                                </span>
-                            {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
-                                <select name="manager_staff_id" class="form-select text-xs py-1" required>
+                                <select name="manager_staff_id" class="form-select text-xs py-1" required {% if not unit.IsActive %}disabled{% endif %}>
                                     <option value="" disabled selected>-- Assign Manager --</option>
                                     {% for manager in potential_managers %}
                                         <option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }} ({{ manager.Role }})</option>
                                     {% endfor %}
                                 </select>
-                                <button type="submit" class="btn-secondary">Assign</button>
+                                <button type="submit" class="btn-secondary" {% if not unit.IsActive %}disabled{% endif %}>Assign</button>
                             </form>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                           <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn-primary">Manage Teams »</a>
+                           <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn-primary" {% if not unit.IsActive %}disabled aria-disabled="true"{% endif %}>Manage Teams »</a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <!-- [NEW] Deactivate Button -->
+                            {% if unit.IsActive %}
+                            <form action="{{ url_for('recruiter_bp.deactivate_unit', unit_id=unit.UnitID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ unit.UnitName|e }}\'? This will also deactivate all its teams and un-assign all members.');">
+                                <button type="submit" class="text-danger/80 hover:text-danger transition" title="Deactivate Unit"><i class="bi bi-trash text-lg"></i></button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="4" class="text-center py-10 text-text-muted">No units created yet.</td></tr>
+                    <tr><td colspan="5" class="text-center py-10 text-text-muted">No units found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

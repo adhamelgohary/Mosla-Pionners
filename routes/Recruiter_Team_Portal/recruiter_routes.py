@@ -502,18 +502,26 @@ def view_recruiter_profile(staff_id_viewing):
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def list_units():
     """ [STEP 1] A central hub for managing Units and assigning their managers. """
+    # [NEW] Add a filter to show active or all units
+    show_all = request.args.get('show_all', 'false').lower() == 'true'
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("""
+        sql = """
             SELECT su.*, u.FirstName, u.LastName
             FROM SourcingUnits su
             LEFT JOIN Staff s ON su.UnitManagerStaffID = s.StaffID
             LEFT JOIN Users u ON s.UserID = u.UserID
-            ORDER BY su.UnitName
-        """)
+        """
+        if not show_all:
+            sql += " WHERE su.IsActive = 1" # Default to showing only active units
+            
+        sql += " ORDER BY su.IsActive DESC, su.UnitName"
+        
+        cursor.execute(sql)
         units = cursor.fetchall()
-
+        # ... (rest of the function is the same)
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -527,13 +535,17 @@ def list_units():
     return render_template('recruiter_team_portal/list_units.html',
                            title="Organization Management: Units",
                            units=units,
-                           potential_managers=potential_managers)
+                           potential_managers=potential_managers,
+                           show_all=show_all) # Pass show_all to the template
 
 
 @recruiter_bp.route('/organization/unit/<int:unit_id>')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def manage_unit(unit_id):
     """ [STEP 2] Manages a specific Unit, including its teams. """
+    # [NEW] Add a filter to show active or all teams
+    show_all = request.args.get('show_all', 'false').lower() == 'true'
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -542,14 +554,21 @@ def manage_unit(unit_id):
         if not unit:
             abort(404, "Unit not found.")
 
-        cursor.execute("""
+        team_sql = """
             SELECT st.*, lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName
             FROM SourcingTeams st
             LEFT JOIN Staff lead_staff ON st.TeamLeadStaffID = lead_staff.StaffID
             LEFT JOIN Users lead_user ON lead_staff.UserID = lead_user.UserID
             WHERE st.UnitID = %s
-            ORDER BY st.TeamName
-        """, (unit_id,))
+        """
+        params = [unit_id]
+        
+        if not show_all:
+            team_sql += " AND st.IsActive = 1" # Default to showing only active teams
+
+        team_sql += " ORDER BY st.IsActive DESC, st.TeamName"
+        
+        cursor.execute(team_sql, tuple(params))
         teams_in_unit = cursor.fetchall()
     finally:
         if cursor: cursor.close()
@@ -558,7 +577,8 @@ def manage_unit(unit_id):
     return render_template('recruiter_team_portal/manage_unit.html',
                            title=f"Manage Unit: {unit['UnitName']}",
                            unit=unit,
-                           teams_in_unit=teams_in_unit)
+                           teams_in_unit=teams_in_unit,
+                           show_all=show_all) # Pass show_all to the template
 
 
 @recruiter_bp.route('/organization/team/<int:team_id>')
@@ -1123,3 +1143,74 @@ def announcements_history():
                            announcements=all_announcements,
                            search_query=search_query,
                            filter_priority=filter_priority)
+    
+@recruiter_bp.route('/organization/unit/<int:unit_id>/deactivate', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def deactivate_unit(unit_id):
+    """
+    Deactivates a Sourcing Unit and all associated teams.
+    Also un-assigns the unit manager and all team leads/members.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Un-assign the manager from the unit
+        cursor.execute("UPDATE SourcingUnits SET UnitManagerStaffID = NULL, IsActive = 0 WHERE UnitID = %s", (unit_id,))
+
+        # 2. Get all teams within this unit
+        cursor.execute("SELECT TeamID FROM SourcingTeams WHERE UnitID = %s", (unit_id,))
+        teams_in_unit = cursor.fetchall()
+        team_ids = [team['TeamID'] for team in teams_in_unit]
+
+        if team_ids:
+            placeholders = ', '.join(['%s'] * len(team_ids))
+            
+            # 3. Deactivate all teams in the unit and un-assign their leads
+            cursor.execute(f"UPDATE SourcingTeams SET TeamLeadStaffID = NULL, IsActive = 0 WHERE TeamID IN ({placeholders})", tuple(team_ids))
+
+            # 4. Un-assign all staff members from these teams
+            cursor.execute(f"UPDATE Staff SET TeamID = NULL, ReportsToStaffID = NULL WHERE TeamID IN ({placeholders})", tuple(team_ids))
+
+        conn.commit()
+        flash("Unit has been deactivated. All associated teams and staff assignments have been cleared.", "success")
+    except Exception as e:
+        conn.rollback()
+        current_app.logger.error(f"Error deactivating unit {unit_id}: {e}", exc_info=True)
+        flash(f"Error deactivating unit: {e}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+    
+    return redirect(url_for('.list_units'))
+
+
+@recruiter_bp.route('/organization/team/<int:team_id>/deactivate', methods=['POST'])
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def deactivate_team(team_id):
+    """
+    Deactivates a Sourcing Team.
+    Also un-assigns the team lead and all members.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+
+        # 1. Deactivate the team and un-assign its lead
+        cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = NULL, IsActive = 0 WHERE TeamID = %s", (team_id,))
+
+        # 2. Un-assign all staff members from this team
+        cursor.execute("UPDATE Staff SET TeamID = NULL, ReportsToStaffID = NULL WHERE TeamID = %s", (team_id,))
+        
+        conn.commit()
+        flash("Team has been deactivated. All staff assignments have been cleared.", "success")
+    except Exception as e:
+        conn.rollback()
+        current_app.logger.error(f"Error deactivating team {team_id}: {e}", exc_info=True)
+        flash(f"Error deactivating team: {e}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+    
+    # Redirect back to the referrer (the unit management page)
+    return redirect(request.referrer or url_for('.list_units'))
