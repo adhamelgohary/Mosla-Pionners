@@ -27,6 +27,10 @@
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-4">
                                 <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Dashboard</a>
+                                
+                                <!-- [UPDATED] Job Offers Link Added -->
+                                <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
+
                                 <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Referrals</a>
                                 <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Leaderboard</a>
         
@@ -67,7 +71,6 @@
                                     </button>
                                 </div>
                                 <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
-                                    <!-- [UPDATED] My Profile Link Added -->
                                     <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">My Profile</a>
                                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Managerial Portal</a>
                                     <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Logout</a>
@@ -88,6 +91,10 @@
             <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('recruiter_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Dashboard</a>
+                    
+                    <!-- [UPDATED] Job Offers Link Added -->
+                    <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Job Offers</a>
+
                     <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Referrals</a>
                     <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Leaderboard</a>
                     
@@ -115,7 +122,6 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
-                        <!-- [UPDATED] My Profile Link Added -->
                         <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Profile</a>
                         <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Managerial Portal</a>
                         <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Logout</a>

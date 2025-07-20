@@ -1,0 +1,120 @@
+{# templates/recruiter_team_portal/job_offer_detail.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}
+    <div class="flex items-center gap-2 text-text-muted">
+        <i class="bi bi-briefcase-fill"></i>
+        <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="hover:underline">Job Offers</a>
+        <span>/</span>
+        <span class="text-heading font-semibold">{{ offer.Title }}</span>
+    </div>
+{% endblock %}
+
+{% block recruiter_content %}
+<div class="bg-card p-6 sm:p-8 rounded-lg shadow border border-border">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row gap-6 border-b border-border pb-6 mb-6">
+        <div class="flex-shrink-0">
+            <img class="h-20 w-20 object-contain rounded-md bg-white p-1 ring-1 ring-border" src="{{ offer.CompanyLogoURL or url_for('static', filename='images/default-company.png') }}" alt="{{ offer.CompanyName }} logo">
+        </div>
+        <div class="flex-grow">
+            {% set status_classes = {
+                'Open': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+                'Closed': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                'Filled': 'bg-blue-100 text-blue-800 dark:bg-sky-900/50 dark:text-sky-300',
+                'On Hold': 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+                'Draft': 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+            } %}
+            <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(offer.Status, 'bg-gray-100 text-gray-800') }}">{{ offer.Status }}</span>
+            <h1 class="text-2xl lg:text-3xl font-bold text-heading mt-2">{{ offer.Title }}</h1>
+            <p class="text-md text-text-muted">{{ offer.CompanyName }} • {{ offer.Location }}</p>
+        </div>
+    </div>
+
+    <!-- Main Details Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Key Info -->
+            <div>
+                <h3 class="font-semibold text-heading mb-3 border-b border-border pb-2">Key Information</h3>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div class="flex gap-3"><i class="bi bi-tags-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Category</dt><dd class="text-text">{{ offer.CategoryName }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-cash-coin text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Net Salary</dt><dd class="text-text">{{ "EGP {:,.2f}".format(offer.NetSalary) if offer.NetSalary else 'N/A' }} ({{ offer.PaymentTerm }})</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-people-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Candidates Needed</dt><dd class="text-text">{{ offer.CandidatesNeeded }} ({{ offer.HiringCadence|capitalize }} plan)</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-calendar-check-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Posted</dt><dd class="text-text">{{ offer.DatePosted.strftime('%b %d, %Y') if offer.DatePosted else 'N/A' }}</dd></div></div>
+                </dl>
+            </div>
+            
+            <!-- Language -->
+            <div>
+                <h3 class="font-semibold text-heading mb-3 border-b border-border pb-2">Language Requirements</h3>
+                <div class="flex items-start gap-3 text-sm"><i class="bi bi-translate text-primary mt-1"></i>
+                    <div>
+                        <div class="font-medium text-text-muted">Required Level: <span class="font-bold text-text">{{ offer.RequiredLevel }}</span></div>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            {% for lang in offer.RequiredLanguages %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">{{ lang }}</span>
+                            {% else %}
+                                <span class="text-text-muted">Not specified.</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Education & Experience -->
+            <div>
+                <h3 class="font-semibold text-heading mb-3 border-b border-border pb-2">Candidate Profile</h3>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                    <div class="flex gap-3"><i class="bi bi-gender-ambiguous text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Gender</dt><dd class="text-text">{{ offer.Gender }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-shield-check text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Military Status</dt><dd class="text-text">{{ offer.MilitaryStatus }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-flag-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Nationality</dt><dd class="text-text">{{ offer.Nationality }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-person-video3 text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Max Age</dt><dd class="text-text">{{ offer.MaxAge or 'Any' }}</dd></div></div>
+                    <div class="sm:col-span-2 flex gap-3"><i class="bi bi-mortarboard-fill text-primary mt-1"></i>
+                        <div><dt class="font-medium text-text-muted">Graduation Status</dt>
+                            <dd class="mt-1 flex flex-wrap gap-2">
+                                {% for status in offer.GraduationStatusRequirement %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-md bg-background border border-border">{{ status|capitalize }}</span>
+                                {% else %}<span>Any</span>{% endfor %}
+                            </dd>
+                        </div>
+                    </div>
+                     <div class="sm:col-span-2 flex gap-3"><i class="bi bi-graph-up-arrow text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Experience</dt><dd class="text-text">{{ offer.ExperienceRequirement or 'Not specified' }}</dd></div></div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="lg:col-span-1 space-y-6">
+            <div>
+                <h3 class="font-semibold text-heading mb-3 border-b border-border pb-2">Work Logistics</h3>
+                 <dl class="space-y-3 text-sm">
+                    <div class="flex gap-3"><i class="bi bi-geo-alt-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Work Location</dt><dd class="text-text">{{ 'Work from Home' if offer.WorkLocationType == 'wfh' else 'On-site' }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-clock-fill text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Shift Type</dt><dd class="text-text">{{ offer.ShiftType|capitalize }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-sun-fill text-primary mt-1"></i>
+                        <div><dt class="font-medium text-text-muted">Available Shifts</dt>
+                            <dd class="mt-1 flex flex-wrap gap-1">
+                                {% for shift in offer.AvailableShifts %}<span class="text-text-muted">{{ shift|capitalize }}{% if not loop.last %}, {% endif %}</span>{% else %}<span>Not specified</span>{% endfor %}
+                            </dd>
+                        </div>
+                    </div>
+                    <div class="flex gap-3"><i class="bi bi-calendar-week text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Working Days</dt><dd class="text-text">{{ offer.WorkingDays|join(', ') if offer.WorkingDays else 'Not specified' }}</dd></div></div>
+                    <div class="flex gap-3"><i class="bi bi-hourglass-split text-primary mt-1"></i><div><dt class="font-medium text-text-muted">Working Hours</dt><dd class="text-text">{{ offer.WorkingHours or 'Not specified' }}</dd></div></div>
+                </dl>
+            </div>
+             <div>
+                <h3 class="font-semibold text-heading mb-3 border-b border-border pb-2">Benefits</h3>
+                <ul class="space-y-2 text-sm">
+                    {% for benefit in offer.BenefitsIncluded %}
+                    <li class="flex gap-3"><i class="bi bi-check-circle-fill text-success-500"></i><span class="text-text">{{ benefit }}</span></li>
+                    {% else %}
+                    <li class="text-text-muted">No specific benefits listed.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

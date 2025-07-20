@@ -1,0 +1,92 @@
+{# templates/recruiter_team_portal/list_job_offers.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}<i class="bi bi-briefcase-fill text-text-muted"></i><span>{{ title }}</span>{% endblock %}
+
+{% block recruiter_content %}
+<!-- Filter Section -->
+<div class="bg-card p-6 rounded-lg shadow border border-border mb-8">
+    <h2 class="text-lg font-semibold text-heading">Filter Offers</h2>
+    <form method="GET" action="{{ url_for('recruiter_bp.list_job_offers') }}" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
+        <div>
+            <label for="company_id" class="form-label">Company</label>
+            <select id="company_id" name="company_id" class="form-select">
+                <option value="">All Companies</option>
+                {% for company in all_companies %}
+                    <option value="{{ company.CompanyID }}" {% if company.CompanyID == filter_company_id %}selected{% endif %}>{{ company.CompanyName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="category_id" class="form-label">Category</label>
+            <select id="category_id" name="category_id" class="form-select">
+                <option value="">All Categories</option>
+                {% for category in all_categories %}
+                    <option value="{{ category.CategoryID }}" {% if category.CategoryID == filter_category_id %}selected{% endif %}>{{ category.CategoryName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="btn-primary w-full">Filter</button>
+            <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="btn-secondary w-full">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Job Offers List -->
+<div class="bg-card rounded-lg shadow border border-border overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm divide-y divide-border">
+            <thead class="bg-background">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Job Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Company</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Category</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Salary</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-text-muted uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+                {% if job_offers %}
+                    {% for offer in job_offers %}
+                    <tr class="hover:bg-background/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-medium text-heading">{{ offer.Title }}</div>
+                            <div class="text-xs text-text-muted">{{ offer.Location }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text">{{ offer.CompanyName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ offer.CategoryName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ "EGP {:,.0f}".format(offer.NetSalary) if offer.NetSalary else 'N/A' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            {% set status_classes = {
+                                'Open': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+                                'Closed': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                                'Filled': 'bg-blue-100 text-blue-800 dark:bg-sky-900/50 dark:text-sky-300',
+                                'On Hold': 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+                                'Draft': 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                            } %}
+                            <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(offer.Status, 'bg-gray-100 text-gray-800') }}">{{ offer.Status }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right font-medium">
+                            <!-- This link now correctly points to the detail view -->
+                            <a href="{{ url_for('recruiter_bp.view_job_offer', offer_id=offer.OfferID) }}" class="text-primary hover:underline">View Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-16 text-text-muted">
+                            <div class="flex flex-col items-center gap-2">
+                                <i class="bi bi-search text-4xl text-border"></i>
+                                <span>No job offers found matching your criteria.</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

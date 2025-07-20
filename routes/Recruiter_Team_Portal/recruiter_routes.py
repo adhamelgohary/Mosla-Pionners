@@ -1312,3 +1312,117 @@ def my_profile():
     return render_template('recruiter_team_portal/my_profile.html',
                            title="My Profile",
                            user_data=user_data)
+    
+@recruiter_bp.route('/job-offers')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def list_job_offers():
+    """
+    Displays a filterable list of all job offers in the system.
+    """
+    # Get filter parameters from the request URL
+    filter_company_id = request.args.get('company_id', type=int)
+    filter_category_id = request.args.get('category_id', type=int)
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # --- Fetch the list of job offers with filtering ---
+        sql = """
+            SELECT 
+                jo.OfferID, jo.Title, jo.Location, jo.NetSalary, jo.Status,
+                c.CompanyName, jc.CategoryName
+            FROM JobOffers jo
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
+            WHERE 1=1
+        """
+        params = []
+        
+        if filter_company_id:
+            sql += " AND jo.CompanyID = %s"
+            params.append(filter_company_id)
+        
+        if filter_category_id:
+            sql += " AND jo.CategoryID = %s"
+            params.append(filter_category_id)
+            
+        sql += " ORDER BY jo.DatePosted DESC"
+        
+        cursor.execute(sql, tuple(params))
+        job_offers = cursor.fetchall()
+        
+        # --- Fetch all companies and categories for the filter dropdowns ---
+        cursor.execute("SELECT CompanyID, CompanyName FROM Companies ORDER BY CompanyName ASC")
+        all_companies = cursor.fetchall()
+        
+        cursor.execute("SELECT CategoryID, CategoryName FROM JobCategories ORDER BY CategoryName ASC")
+        all_categories = cursor.fetchall()
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching job offers list: {e}", exc_info=True)
+        flash("An error occurred while loading the job offers.", "danger")
+        job_offers = []
+        all_companies = []
+        all_categories = []
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/list_job_offers.html',
+                           title="Browse Job Offers",
+                           job_offers=job_offers,
+                           all_companies=all_companies,
+                           all_categories=all_categories,
+                           filter_company_id=filter_company_id,
+                           filter_category_id=filter_category_id)
+    
+@recruiter_bp.route('/job-offers/<int:offer_id>')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def view_job_offer(offer_id):
+    """
+    Displays the full, detailed information for a single job offer.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Comprehensive query to get all offer details and related names/logos
+        sql = """
+            SELECT 
+                jo.*,
+                c.CompanyName, c.CompanyLogoURL,
+                jc.CategoryName,
+                u.FirstName as PosterFirstName, u.LastName as PosterLastName
+            FROM JobOffers jo
+            JOIN Companies c ON jo.CompanyID = c.CompanyID
+            JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
+            LEFT JOIN Staff s ON jo.PostedByStaffID = s.StaffID
+            LEFT JOIN Users u ON s.UserID = u.UserID
+            WHERE jo.OfferID = %s
+        """
+        cursor.execute(sql, (offer_id,))
+        offer = cursor.fetchone()
+
+        if not offer:
+            abort(404, "Job Offer not found.")
+
+        # Convert SET/comma-separated fields into Python lists for easier rendering in the template
+        list_fields = ['RequiredLanguages', 'GraduationStatusRequirement', 'AvailableShifts', 'WorkingDays', 'BenefitsIncluded']
+        for field in list_fields:
+            if offer.get(field) and isinstance(offer[field], str):
+                offer[field] = [item.strip() for item in offer[field].split(',')]
+            elif not offer.get(field):
+                offer[field] = [] # Ensure it's an empty list if NULL
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching job offer details for OfferID {offer_id}: {e}", exc_info=True)
+        flash("An error occurred while loading the job offer details.", "danger")
+        return redirect(url_for('.list_job_offers'))
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/job_offer_detail.html',
+                           title=offer['Title'],
+                           offer=offer)
