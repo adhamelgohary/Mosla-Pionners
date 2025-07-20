@@ -640,33 +640,38 @@ def create_unit():
 @recruiter_bp.route('/organization/create-team', methods=['POST'])
 @login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES)
 def create_team():
+    """
+    Creates a new team and assigns it to the specified unit.
+    This version is corrected to always use the unit_id from the form.
+    """
     team_name = request.form.get('team_name')
-    if not team_name:
-        flash("Team Name is required.", "danger")
-        return redirect(request.referrer or url_for('.organization_management'))
+    unit_id = request.form.get('unit_id')
+
+    # 1. Validate that we received both required pieces of data from the form.
+    if not team_name or not unit_id:
+        flash("A Team Name and Unit context are required to create a team.", "danger")
+        # Redirect back to the main units list as a safe fallback.
+        return redirect(url_for('.list_units'))
 
     conn = get_db_connection()
     try:
-        cursor = conn.cursor(dictionary=True)
-        if current_user.role_type == 'UnitManager':
-            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (current_user.specific_role_id,))
-            unit = cursor.fetchone()
-            if not unit:
-                flash("Could not find your associated unit. Action denied.", "danger")
-                return redirect(url_for('.my_team_view'))
-
-            cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit['UnitID']))
-        else:
-            cursor.execute("INSERT INTO SourcingTeams (TeamName) VALUES (%s)", (team_name,))
-
+        cursor = conn.cursor()
+        
+        # 2. Directly insert the team with the provided unit_id. No complex role logic needed.
+        cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit_id))
+        
         conn.commit()
-        flash(f"Team '{team_name}' created successfully.", "success")
+        flash(f"Team '{team_name}' was created successfully.", "success")
     except Exception as e:
-        flash(f"Error creating team: {e}", "danger")
+        current_app.logger.error(f"Error creating team '{team_name}' for unit {unit_id}: {e}")
+        flash(f"An error occurred while creating the team: {e}", "danger")
     finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
-    return redirect(request.referrer or url_for('.organization_management'))
+        if conn and conn.is_connected():
+            if 'cursor' in locals(): cursor.close()
+            conn.close()
+
+    # 3. Redirect the user back to the "Manage Unit" page for the unit they were just on.
+    return redirect(url_for('.manage_unit', unit_id=unit_id))
 
 
 @recruiter_bp.route('/organization/assign-unit-manager', methods=['POST'])
