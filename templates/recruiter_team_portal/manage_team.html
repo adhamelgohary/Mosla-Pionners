@@ -3,12 +3,9 @@
 
 {% block recruiter_title %}{{ title }}{% endblock %}
 {% block recruiter_page_title %}
-    <div class="flex items-center gap-2 text-text-muted">
-        <i class="bi bi-people-fill"></i>
-        <a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a>
-        <span>/</span>
-        <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=team.UnitID) }}" class="hover:underline">{{ team.UnitName or 'Unassigned' }}</a>
-        <span>/</span>
+    <div class="flex items-center gap-2 text-text-muted flex-wrap text-sm sm:text-base">
+        <i class="bi bi-people-fill"></i><a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a><span>/</span>
+        <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=team.UnitID) }}" class="hover:underline">{{ team.UnitName or 'Unassigned' }}</a><span>/</span>
         <span class="text-heading font-semibold">{{ team.TeamName }}</span>
     </div>
 {% endblock %}
@@ -17,35 +14,20 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Left Column: Management Actions -->
     <div class="lg:col-span-1 space-y-8">
-        <!-- Assign Lead -->
-        <div class="bg-card p-6 rounded-lg shadow border border-border">
+        <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
             <h2 class="text-lg font-semibold text-heading">Assign Team Lead</h2>
             <p class="mt-1 text-sm text-text-muted">Current Lead: <strong class="text-text">{{ team.LeadFirstName or 'None' }}</strong></p>
             <form action="{{ url_for('recruiter_bp.assign_team_lead') }}" method="POST" class="mt-4 flex flex-col gap-2">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                <select name="lead_staff_id" class="form-select" required>
-                    <option value="" disabled selected>-- Select a Team Lead --</option>
-                    {% for lead in potential_team_leads %}
-                        <option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>
-                    {% endfor %}
-                </select>
+                <input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="lead_staff_id" class="form-select" required><option value="" disabled selected>-- Select a Team Lead --</option>{% for lead in potential_team_leads %}<option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>{% endfor %}</select>
                 <button type="submit" class="btn-secondary">Assign Lead</button>
             </form>
         </div>
-
-        <!-- Assign Recruiter -->
-        <div class="bg-card p-6 rounded-lg shadow border border-border">
+        <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
             <h2 class="text-lg font-semibold text-heading">Add Recruiter to Team</h2>
             {% if unassigned_recruiters %}
-            <p class="mt-1 text-sm text-text-muted">Select an unassigned recruiter to add to this team.</p>
+            <p class="mt-1 text-sm text-text-muted">Add an unassigned recruiter to this team.</p>
             <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="mt-4 flex flex-col gap-2">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                <select name="recruiter_staff_id" class="form-select" required>
-                    <option value="" disabled selected>-- Select a Recruiter --</option>
-                    {% for recruiter in unassigned_recruiters %}
-                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
-                    {% endfor %}
-                </select>
+                <input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="recruiter_staff_id" class="form-select" required><option value="" disabled selected>-- Select a Recruiter --</option>{% for recruiter in unassigned_recruiters %}<option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>{% endfor %}</select>
                 <button type="submit" class="btn-primary w-full">Add to Team</button>
             </form>
             {% else %}
@@ -56,38 +38,50 @@
 
     <!-- Right Column: Team Roster -->
     <div class="lg:col-span-2 bg-card rounded-lg shadow border border-border overflow-hidden">
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <h2 class="text-lg font-semibold text-heading">Team Roster</h2>
-            <p class="mt-1 text-sm text-text-muted">All staff members currently assigned to {{ team.TeamName }}.</p>
+            <p class="mt-1 text-sm text-text-muted">Staff members assigned to {{ team.TeamName }}.</p>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- [UPDATED] Desktop Table -->
+        <div class="hidden sm:block overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-border">
                 <thead class="bg-background">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Member Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Role</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Member Name</th><th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Role</th><th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
                     {% for member in team_members %}
                     <tr class="hover:bg-background/50">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">
-                            {{ member.FirstName }} {{ member.LastName }}
-                            {% if member.StaffID == team.TeamLeadStaffID %}<span class="ml-2 text-xs font-semibold text-primary">Team Lead</span>{% endif %}
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}{% if member.StaffID == team.TeamLeadStaffID %}<span class="ml-2 text-xs font-semibold text-primary">Team Lead</span>{% endif %}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ member.Role }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                           {# Future action: Unassign button #}
-                           <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-primary/80 hover:text-primary transition text-xs font-medium">View Profile</a>
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-primary/80 hover:text-primary transition text-xs font-medium">View Profile</a></td>
                     </tr>
-                    {% else %}
-                    <tr><td colspan="3" class="text-center py-10 text-text-muted">This team has no members yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- [NEW] Mobile Card View -->
+        <div class="sm:hidden divide-y divide-border">
+            {% for member in team_members %}
+            <div class="p-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}</div>
+                        <div class="text-sm text-text-muted">{{ member.Role }}</div>
+                        {% if member.StaffID == team.TeamLeadStaffID %}<div class="mt-1 text-xs font-semibold text-primary">Team Lead</div>{% endif %}
+                    </div>
+                    <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="btn-secondary text-xs">View</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not team_members %}
+            <div class="text-center py-16 text-text-muted">This team has no members yet.</div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

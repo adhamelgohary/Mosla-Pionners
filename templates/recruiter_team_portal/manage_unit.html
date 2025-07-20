@@ -3,81 +3,85 @@
 
 {% block recruiter_title %}{{ title }}{% endblock %}
 {% block recruiter_page_title %}
-    <div class="flex items-center gap-2 text-text-muted">
-        <i class="bi bi-diagram-3-fill"></i>
-        <a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a>
-        <span>/</span>
-        <span class="text-heading font-semibold">{{ unit.UnitName }}</span>
+    <div class="flex items-center gap-2 text-sm sm:text-base text-text-muted flex-wrap">
+        <i class="bi bi-diagram-3-fill"></i><a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a><span>/</span><span class="text-heading font-semibold">{{ unit.UnitName }}</span>
         {% if not unit.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">(Inactive)</span>{% endif %}
     </div>
 {% endblock %}
 
 {% block recruiter_content %}
 <div class="space-y-8">
-    <!-- Section 1: Create Team for this Unit -->
-    <div class="bg-card p-6 rounded-lg shadow border border-border {% if not unit.IsActive %}opacity-50 pointer-events-none{% endif %}">
+    <!-- Section 1: Create Team -->
+    <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border {% if not unit.IsActive %}opacity-50 pointer-events-none{% endif %}">
         <h2 class="text-lg font-semibold text-heading">Create a New Team in {{ unit.UnitName }}</h2>
-        <p class="mt-1 text-sm text-text-muted">Teams are groups of recruiters led by a Team Lead, and they belong to a Unit.</p>
         <form action="{{ url_for('recruiter_bp.create_team') }}" method="POST" class="mt-4 flex flex-col sm:flex-row gap-2">
-            <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
-            <input type="text" name="team_name" required placeholder="New Team Name (e.g., 'Phoenix Team')" class="form-input flex-grow">
-            <button type="submit" class="btn-primary">Create Team</button>
+            <input type="hidden" name="unit_id" value="{{ unit.UnitID }}"><input type="text" name="team_name" required placeholder="New Team Name" class="form-input flex-grow"><button type="submit" class="btn-primary">Create Team</button>
         </form>
     </div>
 
-    <!-- Section 2: Manage Teams in this Unit -->
+    <!-- Section 2: Manage Teams -->
     <div class="bg-card rounded-lg shadow border border-border overflow-hidden">
-        <div class="p-6 flex justify-between items-center">
+        <div class="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
             <div>
                 <h2 class="text-lg font-semibold text-heading">Manage Teams</h2>
-                <p class="mt-1 text-sm text-text-muted">Assign leads and recruiters to teams within {{ unit.UnitName }}.</p>
+                <p class="mt-1 text-sm text-text-muted">Assign leads and recruiters to teams.</p>
             </div>
-            <!-- [NEW] Toggle Link -->
             <div>
-                {% if show_all %}
-                    <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Active Only</a>
-                {% else %}
-                    <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID, show_all='true') }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Inactive Teams</a>
+                {% if show_all %}<a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Active Only</a>
+                {% else %}<a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID, show_all='true') }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Inactive Teams</a>
                 {% endif %}
             </div>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- [UPDATED] Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-border">
                 <thead class="bg-background">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Lead</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider" colspan="2">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Name</th><th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Lead</th><th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider" colspan="2">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
                     {% for team in teams_in_unit %}
                     <tr class="hover:bg-background/50 {{ 'opacity-50 bg-slate-50 dark:bg-slate-800' if not team.IsActive }}">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">
-                            {{ team.TeamName }}
-                            {% if not team.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">Inactive</span>{% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-text">
-                            {{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                           <a href="{{ url_for('recruiter_bp.manage_team', team_id=team.TeamID) }}" class="btn-primary" {% if not team.IsActive %}disabled aria-disabled="true"{% endif %}>Manage Team »</a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                           <!-- [NEW] Deactivate Button -->
-                           {% if team.IsActive %}
-                           <form action="{{ url_for('recruiter_bp.deactivate_team', team_id=team.TeamID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ team.TeamName|e }}\'? This will un-assign all members.');">
-                                <button type="submit" class="text-danger/80 hover:text-danger transition" title="Deactivate Team"><i class="bi bi-trash text-lg"></i></button>
-                           </form>
-                           {% endif %}
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="font-medium text-heading">{{ team.TeamName }}</div>{% if not team.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">Inactive</span>{% endif %}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{{ url_for('recruiter_bp.manage_team', team_id=team.TeamID) }}" class="btn-primary" {% if not team.IsActive %}disabled aria-disabled="true"{% endif %}>Manage Team »</a></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">{% if team.IsActive %}<form action="{{ url_for('recruiter_bp.deactivate_team', team_id=team.TeamID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ team.TeamName|e }}\'?');"><button type="submit" class="text-danger/80 hover:text-danger transition" title="Deactivate Team"><i class="bi bi-trash text-lg"></i></button></form>{% endif %}</td>
                     </tr>
-                    {% else %}
-                    <tr><td colspan="4" class="text-center py-10 text-text-muted">No teams found for this unit.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- [NEW] Mobile Card View -->
+        <div class="md:hidden divide-y divide-border">
+            {% for team in teams_in_unit %}
+            <div class="p-4 {{ 'opacity-60 bg-slate-50 dark:bg-slate-800/50' if not team.IsActive }}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-semibold text-heading">{{ team.TeamName }}</div>
+                        <div class="text-xs text-text-muted">Lead: {{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}</div>
+                        {% if not team.IsActive %}<span class="mt-1 inline-block text-xs font-semibold text-danger">Inactive</span>{% endif %}
+                    </div>
+                    <a href="{{ url_for('recruiter_bp.manage_team', team_id=team.TeamID) }}" class="btn-primary text-xs" {% if not team.IsActive %}disabled aria-disabled="true"{% endif %}>Manage</a>
+                </div>
+                {% if team.IsActive %}
+                <div class="mt-4 border-t border-border pt-4">
+                    <form action="{{ url_for('recruiter_bp.deactivate_team', team_id=team.TeamID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ team.TeamName|e }}\'?');">
+                        <button type="submit" class="w-full text-danger/80 hover:text-danger flex items-center justify-center gap-2 text-sm py-2">
+                            <i class="bi bi-trash"></i> Deactivate Team
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not teams_in_unit %}
+            <div class="text-center py-16 text-text-muted">No teams found for this unit.</div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

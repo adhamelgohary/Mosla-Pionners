@@ -4473,6 +4473,10 @@ html[data-theme="dark"] {
   opacity: 0.5;
 }
 
+.opacity-60 {
+  opacity: 0.6;
+}
+
 .opacity-70 {
   opacity: 0.7;
 }
@@ -5719,6 +5723,11 @@ body {
     line-height: 1;
   }
 
+  .sm\:text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+
   .sm\:text-lg {
     font-size: 1.125rem;
     line-height: 1.75rem;
@@ -5735,6 +5744,11 @@ body {
 
   .sm\:text-sm {
     font-size: clamp(1rem, calc(1rem + ((1.0416666666666667 - 1) * ((100vw - 20rem) / (96 - 20)))), 1.0416666666666667rem);
+    line-height: 1.6;
+  }
+
+  .sm\:text-base {
+    font-size: clamp(1.125rem, calc(1.125rem + ((1.25 - 1.125) * ((100vw - 20rem) / (96 - 20)))), 1.25rem);
     line-height: 1.6;
   }
 

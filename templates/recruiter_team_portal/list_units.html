@@ -8,9 +8,9 @@
 <div class="space-y-8">
 
     <!-- Section 1: Create Unit -->
-    <div class="bg-card p-6 rounded-lg shadow border border-border">
+    <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
         <h2 class="text-lg font-semibold text-heading">Create a New Unit</h2>
-        <p class="mt-1 text-sm text-text-muted">Units are the highest-level containers in the sourcing division, managed by a Unit Manager.</p>
+        <p class="mt-1 text-sm text-text-muted">Units are the highest-level containers in the sourcing division.</p>
         <form action="{{ url_for('recruiter_bp.create_unit') }}" method="POST" class="mt-4 flex flex-col sm:flex-row gap-2">
             <input type="text" name="unit_name" required placeholder="New Unit Name (e.g., 'Alpha Unit')" class="form-input flex-grow">
             <button type="submit" class="btn-primary">Create Unit</button>
@@ -19,12 +19,11 @@
 
     <!-- Section 2: Manage Existing Units -->
     <div class="bg-card rounded-lg shadow border border-border overflow-hidden">
-        <div class="p-6 flex justify-between items-center">
+        <div class="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
             <div>
                 <h2 class="text-lg font-semibold text-heading">Manage Units</h2>
-                <p class="mt-1 text-sm text-text-muted">Assign managers to units and navigate to manage their teams.</p>
+                <p class="mt-1 text-sm text-text-muted">Assign managers and manage teams.</p>
             </div>
-            <!-- [NEW] Toggle Link -->
             <div>
                 {% if show_all %}
                     <a href="{{ url_for('recruiter_bp.list_units') }}" class="text-xs font-medium text-text-muted hover:text-primary transition">Show Active Only</a>
@@ -33,7 +32,9 @@
                 {% endif %}
             </div>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- [UPDATED] Desktop Table (hidden on mobile) -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full text-sm divide-y divide-border">
                 <thead class="bg-background">
                     <tr>
@@ -45,43 +46,50 @@
                 <tbody class="divide-y divide-border">
                     {% for unit in units %}
                     <tr class="hover:bg-background/50 {{ 'opacity-50 bg-slate-50 dark:bg-slate-800' if not unit.IsActive }}">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">
-                            {{ unit.UnitName }}
-                            {% if not unit.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">Inactive</span>{% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-text">
-                            {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
-                                <select name="manager_staff_id" class="form-select text-xs py-1" required {% if not unit.IsActive %}disabled{% endif %}>
-                                    <option value="" disabled selected>-- Assign Manager --</option>
-                                    {% for manager in potential_managers %}
-                                        <option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }} ({{ manager.Role }})</option>
-                                    {% endfor %}
-                                </select>
-                                <button type="submit" class="btn-secondary" {% if not unit.IsActive %}disabled{% endif %}>Assign</button>
-                            </form>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                           <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn-primary" {% if not unit.IsActive %}disabled aria-disabled="true"{% endif %}>Manage Teams »</a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <!-- [NEW] Deactivate Button -->
-                            {% if unit.IsActive %}
-                            <form action="{{ url_for('recruiter_bp.deactivate_unit', unit_id=unit.UnitID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ unit.UnitName|e }}\'? This will also deactivate all its teams and un-assign all members.');">
-                                <button type="submit" class="text-danger/80 hover:text-danger transition" title="Deactivate Unit"><i class="bi bi-trash text-lg"></i></button>
-                            </form>
-                            {% endif %}
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap"><div class="font-medium text-heading">{{ unit.UnitName }}</div>{% if not unit.IsActive %}<span class="ml-2 text-xs font-semibold text-danger">Inactive</span>{% endif %}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text">{{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap"><form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center"><input type="hidden" name="unit_id" value="{{ unit.UnitID }}"><select name="manager_staff_id" class="form-select text-xs py-1" required {% if not unit.IsActive %}disabled{% endif %}><option value="" disabled selected>-- Assign Manager --</option>{% for manager in potential_managers %}<option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }} ({{ manager.Role }})</option>{% endfor %}</select><button type="submit" class="btn-secondary" {% if not unit.IsActive %}disabled{% endif %}>Assign</button></form></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn-primary" {% if not unit.IsActive %}disabled aria-disabled="true"{% endif %}>Manage Teams »</a></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">{% if unit.IsActive %}<form action="{{ url_for('recruiter_bp.deactivate_unit', unit_id=unit.UnitID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ unit.UnitName|e }}\'? This will also deactivate all its teams and un-assign all members.');"><button type="submit" class="text-danger/80 hover:text-danger transition" title="Deactivate Unit"><i class="bi bi-trash text-lg"></i></button></form>{% endif %}</td>
                     </tr>
-                    {% else %}
-                    <tr><td colspan="5" class="text-center py-10 text-text-muted">No units found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- [NEW] Mobile Card View -->
+        <div class="md:hidden divide-y divide-border">
+            {% for unit in units %}
+            <div class="p-4 {{ 'opacity-60 bg-slate-50 dark:bg-slate-800/50' if not unit.IsActive }}">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-semibold text-heading">{{ unit.UnitName }}</div>
+                        <div class="text-xs text-text-muted">Manager: {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}</div>
+                        {% if not unit.IsActive %}<span class="mt-1 inline-block text-xs font-semibold text-danger">Inactive</span>{% endif %}
+                    </div>
+                    <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn-primary text-xs" {% if not unit.IsActive %}disabled aria-disabled="true"{% endif %}>Manage</a>
+                </div>
+                {% if unit.IsActive %}
+                <div class="mt-4 border-t border-border pt-4 space-y-4">
+                    <form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="space-y-2">
+                        <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
+                        <select name="manager_staff_id" class="form-select w-full" required><option value="" disabled selected>-- Assign Manager --</option>{% for manager in potential_managers %}<option value="{{ manager.StaffID }}" {% if manager.StaffID == unit.UnitManagerStaffID %}selected{% endif %}>{{ manager.FullName }}</option>{% endfor %}</select>
+                        <button type="submit" class="btn-secondary w-full">Assign Manager</button>
+                    </form>
+                    <form action="{{ url_for('recruiter_bp.deactivate_unit', unit_id=unit.UnitID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate \'{{ unit.UnitName|e }}\'?');">
+                        <button type="submit" class="w-full text-danger/80 hover:text-danger flex items-center justify-center gap-2 text-sm py-2">
+                            <i class="bi bi-trash"></i> Deactivate Unit
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not units %}
+            <div class="text-center py-16 text-text-muted">No units found.</div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
