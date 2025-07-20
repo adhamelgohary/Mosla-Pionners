@@ -1220,7 +1220,6 @@ def deactivate_team(team_id):
     # Redirect back to the referrer (the unit management page)
     return redirect(request.referrer or url_for('.list_units'))
 
-# [NEW] SELF-SERVICE PROFILE MANAGEMENT ROUTE
 @recruiter_bp.route('/my-profile', methods=['GET', 'POST'])
 @login_required_with_role(RECRUITER_PORTAL_ROLES)
 def my_profile():
@@ -1233,44 +1232,26 @@ def my_profile():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # --- HANDLE FORM SUBMISSIONS ---
     if request.method == 'POST':
         action = request.form.get('action')
 
-        # --- Action 1: Update Personal Details ---
         if action == 'update_details':
             first_name = request.form.get('first_name')
             last_name = request.form.get('last_name')
             email = request.form.get('email')
             phone_number = request.form.get('phone_number')
             
-            # Handle profile picture upload
-            profile_pic_url = current_user.profile_picture_url
-            if 'profile_picture' in request.files:
-                file = request.files['profile_picture']
-                if file.filename != '':
-                    # Ensure the filename is safe
-                    filename = secure_filename(f"user_{user_id}_{file.filename}")
-                    # Define the path to save the image
-                    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'profile_pics')
-                    os.makedirs(upload_path, exist_ok=True) # Create directory if it doesn't exist
-                    file.save(os.path.join(upload_path, filename))
-                    profile_pic_url = url_for('static', filename=f'uploads/profile_pics/{filename}', _external=False)
-
             cursor.execute("""
                 UPDATE Users 
-                SET FirstName = %s, LastName = %s, Email = %s, PhoneNumber = %s, ProfilePictureURL = %s
+                SET FirstName = %s, LastName = %s, Email = %s, PhoneNumber = %s
                 WHERE UserID = %s
-            """, (first_name, last_name, email, phone_number, profile_pic_url, user_id))
+            """, (first_name, last_name, email, phone_number, user_id))
             conn.commit()
 
-            # Update the session object so changes are reflected immediately
             current_user.first_name = first_name
             current_user.last_name = last_name
-            current_user.profile_picture_url = profile_pic_url
             flash("Your profile details have been updated successfully.", "success")
         
-        # --- Action 2: Change Password ---
         elif action == 'change_password':
             current_password = request.form.get('current_password')
             new_password = request.form.get('new_password')
@@ -1286,17 +1267,15 @@ def my_profile():
                 conn.commit()
                 flash("Your password has been changed successfully.", "success")
         
-        # --- Action 3: Generate Referral Code ---
         elif action == 'generate_code':
-            # Check if a code already exists to prevent accidental overwrites
             cursor.execute("SELECT ReferralCode FROM Staff WHERE StaffID = %s", (staff_id,))
             existing_code = cursor.fetchone()
             if not existing_code or not existing_code['ReferralCode']:
-                # Generate a unique 8-character code
                 new_code = secrets.token_hex(4).upper()
                 cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (new_code, staff_id))
                 conn.commit()
-                current_user.referral_code = new_code
+                # You might need to update the session object here if you store referral_code in it
+                # For now, we assume it's fetched fresh on page load
                 flash(f"Your new referral code has been generated: {new_code}", "success")
             else:
                 flash("A referral code already exists for your account.", "info")
@@ -1305,11 +1284,9 @@ def my_profile():
         conn.close()
         return redirect(url_for('.my_profile'))
 
-    # --- HANDLE PAGE LOAD (GET REQUEST) ---
     try:
-        # Fetch comprehensive user data for display
         cursor.execute("""
-            SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL,
+            SELECT u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber,
                    s.Role, s.ReferralCode
             FROM Users u
             LEFT JOIN Staff s ON u.UserID = s.UserID

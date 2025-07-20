@@ -12,17 +12,11 @@
         <!-- Edit Profile Details Form -->
         <div class="bg-card p-6 rounded-lg shadow border border-border">
             <h2 class="text-lg font-semibold text-heading">Profile Information</h2>
-            <p class="mt-1 text-sm text-text-muted">Update your photo and personal details here.</p>
-            <form action="{{ url_for('recruiter_bp.my_profile') }}" method="POST" enctype="multipart/form-data" class="mt-6 space-y-6">
+            <p class="mt-1 text-sm text-text-muted">Update your personal details here.</p>
+            <form action="{{ url_for('recruiter_bp.my_profile') }}" method="POST" class="mt-6 space-y-6">
                 <input type="hidden" name="action" value="update_details">
                 
-                <div class="flex items-center gap-4">
-                    <img class="h-16 w-16 rounded-full object-cover" src="{{ user_data.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="Current profile picture">
-                    <div>
-                        <label for="profile_picture" class="form-label">Change Photo</label>
-                        <input type="file" name="profile_picture" id="profile_picture" class="mt-1 text-sm text-text-muted file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20">
-                    </div>
-                </div>
+                <!-- Profile picture section has been removed -->
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
