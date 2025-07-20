@@ -498,13 +498,12 @@ def view_recruiter_profile(staff_id_viewing):
                            profile_data=profile_data,
                            available_roles=ASSIGNABLE_SOURCING_ROLES)
 
-@recruiter_bp.route('/organization')
+@recruiter_bp.route('/organization/units')
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
-def organization_management():
-    """A central hub for managing Units, Teams, their assignments, and staff status."""
+def list_units():
+    """ [STEP 1] A central hub for managing Units and assigning their managers. """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-
     try:
         cursor.execute("""
             SELECT su.*, u.FirstName, u.LastName
@@ -516,39 +515,86 @@ def organization_management():
         units = cursor.fetchall()
 
         cursor.execute("""
-            SELECT st.*, lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName, su.UnitName
-            FROM SourcingTeams st
-            LEFT JOIN Staff lead_staff ON st.TeamLeadStaffID = lead_staff.StaffID
-            LEFT JOIN Users lead_user ON lead_staff.UserID = lead_user.UserID
-            LEFT JOIN SourcingUnits su ON st.UnitID = su.UnitID
-            ORDER BY su.UnitName, st.TeamName
-        """)
-        teams = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT s.StaffID, u.FirstName, u.LastName, s.Role, u.IsActive, t.TeamName
-            FROM Staff s
-            JOIN Users u ON s.UserID = u.UserID
-            LEFT JOIN SourcingTeams t ON s.TeamID = t.TeamID
-            WHERE s.Role IN ('SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'HeadSourcingTeamLead')
-            ORDER BY u.IsActive DESC, u.LastName, u.FirstName
-        """)
-        all_staff = cursor.fetchall()
-
-        cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.Role IN ('SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager') AND u.IsActive = 1
         """)
         potential_managers = cursor.fetchall()
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/list_units.html',
+                           title="Organization Management: Units",
+                           units=units,
+                           potential_managers=potential_managers)
+
+
+@recruiter_bp.route('/organization/unit/<int:unit_id>')
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def manage_unit(unit_id):
+    """ [STEP 2] Manages a specific Unit, including its teams. """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM SourcingUnits WHERE UnitID = %s", (unit_id,))
+        unit = cursor.fetchone()
+        if not unit:
+            abort(404, "Unit not found.")
 
         cursor.execute("""
-            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName, s.Role
+            SELECT st.*, lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName
+            FROM SourcingTeams st
+            LEFT JOIN Staff lead_staff ON st.TeamLeadStaffID = lead_staff.StaffID
+            LEFT JOIN Users lead_user ON lead_staff.UserID = lead_user.UserID
+            WHERE st.UnitID = %s
+            ORDER BY st.TeamName
+        """, (unit_id,))
+        teams_in_unit = cursor.fetchall()
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+    return render_template('recruiter_team_portal/manage_unit.html',
+                           title=f"Manage Unit: {unit['UnitName']}",
+                           unit=unit,
+                           teams_in_unit=teams_in_unit)
+
+
+@recruiter_bp.route('/organization/team/<int:team_id>')
+@login_required_with_role(ORG_MANAGEMENT_ROLES)
+def manage_team(team_id):
+    """ [STEP 3] Manages a specific Team: assigning lead and recruiters. """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT st.*, lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName, su.UnitName
+            FROM SourcingTeams st
+            LEFT JOIN Staff lead_staff ON st.TeamLeadStaffID = lead_staff.StaffID
+            LEFT JOIN Users lead_user ON lead_staff.UserID = lead_user.UserID
+            LEFT JOIN SourcingUnits su ON st.UnitID = su.UnitID
+            WHERE st.TeamID = %s
+        """, (team_id,))
+        team = cursor.fetchone()
+        if not team:
+            abort(404, "Team not found.")
+
+        cursor.execute("""
+            SELECT s.StaffID, u.FirstName, u.LastName, s.Role
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.TeamID = %s AND u.IsActive = 1
+            ORDER BY s.Role, u.FirstName
+        """, (team_id,))
+        team_members = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
             WHERE s.Role IN ('SourcingTeamLead', 'SourcingRecruiter') AND u.IsActive = 1
         """)
         potential_team_leads = cursor.fetchall()
-
+        
         cursor.execute("""
             SELECT s.StaffID, u.FirstName, u.LastName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -560,14 +606,13 @@ def organization_management():
         if cursor: cursor.close()
         if conn: conn.close()
 
-    return render_template('recruiter_team_portal/organization_management.html',
-                           title="Organization Structure",
-                           units=units,
-                           teams=teams,
-                           all_staff=all_staff,
-                           potential_managers=potential_managers,
+    return render_template('recruiter_team_portal/manage_team.html',
+                           title=f"Manage Team: {team['TeamName']}",
+                           team=team,
+                           team_members=team_members,
                            potential_team_leads=potential_team_leads,
                            unassigned_recruiters=unassigned_recruiters)
+
 
 
 @recruiter_bp.route('/organization/create-unit', methods=['POST'])

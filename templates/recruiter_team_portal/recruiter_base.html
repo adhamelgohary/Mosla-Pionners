@@ -55,7 +55,10 @@
                                             <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Recruiters</a>
                                             {# --- [REVERTED] Explicit role check for inner links --- #}
                                             {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                            <a href="{{ url_for('recruiter_bp.organization_management') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Organization</a>
+                                            <a href="{{ url_for('recruiter_bp.list_units') }}" class="nav-link">
+                                                <i class="bi bi-diagram-3-fill"></i>
+                                                Organization Management
+                                            </a>
                                             <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Pending Registrations</a>
                                             {% endif %}
                                         </div>

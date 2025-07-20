@@ -1,0 +1,66 @@
+{# templates/recruiter_team_portal/manage_unit.html #}
+{% extends "recruiter_team_portal/recruiter_base.html" %}
+
+{% block recruiter_title %}{{ title }}{% endblock %}
+{% block recruiter_page_title %}
+    <div class="flex items-center gap-2 text-text-muted">
+        <i class="bi bi-diagram-3-fill"></i>
+        <a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a>
+        <span>/</span>
+        <span class="text-heading font-semibold">{{ unit.UnitName }}</span>
+    </div>
+{% endblock %}
+
+{% block recruiter_content %}
+<div class="space-y-8">
+    <!-- Section 1: Create Team for this Unit -->
+    <div class="bg-card p-6 rounded-lg shadow border border-border">
+        <h2 class="text-lg font-semibold text-heading">Create a New Team in {{ unit.UnitName }}</h2>
+        <p class="mt-1 text-sm text-text-muted">Teams are groups of recruiters led by a Team Lead, and they belong to a Unit.</p>
+        <form action="{{ url_for('recruiter_bp.create_team') }}" method="POST" class="mt-4 flex flex-col sm:flex-row gap-2">
+            <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
+            <input type="text" name="team_name" required placeholder="New Team Name (e.g., 'Phoenix Team')" class="form-input flex-grow">
+            <button type="submit" class="btn-primary">Create Team</button>
+        </form>
+    </div>
+
+    <!-- Section 2: Manage Teams in this Unit -->
+    <div class="bg-card rounded-lg shadow border border-border overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold text-heading">Manage Teams</h2>
+            <p class="mt-1 text-sm text-text-muted">Assign leads and recruiters to teams within the {{ unit.UnitName }}.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm divide-y divide-border">
+                <thead class="bg-background">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Team Lead</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                    {% for team in teams_in_unit %}
+                    <tr class="hover:bg-background/50">
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">{{ team.TeamName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-text">
+                            {{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}
+                            {% if not team.TeamLeadStaffID %}
+                                <span class="ml-2 text-xs font-semibold rounded-full bg-warning/10 text-amber-700 px-2 py-0.5">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> No Lead
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                           <a href="{{ url_for('recruiter_bp.manage_team', team_id=team.TeamID) }}" class="btn-primary">Manage Team »</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center py-10 text-text-muted">No teams created for this unit yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
