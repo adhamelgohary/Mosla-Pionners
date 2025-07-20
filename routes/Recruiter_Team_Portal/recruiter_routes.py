@@ -642,22 +642,21 @@ def create_unit():
 def create_team():
     """
     Creates a new team and assigns it to the specified unit.
-    This version is corrected to always use the unit_id from the form.
+    This corrected version ALWAYS uses the unit_id from the form.
     """
     team_name = request.form.get('team_name')
     unit_id = request.form.get('unit_id')
 
-    # 1. Validate that we received both required pieces of data from the form.
+    # Validate that we received both required pieces of data from the form.
     if not team_name or not unit_id:
         flash("A Team Name and Unit context are required to create a team.", "danger")
-        # Redirect back to the main units list as a safe fallback.
-        return redirect(url_for('.list_units'))
+        return redirect(url_for('.list_units')) # Safe fallback
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
         
-        # 2. Directly insert the team with the provided unit_id. No complex role logic needed.
+        # Directly insert the team with the provided unit_id. This is the key fix.
         cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit_id))
         
         conn.commit()
@@ -670,7 +669,7 @@ def create_team():
             if 'cursor' in locals(): cursor.close()
             conn.close()
 
-    # 3. Redirect the user back to the "Manage Unit" page for the unit they were just on.
+    # Redirect the user back to the "Manage Unit" page they were just on.
     return redirect(url_for('.manage_unit', unit_id=unit_id))
 
 
