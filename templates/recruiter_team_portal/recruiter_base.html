@@ -67,6 +67,8 @@
                                     </button>
                                 </div>
                                 <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
+                                    <!-- [UPDATED] My Profile Link Added -->
+                                    <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">My Profile</a>
                                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Managerial Portal</a>
                                     <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Logout</a>
                                 </div>
@@ -113,6 +115,8 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
+                        <!-- [UPDATED] My Profile Link Added -->
+                        <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Profile</a>
                         <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Managerial Portal</a>
                         <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Logout</a>
                     </div>
