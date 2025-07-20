@@ -23,55 +23,68 @@ job_offer_mgmt_bp = Blueprint('job_offer_mgmt_bp', __name__,
                               template_folder='../../../templates',
                               url_prefix='/job-offers')
 
-# --- Excel Helper Function ---
+# --- [UPDATED] - Enhanced Excel Helper Function ---
 def _create_styled_excel(report_data, title, header_mapping):
     """Generates a styled Excel report using only OpenPyXL."""
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Report"
+
+    # --- Define Styles ---
     title_font = Font(name='Calibri', size=18, bold=True, color='1F2937')
     header_font = Font(name='Calibri', size=12, bold=True, color='FFFFFF')
     center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
     left_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
-    header_fill = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid')
-    
+    header_fill = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid') # Indigo color
+
+    # --- Add and Style Title & Subtitle ---
     worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(header_mapping))
     title_cell = worksheet.cell(row=1, column=1, value=title)
     title_cell.font = title_font
     title_cell.alignment = center_align
     worksheet.row_dimensions[1].height = 30
-    
+
     worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(header_mapping))
     subtitle_cell = worksheet.cell(row=2, column=1, value=f"Report generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     subtitle_cell.font = Font(italic=True, color='6B7280')
     subtitle_cell.alignment = center_align
     worksheet.row_dimensions[2].height = 20
-    
+
+    # --- Write and Style Headers ---
     headers = list(header_mapping.keys())
+    # Start headers on row 4 to leave a blank row after the subtitle
     for col_num, header_title in enumerate(headers, 1):
         cell = worksheet.cell(row=4, column=col_num, value=header_title)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = center_align
-    worksheet.row_dimensions[4].height = 20
-    
+    worksheet.row_dimensions[4].height = 25
+
+    # --- Write Data Cell by Cell ---
     data_keys = list(header_mapping.values())
+    # Start data on row 5
     for row_num, row_data in enumerate(report_data, 5):
         for col_num, key in enumerate(data_keys, 1):
             cell_value = row_data.get(key, 'N/A')
+            # Format dates nicely
             if isinstance(cell_value, (datetime.datetime, datetime.date)):
                 cell_value = cell_value.strftime('%Y-%m-%d')
             worksheet.cell(row=row_num, column=col_num, value=cell_value).alignment = left_align
-    
+
+    # --- Adjust Column Widths Dynamically ---
     column_widths = {}
     for col_num, header_title in enumerate(headers, 1):
-        column_widths[col_num] = len(header_title)
-    for row_data in report_data:
-        for col_num, key in enumerate(data_keys, 1):
-            cell_len = len(str(row_data.get(key, '')))
-            if cell_len > column_widths[col_num]:
-                column_widths[col_num] = cell_len
+        column_widths[col_num] = len(str(header_title))
+    
+    if report_data:
+        for row_data in report_data:
+            for col_num, key in enumerate(data_keys, 1):
+                cell_len = len(str(row_data.get(key, '')))
+                if cell_len > column_widths.get(col_num, 0):
+                    column_widths[col_num] = cell_len
+    
     for col_num, width in column_widths.items():
+        # Add a little padding to the width
         worksheet.column_dimensions[get_column_letter(col_num)].width = width + 4
         
     output = io.BytesIO()
