@@ -69,11 +69,21 @@
                 <textarea name="Description" id="Description" rows="4" class="form-textarea">{{ form_data.Description or '' }}</textarea>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A brief overview of the entire package program, visible for both types.</p>
             </div>
+            
+            {# --- MODIFIED SECTION START --- #}
             <div>
-                <label for="Benefits" class="form-label">Benefits (one per line)</label>
-                <textarea name="Benefits" id="Benefits" rows="4" class="form-textarea">{{ form_data.Benefits or '' }}</textarea>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Key selling points for this package.</p>
+                <label for="Benefits" class="form-label">Benefits</label>
+                <textarea name="Benefits" id="Benefits" rows="5" class="form-textarea" placeholder="✔ Professional Mentorship
+✔ Guaranteed Job Placement
+✔ Intensive Online Training">{{ (form_data.Benefits or '').replace('|', '\n') }}</textarea>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Enter each benefit on its own separate line. The system will format them correctly for you.<br>
+                    <strong>For example:</strong><br>
+                    <span class="ml-2">✔ تدريب عملي</span><br>
+                    <span class="ml-2">✔ فرص شغل فعلية برواتب مجزية</span>
+                </p>
             </div>
+            {# --- MODIFIED SECTION END --- #}
 
             <!-- Overviews -->
             <div x-show="packageType === 'monolingual'" x-transition>

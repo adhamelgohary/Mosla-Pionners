@@ -78,13 +78,19 @@ def add_main_package():
                 flash("Package Name and at least one Language are required.", "danger")
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Add New Main Package", form_data=form_data, languages=languages)
             
+            # --- SMART FORMATTING FOR BENEFITS ---
+            raw_benefits = form_data.get('Benefits', '')
+            # Split by lines, strip whitespace from each, filter out empty lines, then join with |
+            processed_benefits = '|'.join([line.strip() for line in raw_benefits.splitlines() if line.strip()])
+
             sql_main = """
                 INSERT INTO MainPackages (Name, Description, Benefits, MonolingualOverview, BilingualOverview, Notes, Status, AddedByStaffID)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             params_main = (
                 form_data['Name'], form_data.get('Description'),
-                form_data.get('Benefits'), form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
+                processed_benefits, # Use the processed benefits string
+                form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
                 form_data.get('Notes'), form_data.get('Status', 'Inactive'), current_user.specific_role_id
             )
             cursor.execute(sql_main, params_main)
@@ -128,6 +134,11 @@ def edit_main_package(package_id):
                 current_data['selected_languages'] = [row['LanguageID'] for row in cursor.fetchall()]
                 return render_template('agency_staff_portal/courses/add_edit_main_package.html', title="Edit Main Package", form_data=current_data, package_id=package_id, languages=languages)
 
+            # --- SMART FORMATTING FOR BENEFITS ---
+            raw_benefits = form_data.get('Benefits', '')
+            # Split by lines, strip whitespace from each, filter out empty lines, then join with |
+            processed_benefits = '|'.join([line.strip() for line in raw_benefits.splitlines() if line.strip()])
+
             sql_main = """
                 UPDATE MainPackages SET
                 Name = %s, Description = %s, Benefits = %s, MonolingualOverview = %s,
@@ -135,7 +146,8 @@ def edit_main_package(package_id):
                 WHERE PackageID = %s
             """
             params_main = (
-                form_data['Name'], form_data.get('Description'), form_data.get('Benefits'),
+                form_data['Name'], form_data.get('Description'), 
+                processed_benefits, # Use the processed benefits string
                 form_data.get('MonolingualOverview'), form_data.get('BilingualOverview'),
                 form_data.get('Notes'), form_data.get('Status', 'Inactive'), package_id
             )
