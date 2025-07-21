@@ -9,20 +9,7 @@
 {% block recruiter_page_title %}Manage Team: {{ team.TeamName }}{% endblock %}
 
 {% block recruiter_content %}
-<div class="space-y-6">
-    <!-- Breadcrumbs for context -->
-    <nav class="flex" aria-label="Breadcrumb">
-      <ol role="list" class="flex items-center space-x-2 sm:space-x-4">
-        <li><a href="{{ url_for('organization_bp.list_units') }}" class="text-text-secondary hover:text-text"><i class="bi bi-diagram-3-fill"></i><span class="sr-only">Units</span></a></li>
-        <li>
-          <div class="flex items-center">
-            <i class="bi bi-chevron-right flex-shrink-0 h-5 w-5 text-gray-400"></i>
-            <a href="{{ url_for('organization_bp.manage_unit', unit_id=team.UnitID) }}" class="ml-2 sm:ml-4 text-sm font-medium text-text-secondary hover:text-text">{{ team.UnitName }}</a>
-          </div>
-        </li>
-      </ol>
-    </nav>
-    
+<div class="space-y-6">    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left Column: Member Management -->
         <div class="lg:col-span-2 space-y-8">
