@@ -9,93 +9,122 @@
 {% block recruiter_page_title %}Manage Team: {{ team.TeamName }}{% endblock %}
 
 {% block recruiter_content %}
-<div class="space-y-8">
-    <!-- Team Info -->
-    <div class="bg-card shadow rounded-lg p-6">
-        <p class="text-sm text-text-secondary">Unit: <a href="{{ url_for('organization_bp.manage_unit', unit_id=team.UnitID) }}" class="text-primary hover:underline">{{ team.UnitName }}</a></p>
-        <h3 class="text-lg font-medium text-heading mt-1">
-            Team Lead: 
-            {% if team.LeadFirstName %}
-                {{ team.LeadFirstName }} {{ team.LeadLastName }}
-            {% else %}
-                <span class="font-normal text-yellow-600">Not Assigned</span>
+<div class="space-y-6">
+    <!-- Breadcrumbs for context -->
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol role="list" class="flex items-center space-x-2 sm:space-x-4">
+        <li><a href="{{ url_for('organization_bp.list_units') }}" class="text-text-secondary hover:text-text"><i class="bi bi-diagram-3-fill"></i><span class="sr-only">Units</span></a></li>
+        <li>
+          <div class="flex items-center">
+            <i class="bi bi-chevron-right flex-shrink-0 h-5 w-5 text-gray-400"></i>
+            <a href="{{ url_for('organization_bp.manage_unit', unit_id=team.UnitID) }}" class="ml-2 sm:ml-4 text-sm font-medium text-text-secondary hover:text-text">{{ team.UnitName }}</a>
+          </div>
+        </li>
+      </ol>
+    </nav>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column: Member Management -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Add Member Card -->
+            {% if current_user.role_type in TEAM_ASSIGNMENT_ROLES %}
+            <div class="bg-card shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-heading">Add Member to Team</h3>
+                <p class="text-sm text-text-secondary mt-1">Assign an unassigned recruiter to this team.</p>
+                {% if unassigned_recruiters %}
+                <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST" class="mt-4 flex flex-col sm:flex-row sm:items-end gap-4">
+                    <input type="hidden" name="team_id" value="{{ team.TeamID }}">
+                    <div class="flex-grow w-full">
+                        <label for="recruiter_staff_id" class="form-label">Unassigned Recruiter</label>
+                        <select name="recruiter_staff_id" id="recruiter_staff_id" class="form-input" required>
+                            <option value="">Select a recruiter...</option>
+                            {% for recruiter in unassigned_recruiters %}
+                            <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary flex-shrink-0 w-full sm:w-auto">Add Member</button>
+                </form>
+                {% else %}
+                <p class="mt-4 text-sm text-center py-4 bg-background rounded-md">All recruiters are currently assigned to a team.</p>
+                {% endif %}
+            </div>
             {% endif %}
-        </h3>
-    </div>
 
-    <!-- Management Actions (Conditional) -->
-    {% if current_user.role_type in ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Assign Team Lead -->
-        {% if current_user.role_type in ['UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-        <div class="bg-card shadow rounded-lg p-6">
-            <h3 class="text-lg font-medium text-heading">Assign Team Lead</h3>
-            <form action="{{ url_for('organization_bp.assign_team_lead') }}" method="POST" class="mt-4 space-y-4">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                <div>
-                    <label for="lead_staff_id" class="form-label">Select a Lead</label>
-                    <select name="lead_staff_id" id="lead_staff_id" class="form-input" required>
-                        <option value="">Select a staff member...</option>
-                        {% for lead in potential_team_leads %}
-                            <option value="{{ lead.StaffID }}" {% if team.TeamLeadStaffID == lead.StaffID %}selected{% endif %}>{{ lead.FullName }}</option>
-                        {% endfor %}
-                    </select>
+            <!-- Team Members List -->
+            <div class="bg-card shadow rounded-lg">
+                <div class="p-6 border-b border-gray-200 dark:border-slate-700">
+                    <h3 class="text-lg leading-6 font-medium text-heading">Current Members ({{ team_members|length }})</h3>
                 </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="btn btn-primary">Assign Lead</button>
-                </div>
-            </form>
-        </div>
-        {% endif %}
-
-        <!-- Assign Recruiter to this Team -->
-        <div class="bg-card shadow rounded-lg p-6">
-            <h3 class="text-lg font-medium text-heading">Add Recruiter to Team</h3>
-            {% if unassigned_recruiters %}
-            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST" class="mt-4 space-y-4">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                <div>
-                    <label for="recruiter_staff_id" class="form-label">Unassigned Recruiter</label>
-                    <select name="recruiter_staff_id" id="recruiter_staff_id" class="form-input" required>
-                        <option value="">Select a recruiter...</option>
-                        {% for recruiter in unassigned_recruiters %}
-                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="btn btn-primary">Add to Team</button>
-                </div>
-            </form>
-            {% else %}
-            <p class="mt-4 text-sm text-text-secondary">No unassigned recruiters available to add.</p>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-
-    <!-- Team Members List -->
-    <div class="bg-card shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-heading">Team Members</h3>
-        </div>
-        <div class="border-t border-gray-200 dark:border-slate-700">
-            <ul role="list" class="divide-y divide-gray-200 dark:divide-slate-700">
-                {% for member in team_members %}
-                <li class="p-4 sm:p-6 hover:bg-background-hover">
-                    <div class="flex items-center justify-between">
+                <ul role="list" class="divide-y divide-gray-200 dark:divide-slate-700">
+                    {% for member in team_members %}
+                    <li class="p-4 sm:p-6 flex items-center justify-between gap-4">
                         <div>
                             <p class="text-base font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}</p>
-                            <p class="text-sm text-primary">{{ member.Role }}</p>
+                            <p class="text-sm font-semibold {{ 'text-primary' if member.Role == 'SourcingTeamLead' else 'text-text-secondary' }}">{{ member.Role | replace('Sourcing', '') }}</p>
                         </div>
-                        {# A "Remove" button would go here if a backend route existed for it. #}
+                        {% if member.Role == 'SourcingRecruiter' and current_user.role_type in TEAM_ASSIGNMENT_ROLES %}
+                        <form action="{{ url_for('organization_bp.remove_recruiter_from_team', team_id=team.TeamID) }}" method="POST">
+                            <input type="hidden" name="recruiter_staff_id" value="{{ member.StaffID }}">
+                            <button type="submit" class="btn btn-secondary-outline text-danger hover:bg-danger-light">Remove</button>
+                        </form>
+                        {% endif %}
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-text-secondary">This team has no members assigned.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Team Settings -->
+        <div class="space-y-8">
+            <!-- Team Lead Card -->
+            {% if current_user.role_type in UNIT_AND_ORG_MANAGEMENT_ROLES %}
+            <div class="bg-card shadow rounded-lg p-6">
+                <h3 class="text-lg font-medium text-heading">Team Lead</h3>
+                <p class="mt-1 text-base text-primary">{{ team.LeadFirstName or "None" }} {{ team.LeadLastName or "" }}</p>
+                
+                <form action="{{ url_for('organization_bp.assign_team_lead') }}" method="POST" class="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
+                    <input type="hidden" name="team_id" value="{{ team.TeamID }}">
+                    <div>
+                        <label for="lead_staff_id" class="form-label text-sm">Change Lead</label>
+                        <select name="lead_staff_id" id="lead_staff_id" class="form-input" required>
+                            <option value="">Select new lead...</option>
+                            {% for lead in potential_team_leads %}
+                                <option value="{{ lead.StaffID }}" {% if team.TeamLeadStaffID == lead.StaffID %}selected{% endif %}>{{ lead.FullName }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </li>
+                    <button type="submit" class="btn btn-primary w-full">Assign Lead</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Danger Zone Card -->
+            {% if current_user.role_type in UNIT_AND_ORG_MANAGEMENT_ROLES %}
+            <div class="bg-card shadow rounded-lg p-6 border border-yellow-500/50">
+                <h3 class="text-lg font-medium text-yellow-500">Team Status</h3>
+                <div class="mt-4 space-y-2">
+                {% if team.IsActive %}
+                    <div x-data="{ modalOpen: false }">
+                        <button @click="modalOpen = true" class="btn btn-warning-outline w-full">Deactivate Team</button>
+                        {% with modal_id='deactivate-team-'~team.TeamID, action_url=url_for('organization_bp.deactivate_team', team_id=team.TeamID), danger_level='warning', modal_title='Deactivate ' ~ team.TeamName ~ '?', modal_body='This will unassign all staff and make the team inactive. Are you sure?', button_text='Deactivate' %}{% include 'recruiter_team_portal/partials/_confirmation_modal.html' %}{% endwith %}
+                    </div>
                 {% else %}
-                <li class="p-6 text-center text-text-secondary">This team has no members.</li>
-                {% endfor %}
-            </ul>
+                    <form action="{{ url_for('organization_bp.activate_team', team_id=team.TeamID) }}" method="POST">
+                        <button type="submit" class="btn btn-success-outline w-full">Reactivate Team</button>
+                    </form>
+                    {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
+                    <div x-data="{ modalOpen: false }">
+                        <button @click="modalOpen = true" class="btn btn-danger-outline w-full mt-4">Delete Permanently</button>
+                        {% with modal_id='delete-team-'~team.TeamID, action_url=url_for('organization_bp.delete_team', team_id=team.TeamID), danger_level='danger', modal_title='Permanently Delete ' ~ team.TeamName ~ '?', modal_body='This action is irreversible. The team must be inactive. Are you sure?', button_text='Delete Permanently' %}{% include 'recruiter_team_portal/partials/_confirmation_modal.html' %}{% endwith %}
+                    </div>
+                    {% endif %}
+                {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

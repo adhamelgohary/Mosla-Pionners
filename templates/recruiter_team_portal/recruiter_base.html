@@ -27,17 +27,18 @@
                             <div class="ml-10 flex items-baseline space-x-4">
                                 <a href="{{ url_for('dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.dashboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Dashboard</a>
                                 
-                                <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
+                                <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
 
                                 <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'jobs_bp.my_referred_applications' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Referrals</a>
                                 
                                 <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.team_leaderboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Leaderboard</a>
         
-                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                                    <a href="{{ url_for('organization_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'team_view' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Team</a>
+                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                                    {# THIS IS THE UPDATED LINK #}
+                                    <a href="{{ url_for('organization_bp.manage_organization_entry') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'organization_bp' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Organization</a>
                                 {% endif %}
                                 
-                                {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
+                                {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
                                 <div x-data="{ adminMenuOpen: false }" @click.away="adminMenuOpen = false" class="relative">
                                     <button @click="adminMenuOpen = !adminMenuOpen" class="inline-flex items-center gap-x-1 px-3 py-2 rounded-md text-sm font-medium text-white/80 hover:bg-primary-darker hover:text-white">
                                         <span>Admin Tools</span>
@@ -49,7 +50,7 @@
                                         class="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
                                         <div class="py-1">
                                             <a href="{{ url_for('staff_bp.manage_recruiters') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Manage Recruiters</a>
-                                            {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+                                            {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
                                             <a href="{{ url_for('organization_bp.list_units') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Organization Management</a>
                                             <a href="{{ url_for('staff_bp.list_pending_staff') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Pending Registrations</a>
                                             {% endif %}
@@ -60,6 +61,7 @@
                             </div>
                         </div>
                     </div>
+                     {# ... rest of the file is the same ... #}
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
                             <div class="relative ml-3" x-data="{ profileMenuOpen: false }" @click.away="profileMenuOpen = false">
@@ -89,20 +91,18 @@
             <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Dashboard</a>
-                    
                     <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Job Offers</a>
-
                     <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Referrals</a>
                     <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Leaderboard</a>
                     
-                    {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                        <a href="{{ url_for('organization_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Team</a>
+                    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+                        <a href="{{ url_for('organization_bp.manage_organization_entry') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Organization</a>
                     
                         <div class="border-t border-primary-darker pt-4 mt-4">
                             <h3 class="px-3 text-xs font-semibold uppercase text-white/60">Admin Tools</h3>
                             <div class="mt-1 space-y-1">
                                 <a href="{{ url_for('staff_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Recruiters</a>
-                                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+                                {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
                                 <a href="{{ url_for('organization_bp.list_units') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Organization</a>
                                 <a href="{{ url_for('staff_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Pending Registrations</a>
                                 {% endif %}

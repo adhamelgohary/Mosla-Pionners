@@ -365,6 +365,60 @@ def deactivate_unit(unit_id):
     finally: conn.close()
     return redirect(url_for('organization_bp.list_units'))
 
+
+@organization_bp.route('/team/<int:team_id>/remove-member', methods=['POST'])
+@login_required_with_role(TEAM_ASSIGNMENT_ROLES)
+def remove_recruiter_from_team(team_id):
+    recruiter_staff_id = request.form.get('recruiter_staff_id')
+    viewer_staff_id = getattr(current_user, 'specific_role_id', None)
+    viewer_role = getattr(current_user, 'role_type', None)
+
+    if not recruiter_staff_id:
+        flash("Recruiter ID was not provided.", "danger")
+        return redirect(url_for('organization_bp.manage_team', team_id=team_id))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        is_authorized = False
+
+        # Highest-level roles can always perform the action
+        if viewer_role in ORG_MANAGEMENT_ROLES:
+            is_authorized = True
+        # Unit Managers can only manage teams within their unit
+        elif viewer_role == 'UnitManager':
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (viewer_staff_id,))
+            manager_unit = cursor.fetchone()
+            cursor.execute("SELECT UnitID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
+            target_team_unit = cursor.fetchone()
+            if manager_unit and target_team_unit and manager_unit['UnitID'] == target_team_unit['UnitID']:
+                is_authorized = True
+        # Team Leads can only manage their own team
+        elif viewer_role == 'SourcingTeamLead':
+            cursor.execute("SELECT TeamID FROM Staff WHERE StaffID = %s", (viewer_staff_id,))
+            leader_team = cursor.fetchone()
+            if leader_team and str(leader_team['TeamID']) == str(team_id):
+                is_authorized = True
+
+        if not is_authorized:
+            flash("You are not authorized to remove members from this team.", "danger")
+            return redirect(url_for('organization_bp.manage_team', team_id=team_id))
+
+        # Perform the update
+        cursor.execute("UPDATE Staff SET TeamID = NULL, ReportsToStaffID = NULL WHERE StaffID = %s AND TeamID = %s", (recruiter_staff_id, team_id))
+        conn.commit()
+        flash("Recruiter has been successfully removed from the team.", "success")
+
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error removing recruiter {recruiter_staff_id} from team {team_id}: {e}", exc_info=True)
+        flash("An error occurred while removing the recruiter.", "danger")
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+        
+    return redirect(url_for('organization_bp.manage_team', team_id=team_id))
+
 @organization_bp.route('/unit/<int:unit_id>/activate', methods=['POST'])
 @login_required_with_role(ORG_MANAGEMENT_ROLES)
 def activate_unit(unit_id):
