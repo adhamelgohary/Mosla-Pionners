@@ -111,7 +111,9 @@
                     <form action="{{ url_for('organization_bp.activate_team', team_id=team.TeamID) }}" method="POST">
                         <button type="submit" class="btn btn-success-outline w-full">Reactivate Team</button>
                     </form>
-                    {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
+                    
+                    {# --- THIS IS THE CHANGED LINE --- #}
+                    {% if current_user.role_type in UNIT_AND_ORG_MANAGEMENT_ROLES %}
                     <div x-data="{ modalOpen: false }">
                         <button @click="modalOpen = true" class="btn btn-danger-outline w-full mt-4">Delete Permanently</button>
                         {% with modal_id='delete-team-'~team.TeamID, action_url=url_for('organization_bp.delete_team', team_id=team.TeamID), danger_level='danger', modal_title='Permanently Delete ' ~ team.TeamName ~ '?', modal_body='This action is irreversible. The team must be inactive. Are you sure?', button_text='Delete Permanently' %}{% include 'recruiter_team_portal/partials/_confirmation_modal.html' %}{% endwith %}
