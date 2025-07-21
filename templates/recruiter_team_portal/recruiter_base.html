@@ -27,15 +27,14 @@
                             <div class="ml-10 flex items-baseline space-x-4">
                                 <a href="{{ url_for('dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.dashboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Dashboard</a>
                                 
-                                <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
+                                <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'jobs_bp.' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
 
                                 <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'jobs_bp.my_referred_applications' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Referrals</a>
                                 
                                 <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.team_leaderboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Leaderboard</a>
         
                                 {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
-                                    {# THIS IS THE UPDATED LINK #}
-                                    <a href="{{ url_for('organization_bp.manage_organization_entry') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'organization_bp' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Organization</a>
+                                    <a href="{{ url_for('organization_bp.manage_organization_entry') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'organization_bp.' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Organization</a>
                                 {% endif %}
                                 
                                 {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
@@ -61,7 +60,6 @@
                             </div>
                         </div>
                     </div>
-                     {# ... rest of the file is the same ... #}
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
                             <div class="relative ml-3" x-data="{ profileMenuOpen: false }" @click.away="profileMenuOpen = false">

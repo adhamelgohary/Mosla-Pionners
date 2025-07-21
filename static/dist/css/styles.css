@@ -2715,6 +2715,10 @@ html[data-theme="dark"] {
   max-width: 80rem;
 }
 
+.max-w-lg {
+  max-width: 32rem;
+}
+
 .max-w-md {
   max-width: 28rem;
 }
@@ -3078,11 +3082,6 @@ html[data-theme="dark"] {
   border-color: var(--border-color);
 }
 
-.divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
-  --tw-divide-opacity: 1;
-  border-color: rgb(243 244 246 / var(--tw-divide-opacity, 1));
-}
-
 .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
   --tw-divide-opacity: 1;
   border-color: rgb(229 231 235 / var(--tw-divide-opacity, 1));
@@ -3403,6 +3402,10 @@ html[data-theme="dark"] {
 .border-yellow-400 {
   --tw-border-opacity: 1;
   border-color: rgb(250 204 21 / var(--tw-border-opacity, 1));
+}
+
+.border-yellow-500\/50 {
+  border-color: rgb(234 179 8 / 0.5);
 }
 
 .bg-alert-danger-bg {
@@ -4073,10 +4076,6 @@ html[data-theme="dark"] {
   font-weight: 500;
 }
 
-.font-normal {
-  font-weight: 400;
-}
-
 .font-semibold {
   font-weight: 600;
 }
@@ -4095,10 +4094,6 @@ html[data-theme="dark"] {
 
 .italic {
   font-style: italic;
-}
-
-.leading-4 {
-  line-height: 1rem;
 }
 
 .leading-5 {
@@ -4480,6 +4475,11 @@ html[data-theme="dark"] {
 .text-yellow-400 {
   --tw-text-opacity: 1;
   color: rgb(250 204 21 / var(--tw-text-opacity, 1));
+}
+
+.text-yellow-500 {
+  --tw-text-opacity: 1;
+  color: rgb(234 179 8 / var(--tw-text-opacity, 1));
 }
 
 .text-yellow-600 {
@@ -5583,6 +5583,10 @@ body {
     margin-left: 4rem;
   }
 
+  .sm\:ml-4 {
+    margin-left: 1rem;
+  }
+
   .sm\:mt-0 {
     margin-top: 0px;
   }
@@ -5679,6 +5683,10 @@ body {
     flex-wrap: wrap;
   }
 
+  .sm\:items-end {
+    align-items: flex-end;
+  }
+
   .sm\:items-center {
     align-items: center;
   }
@@ -5701,6 +5709,12 @@ body {
 
   .sm\:gap-6 {
     gap: 1.5rem;
+  }
+
+  .sm\:space-x-4 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-x-reverse: 0;
+    margin-right: calc(1rem * var(--tw-space-x-reverse));
+    margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
   }
 
   .sm\:divide-y > :not([hidden]) ~ :not([hidden]) {
@@ -5884,10 +5898,6 @@ body {
 
   .md\:block {
     display: block;
-  }
-
-  .md\:flex {
-    display: flex;
   }
 
   .md\:table {
