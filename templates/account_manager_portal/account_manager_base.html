@@ -16,64 +16,96 @@
 </head>
 <body class="h-full font-sans text-text">
     <div class="min-h-full">
-        <!-- Main Navigation Bar -->
-        <nav class="bg-card border-b border-border sticky top-0 z-50" x-data="{ open: false, profileMenuOpen: false }">
+        <!-- [REDESIGNED] Main Navigation Bar -->
+        <nav class="bg-card border-b border-border" x-data="{ mobileMenuOpen: false, managementMenuOpen: false, profileMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
+                    <!-- Logo & Main Links -->
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
                             <h1 class="text-lg font-bold text-heading">AM Portal</h1>
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-1">
-                                <a href="{{ url_for('account_manager_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Dashboard</a>
-                                <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
-                                <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
+                                <a href="{{ url_for('account_manager_bp.dashboard') }}" class="flex items-center gap-x-2 px-3 py-2 rounded-md text-sm font-medium {% if request.endpoint == 'account_manager_bp.dashboard' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
+                                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                                </a>
+                                <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="flex items-center gap-x-2 px-3 py-2 rounded-md text-sm font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
+                                    <i class="bi bi-person-workspace"></i> My Portfolio
+                                </a>
+                                <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="flex items-center gap-x-2 px-3 py-2 rounded-md text-sm font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">
+                                    <i class="bi bi-calendar2-week"></i> Interview Pipeline
+                                </a>
                                 
+                                <!-- Management Dropdown -->
                                 {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
                                 {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
-                                <a href="{{ url_for('account_manager_bp.my_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
-                                <!-- [NEW] Link to the All Companies overview page -->
-                                <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.all_companies_overview' else 'text-text-muted hover:bg-background hover:text-text' }}">All Companies</a>
-                                <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
-                                <a href="{{ url_for('am_org_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
+                                <div class="relative" @click.away="managementMenuOpen = false">
+                                    <button @click="managementMenuOpen = !managementMenuOpen" class="flex items-center gap-x-2 px-3 py-2 rounded-md text-sm font-medium text-text-muted hover:bg-background hover:text-text">
+                                        <i class="bi bi-gear-fill"></i> Management <i class="bi bi-chevron-down text-xs ml-1 transition-transform" :class="{'rotate-180': managementMenuOpen}"></i>
+                                    </button>
+                                    <div x-show="managementMenuOpen" x-transition x-collapse class="absolute left-0 mt-2 w-48 origin-top-left rounded-md bg-card py-1 shadow-lg ring-1 ring-border focus:outline-none">
+                                        <a href="{{ url_for('account_manager_bp.my_staff') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background hover:text-text {{ 'text-primary' if request.endpoint == 'account_manager_bp.my_staff' }}">My Staff</a>
+                                        <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background hover:text-text {{ 'text-primary' if request.endpoint == 'account_manager_bp.all_companies_overview' }}">All Companies</a>
+                                        <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background hover:text-text {{ 'text-primary' if request.blueprint == 'am_offer_mgmt_bp' }}">Offer Management</a>
+                                        <a href="{{ url_for('am_org_bp.organization_management') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background hover:text-text {{ 'text-primary' if request.blueprint == 'am_org_bp' }}">AM Organization</a>
+                                    </div>
+                                </div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                    <div class="hidden md:block">
-                         <div class="ml-4 flex items-center md:ml-6">
-                            <span class="text-sm text-text-muted mr-4">Welcome, {{ current_user.first_name }}!</span>
-                            <a href="{{ url_for('login_bp.logout') }}" class="px-3 py-2 rounded-md text-sm font-medium text-text-muted hover:bg-background hover:text-text">Logout</a>
+
+                    <!-- Profile Dropdown & Mobile Menu Button -->
+                    <div class="flex items-center">
+                        <div class="hidden md:block">
+                            <div class="relative ml-4" @click.away="profileMenuOpen = false">
+                                <button @click="profileMenuOpen = !profileMenuOpen" class="flex max-w-xs items-center rounded-full bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background">
+                                    <span class="sr-only">Open user menu</span>
+                                    <img class="h-8 w-8 rounded-full object-cover" src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='images/default-profile.png') }}" alt="">
+                                </button>
+                                <div x-show="profileMenuOpen" x-transition x-collapse class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-border focus:outline-none">
+                                    <div class="px-4 py-2 border-b border-border">
+                                        <p class="text-sm font-medium text-heading">{{ current_user.first_name }}</p>
+                                        <p class="text-xs text-text-muted">{{ current_user.role_type }}</p>
+                                    </div>
+                                    <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background hover:text-text">Logout</a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="-mr-2 flex md:hidden">
-                        <button @click="open = !open" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-text focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card" aria-controls="mobile-menu" aria-expanded="false">
-                            <span class="sr-only">Open main menu</span>
-                            <i class="bi text-xl" :class="{ 'bi-x': open, 'bi-list': !open }"></i>
-                        </button>
+                        <div class="-mr-2 flex md:hidden">
+                            <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-text focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card" aria-controls="mobile-menu" aria-expanded="false">
+                                <span class="sr-only">Open main menu</span>
+                                <i class="bi text-xl" :class="{ 'bi-x': mobileMenuOpen, 'bi-list': !mobileMenuOpen }"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Mobile Menu Implementation -->
-            <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
+            <!-- Mobile Menu -->
+            <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('account_manager_bp.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Dashboard</a>
                     <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
                     <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
-                    
-                    {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
-                    {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
-                    <a href="{{ url_for('account_manager_bp.my_staff') }}" class="block px-3 py-2 rounded-md text-base font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
-                    <!-- [NEW] Link to the All Companies overview page for mobile -->
-                    <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="block px-3 py-2 rounded-md text-base font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.all_companies_overview' else 'text-text-muted hover:bg-background hover:text-text' }}">All Companies</a>
-                    <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
-                    <a href="{{ url_for('am_org_bp.organization_management') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
-                    {% endif %}
                 </div>
+                <!-- Mobile Management Links -->
+                {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
+                <div class="border-t border-border pt-4 pb-3">
+                    <div class="px-3 mb-2"><p class="text-xs font-semibold uppercase text-text-muted">Management</p></div>
+                    <a href="{{ url_for('account_manager_bp.my_staff') }}" class="block px-3 py-2 rounded-md text-base font-medium text-text-muted hover:bg-background hover:text-text">My Staff</a>
+                    <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="block px-3 py-2 rounded-md text-base font-medium text-text-muted hover:bg-background hover:text-text">All Companies</a>
+                    <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="block px-3 py-2 rounded-md text-base font-medium text-text-muted hover:bg-background hover:text-text">Offer Management</a>
+                    <a href="{{ url_for('am_org_bp.organization_management') }}" class="block px-3 py-2 rounded-md text-base font-medium text-text-muted hover:bg-background hover:text-text">AM Organization</a>
+                </div>
+                {% endif %}
+                <!-- Mobile Profile Info -->
                 <div class="border-t border-border pt-4 pb-3">
                     <div class="flex items-center px-5">
+                        <div class="flex-shrink-0">
+                            <img class="h-10 w-10 rounded-full object-cover" src="{{ url_for('static', filename=current_user.profile_picture_url) if current_user.profile_picture_url else url_for('static', filename='images/default-profile.png') }}" alt="">
+                        </div>
                         <div class="ml-3">
                             <div class="text-base font-medium text-heading">{{ current_user.first_name }} {{ current_user.last_name }}</div>
                             <div class="text-sm font-medium text-text-muted">{{ current_user.role_type }}</div>
@@ -87,7 +119,7 @@
         </nav>
 
         <!-- Page Header -->
-        <header class="bg-card border-b border-border">
+        <header class="bg-card shadow-sm">
             <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
                 <h1 class="text-xl sm:text-2xl font-bold leading-6 text-heading flex items-center gap-x-3">
                     {% block page_title %}{{ title|default('Dashboard') }}{% endblock %}
@@ -96,7 +128,7 @@
         </header>
 
         <!-- Main Content Area -->
-        <main>
+        <main class="bg-background">
             <div class="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
                 {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="space-y-4 mb-6">{% for category, message in messages %}{% set color_classes = {'success': 'bg-success/10 border-success/20 text-success-700', 'danger': 'bg-danger/10 border-danger/20 text-danger-700', 'warning': 'bg-warning/10 border-warning/20 text-warning-700', 'info': 'bg-primary/10 border-primary/20 text-primary-700'} %}<div class="border-l-4 p-4 rounded-r-md {{ color_classes.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}"><p>{{ message }}</p></div>{% endfor %}</div>{% endif %}{% endwith %}
                 {% block content %}{% endblock %}

@@ -2256,10 +2256,6 @@ html[data-theme="dark"] {
   right: 0px;
 }
 
-.top-0 {
-  top: 0px;
-}
-
 .top-24 {
   top: 6rem;
 }
@@ -4263,6 +4259,11 @@ html[data-theme="dark"] {
   color: rgb(var(--primary-color-rgb) / 0.8);
 }
 
+.text-purple-600 {
+  --tw-text-opacity: 1;
+  color: rgb(147 51 234 / var(--tw-text-opacity, 1));
+}
+
 .text-purple-700 {
   --tw-text-opacity: 1;
   color: rgb(126 34 206 / var(--tw-text-opacity, 1));
@@ -5323,6 +5324,10 @@ body {
   --tw-ring-offset-width: 2px;
 }
 
+.focus\:ring-offset-background:focus {
+  --tw-ring-offset-color: var(--background-color);
+}
+
 .focus\:ring-offset-card:focus {
   --tw-ring-offset-color: var(--card-bg);
 }
@@ -6235,6 +6240,11 @@ body {
 .dark\:text-purple-300:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(216 180 254 / var(--tw-text-opacity, 1));
+}
+
+.dark\:text-purple-400:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-text-opacity: 1;
+  color: rgb(192 132 252 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-red-300:where([data-theme="dark"], [data-theme="dark"] *) {

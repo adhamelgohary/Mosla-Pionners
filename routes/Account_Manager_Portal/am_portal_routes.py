@@ -136,19 +136,29 @@ def dashboard():
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE ManagedByStaffID = %s", (staff_id,))
         dashboard_data['managed_companies_count'] = cursor.fetchone()['count']
+        
         cursor.execute("SELECT COUNT(*) as count FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND jo.Status = 'Open'", (staff_id,))
         dashboard_data['open_offers_count'] = cursor.fetchone()['count']
-        cursor.execute("SELECT COUNT(ja.ApplicationID) as count FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND ja.Status = 'Shortlisted'", (staff_id,))
+        
+        # [MODIFIED] This query now correctly counts all applications in the interview pipeline (Shortlisted AND Interview Scheduled)
+        cursor.execute("""
+            SELECT COUNT(ja.ApplicationID) as count 
+            FROM JobApplications ja 
+            JOIN JobOffers jo ON ja.OfferID = jo.OfferID 
+            JOIN Companies c ON jo.CompanyID = c.CompanyID 
+            WHERE c.ManagedByStaffID = %s AND ja.Status IN ('Shortlisted', 'Interview Scheduled')
+        """, (staff_id,))
         dashboard_data['pending_interview_scheduling_count'] = cursor.fetchone()['count']
+        
         cursor.execute("SELECT c.CompanyID, c.CompanyName, c.CompanyLogoURL, (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs FROM Companies c WHERE ManagedByStaffID = %s ORDER BY CompanyName", (staff_id,))
         dashboard_data['managed_companies_list'] = cursor.fetchall()
+        
         cursor.execute("SELECT u.FirstName, u.LastName, jo.Title as JobTitle, ja.ApplicationDate, ja.ApplicationID, comp.CompanyName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE comp.ManagedByStaffID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC LIMIT 5", (staff_id,))
         dashboard_data['recent_applicants'] = cursor.fetchall()
     finally:
         if conn and conn.is_connected(): conn.close()
             
     return render_template('account_manager_portal/dashboard.html', title="Account Manager Dashboard", dashboard_data=dashboard_data)
-
 
 @account_manager_bp.route('/interview-pipeline')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)

@@ -1,93 +1,117 @@
 {# templates/account_manager_portal/dashboard.html #}
 {% extends "account_manager_portal/account_manager_base.html" %}
 
+{% block page_title %}
+    <i class="bi bi-grid-1x2-fill text-text-muted"></i>
+    <span>Dashboard</span>
+{% endblock %}
+
 {% block content %}
-<!-- [UPDATED] Responsive Bento Grid Layout -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- [REDESIGNED] Dashboard Layout -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-    <!-- Main Widget: Company Portfolio (Spans full width on mobile/tablet) -->
-    <div class="md:col-span-2 lg:col-span-2 lg:row-span-2 bg-card rounded-lg border border-border shadow-sm flex flex-col">
-        <div class="px-5 py-4 border-b border-border">
-            <h3 class="text-base font-semibold text-heading">My Company Portfolio</h3>
-            <p class="text-sm text-text-muted mt-1">Companies you directly manage.</p>
+    <!-- Left Column: Main Stats -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Stat Card: Managed Companies -->
+        <div class="bg-card rounded-lg border border-border shadow-sm p-5">
+            <div class="flex items-center gap-4">
+                <div class="rounded-lg bg-blue-100 dark:bg-blue-900/50 p-3 flex items-center justify-center">
+                    <i class="bi bi-building text-blue-600 dark:text-blue-400 text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-text-muted">Managed Companies</p>
+                    <p class="mt-1 text-2xl font-semibold tracking-tight text-heading">{{ dashboard_data.get('managed_companies_count', 0) }}</p>
+                </div>
+            </div>
         </div>
-        <div class="flex-grow overflow-y-auto">
-            <ul class="divide-y divide-border">
-                {% for company in dashboard_data.managed_companies_list %}
-                <li class="flex items-center justify-between p-4 hover:bg-background">
-                    <div class="flex items-center gap-4">
-                        <img class="h-10 w-10 rounded-full object-contain bg-white ring-1 ring-border" src="{{ url_for('static', filename=company.CompanyLogoURL) if company.CompanyLogoURL else url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }} Logo">
-                        <div>
-                            <p class="font-semibold text-heading">{{ company.CompanyName }}</p>
-                            <p class="text-xs text-text-muted">{{ company.OpenJobs }} open job(s)</p>
+        <!-- Stat Card: Open Job Offers -->
+        <div class="bg-card rounded-lg border border-border shadow-sm p-5">
+            <div class="flex items-center gap-4">
+                <div class="rounded-lg bg-green-100 dark:bg-green-900/50 p-3 flex items-center justify-center">
+                    <i class="bi bi-briefcase-fill text-green-600 dark:text-green-400 text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-text-muted">Open Job Offers</p>
+                    <p class="mt-1 text-2xl font-semibold tracking-tight text-heading">{{ dashboard_data.get('open_offers_count', 0) }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Stat Card: Pending Scheduling -->
+        <div class="bg-card rounded-lg border border-border shadow-sm p-5">
+            <div class="flex items-center gap-4">
+                <div class="rounded-lg bg-purple-100 dark:bg-purple-900/50 p-3 flex items-center justify-center">
+                    <i class="bi bi-person-check-fill text-purple-600 dark:text-purple-400 text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-text-muted">Pending Interviews</p>
+                    <p class="mt-1 text-2xl font-semibold tracking-tight text-heading">{{ dashboard_data.get('pending_interview_scheduling_count', 0) }}</p>
+                </div>
+            </div>
+             <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="text-xs font-semibold text-primary hover:underline mt-4 block">View Pipeline →</a>
+        </div>
+    </div>
+
+    <!-- Right Column: Main Lists -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Widget: Company Portfolio -->
+        <div class="bg-card rounded-lg border border-border shadow-sm flex flex-col h-full">
+            <div class="px-5 py-4 border-b border-border">
+                <h3 class="text-base font-semibold text-heading">My Company Portfolio</h3>
+                <p class="text-sm text-text-muted mt-1">Companies you directly manage.</p>
+            </div>
+            <div class="flex-grow overflow-y-auto p-2">
+                <ul class="divide-y divide-border">
+                    {% for company in dashboard_data.managed_companies_list %}
+                    <li class="flex items-center justify-between p-3 hover:bg-background rounded-md">
+                        <div class="flex items-center gap-4">
+                            <img class="h-10 w-10 rounded-full object-contain bg-white ring-1 ring-border" src="{{ url_for('static', filename=company.CompanyLogoURL) if company.CompanyLogoURL else url_for('static', filename='images/default-company.png') }}" alt="{{ company.CompanyName }} Logo">
+                            <div>
+                                <p class="font-semibold text-heading">{{ company.CompanyName }}</p>
+                                <span class="text-xs inline-flex items-center rounded-full px-2 py-0.5 font-medium bg-primary/10 text-primary">{{ company.OpenJobs }} open job(s)</span>
+                            </div>
                         </div>
-                    </div>
-                    <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary">
-                        Manage
-                    </a>
-                </li>
-                {% else %}
-                <li class="p-6 text-center text-text-muted">You do not have any companies assigned to your portfolio.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
-    <!-- Stat Card: Managed Companies -->
-    <div class="bg-card rounded-lg border border-border shadow-sm p-5 flex flex-col justify-between">
-        <div>
-            <div class="flex justify-between items-start">
-                <p class="text-sm font-medium text-text-muted">Managed Companies</p>
-                <div class="rounded-lg bg-primary/10 p-3 flex items-center justify-center">
-                    <i class="bi bi-building text-primary text-xl"></i>
-                </div>
-            </div>
-            <p class="mt-2 text-3xl font-semibold tracking-tight text-heading">{{ dashboard_data.get('managed_companies_count', 0) }}</p>
-        </div>
-    </div>
-
-    <!-- Stat Card: Open Job Offers -->
-    <div class="bg-card rounded-lg border border-border shadow-sm p-5 flex flex-col justify-between">
-        <div>
-            <div class="flex justify-between items-start">
-                <p class="text-sm font-medium text-text-muted">Open Job Offers</p>
-                <div class="rounded-lg bg-primary/10 p-3 flex items-center justify-center">
-                    <i class="bi bi-briefcase-fill text-primary text-xl"></i>
-                </div>
-            </div>
-            <p class="mt-2 text-3xl font-semibold tracking-tight text-heading">{{ dashboard_data.get('open_offers_count', 0) }}</p>
-        </div>
-    </div>
-
-    <!-- Widget: Recent Applicants (Spans full width on mobile/tablet) -->
-    <div class="md:col-span-2 lg:col-span-1 bg-card rounded-lg border border-border shadow-sm flex flex-col">
-        <div class="px-5 py-4 border-b border-border">
-            <h3 class="text-base font-semibold text-heading">Recent Applicants</h3>
-            <p class="text-sm text-text-muted mt-1">New candidates for your managed companies.</p>
-        </div>
-        <div class="flex-grow overflow-y-auto">
-            <ul class="divide-y divide-border">
-                {% for applicant in dashboard_data.recent_applicants %}
-                <li class="p-4 hover:bg-background">
-                    <p class="font-medium text-text">
-                        <!-- [MODIFIED] Link now points directly to the full review page -->
-                        <a href="{{ url_for('account_manager_bp.review_application_details', application_id=applicant.ApplicationID) }}" class="hover:text-primary">
-                            {{ applicant.FirstName }} {{ applicant.LastName }}
+                        <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary">
+                            Manage
                         </a>
-                    </p>
-                    <p class="text-xs text-text-muted">
-                        Applied for {{ applicant.JobTitle }}
-                    </p>
-                    <p class="text-xs text-text-muted mt-1">
-                        {{ applicant.ApplicationDate.strftime('%b %d, %Y') }}
-                    </p>
-                </li>
-                {% else %}
-                <li class="p-6 text-center text-text-muted">No new applicants to review.</li>
-                {% endfor %}
-            </ul>
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-text-muted">You do not have any companies assigned to your portfolio.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Widget: Recent Applicants -->
+        <div class="bg-card rounded-lg border border-border shadow-sm flex flex-col h-full">
+            <div class="px-5 py-4 border-b border-border">
+                <h3 class="text-base font-semibold text-heading">Recent Applicants</h3>
+                <p class="text-sm text-text-muted mt-1">New candidates for your managed companies.</p>
+            </div>
+            <div class="flex-grow overflow-y-auto p-2">
+                <ul class="divide-y divide-border">
+                    {% for applicant in dashboard_data.recent_applicants %}
+                    <li class="flex items-center justify-between p-3 hover:bg-background rounded-md">
+                        <div class="flex items-center gap-3">
+                            <img class="h-10 w-10 rounded-full object-cover" src="{{ url_for('static', filename='images/default-profile.png') }}" alt="">
+                            <div>
+                                <a href="{{ url_for('account_manager_bp.review_application_details', application_id=applicant.ApplicationID) }}" class="font-medium text-text hover:text-primary">
+                                    {{ applicant.FirstName }} {{ applicant.LastName }}
+                                </a>
+                                <p class="text-xs text-text-muted">
+                                    Applied for <strong>{{ applicant.JobTitle }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                         <a href="{{ url_for('account_manager_bp.review_application_details', application_id=applicant.ApplicationID) }}" class="btn-secondary">
+                            Review
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-text-muted">No new applicants to review.</li>
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
-
 </div>
 {% endblock %}
