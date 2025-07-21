@@ -66,12 +66,15 @@
 
     <!-- Right Column: Management Actions -->
     <div class="space-y-6">
+        {# CORRECTED THIS SECTION #}
+        {% if current_user.role_type in ['UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
         <div class="bg-card shadow-md rounded-lg p-6">
             <h3 class="text-lg font-semibold text-heading mb-4">Unit Actions</h3>
             <button @click="createTeamModal = true" class="btn btn-primary w-full">
                 <i class="bi bi-plus-circle"></i> Create New Team
             </button>
         </div>
+        {% endif %}
         
         <div class="bg-card shadow-md rounded-lg p-6">
             <h3 class="text-lg font-semibold text-heading mb-4">Assign Recruiter to a Team</h3>
