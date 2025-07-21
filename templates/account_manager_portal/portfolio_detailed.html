@@ -17,7 +17,8 @@
                     <h3 class="text-lg font-semibold text-heading">{{ company.CompanyName }}</h3>
                     <p class="text-sm text-text-muted">{{ company.Industry or 'No industry specified' }}</p>
                 </div>
-                <a href="{{ url_for('.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary w-full sm:w-auto">
+                <!-- [MODIFIED] Made url_for explicit for clarity -->
+                <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary w-full sm:w-auto">
                     View Company Details
                 </a>
             </div>
@@ -30,7 +31,8 @@
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <!-- Left Side: Title and Status -->
                     <div class="w-full sm:w-auto">
-                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-text hover:text-primary">{{ offer.Title }}</a>
+                        <!-- [MODIFIED] Made url_for explicit for clarity -->
+                        <a href="{{ url_for('account_manager_bp.view_offer_applicants', offer_id=offer.OfferID) }}" class="font-semibold text-text hover:text-primary">{{ offer.Title }}</a>
                         <div class="mt-1">
                             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset 
                                 {% if offer.Status == 'Open' %}bg-green-50 text-green-700 ring-green-600/20
@@ -45,7 +47,8 @@
                            <p class="text-2xl font-semibold text-heading">{{ offer.NewApplicantCount }}</p>
                            <p class="text-xs text-text-muted">New Applicant(s)</p>
                         </div>
-                        <a href="{{ url_for('.view_offer_applicants', offer_id=offer.OfferID) }}" class="btn-primary">
+                        <!-- [MODIFIED] Made url_for explicit for clarity -->
+                        <a href="{{ url_for('account_manager_bp.view_offer_applicants', offer_id=offer.OfferID) }}" class="btn-primary">
                             Review
                         </a>
                     </div>

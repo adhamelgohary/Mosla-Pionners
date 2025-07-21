@@ -1,6 +1,5 @@
 # routes/Agency_Staff_Portal/company_assignment_routes.py
 # PURPOSE: This module exclusively handles the assignment ACTION.
-# The staff list view is now handled by am_portal_routes.my_staff.
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from utils.decorators import login_required_with_role
@@ -26,7 +25,8 @@ def manage_assignments_for_am(manager_staff_id):
     """
     conn = None
     manager_details = None
-    MAX_TOTAL_COMPANIES_PER_AM = 5
+    # --- [MODIFIED] Increased the maximum number of companies an AM can be assigned ---
+    MAX_TOTAL_COMPANIES_PER_AM = 10
 
     try:
         conn = get_db_connection()

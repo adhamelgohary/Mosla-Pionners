@@ -70,7 +70,8 @@
                 {% for applicant in dashboard_data.recent_applicants %}
                 <li class="p-4 hover:bg-background">
                     <p class="font-medium text-text">
-                        <a href="#" @click.prevent="$dispatch('open-review-modal', { id: {{ applicant.ApplicationID }} })" class="hover:text-primary">
+                        <!-- [MODIFIED] Link now points directly to the full review page -->
+                        <a href="{{ url_for('account_manager_bp.review_application_details', application_id=applicant.ApplicationID) }}" class="hover:text-primary">
                             {{ applicant.FirstName }} {{ applicant.LastName }}
                         </a>
                     </p>

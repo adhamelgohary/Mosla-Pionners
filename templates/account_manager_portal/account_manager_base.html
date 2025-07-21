@@ -30,9 +30,11 @@
                                 <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
                                 <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
                                 
-                                {% set AM_ORG_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
-                                {% if current_user.role_type in AM_ORG_MANAGEMENT_ROLES %}
+                                {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
+                                {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
                                 <a href="{{ url_for('account_manager_bp.my_staff') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
+                                <!-- [NEW] Link to the All Companies overview page -->
+                                <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.all_companies_overview' else 'text-text-muted hover:bg-background hover:text-text' }}">All Companies</a>
                                 <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
                                 <a href="{{ url_for('am_org_bp.organization_management') }}" class="px-3 py-2 rounded-md text-sm font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
                                 {% endif %}
@@ -54,16 +56,18 @@
                 </div>
             </div>
             
-            <!-- [NEW] Mobile Menu Implementation -->
+            <!-- Mobile Menu Implementation -->
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
                     <a href="{{ url_for('account_manager_bp.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'dashboard' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Dashboard</a>
                     <a href="{{ url_for('account_manager_bp.my_portfolio') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'portfolio' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">My Portfolio</a>
                     <a href="{{ url_for('account_manager_bp.interview_pipeline') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if 'interview_pipeline' in request.endpoint %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Interview Pipeline</a>
                     
-                    {% set AM_ORG_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
-                    {% if current_user.role_type in AM_ORG_MANAGEMENT_ROLES %}
+                    {% set STAFF_MANAGEMENT_ROLES = ['HeadAccountManager', 'CEO', 'Founder'] %}
+                    {% if current_user.role_type in STAFF_MANAGEMENT_ROLES %}
                     <a href="{{ url_for('account_manager_bp.my_staff') }}" class="block px-3 py-2 rounded-md text-base font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.my_staff' else 'text-text-muted hover:bg-background hover:text-text' }}">My Staff</a>
+                    <!-- [NEW] Link to the All Companies overview page for mobile -->
+                    <a href="{{ url_for('account_manager_bp.all_companies_overview') }}" class="block px-3 py-2 rounded-md text-base font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'account_manager_bp.all_companies_overview' else 'text-text-muted hover:bg-background hover:text-text' }}">All Companies</a>
                     <a href="{{ url_for('am_offer_mgmt_bp.list_all_job_offers') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_offer_mgmt_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">Offer Management</a>
                     <a href="{{ url_for('am_org_bp.organization_management') }}" class="block px-3 py-2 rounded-md text-base font-medium {% if request.blueprint == 'am_org_bp' %}bg-primary/10 text-primary font-semibold{% else %}text-text-muted hover:bg-background hover:text-text{% endif %}">AM Organization</a>
                     {% endif %}

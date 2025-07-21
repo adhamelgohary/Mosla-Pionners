@@ -1,0 +1,83 @@
+{# templates/account_manager_portal/all_companies_overview.html #}
+{% extends "account_manager_portal/account_manager_base.html" %}
+
+{% block page_title %}
+    <i class="bi bi-buildings-fill text-text-muted"></i>
+    <span>All Companies Overview</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div class="sm:flex-auto">
+            <h1 class="text-xl font-semibold text-heading">All Companies</h1>
+            <p class="mt-1 text-sm text-text-muted">A master list of every company in the system, their assigned manager, and open job counts.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <a href="{{ url_for('am_offer_mgmt_bp.staff_direct_create_job_offer') }}" class="btn-primary">
+                <i class="bi bi-plus-lg -ml-1 mr-2"></i>
+                Create New Offer
+            </a>
+        </div>
+    </div>
+
+    <!-- Companies Table -->
+    <div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-border">
+                <thead class="bg-background/50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-heading sm:pl-6">Company</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-heading">Assigned Manager</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-heading">Open Jobs</th>
+                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-right font-semibold text-heading">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border bg-card">
+                    {% for company in companies %}
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                            <div class="font-medium text-heading">{{ company.CompanyName }}</div>
+                            <div class="text-text-muted">{{ company.Industry or 'N/A' }}</div>
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-text-muted">
+                            {% if company.ManagerStaffID %}
+                                {{ company.ManagerFirstName }} {{ company.ManagerLastName }}
+                            {% else %}
+                                <span class="text-warning-600 font-medium">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-text-muted text-center">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
+                                {{ company.OpenJobsCount }}
+                            </span>
+                        </td>
+                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                            <div class="flex items-center justify-end gap-x-3">
+                                <a href="{{ url_for('account_manager_bp.view_single_company', company_id=company.CompanyID) }}" class="btn-secondary">View</a>
+                                
+                                {# Logic for the primary action button #}
+                                {% if company.ManagerStaffID %}
+                                    {# If assigned, the action is to manage assignments for that specific manager #}
+                                    <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=company.ManagerStaffID) }}" class="btn-primary">Manage</a>
+                                {% else %}
+                                    {# If unassigned, direct user to the staff list to pick a manager #}
+                                    <a href="{{ url_for('account_manager_bp.my_staff') }}" class="btn-primary">Assign</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-12 px-6">
+                            <p class="text-text-muted">No companies have been added to the system yet.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

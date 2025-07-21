@@ -216,6 +216,48 @@ def my_staff():
         if conn and conn.is_connected(): conn.close()
     return render_template('account_manager_portal/my_staff.html', title="My Staff - Account Managers", staff_list=staff_list)
 
+# --- [NEW ROUTE] Master view for Head AMs to see all companies ---
+@account_manager_bp.route('/all-companies')
+@login_required_with_role(STAFF_MANAGEMENT_ROLES)
+def all_companies_overview():
+    """
+    Provides a master view for senior management to see all companies
+    and their assigned managers.
+    """
+    conn = get_db_connection()
+    all_companies_list = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT 
+                c.CompanyID, c.CompanyName, c.Industry,
+                s.StaffID AS ManagerStaffID,
+                u.FirstName AS ManagerFirstName,
+                u.LastName AS ManagerLastName,
+                (SELECT COUNT(*) FROM JobOffers jo WHERE jo.CompanyID = c.CompanyID AND jo.Status = 'Open') AS OpenJobsCount
+            FROM Companies c
+            LEFT JOIN Staff s ON c.ManagedByStaffID = s.StaffID
+            LEFT JOIN Users u ON s.UserID = u.UserID
+            ORDER BY c.CompanyName;
+        """
+        cursor.execute(query)
+        all_companies_list = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching all companies overview: {e}", exc_info=True)
+        flash("An unexpected error occurred while loading the companies list.", "danger")
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    # NOTE: This route requires a new template: account_manager_portal/all_companies_overview.html
+    # This template should display a table of companies with columns for Company Name, Industry,
+    # Assigned Manager, Open Jobs, and Action links to view/manage the company.
+    return render_template('account_manager_portal/all_companies_overview.html',
+                           title="All Companies Overview",
+                           companies=all_companies_list)
+
+
 @account_manager_bp.route('/my-portfolio')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def my_portfolio():
