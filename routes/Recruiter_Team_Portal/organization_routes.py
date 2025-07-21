@@ -242,20 +242,42 @@ def create_unit():
 @organization_bp.route('/create-team', methods=['POST'])
 @login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES)
 def create_team():
-    team_name, unit_id = request.form.get('team_name'), request.form.get('unit_id')
+    team_name = request.form.get('team_name')
+    unit_id = request.form.get('unit_id')
+    
     if not team_name or not unit_id:
         flash("A Team Name and Unit context are required to create a team.", "danger")
-        return redirect(url_for('organization_bp.list_units'))
+        return redirect(request.referrer or url_for('organization_bp.list_units'))
+
     conn = get_db_connection()
+    cursor = None
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+
+        # Authorization Check: Unit Managers can only create teams in their own unit.
+        if current_user.role_type == 'UnitManager':
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (current_user.specific_role_id,))
+            managed_unit = cursor.fetchone()
+            if not managed_unit or str(managed_unit['UnitID']) != str(unit_id):
+                flash("You are not authorized to create a team in this unit.", "danger")
+                return redirect(url_for('dashboard_bp.dashboard'))
+
+        # Proceed with team creation
         cursor.execute("INSERT INTO SourcingTeams (TeamName, UnitID) VALUES (%s, %s)", (team_name, unit_id))
-        conn.commit(); flash(f"Team '{team_name}' was created successfully.", "success")
+        conn.commit()
+        flash(f"Team '{team_name}' was created successfully.", "success")
+
     except Exception as e:
-        current_app.logger.error(f"Error creating team '{team_name}' for unit {unit_id}: {e}")
-        flash(f"An error occurred while creating the team: {e}", "danger")
-    finally: conn.close()
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error creating team '{team_name}' in unit {unit_id}: {e}", exc_info=True)
+        flash("An error occurred while creating the team.", "danger")
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+            
     return redirect(url_for('organization_bp.manage_unit', unit_id=unit_id))
+
 
 @organization_bp.route('/assign-unit-manager', methods=['POST'])
 @login_required_with_role(ORG_MANAGEMENT_ROLES)

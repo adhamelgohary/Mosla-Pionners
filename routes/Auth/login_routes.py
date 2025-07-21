@@ -147,7 +147,7 @@ def login():
         elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
             return redirect(url_for('account_manager_bp.dashboard'))
         elif role in RECRUITER_PORTAL_ROLES:
-            return redirect(url_for('recruiter_bp.dashboard'))
+            return redirect(url_for('dashboard_bp.dashboard'))
         elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
         elif role == 'Candidate':
@@ -189,7 +189,7 @@ def login():
                     elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
                         return redirect(url_for('account_manager_bp.dashboard'))
                     elif role in RECRUITER_PORTAL_ROLES:
-                        return redirect(url_for('recruiter_bp.dashboard'))
+                        return redirect(url_for('dashboard_bp.dashboard'))
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
                     elif role == 'Candidate':
