@@ -14,7 +14,7 @@
     <div class="px-1">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <p class="text-sm text-text-muted">A dynamic ranking of the top sourcing team performers.</p>
-            <form method="GET" action="{{ url_for('.team_leaderboard') }}" class="w-full sm:w-auto">
+            <form method="GET" action="{{ url_for('dashboard_bp.team_leaderboard') }}" class="w-full sm:w-auto">
                 <label for="sort_by" class="sr-only">Sort by</label>
                 <select name="sort_by" id="sort_by" onchange="this.form.submit()" class="form-select w-full">
                     <option value="referrals_all_time" {% if current_sort == 'referrals_all_time' %}selected{% endif %}>Sort by All-Time Referrals</option>
@@ -26,17 +26,14 @@
         </div>
     </div>
 
-    <!-- Leaderboard Chart Container -->
     <div class="bg-card p-6 rounded-lg shadow border border-border">
         <h3 class="text-lg font-semibold text-heading">Top 10 Performers</h3>
         <div id="leaderboard-chart" class="mt-4"></div>
     </div>
     
-    <!-- Leaderboard Table/Card View -->
     <div class="bg-card rounded-lg shadow border border-border overflow-hidden">
         <h3 class="text-lg font-semibold text-heading px-6 py-4 border-b border-border">Full Leaderboard Rankings</h3>
         
-        <!-- [UPDATED] Desktop Table -->
         <table class="min-w-full divide-y divide-border hidden md:table">
              <thead class="bg-background">
                 <tr>
@@ -64,7 +61,6 @@
             </tbody>
         </table>
 
-        <!-- [NEW] Mobile Card View -->
         <div class="md:hidden divide-y divide-border">
             {% for member in leaderboard_data %}
             <div class="p-4">
@@ -99,7 +95,6 @@
 </div>
 
 <script>
-// Chart JS remains the same but will benefit from the responsive container
 document.addEventListener('DOMContentLoaded', function () {
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     const chartForeColor = isDarkMode ? '#d1d5db' : '#374151';

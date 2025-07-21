@@ -9,9 +9,8 @@
     <p class="mt-1 text-sm text-text-muted">A complete history of all job applications submitted using your referral code.</p>
 </div>
 
-<div x-data="{ isModalOpen: false, modalContentUrl: '', openModal(applicationId) { let urlTemplate = `{{ url_for('recruiter_bp.review_referred_application', application_id=999999) }}`; this.modalContentUrl = urlTemplate.replace('999999', applicationId); this.isModalOpen = true; } }" x-on:keydown.escape.window="isModalOpen = false">
+<div x-data="{ isModalOpen: false, modalContentUrl: '', openModal(applicationId) { let urlTemplate = `{{ url_for('jobs_bp.review_referred_application', application_id=999999) }}`; this.modalContentUrl = urlTemplate.replace('999999', applicationId); this.isModalOpen = true; } }" x-on:keydown.escape.window="isModalOpen = false">
     
-    <!-- [UPDATED] Desktop Table View (hidden on small screens) -->
     <div class="hidden md:block bg-card rounded-lg shadow border border-border overflow-hidden">
         <table class="min-w-full text-sm divide-y divide-border">
             <thead class="bg-background">
@@ -42,7 +41,6 @@
         </table>
     </div>
 
-    <!-- [NEW] Mobile Card View (visible on small screens) -->
     <div class="md:hidden space-y-4">
         {% for app in applications %}
         <div class="bg-card p-4 rounded-lg shadow border border-border">
@@ -76,7 +74,6 @@
         </div>
     {% endif %}
 
-    <!-- Modal for Application Review (structure remains the same) -->
     <div x-show="isModalOpen" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="relative z-50" style="display: none;">
         <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">

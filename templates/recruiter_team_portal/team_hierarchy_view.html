@@ -1,121 +1,130 @@
-{# templates/recruiter_team_portal/team_hierarchy_view.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
 {% block recruiter_title %}{{ title }}{% endblock %}
 
-{% block recruiter_page_title %}
-    <div class="flex items-center gap-2">
-        <i class="bi bi-people-fill text-text-muted"></i>
-        <span>{{ title }}</span>
-    </div>
+{% block recruiter_page_title_icon %}
+<i class="bi bi-person-video3 text-2xl text-primary"></i>
 {% endblock %}
 
-{% block recruiter_content %}
-<div>
-    <!-- Breadcrumb Navigation -->
-    {% if breadcrumbs %}
-    <nav class="flex mb-6" aria-label="Breadcrumb">
-      <ol role="list" class="flex items-center space-x-4">
-        <li>
-          <div>
-            <a href="{{ url_for('recruiter_bp.dashboard') }}" class="text-text-muted hover:text-text">
-                <i class="bi bi-house-door-fill flex-shrink-0 h-5 w-5"></i>
-                <span class="sr-only">Home</span>
-            </a>
-          </div>
-        </li>
-        {% for crumb in breadcrumbs %}
-        <li>
-          <div class="flex items-center">
-            <i class="bi bi-chevron-right flex-shrink-0 h-5 w-5 text-text-muted"></i>
-            <a href="{{ crumb.url or '#' }}" class="ml-4 text-sm font-medium {{ 'text-text hover:text-heading' if crumb.url else 'text-primary' }}" {% if not crumb.url %}aria-current="page"{% endif %}>
-                {{ crumb.name }}
-            </a>
-          </div>
-        </li>
-        {% endfor %}
-      </ol>
-    </nav>
-    {% endif %}
+{% block recruiter_page_title %}
+{{ title }}
+{% endblock %}
 
-    <div class="sm:flex sm:items-center sm:justify-between px-1">
-        <div>
-            <h2 class="text-xl font-bold text-heading">
-                Team Members reporting to {{ current_leader.FirstName or current_leader.first_name }} {{ current_leader.LastName or current_leader.last_name }}
-            </h2>
-            <p class="mt-1 text-sm text-text-muted">A performance overview of this leader's direct reports.</p>
-        </div>
-        {# Link to the real management page for authorized users #}
-        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{{ url_for('recruiter_bp.list_units') }}" class="btn-primary">
-                <i class="bi bi-diagram-3-fill -ml-1 mr-2"></i>
-                Manage Organization
-            </a>
-        </div>
+
+{% block recruiter_content %}
+<!-- Breadcrumbs -->
+{% if breadcrumbs %}
+<nav class="flex mb-6" aria-label="Breadcrumb">
+  <ol role="list" class="flex items-center space-x-4">
+    {% for crumb in breadcrumbs %}
+    <li>
+      <div class="flex items-center">
+        {% if not loop.first %}
+        <i class="bi bi-chevron-right flex-shrink-0 h-5 w-5 text-text-muted"></i>
         {% endif %}
+
+        {% if crumb.url %}
+        <a href="{{ crumb.url }}" class="ml-4 text-sm font-medium text-text-muted hover:text-text">{{ crumb.name }}</a>
+        {% else %}
+        <span class="ml-4 text-sm font-medium text-text">{{ crumb.name }}</span>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Team Members List -->
+    <div class="lg:col-span-2">
+        <div class="bg-card shadow-md rounded-lg">
+            <div class="p-4 border-b border-border">
+                <h3 class="text-lg font-semibold text-heading">Direct Reports for {{ current_leader.FirstName }} {{ current_leader.LastName }}</h3>
+            </div>
+             <ul role="list" class="divide-y divide-border">
+                {% for member in team_members %}
+                <li class="p-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="">
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-text">{{ member.FirstName }} {{ member.LastName }}</p>
+                            <p class="text-sm text-text-muted">{{ member.Role }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                           <p class="text-sm text-text"><span class="font-bold">{{ member.total_hires or 0 }}</span> Hires</p>
+                           <p class="text-xs text-text-muted"><span class="font-bold">{{ member.total_referrals or 0 }}</span> Referrals</p>
+                        </div>
+                        {% if member.direct_reports_count > 0 %}
+                            <a href="{{ url_for('organization_bp.team_view', leader_staff_id=member.StaffID) }}" class="btn btn-secondary btn-sm">
+                                View Team <i class="bi bi-chevron-right"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-text-muted">{{ current_leader.FirstName }} has no direct reports to display.</li>
+                {% endfor %}
+             </ul>
+        </div>
     </div>
 
-    <!-- Main Team Member List -->
-    <div class="mt-8 flow-root">
-        <div class="inline-block min-w-full py-2 align-middle">
-            <div class="overflow-hidden bg-card shadow border border-border sm:rounded-lg">
-                <table class="min-w-full divide-y divide-border">
-                    <thead class="bg-background">
-                        <tr>
-                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:pl-6">Team Member</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">Role</th>
-                            <th scope="col" class="px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">Status</th>
-                            <th scope="col" class="px-3 py-3.5 text-center text-xs font-medium uppercase tracking-wider text-text-muted">Total Hires</th>
-                            <th scope="col" class="px-3 py-3.5 text-center text-xs font-medium uppercase tracking-wider text-text-muted">Total Referrals</th>
-                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6 text-center text-xs font-medium uppercase tracking-wider text-text-muted">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
-                        {% if team_members %}
-                            {% for member in team_members %}
-                            <tr class="hover:bg-background/50 transition-colors">
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                                    <div class="flex items-center">
-                                        <div class="h-10 w-10 flex-shrink-0"><img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt=""></div>
-                                        <div class="ml-4">
-                                            <div class="font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}</div>
-                                            <div class="text-xs text-text-muted">{{ member.UnitName or member.TeamName }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-text-muted">{{ member.Role }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm">
-                                    {# === FIX: Check member.IsActive (boolean) instead of member.status (non-existent string) === #}
-                                    {% if member.IsActive %}
-                                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Active</span>
-                                    {% else %}
-                                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Inactive</span>
-                                    {% endif %}
-                                </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-success-600 dark:text-success-400 font-bold">{{ member.total_hires }}</td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-center text-primary font-bold">{{ member.total_referrals }}</td>
-                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
-                                    {% if member.direct_reports_count > 0 %}
-                                        <a href="{{ url_for('recruiter_bp.team_view', leader_staff_id=member.StaffID) }}" class="text-primary hover:underline">View Team »</a>
-                                    {% else %}
-                                        <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-primary hover:underline">View Profile</a>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr><td colspan="6" class="text-center py-16 text-text-muted">
-                                <div class="flex flex-col items-center gap-2">
-                                    <i class="bi bi-person-x-fill text-4xl text-border"></i>
-                                    <span>This leader does not have any direct reports.</span>
-                                </div>
-                            </td></tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+    <!-- Management Actions Sidebar -->
+    <div class="space-y-6">
+        {% if current_user.role_type == 'SourcingTeamLead' %}
+        <div class="bg-card shadow-md rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-heading mb-4">Manage My Team</h3>
+            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST">
+                <!-- A team lead can only assign to their own team, so we find it from the list of assignable_teams -->
+                {% if assignable_teams %}
+                <input type="hidden" name="team_id" value="{{ assignable_teams[0].TeamID }}">
+                {% endif %}
+                <label for="recruiter_staff_id" class="block text-sm font-medium text-text-muted mt-4">Add Recruiter</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    <select id="recruiter_staff_id" name="recruiter_staff_id" class="input rounded-r-none flex-1" {% if not unassigned_recruiters %}disabled{% endif %} required>
+                        <option value="">-- Choose an unassigned recruiter --</option>
+                        {% for recruiter in unassigned_recruiters %}
+                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10" {% if not unassigned_recruiters %}disabled{% endif %}>Add</button>
+                </div>
+                 {% if not unassigned_recruiters %}
+                    <p class="text-xs text-text-muted mt-1">No unassigned recruiters available.</p>
+                {% endif %}
+            </form>
         </div>
+        {% endif %}
+
+        {% if current_user.role_type == 'UnitManager' %}
+        <div class="bg-card shadow-md rounded-lg p-6 space-y-6">
+            <h3 class="text-lg font-semibold text-heading">Manage My Unit</h3>
+             <!-- Assign Recruiter -->
+            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST">
+                <label for="team_id_recruiter" class="block text-sm font-medium text-text-muted">1. Choose a Team</label>
+                <select id="team_id_recruiter" name="team_id" class="input mt-1 w-full" required>
+                    <option value="">-- Select a team in your unit --</option>
+                    {% for team in teams_in_unit %}
+                        <option value="{{ team.TeamID }}">{{ team.TeamName }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="recruiter_staff_id_unit" class="block text-sm font-medium text-text-muted mt-4">2. Assign Recruiter</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    <select id="recruiter_staff_id_unit" name="recruiter_staff_id" class="input rounded-r-none flex-1" {% if not unassigned_recruiters %}disabled{% endif %} required>
+                        <option value="">-- Choose unassigned recruiter --</option>
+                        {% for recruiter in unassigned_recruiters %}
+                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10" {% if not unassigned_recruiters %}disabled{% endif %}>Add</button>
+                </div>
+                {% if not unassigned_recruiters %}<p class="text-xs text-text-muted mt-1">No unassigned recruiters available.</p>{% endif %}
+            </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

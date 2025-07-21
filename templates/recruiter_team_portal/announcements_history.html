@@ -12,8 +12,7 @@
             <p class="mt-2 text-sm text-gray-700">A complete history of all announcements relevant to the sourcing division.</p>
         </div>
         
-        <!-- Search and Filter Form -->
-        <form method="GET" action="{{ url_for('recruiter_bp.announcements_history') }}" class="mt-4 sm:mt-0 flex flex-wrap items-center gap-4">
+        <form method="GET" action="{{ url_for('dashboard_bp.announcements_history') }}" class="mt-4 sm:mt-0 flex flex-wrap items-center gap-4">
             <div>
                 <label for="search" class="sr-only">Search</label>
                 <input type="search" name="search" id="search" value="{{ search_query or '' }}" placeholder="Search title or content..." class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm sm:text-sm">
@@ -29,12 +28,11 @@
             </div>
             <div class="flex items-center gap-2">
                 <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Filter</button>
-                <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Clear</a>
+                <a href="{{ url_for('dashboard_bp.announcements_history') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Clear</a>
             </div>
         </form>
     </div>
     
-    <!-- Announcements List -->
     <div class="mt-8 flow-root">
         <div class="border-t border-gray-200">
             <dl class="divide-y divide-gray-200">

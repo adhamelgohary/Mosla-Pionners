@@ -1,97 +1,143 @@
-{# templates/recruiter_team_portal/manage_team.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
 {% block recruiter_title %}{{ title }}{% endblock %}
+
+{% block recruiter_page_title_icon %}
+<i class="bi bi-people-fill text-2xl text-primary"></i>
+{% endblock %}
+
 {% block recruiter_page_title %}
-    <div class="flex items-center gap-2 text-text-muted flex-wrap text-sm sm:text-base">
-        <i class="bi bi-people-fill"></i><a href="{{ url_for('recruiter_bp.list_units') }}" class="hover:underline">Units</a><span>/</span>
-        <a href="{{ url_for('recruiter_bp.manage_unit', unit_id=team.UnitID) }}" class="hover:underline">{{ team.UnitName or 'Unassigned' }}</a><span>/</span>
-        <span class="text-heading font-semibold">{{ team.TeamName }}</span>
-    </div>
+{{ title }}
 {% endblock %}
 
 {% block recruiter_content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
-    {# [UPDATED] Management column is now conditional based on user role #}
-    {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'UnitManager', 'SourcingTeamLead'] %}
-    <!-- Left Column: Management Actions -->
-    <div class="lg:col-span-1 space-y-8">
-        <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
-            <h2 class="text-lg font-semibold text-heading">Assign Team Lead</h2>
-            <p class="mt-1 text-sm text-text-muted">Current Lead: <strong class="text-text">{{ team.LeadFirstName or 'None' }}</strong></p>
-            <form action="{{ url_for('recruiter_bp.assign_team_lead') }}" method="POST" class="mt-4 flex flex-col gap-2">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="lead_staff_id" class="form-select" required><option value="" disabled selected>-- Select a Team Lead --</option>{% for lead in potential_team_leads %}<option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>{% endfor %}</select>
-                <button type="submit" class="btn-secondary">Assign Lead</button>
-            </form>
-        </div>
-        <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
-            <h2 class="text-lg font-semibold text-heading">Add Recruiter to Team</h2>
-            {% if unassigned_recruiters %}
-            <p class="mt-1 text-sm text-text-muted">Add an unassigned recruiter to this team.</p>
-            <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="mt-4 flex flex-col gap-2">
-                <input type="hidden" name="team_id" value="{{ team.TeamID }}"><select name="recruiter_staff_id" class="form-select" required><option value="" disabled selected>-- Select a Recruiter --</option>{% for recruiter in unassigned_recruiters %}<option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>{% endfor %}</select>
-                <button type="submit" class="btn-primary w-full">Add to Team</button>
-            </form>
-            {% else %}
-            <p class="mt-4 text-sm text-text-muted text-center py-4 bg-background rounded-md">No unassigned recruiters available.</p>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Right Column: Team Roster -->
-    {# [UPDATED] Grid column span is now dynamic #}
-    <div class="
-        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'UnitManager', 'SourcingTeamLead'] %}
-            lg:col-span-2
-        {% else %}
-            lg:col-span-3
-        {% endif %}
-        bg-card rounded-lg shadow border border-border overflow-hidden">
-        <div class="p-4 sm:p-6">
-            <h2 class="text-lg font-semibold text-heading">Team Roster</h2>
-            <p class="mt-1 text-sm text-text-muted">Staff members assigned to {{ team.TeamName }}.</p>
-        </div>
-
-        <!-- [UPDATED] Desktop Table -->
-        <div class="hidden sm:block overflow-x-auto">
-            <table class="min-w-full text-sm divide-y divide-border">
-                <thead class="bg-background">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Member Name</th><th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Role</th><th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                    {% for member in team_members %}
-                    <tr class="hover:bg-background/50">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}{% if member.StaffID == team.TeamLeadStaffID %}<span class="ml-2 text-xs font-semibold text-primary">Team Lead</span>{% endif %}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ member.Role }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right"><a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-primary/80 hover:text-primary transition text-xs font-medium">View Profile</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- [NEW] Mobile Card View -->
-        <div class="sm:hidden divide-y divide-border">
-            {% for member in team_members %}
-            <div class="p-4">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <div class="font-medium text-heading">{{ member.FirstName }} {{ member.LastName }}</div>
-                        <div class="text-sm text-text-muted">{{ member.Role }}</div>
-                        {% if member.StaffID == team.TeamLeadStaffID %}<div class="mt-1 text-xs font-semibold text-primary">Team Lead</div>{% endif %}
-                    </div>
-                    <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="btn-secondary text-xs">View</a>
+    <!-- Left Column: Team Details & Members -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Team Info Card -->
+        <div class="bg-card shadow-md rounded-lg p-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-semibold text-heading">{{ team.TeamName }}</h3>
+                    <p class="text-sm text-text-muted">Part of the <a href="{{ url_for('organization_bp.manage_unit', unit_id=team.UnitID) }}" class="text-primary hover:underline">{{ team.UnitName }}</a> unit.</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-text-muted">Team Lead:</span>
+                    <span class="font-semibold text-text">{{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'Unassigned' }}</span>
                 </div>
             </div>
-            {% endfor %}
         </div>
 
-        {% if not team_members %}
-            <div class="text-center py-16 text-text-muted">This team has no members yet.</div>
+        <!-- Team Members Card -->
+        <div class="bg-card shadow-md rounded-lg">
+            <div class="p-4 border-b border-border">
+                <h3 class="text-lg font-semibold text-heading">Team Members ({{ team_members|length }})</h3>
+            </div>
+            <ul role="list" class="divide-y divide-border">
+                {% for member in team_members %}
+                <li class="p-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-text">{{ member.FirstName }} {{ member.LastName }}</p>
+                            <p class="text-sm text-text-muted">{{ member.Role }}</p>
+                        </div>
+                    </div>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-text-muted">This team has no members assigned.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right Column: Management Actions -->
+    <div class="space-y-6">
+        {% set can_assign_lead = current_user.role_type in ['UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
+        {% set can_assign_recruiter = current_user.role_type in ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
+        {% set can_deactivate_team = current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+
+        {% if can_assign_lead or can_assign_recruiter or can_deactivate_team %}
+        <div class="bg-card shadow-md rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-heading mb-4">Management Actions</h3>
+            <div class="space-y-4">
+                
+                <!-- Assign Team Lead -->
+                {% if can_assign_lead %}
+                <form action="{{ url_for('organization_bp.assign_team_lead') }}" method="POST">
+                    <input type="hidden" name="team_id" value="{{ team.TeamID }}">
+                    <label for="lead_staff_id" class="block text-sm font-medium text-text-muted">Assign Team Lead</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <select id="lead_staff_id" name="lead_staff_id" class="input rounded-r-none flex-1" required>
+                            <option value="">-- Choose a Lead --</option>
+                            {% for lead in potential_team_leads %}
+                            <option value="{{ lead.StaffID }}" {% if team.TeamLeadStaffID == lead.StaffID %}selected{% endif %}>{{ lead.FullName }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10">Assign</button>
+                    </div>
+                </form>
+                {% endif %}
+
+                <!-- Assign Recruiter -->
+                {% if can_assign_recruiter %}
+                <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST">
+                    <input type="hidden" name="team_id" value="{{ team.TeamID }}">
+                    <label for="recruiter_staff_id" class="block text-sm font-medium text-text-muted mt-4">Add Recruiter to Team</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <select id="recruiter_staff_id" name="recruiter_staff_id" class="input rounded-r-none flex-1" {% if not unassigned_recruiters %}disabled{% endif %} required>
+                            <option value="">-- Choose an unassigned recruiter --</option>
+                            {% for recruiter in unassigned_recruiters %}
+                            <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10" {% if not unassigned_recruiters %}disabled{% endif %}>Add</button>
+                    </div>
+                     {% if not unassigned_recruiters %}
+                        <p class="text-xs text-text-muted mt-1">No unassigned recruiters available.</p>
+                    {% endif %}
+                </form>
+                {% endif %}
+
+                <!-- Deactivate Team -->
+                {% if can_deactivate_team and team.IsActive %}
+                <div x-data="{ open: false }">
+                    <div class="pt-4">
+                         <button @click="open = true" type="button" class="btn btn-danger-outline w-full"><i class="bi bi-trash"></i> Deactivate Team</button>
+                    </div>
+                     <!-- Deactivation Modal -->
+                    <div x-show="open" class="fixed z-10 inset-0 overflow-y-auto" style="display: none;">
+                        <div class="flex items-center justify-center min-h-screen">
+                            <div x-show="open" x-transition.opacity class="fixed inset-0" @click="open = false">
+                                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                            </div>
+                            <div x-show="open" x-transition class="bg-card rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+                                <form action="{{ url_for('organization_bp.deactivate_team', team_id=team.TeamID) }}" method="POST">
+                                    <div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                        <div class="sm:flex sm:items-start">
+                                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                                <i class="bi bi-exclamation-triangle-fill text-red-600"></i>
+                                            </div>
+                                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                                <h3 class="text-lg leading-6 font-medium text-heading">Deactivate Team</h3>
+                                                <div class="mt-2">
+                                                    <p class="text-sm text-text-muted">Are you sure you want to deactivate the <strong>{{ team.TeamName }}</strong> team? This will unassign all its members. This action cannot be undone.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-background-alt px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                        <button type="submit" class="btn btn-danger w-full sm:ml-3 sm:w-auto">Deactivate Team</button>
+                                        <button type="button" @click="open = false" class="btn btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
     </div>
 </div>

@@ -13,10 +13,8 @@
         <div class="bg-card p-6 rounded-lg shadow border border-border">
             <h2 class="text-lg font-semibold text-heading">Profile Information</h2>
             <p class="mt-1 text-sm text-text-muted">Update your personal details here.</p>
-            <form action="{{ url_for('recruiter_bp.my_profile') }}" method="POST" class="mt-6 space-y-6">
+            <form action="{{ url_for('dashboard_bp.my_profile') }}" method="POST" class="mt-6 space-y-6">
                 <input type="hidden" name="action" value="update_details">
-                
-                <!-- Profile picture section has been removed -->
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
@@ -46,7 +44,7 @@
         <div class="bg-card p-6 rounded-lg shadow border border-border">
             <h2 class="text-lg font-semibold text-heading">Change Password</h2>
             <p class="mt-1 text-sm text-text-muted">Ensure your account is using a long, random password to stay secure.</p>
-            <form action="{{ url_for('recruiter_bp.my_profile') }}" method="POST" class="mt-6 space-y-6">
+            <form action="{{ url_for('dashboard_bp.my_profile') }}" method="POST" class="mt-6 space-y-6">
                 <input type="hidden" name="action" value="change_password">
                 <div>
                     <label for="current_password" class="form-label">Current Password</label>
@@ -90,7 +88,7 @@
                 <p class="mt-2 text-sm text-text-muted">Share this code with candidates to link their applications to you.</p>
             {% else %}
                 <p class="mt-2 text-sm text-text-muted">You have not generated a referral code yet.</p>
-                <form action="{{ url_for('recruiter_bp.my_profile') }}" method="POST" class="mt-4">
+                <form action="{{ url_for('dashboard_bp.my_profile') }}" method="POST" class="mt-4">
                     <input type="hidden" name="action" value="generate_code">
                     <button type="submit" class="btn-primary w-full">Generate My Code</button>
                 </form>

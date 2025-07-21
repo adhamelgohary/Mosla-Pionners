@@ -33,7 +33,7 @@
     {% else %}
         <div class="mt-4 text-center bg-background p-4 rounded-md">
             <p class="text-sm text-text-muted">You don't have a referral code yet.</p>
-            <a href="{{ url_for('recruiter_bp.my_profile') }}" class="btn-primary mt-2">Generate One Now</a>
+            <a href="{{ url_for('dashboard_bp.my_profile') }}" class="btn-primary mt-2">Generate One Now</a>
         </div>
     {% endif %}
 </div>
@@ -47,7 +47,7 @@
             <i class="bi bi-megaphone-fill text-primary"></i>
             <span>Latest Announcements</span>
         </h3>
-        <a href="{{ url_for('recruiter_bp.announcements_history') }}" class="text-sm font-medium text-primary hover:underline mt-2 sm:mt-0">
+        <a href="{{ url_for('dashboard_bp.announcements_history') }}" class="text-sm font-medium text-primary hover:underline mt-2 sm:mt-0">
             View All Announcements »
         </a>
     </div>
@@ -73,7 +73,7 @@
                     </div>
                 </button>
                 <div x-show="openAnnouncement === {{ loop.index }}" x-collapse class="px-4 pb-4 text-sm text-text-muted prose prose-sm max-w-none dark:prose-invert">
-                    {{ announcement.Content | safe }} {# Use safe if content contains HTML/Markdown #}
+                    {{ announcement.Content | safe }}
                 </div>
             </div>
         {% endfor %}
@@ -125,7 +125,7 @@
 
 <!-- Navigation Links -->
 <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
+    <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
         <div class="flex items-center">
             <div class="flex-shrink-0 bg-primary rounded-lg p-3"><i class="bi bi-card-list text-2xl text-white"></i></div>
             <div class="ml-4">
@@ -134,7 +134,7 @@
             </div>
         </div>
     </a>
-    <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
+    <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="block p-6 bg-card rounded-lg shadow border border-border hover:bg-background transition-colors">
         <div class="flex items-center">
             <div class="flex-shrink-0 bg-amber-500 rounded-lg p-3"><i class="bi bi-trophy-fill text-2xl text-white"></i></div>
             <div class="ml-4">
@@ -147,16 +147,14 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Determine chart theme based on dark mode
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     const chartTheme = {
         mode: isDarkMode ? 'dark' : 'light',
         background: 'transparent'
     };
-    const chartForeColor = isDarkMode ? '#d1d5db' : '#374151'; // Corresponds to text-color
-    const chartGridColor = isDarkMode ? '#374151' : '#e5e7eb'; // Corresponds to border-color
+    const chartForeColor = isDarkMode ? '#d1d5db' : '#374151';
+    const chartGridColor = isDarkMode ? '#374151' : '#e5e7eb';
 
-    // --- Donut Chart for Application Status ---
     const statusData = {{ kpis.get('status_breakdown_for_chart', {})|tojson }};
     const statusLabels = Object.keys(statusData);
     const statusSeries = Object.values(statusData);
@@ -168,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
             labels: statusLabels,
             theme: { mode: chartTheme.mode },
             dataLabels: { enabled: false },
-            colors: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#6B7280', '#8B5CF6'], // Green, Amber, Blue, Red, Gray, Purple
+            colors: ['#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#6B7280', '#8B5CF6'],
             legend: { position: 'bottom', labels: { colors: [chartForeColor] } },
             responsive: [{
                 breakpoint: 480,
@@ -181,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector("#status-donut-chart").innerHTML = '<div class="text-center text-text-muted py-8">No status data to display.</div>';
     }
 
-    // --- Bar Chart for Monthly Performance ---
     const monthlyData = {{ kpis.get('monthly_performance', [])|tojson }};
     if (monthlyData.length > 0) {
         const monthlyOptions = {
@@ -200,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
             yaxis: { title: { text: 'Count' } },
             fill: { opacity: 1 },
             grid: { borderColor: chartGridColor },
-            colors: ['#3B82F6', '#10B981'], // primary, success
+            colors: ['#3B82F6', '#10B981'],
             tooltip: { theme: chartTheme.mode, y: { formatter: function (val) { return val } } }
         };
         const barChart = new ApexCharts(document.querySelector("#monthly-performance-chart"), monthlyOptions);

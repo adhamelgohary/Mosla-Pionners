@@ -33,7 +33,7 @@
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                 <div class="flex items-center gap-x-4">
                                     <!-- Activation Form -->
-                                    <form action="{{ url_for('recruiter_bp.activate_staff_member') }}" method="POST" class="flex items-center gap-x-2">
+                                    <form action="{{ url_for('staff_bp.activate_staff_member') }}" method="POST" class="flex items-center gap-x-2">
                                         <input type="hidden" name="staff_id" value="{{ user.StaffID }}">
                                         <select name="initial_role" class="block w-full rounded-md border-gray-300 py-1.5 text-gray-900 shadow-sm sm:text-sm">
                                             <option value="SourcingRecruiter" selected>Sourcing Recruiter</option>
@@ -43,7 +43,7 @@
                                         <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Activate</button>
                                     </form>
                                     <!-- View Profile Link -->
-                                    <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=user.StaffID) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                    <a href="{{ url_for('staff_bp.view_recruiter_profile', staff_id_viewing=user.StaffID) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
                                         View Profile <i class="bi bi-box-arrow-up-right ml-1"></i>
                                     </a>
                                 </div>

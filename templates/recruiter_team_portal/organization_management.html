@@ -11,7 +11,7 @@
     <div class="bg-white p-6 rounded-lg shadow-sm border">
         <div class="sm:flex sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold text-gray-900">Step 1: Create & Manage Units</h2>
-            <form action="{{ url_for('recruiter_bp.create_unit') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
+            <form action="{{ url_for('organization_bp.create_unit') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
                 <input type="text" name="unit_name" required placeholder="New Unit Name" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                 <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Unit</button>
             </form>
@@ -24,7 +24,6 @@
                     <tr>
                         <td class="py-3 font-medium">{{ unit.UnitName }}</td>
                         <td class="py-3">
-                            {# [ENHANCEMENT] Add visual cue for unmanaged units #}
                             {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}
                             {% if not unit.UnitManagerStaffID %}
                                 <span class="ml-2 text-xs font-semibold text-yellow-800 bg-yellow-100 px-2 py-0.5 rounded-full">
@@ -33,7 +32,7 @@
                             {% endif %}
                         </td>
                         <td class="py-3">
-                            <form action="{{ url_for('recruiter_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center">
+                            <form action="{{ url_for('organization_bp.assign_unit_manager') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
                                 <select name="manager_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
                                     <option value="" disabled selected>-- Assign a Manager --</option>
@@ -57,10 +56,7 @@
     <div class="bg-white p-6 rounded-lg shadow-sm border">
         <div class="sm:flex sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold text-gray-900">Step 2: Create & Manage Teams</h2>
-            <form action="{{ url_for('recruiter_bp.create_team') }}" method="POST" class="mt-4 sm:mt-0 flex gap-2">
-                <input type="text" name="team_name" required placeholder="New Team Name" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Create Team</button>
-            </form>
+            <p class="text-sm text-gray-600 mt-1">Note: Teams must be assigned to a Unit. Create a team from the <a href="{{ url_for('organization_bp.list_units') }}" class="text-indigo-600 hover:underline">Manage Units</a> page.</p>
         </div>
         <div class="mt-4 flow-root">
              <table class="min-w-full divide-y divide-gray-200">
@@ -70,7 +66,6 @@
                     <tr>
                         <td class="py-3 font-medium">{{ team.TeamName }}</td>
                         <td class="py-3">
-                            {# [ENHANCEMENT] Add visual cue for un-led teams #}
                             {{ team.LeadFirstName + ' ' + team.LeadLastName if team.LeadFirstName else 'N/A' }}
                             {% if not team.TeamLeadStaffID %}
                                 <span class="ml-2 text-xs font-semibold text-yellow-800 bg-yellow-100 px-2 py-0.5 rounded-full">
@@ -80,22 +75,12 @@
                         </td>
                         <td class="py-3">{{ team.UnitName or 'N/A' }}</td>
                         <td class="py-3 space-y-2">
-                             <form action="{{ url_for('recruiter_bp.assign_team_lead') }}" method="POST" class="flex gap-2 items-center">
+                             <form action="{{ url_for('organization_bp.assign_team_lead') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="team_id" value="{{ team.TeamID }}">
                                 <select name="lead_staff_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
                                     <option value="" disabled selected>-- Assign a Lead --</option>
                                     {% for lead in potential_team_leads %}
                                         <option value="{{ lead.StaffID }}" {% if lead.StaffID == team.TeamLeadStaffID %}selected{% endif %}>{{ lead.FullName }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
-                            </form>
-                            <form action="{{ url_for('recruiter_bp.assign_team_to_unit') }}" method="POST" class="flex gap-2 items-center">
-                                <input type="hidden" name="team_id" value="{{ team.TeamID }}">
-                                <select name="unit_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
-                                    <option value="" disabled selected>-- Assign to Unit --</option>
-                                    {% for unit in units %}
-                                        <option value="{{ unit.UnitID }}" {% if unit.UnitID == team.UnitID %}selected{% endif %}>{{ unit.UnitName }}</option>
                                     {% endfor %}
                                 </select>
                                 <button type="submit" class="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Assign</button>
@@ -140,15 +125,15 @@
                         </td>
                         <td class="py-3 space-y-2">
                             <div class="flex gap-x-4">
-                                <a href="{{ url_for('recruiter_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Profile</a>
+                                <a href="{{ url_for('staff_bp.view_recruiter_profile', staff_id_viewing=member.StaffID) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">View Profile</a>
                                 
                                 {% if member.IsActive %}
-                                    <form action="{{ url_for('recruiter_bp.deactivate_staff') }}" method="POST">
+                                    <form action="{{ url_for('staff_bp.deactivate_staff') }}" method="POST">
                                         <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
                                         <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-medium">Deactivate</button>
                                     </form>
                                 {% else %}
-                                    <form action="{{ url_for('recruiter_bp.activate_staff_member') }}" method="POST">
+                                    <form action="{{ url_for('staff_bp.activate_staff_member') }}" method="POST">
                                         <input type="hidden" name="staff_id" value="{{ member.StaffID }}">
                                         <button type="submit" class="text-green-600 hover:text-green-900 text-sm font-medium">Activate</button>
                                     </form>
@@ -156,7 +141,7 @@
                             </div>
 
                             {% if member.Role == 'SourcingRecruiter' and member.IsActive %}
-                            <form action="{{ url_for('recruiter_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
+                            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST" class="flex gap-2 items-center">
                                 <input type="hidden" name="recruiter_staff_id" value="{{ member.StaffID }}">
                                 <select name="team_id" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" required>
                                     <option value="" disabled selected>-- Assign to a Team --</option>

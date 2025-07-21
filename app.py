@@ -55,7 +55,11 @@ from routes.Account_Manager_Portal.am_portal_routes import account_manager_bp
 from routes.Account_Manager_Portal.am_organization_routes import am_org_bp
 
 # Recruiter Portal Routes
-from routes.Recruiter_Team_Portal.recruiter_routes import recruiter_bp
+from routes.Recruiter_Team_Portal.dashboard_routes import dashboard_bp
+from routes.Recruiter_Team_Portal.organization_routes import organization_bp
+from routes.Recruiter_Team_Portal.staff_routes import staff_bp
+from routes.Recruiter_Team_Portal.jobs_routes import jobs_bp
+
 
 # --- Create Flask App ---
 app = Flask(__name__)
@@ -140,7 +144,6 @@ app.register_blueprint(reporting_bp)
 app.register_blueprint(client_dashboard_bp , url_prefix='/client-portal')
 app.register_blueprint(client_offers_bp, url_prefix='/client-portal')
 app.register_blueprint(account_manager_bp, url_prefix='/account-manager-portal')
-app.register_blueprint(recruiter_bp, url_prefix='/recruiter-portal')
 app.register_blueprint(am_offer_mgmt_bp, url_prefix='/account-manager-portal/offer-management')
 app.register_blueprint(am_schedule_mgmt_bp, url_prefix='/account-manager-portal/schedule-management')
 app.register_blueprint(am_interview_mgmt_bp, url_prefix='/account-manager-portal/interview-management')
@@ -149,6 +152,12 @@ app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
+
+# --- Recruiter Portal Routes ---
+app.register_blueprint(dashboard_bp)
+app.register_blueprint(organization_bp)
+app.register_blueprint(staff_bp)
+app.register_blueprint(jobs_bp)
 
 
 # ==========================================================

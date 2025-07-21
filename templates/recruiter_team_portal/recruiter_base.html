@@ -13,29 +13,28 @@
 </head>
 <body class="h-full">
     <div class="min-h-full">
-        <!-- ===== Recruiter Portal Top Navigation Bar ===== -->
         <nav class="bg-primary" x-data="{ mobileMenuOpen: false, profileMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <a href="{{ url_for('recruiter_bp.dashboard') }}" class="text-white font-bold text-lg flex items-center gap-2">
+                            <a href="{{ url_for('dashboard_bp.dashboard') }}" class="text-white font-bold text-lg flex items-center gap-2">
                                 <i class="bi bi-bullseye"></i>
                                 <span>Recruiter & Team Portal</span>
                             </a>
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-4">
-                                <a href="{{ url_for('recruiter_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.dashboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Dashboard</a>
+                                <a href="{{ url_for('dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.dashboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Dashboard</a>
                                 
-                                <!-- [UPDATED] Job Offers Link Added -->
-                                <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
+                                <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'job_offers' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Job Offers</a>
 
-                                <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.my_referred_applications' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Referrals</a>
-                                <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'recruiter_bp.team_leaderboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Leaderboard</a>
+                                <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'jobs_bp.my_referred_applications' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Referrals</a>
+                                
+                                <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if request.endpoint == 'dashboard_bp.team_leaderboard' else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">Leaderboard</a>
         
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                                    <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'team_view' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Team</a>
+                                    <a href="{{ url_for('organization_bp.my_team_view') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-darker text-white' if 'team_view' in request.endpoint else 'text-white/80 hover:bg-primary-darker hover:text-white' }}">My Team</a>
                                 {% endif %}
                                 
                                 {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
@@ -49,10 +48,10 @@
                                         x-transition
                                         class="absolute left-0 z-10 mt-2 w-56 origin-top-left rounded-md bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
                                         <div class="py-1">
-                                            <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Manage Recruiters</a>
+                                            <a href="{{ url_for('staff_bp.manage_recruiters') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Manage Recruiters</a>
                                             {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                            <a href="{{ url_for('recruiter_bp.list_units') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Organization Management</a>
-                                            <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Pending Registrations</a>
+                                            <a href="{{ url_for('organization_bp.list_units') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Organization Management</a>
+                                            <a href="{{ url_for('staff_bp.list_pending_staff') }}" class="text-text block px-4 py-2 text-sm hover:bg-background">Pending Registrations</a>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -63,15 +62,15 @@
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
-                            <div class="relative ml-3">
+                            <div class="relative ml-3" x-data="{ profileMenuOpen: false }" @click.away="profileMenuOpen = false">
                                 <div>
-                                    <button @click="profileMenuOpen = !profileMenuOpen" @click.away="profileMenuOpen = false" type="button" class="flex max-w-xs items-center rounded-full bg-primary text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary">
+                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-primary text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary">
                                         <span class="sr-only">Open user menu</span>
                                         <img class="h-8 w-8 rounded-full object-cover" src="{{ current_user.profile_picture_url or url_for('static', filename='images/default-profile.png') }}" alt="">
                                     </button>
                                 </div>
                                 <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none" style="display: none;">
-                                    <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">My Profile</a>
+                                    <a href="{{ url_for('dashboard_bp.my_profile') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">My Profile</a>
                                     <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Managerial Portal</a>
                                     <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Logout</a>
                                 </div>
@@ -87,27 +86,25 @@
                 </div>
             </div>
 
-            <!-- Mobile Menu -->
             <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-                    <a href="{{ url_for('recruiter_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Dashboard</a>
+                    <a href="{{ url_for('dashboard_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Dashboard</a>
                     
-                    <!-- [UPDATED] Job Offers Link Added -->
-                    <a href="{{ url_for('recruiter_bp.list_job_offers') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Job Offers</a>
+                    <a href="{{ url_for('jobs_bp.list_job_offers') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Job Offers</a>
 
-                    <a href="{{ url_for('recruiter_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Referrals</a>
-                    <a href="{{ url_for('recruiter_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Leaderboard</a>
+                    <a href="{{ url_for('jobs_bp.my_referred_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Referrals</a>
+                    <a href="{{ url_for('dashboard_bp.team_leaderboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Leaderboard</a>
                     
                     {% if current_user.role_type in ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder'] %}
-                        <a href="{{ url_for('recruiter_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Team</a>
+                        <a href="{{ url_for('organization_bp.my_team_view') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Team</a>
                     
                         <div class="border-t border-primary-darker pt-4 mt-4">
                             <h3 class="px-3 text-xs font-semibold uppercase text-white/60">Admin Tools</h3>
                             <div class="mt-1 space-y-1">
-                                <a href="{{ url_for('recruiter_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Recruiters</a>
+                                <a href="{{ url_for('staff_bp.manage_recruiters') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Recruiters</a>
                                 {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
-                                <a href="{{ url_for('recruiter_bp.list_units') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Organization</a>
-                                <a href="{{ url_for('recruiter_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Pending Registrations</a>
+                                <a href="{{ url_for('organization_bp.list_units') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Manage Organization</a>
+                                <a href="{{ url_for('staff_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Pending Registrations</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -122,7 +119,7 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
-                        <a href="{{ url_for('recruiter_bp.my_profile') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Profile</a>
+                        <a href="{{ url_for('dashboard_bp.my_profile') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">My Profile</a>
                         <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Managerial Portal</a>
                         <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-white/80 hover:bg-primary-darker hover:text-white">Logout</a>
                     </div>
