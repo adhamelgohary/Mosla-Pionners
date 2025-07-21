@@ -9,7 +9,16 @@
 {% block recruiter_page_title %}Manage Team: {{ team.TeamName }}{% endblock %}
 
 {% block recruiter_content %}
-<div class="space-y-6">    
+<div class="space-y-6">
+    
+    <!-- Back Button to replace Breadcrumbs -->
+    <div>
+        <a href="{{ url_for('organization_bp.manage_unit', unit_id=team.UnitID) }}" class="btn btn-secondary-outline inline-flex items-center">
+            <i class="bi bi-arrow-left mr-2"></i>
+            <span>Back to Unit: {{ team.UnitName }}</span>
+        </a>
+    </div>
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Left Column: Member Management -->
         <div class="lg:col-span-2 space-y-8">

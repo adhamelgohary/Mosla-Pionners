@@ -10,6 +10,15 @@
 
 {% block recruiter_content %}
 <div class="space-y-8">
+
+    <!-- Back Button for navigation -->
+    <div class="mb-2">
+        <a href="{{ url_for('organization_bp.list_units') }}" class="btn btn-secondary-outline inline-flex items-center">
+            <i class="bi bi-arrow-left mr-2"></i>
+            <span>Back to All Units</span>
+        </a>
+    </div>
+
     <!-- Action Panel -->
     <div class="bg-card shadow sm:rounded-lg" x-data="{ open: false }">
         <div class="px-4 py-5 sm:p-6">
