@@ -21,7 +21,7 @@ def get_candidate_id(user_id):
             cursor.close()
             conn.close()
 
-# --- UPDATED: Route to display new Package structure ---
+# --- Route to display new Package structure (Unchanged) ---
 @courses_page_bp.route('/courses')
 def view_packages():
     """
@@ -65,8 +65,6 @@ def view_packages():
             cursor.close()
             conn.close()
             
-    # The template 'Website/courses_page.html' will need to be updated
-    # to loop through this new `main_packages` data structure.
     return render_template('Website/courses_page.html', 
                            title="Our Programs & Courses",
                            main_packages=main_packages)
@@ -87,10 +85,12 @@ def apply_for_package_form(sub_package_id):
     try:
         cursor = conn.cursor(dictionary=True)
         # Fetch details for the sub-package and its parent main package for context
+        # --- MODIFICATION: Added sp.Price to the query ---
         sql = """
             SELECT 
                 sp.SubPackageID, 
                 sp.Name AS SubPackageName,
+                sp.Price,
                 mp.Name AS MainPackageName
             FROM SubPackages sp
             JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
@@ -110,8 +110,6 @@ def apply_for_package_form(sub_package_id):
         'email': current_user.email
     }
 
-    # The template 'Website/apply_for_course.html' should be renamed or updated
-    # to handle this new `package_details` context.
     return render_template('Website/apply_for_package.html', 
                            title=f"Apply for {package_details['MainPackageName']}: {package_details['SubPackageName']}",
                            package=package_details,
