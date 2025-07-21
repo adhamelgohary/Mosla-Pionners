@@ -35,96 +35,37 @@
 </nav>
 {% endif %}
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Team Members List -->
-    <div class="lg:col-span-2">
-        <div class="bg-card shadow-md rounded-lg">
-            <div class="p-4 border-b border-border">
-                <h3 class="text-lg font-semibold text-heading">Direct Reports for {{ current_leader.FirstName }} {{ current_leader.LastName }}</h3>
+<!-- Team Members List -->
+<div class="bg-card shadow-md rounded-lg">
+    <div class="p-4 border-b border-border">
+        <h3 class="text-lg font-semibold text-heading">Direct Reports for {{ current_leader.FirstName }} {{ current_leader.LastName }}</h3>
+    </div>
+        <ul role="list" class="divide-y divide-border">
+        {% for member in team_members %}
+        <li class="p-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="">
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-text">{{ member.FirstName }} {{ member.LastName }}</p>
+                    <p class="text-sm text-text-muted">{{ member.Role }}</p>
+                </div>
             </div>
-             <ul role="list" class="divide-y divide-border">
-                {% for member in team_members %}
-                <li class="p-4 flex items-center justify-between">
-                    <div class="flex items-center">
-                        <img class="h-10 w-10 rounded-full object-cover" src="{{ member.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="">
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-text">{{ member.FirstName }} {{ member.LastName }}</p>
-                            <p class="text-sm text-text-muted">{{ member.Role }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="text-right">
-                           <p class="text-sm text-text"><span class="font-bold">{{ member.total_hires or 0 }}</span> Hires</p>
-                           <p class="text-xs text-text-muted"><span class="font-bold">{{ member.total_referrals or 0 }}</span> Referrals</p>
-                        </div>
-                        {% if member.direct_reports_count > 0 %}
-                            <a href="{{ url_for('organization_bp.team_view', leader_staff_id=member.StaffID) }}" class="btn btn-secondary btn-sm">
-                                View Team <i class="bi bi-chevron-right"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-                </li>
-                {% else %}
-                <li class="p-6 text-center text-text-muted">{{ current_leader.FirstName }} has no direct reports to display.</li>
-                {% endfor %}
-             </ul>
-        </div>
-    </div>
-
-    <!-- Management Actions Sidebar -->
-    <div class="space-y-6">
-        {% if current_user.role_type == 'SourcingTeamLead' %}
-        <div class="bg-card shadow-md rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-heading mb-4">Manage My Team</h3>
-            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST">
-                <!-- A team lead can only assign to their own team, so we find it from the list of assignable_teams -->
-                {% if assignable_teams %}
-                <input type="hidden" name="team_id" value="{{ assignable_teams[0].TeamID }}">
-                {% endif %}
-                <label for="recruiter_staff_id" class="block text-sm font-medium text-text-muted mt-4">Add Recruiter</label>
-                <div class="mt-1 flex rounded-md shadow-sm">
-                    <select id="recruiter_staff_id" name="recruiter_staff_id" class="input rounded-r-none flex-1" {% if not unassigned_recruiters %}disabled{% endif %} required>
-                        <option value="">-- Choose an unassigned recruiter --</option>
-                        {% for recruiter in unassigned_recruiters %}
-                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10" {% if not unassigned_recruiters %}disabled{% endif %}>Add</button>
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <p class="text-sm text-text"><span class="font-bold">{{ member.total_hires or 0 }}</span> Hires</p>
+                    <p class="text-xs text-text-muted"><span class="font-bold">{{ member.total_referrals or 0 }}</span> Referrals</p>
                 </div>
-                 {% if not unassigned_recruiters %}
-                    <p class="text-xs text-text-muted mt-1">No unassigned recruiters available.</p>
+                {% if member.direct_reports_count > 0 %}
+                    <a href="{{ url_for('organization_bp.team_view', leader_staff_id=member.StaffID) }}" class="btn btn-secondary btn-sm">
+                        View Team <i class="bi bi-chevron-right"></i>
+                    </a>
                 {% endif %}
-            </form>
-        </div>
-        {% endif %}
-
-        {% if current_user.role_type == 'UnitManager' %}
-        <div class="bg-card shadow-md rounded-lg p-6 space-y-6">
-            <h3 class="text-lg font-semibold text-heading">Manage My Unit</h3>
-             <!-- Assign Recruiter -->
-            <form action="{{ url_for('organization_bp.assign_recruiter_to_team') }}" method="POST">
-                <label for="team_id_recruiter" class="block text-sm font-medium text-text-muted">1. Choose a Team</label>
-                <select id="team_id_recruiter" name="team_id" class="input mt-1 w-full" required>
-                    <option value="">-- Select a team in your unit --</option>
-                    {% for team in teams_in_unit %}
-                        <option value="{{ team.TeamID }}">{{ team.TeamName }}</option>
-                    {% endfor %}
-                </select>
-
-                <label for="recruiter_staff_id_unit" class="block text-sm font-medium text-text-muted mt-4">2. Assign Recruiter</label>
-                <div class="mt-1 flex rounded-md shadow-sm">
-                    <select id="recruiter_staff_id_unit" name="recruiter_staff_id" class="input rounded-r-none flex-1" {% if not unassigned_recruiters %}disabled{% endif %} required>
-                        <option value="">-- Choose unassigned recruiter --</option>
-                        {% for recruiter in unassigned_recruiters %}
-                        <option value="{{ recruiter.StaffID }}">{{ recruiter.FirstName }} {{ recruiter.LastName }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit" class="btn-primary-no-bg -ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-primary text-sm font-medium rounded-r-md text-primary bg-background hover:bg-primary/10" {% if not unassigned_recruiters %}disabled{% endif %}>Add</button>
-                </div>
-                {% if not unassigned_recruiters %}<p class="text-xs text-text-muted mt-1">No unassigned recruiters available.</p>{% endif %}
-            </form>
-        </div>
-        {% endif %}
-    </div>
+            </div>
+        </li>
+        {% else %}
+        <li class="p-6 text-center text-text-muted">{{ current_leader.FirstName }} has no direct reports to display.</li>
+        {% endfor %}
+        </ul>
 </div>
+
 {% endblock %}
