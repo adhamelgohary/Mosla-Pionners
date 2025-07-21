@@ -1,27 +1,14 @@
 {% extends "Website/base.html" %}
 
-{# --- 1. SET THE PAGE TITLE --- #}
 {% block title %}Our Programs & Courses - Mosla Pioneers{% endblock %}
 
-{# --- 2. INJECT THE PAGE-SPECIFIC CSS TO PRESERVE YOUR DESIGN --- #}
 {% block head_extra %}
+  {# The new stylesheet will be linked here #}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
-  <style>
-    /* Add a simple style for the new price element */
-    .course-price {
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: var(--secondary-color); /* Use a color from your theme */
-      margin: 1rem 0;
-      text-align: center;
-    }
-  </style>
 {% endblock %}
 
-
-{# --- 3. PLACE ALL YOUR PAGE CONTENT HERE --- #}
 {% block content %}
-<div class="page-content-wrapper-for-courses"> {# Optional wrapper to avoid conflicts with base styles if needed #}
+<div class="page-content-wrapper-for-courses">
   
   <section id="about" class="about-us">
     <div class="about-us-text">
@@ -30,31 +17,30 @@
         Mosla Pioneers offers comprehensive Train to Hire language programs designed to bridge the gap between language learning and employment opportunities. Our programs combine intensive language training with guaranteed job placement assistance, helping candidates secure positions with competitive salaries up to 35,000 EGP.
       </p>
       <p>
-        Our Train to Hire programs address the critical need for qualified bilingual professionals in Egypt's growing international business sector. By combining intensive language training with guaranteed employment opportunities, we create a direct pipeline from education to career advancement. The program's success is built on our partnership with leading multinational companies who recognize our graduates' job-ready skills and professional communication abilities.
+        Our Train to Hire programs address the critical need for qualified bilingual professionals in Egypt's growing international business sector. By combining intensive language training with guaranteed employment opportunities, we create a direct pipeline from education to career advancement.
       </p>
     </div>
     <div class="about-us-image">
       <div>
-        <h3>🎓 Professional Training</h3>
+        <h3><span class="mr-3">🎓</span>Professional Training</h3>
         <p>Expert instructors with 8+ years experience</p>
         <br>
-        <h3>💼 Job Guarantee</h3>
+        <h3><span class="mr-3">💼</span>Job Guarantee</h3>
         <p>Direct placement with partner companies</p>
         <br>
-        <h3>💰 Competitive Salaries</h3>
+        <h3><span class="mr-3">💰</span>Competitive Salaries</h3>
         <p>Up to 35,000 EGP starting salary</p>
       </div>
     </div>
   </section>
 
-  <section id="courses" class="courses">
+  <section id="courses">
     <h2 class="section-title">Our Course Packages</h2>
     
-    {# --- DYNAMICALLY RENDER EACH MAIN PACKAGE --- #}
     {% if main_packages %}
       {% for package in main_packages %}
       <div id="{{ package.Name|lower|replace(' ', '-') }}" class="course-info">
-        <h3>{{ package.Name }} Course Packages</h3>
+        <h3>{{ package.Name }}</h3>
         <p>{{ package.Description }}</p>
         
         {% if package.Benefits %}
@@ -67,65 +53,63 @@
 
         {# --- RENDER MONOLINGUAL SUB-PACKAGES --- #}
         {% if package.MonolingualOverview %}
-          <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.MonolingualOverview }}</h4>
+          <h4 class="sub-package-header">{{ package.MonolingualOverview }}</h4>
         {% endif %}
         <div class="course-cards">
-          {% for sub in package.sub_packages %}
-            {% if not sub.BilingualDetails or sub.BilingualDetails|trim == '' %}
+          {% for sub in package.sub_packages if not sub.BilingualDetails or sub.BilingualDetails|trim == '' %}
             <div class="course-card">
-              <h3>{{ sub.Name }}</h3>
-              <p>{{ sub.Description|safe }}</p>
-              {# --- NEW: Display Price --- #}
-              {% if sub.Price is not none %}
-              <div class="course-price">{{ "%.0f"|format(sub.Price) }} EGP</div>
-              {% endif %}
-              <div class="course-actions">
-                <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
+              <h3>{{ sub.Name|safe }}</h3> {# Use |safe if you put HTML like emojis in the name #}
+              <p class="course-card-description">{{ sub.Description|safe }}</p>
+              <div class="course-card-price">
+                <span class="current-price">{{ "%.0f"|format(sub.Price) }} EGP</span>
+                {% if sub.OriginalPrice and sub.OriginalPrice > sub.Price %}
+                <span class="original-price">{{ "%.0f"|format(sub.OriginalPrice) }} EGP</span>
+                {% endif %}
               </div>
+              <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
             </div>
-            {% endif %}
           {% endfor %}
         </div>
 
         {# --- RENDER BILINGUAL SUB-PACKAGES --- #}
         {% if package.BilingualOverview %}
-          <h4 style="color: var(--primary-color); margin: 2rem 0 1rem;">{{ package.BilingualOverview }}</h4>
+          <h4 class="sub-package-header">{{ package.BilingualOverview }}</h4>
         {% endif %}
         <div class="course-cards">
-          {% for sub in package.sub_packages %}
-            {% if sub.BilingualDetails and sub.BilingualDetails|trim != '' %}
+          {% for sub in package.sub_packages if sub.BilingualDetails and sub.BilingualDetails|trim != '' %}
             <div class="course-card">
-              <h3>{{ sub.Name }}</h3>
-              <p>{{ sub.Description|safe }}</p>
-              {# --- NEW: Display Price --- #}
-              {% if sub.Price is not none %}
-              <div class="course-price">{{ "%.0f"|format(sub.Price) }} EGP</div>
-              {% endif %}
-              <div class="course-actions">
-                <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
+              <h3>{{ sub.Name|safe }}</h3>
+              <p class="course-card-description">{{ sub.Description|safe }}</p>
+              <div class="course-card-price">
+                <span class="current-price">{{ "%.0f"|format(sub.Price) }} EGP</span>
+                {% if sub.OriginalPrice and sub.OriginalPrice > sub.Price %}
+                <span class="original-price">{{ "%.0f"|format(sub.OriginalPrice) }} EGP</span>
+                {% endif %}
               </div>
+              <a href="{{ url_for('courses_page_bp.apply_for_package_form', sub_package_id=sub.SubPackageID) }}" class="apply-button">Apply To Course</a>
             </div>
-            {% endif %}
           {% endfor %}
         </div>
         
-        {# --- NEW: Static "Important Notes" section --- #}
-        <div class="pricing">
-          <h4>🔥 Important Notes:</h4>
-          <div class="price-item">
-            <strong>⚡ Intensive Schedule:</strong> 3 sessions per week + tasks between sessions
+        <div class="notes-section">
+          <h4><span class="mr-2">🔥</span>Important Notes:</h4>
+          <div class="note-item">
+            <span>⚡</span>
+            <p><strong>Intensive Schedule:</strong> 3 sessions per week + tasks between sessions</p>
           </div>
-          <div class="price-item">
-            <strong>🎥 Format:</strong> Live online sessions - real classroom experience from home
+          <div class="note-item">
+            <span>🎥</span>
+            <p><strong>Format:</strong> Live online sessions - real classroom experience from home</p>
           </div>
-          <div class="price-item">
-            <strong>🛑 Payment Policy:</strong> Non-refundable (preparation starts immediately)
+          <div class="note-item">
+            <span>🛑</span>
+            <p><strong>Payment Policy:</strong> Non-refundable (preparation starts immediately)</p>
           </div>
-          <div class="price-item">
-            <strong>💪 Commitment Required:</strong> Regular attendance essential for success
+          <div class="note-item">
+            <span>💪</span>
+            <p><strong>Commitment Required:</strong> Regular attendance essential for success</p>
           </div>
         </div>
-        
       </div>
       {% endfor %}
     {% else %}

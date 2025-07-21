@@ -85,12 +85,14 @@ def apply_for_package_form(sub_package_id):
     try:
         cursor = conn.cursor(dictionary=True)
         # Fetch details for the sub-package and its parent main package for context
-        # --- MODIFICATION: Added sp.Price to the query ---
+        # --- MODIFICATION: Added sp.Price and sp.OriginalPrice ---
         sql = """
             SELECT 
                 sp.SubPackageID, 
                 sp.Name AS SubPackageName,
+                sp.Description,
                 sp.Price,
+                sp.OriginalPrice,
                 mp.Name AS MainPackageName
             FROM SubPackages sp
             JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID

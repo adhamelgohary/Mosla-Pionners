@@ -2,100 +2,150 @@
 
 {% block title %}{{ title }} - Mosla Pioneers{% endblock %}
 
+{% block head_extra %}
+  {# Link the same stylesheet for a consistent look #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/website/courses.css') }}">
+  <style>
+    /* Page-specific styles for the application form */
+    .apply-page-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .apply-card {
+        background-color: var(--card-bg);
+        border-radius: 1rem;
+        box-shadow: var(--card-shadow);
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 3rem;
+        align-items: start;
+    }
+    .course-details-column .course-card {
+        padding: 0;
+        box-shadow: none;
+        text-align: left;
+    }
+    .course-details-column .course-card h3 { font-size: 1.8rem; text-align: left;}
+    .course-details-column .course-card-description { text-align: left; }
+    .course-details-column .apply-button { display: none; } /* Hide button in this context */
+
+    .form-column h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+        color: var(--heading-color);
+    }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+    .form-group input[readonly] {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+    }
+    .submit-button {
+        width: 100%;
+        background: var(--highlight-gradient);
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .submit-button:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-shadow-hover);
+    }
+    @media (max-width: 768px) {
+        .apply-card { grid-template-columns: 1fr; }
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl w-full space-y-8">
-        
-        <!-- Animated Form Card -->
-        <div class="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-2xl rounded-2xl p-6 md:p-10 transform transition-all duration-500 animate-fade-in-up">
-
-            <!-- Form Header -->
-            <div class="text-center mb-8">
-                <div class="inline-block bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full p-3 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">Course Application</h1>
-                <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">You're one step closer to your new career path.</p>
-            </div>
-            
-            <!-- Package Details -->
-            <div class="bg-slate-50 dark:bg-slate-700/50 border-l-4 border-blue-500 rounded-r-lg p-4 mb-6">
-                <p class="text-sm text-slate-600 dark:text-slate-400">Applying for:</p>
-                <p class="text-lg font-semibold text-slate-800 dark:text-slate-200">{{ package.MainPackageName }}</p>
-                <p class="font-medium text-blue-600 dark:text-blue-400"><i class="bi bi-mortarboard-fill mr-2"></i>{{ package.SubPackageName }}</p>
-                {# --- NEW: Display Price --- #}
-                {% if package.Price is not none %}
-                <p class="text-xl font-bold text-green-600 dark:text-green-400 mt-2">
-                    Price: {{ "%.0f"|format(package.Price) }} EGP
-                </p>
-                {% endif %}
-            </div>
-
-            <!-- NEW: Important Notes Section -->
-            <div class="bg-amber-50 dark:bg-amber-900/50 border-l-4 border-amber-500 rounded-r-lg p-4 mb-8">
-                <h4 class="font-semibold text-lg text-slate-800 dark:text-slate-200 mb-2 flex items-center"><span class="text-xl mr-2">🔥</span> Important Notes</h4>
-                <div class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                    <p><strong>⚡ Intensive Schedule:</strong> 3 sessions per week + tasks between sessions.</p>
-                    <p><strong>🎥 Format:</strong> Live online sessions - real classroom experience from home.</p>
-                    <p><strong>🛑 Payment Policy:</strong> Non-refundable (preparation starts immediately).</p>
-                    <p><strong>💪 Commitment Required:</strong> Regular attendance essential for success.</p>
+<div class="apply-page-container">
+    <div class="apply-card">
+        <!-- Left Column: Course Details & Notes -->
+        <div class="course-details-column">
+            <!-- Re-using the course card style for consistency -->
+            <div class="course-card">
+                <p class="text-muted mb-2">You are applying for:</p>
+                <h3>{{ package.SubPackageName|safe }}</h3>
+                <p class="course-card-description">{{ package.Description|safe }}</p>
+                <div class="course-card-price">
+                    <span class="current-price">{{ "%.0f"|format(package.Price) }} EGP</span>
+                    {% if package.OriginalPrice and package.OriginalPrice > package.Price %}
+                    <span class="original-price">{{ "%.0f"|format(package.OriginalPrice) }} EGP</span>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Application Form -->
-            <form method="POST" action="{{ url_for('courses_page_bp.submit_package_application', sub_package_id=package.SubPackageID) }}" class="space-y-6">
-                
-                <!-- Full Name (Read-only) -->
-                <div>
-                    <label for="full_name" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-                    <div class="mt-1 relative rounded-md shadow-sm">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i class="bi bi-person-fill text-slate-400"></i>
-                        </div>
-                        <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name }}" readonly class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none sm:text-sm">
-                    </div>
-                </div>
-                
-                <!-- Email (Read-only) -->
-                <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-                     <div class="mt-1 relative rounded-md shadow-sm">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i class="bi bi-envelope-fill text-slate-400"></i>
-                        </div>
-                        <input type="email" id="email" name="email" value="{{ form_data.email }}" readonly class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none sm:text-sm">
-                    </div>
-                </div>
+            <!-- Important Notes -->
+            <div class="notes-section mt-4">
+              <h4><span class="mr-2">🔥</span>Important Notes:</h4>
+              <div class="note-item">
+                <span>⚡</span>
+                <p><strong>Intensive Schedule:</strong> 3 sessions per week + tasks</p>
+              </div>
+              <div class="note-item">
+                <span>🎥</span>
+                <p><strong>Format:</strong> Live online sessions</p>
+              </div>
+              <div class="note-item">
+                <span>🛑</span>
+                <p><strong>Payment Policy:</strong> Non-refundable</p>
+              </div>
+              <div class="note-item">
+                <span>💪</span>
+                <p><strong>Commitment Required:</strong> Attendance is essential</p>
+              </div>
+            </div>
+        </div>
 
-                <!-- Notes / Cover Letter -->
-                <div>
-                    <label for="application_notes" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Notes (Optional)</label>
-                    <div class="mt-1">
-                        <textarea id="application_notes" name="application_notes" rows="4" placeholder="Why are you a great fit for this course?" class="block w-full border border-slate-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-900/50 text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"></textarea>
-                    </div>
-                    <p class="mt-2 text-xs text-slate-500">You can share a brief message about your motivation.</p>
+        <!-- Right Column: Application Form -->
+        <div class="form-column">
+            <h2>Confirm Your Application</h2>
+            <form method="POST" action="{{ url_for('courses_page_bp.submit_package_application', sub_package_id=package.SubPackageID) }}">
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name }}" readonly>
                 </div>
-                
-                <!-- Submit Button -->
-                <div class="pt-4">
-                    <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-800 shadow-lg hover:shadow-blue-500/50 dark:hover:shadow-blue-400/40 transform hover:-translate-y-0.5 transition-all duration-300">
-                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                            <i class="bi bi-send-fill text-blue-300 group-hover:text-white transition-colors"></i>
-                        </span>
-                        Submit Application
-                    </button>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ form_data.email }}" readonly>
                 </div>
+                <div class="form-group">
+                    <label for="application_notes">Notes (Optional)</label>
+                    <textarea id="application_notes" name="application_notes" rows="5" placeholder="Why are you a great fit for this course?"></textarea>
+                </div>
+                <button type="submit" class="submit-button">Submit Application</button>
             </form>
-
-            <div class="text-center mt-6">
-                <a href="{{ url_for('courses_page_bp.view_packages') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+             <div class="text-center mt-6">
+                <a href="{{ url_for('courses_page_bp.view_packages') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
                     ← Back to all courses
                 </a>
             </div>
         </div>
-
     </div>
 </div>
 {% endblock %}
