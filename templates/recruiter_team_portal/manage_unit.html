@@ -11,13 +11,15 @@
 {% block recruiter_content %}
 <div class="space-y-8">
 
-    <!-- Back Button for navigation -->
+    {# Conditionally display the Back button ONLY for roles that can see the list of all units #}
+    {% if current_user.role_type in ORG_MANAGEMENT_ROLES %}
     <div class="mb-2">
         <a href="{{ url_for('organization_bp.list_units') }}" class="btn btn-secondary-outline inline-flex items-center">
             <i class="bi bi-arrow-left mr-2"></i>
             <span>Back to All Units</span>
         </a>
     </div>
+    {% endif %}
 
     <!-- Action Panel -->
     <div class="bg-card shadow sm:rounded-lg" x-data="{ open: false }">
