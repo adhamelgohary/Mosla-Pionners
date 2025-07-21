@@ -12,6 +12,9 @@
 
 {% block recruiter_content %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    {# [UPDATED] Management column is now conditional based on user role #}
+    {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'UnitManager', 'SourcingTeamLead'] %}
     <!-- Left Column: Management Actions -->
     <div class="lg:col-span-1 space-y-8">
         <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border">
@@ -35,9 +38,17 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 
     <!-- Right Column: Team Roster -->
-    <div class="lg:col-span-2 bg-card rounded-lg shadow border border-border overflow-hidden">
+    {# [UPDATED] Grid column span is now dynamic #}
+    <div class="
+        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'UnitManager', 'SourcingTeamLead'] %}
+            lg:col-span-2
+        {% else %}
+            lg:col-span-3
+        {% endif %}
+        bg-card rounded-lg shadow border border-border overflow-hidden">
         <div class="p-4 sm:p-6">
             <h2 class="text-lg font-semibold text-heading">Team Roster</h2>
             <p class="mt-1 text-sm text-text-muted">Staff members assigned to {{ team.TeamName }}.</p>

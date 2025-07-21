@@ -11,6 +11,9 @@
 
 {% block recruiter_content %}
 <div class="space-y-8">
+
+    {# [UPDATED] "Create Team" section is now conditional #}
+    {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder', 'UnitManager'] %}
     <!-- Section 1: Create Team -->
     <div class="bg-card p-4 sm:p-6 rounded-lg shadow border border-border {% if not unit.IsActive %}opacity-50 pointer-events-none{% endif %}">
         <h2 class="text-lg font-semibold text-heading">Create a New Team in {{ unit.UnitName }}</h2>
@@ -18,6 +21,7 @@
             <input type="hidden" name="unit_id" value="{{ unit.UnitID }}"><input type="text" name="team_name" required placeholder="New Team Name" class="form-input flex-grow"><button type="submit" class="btn-primary">Create Team</button>
         </form>
     </div>
+    {% endif %}
 
     <!-- Section 2: Manage Teams -->
     <div class="bg-card rounded-lg shadow border border-border overflow-hidden">

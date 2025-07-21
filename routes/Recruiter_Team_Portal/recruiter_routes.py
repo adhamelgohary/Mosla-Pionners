@@ -554,10 +554,26 @@ def list_units():
 
 
 @recruiter_bp.route('/organization/unit/<int:unit_id>')
-@login_required_with_role(ORG_MANAGEMENT_ROLES)
+@login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES) # Broadened role access
 def manage_unit(unit_id):
     """ [STEP 2] Manages a specific Unit, including its teams. """
-    # [NEW] Add a filter to show active or all teams
+    
+    # ----------------- [NEW SECURITY CHECK] -----------------
+    if current_user.role_type == 'UnitManager':
+        conn_check = get_db_connection()
+        cursor_check = conn_check.cursor(dictionary=True)
+        cursor_check.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (current_user.specific_role_id,))
+        managed_unit = cursor_check.fetchone()
+        cursor_check.close()
+        conn_check.close()
+        
+        # If the manager is not assigned to ANY unit, or if the unit they are trying
+        # to view is NOT the one they manage, deny access.
+        if not managed_unit or managed_unit['UnitID'] != unit_id:
+            abort(403, "You are not authorized to manage this unit.")
+    # HeadUnitManagers, CEOs, etc. can proceed without this check.
+    # --------------------------------------------------------
+
     show_all = request.args.get('show_all', 'false').lower() == 'true'
 
     conn = get_db_connection()
@@ -592,15 +608,56 @@ def manage_unit(unit_id):
                            title=f"Manage Unit: {unit['UnitName']}",
                            unit=unit,
                            teams_in_unit=teams_in_unit,
-                           show_all=show_all) # Pass show_all to the template
-
+                           show_all=show_all)
 
 @recruiter_bp.route('/organization/team/<int:team_id>')
-@login_required_with_role(ORG_MANAGEMENT_ROLES)
+@login_required_with_role(RECRUITER_PORTAL_ROLES) # Broadened to all portal roles
 def manage_team(team_id):
     """ [STEP 3] Manages a specific Team: assigning lead and recruiters. """
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    # ----------------- [NEW SECURITY CHECK] -----------------
+    user_role = current_user.role_type
+    staff_id = current_user.specific_role_id
+    
+    # Get the unit this team belongs to for checks below
+    cursor.execute("SELECT UnitID FROM SourcingTeams WHERE TeamID = %s", (team_id,))
+    team_info_for_check = cursor.fetchone()
+    if not team_info_for_check:
+        abort(404, "Team not found.")
+    
+    team_unit_id = team_info_for_check['UnitID']
+
+    is_authorized = False
+    if user_role in ORG_MANAGEMENT_ROLES:
+        is_authorized = True # Top-level managers can see any team.
+    
+    elif user_role == 'UnitManager':
+        # Check if the team is in the unit they manage.
+        cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (staff_id,))
+        managed_unit = cursor.fetchone()
+        if managed_unit and managed_unit['UnitID'] == team_unit_id:
+            is_authorized = True
+            
+    elif user_role == 'SourcingTeamLead':
+        # Check if this is the team they lead.
+        cursor.execute("SELECT TeamID FROM SourcingTeams WHERE TeamLeadStaffID = %s", (staff_id,))
+        led_team = cursor.fetchone()
+        if led_team and led_team['TeamID'] == team_id:
+            is_authorized = True
+
+    elif user_role == 'SourcingRecruiter':
+        # Check if they are a member of this team.
+        cursor.execute("SELECT TeamID FROM Staff WHERE StaffID = %s", (staff_id,))
+        member_team = cursor.fetchone()
+        if member_team and member_team['TeamID'] == team_id:
+            is_authorized = True
+            
+    if not is_authorized:
+        abort(403, "You are not authorized to view this team.")
+    # --------------------------------------------------------
+
     try:
         cursor.execute("""
             SELECT st.*, lead_user.FirstName as LeadFirstName, lead_user.LastName as LeadLastName, su.UnitName
@@ -612,6 +669,7 @@ def manage_team(team_id):
         """, (team_id,))
         team = cursor.fetchone()
         if not team:
+            # This check is now partly redundant due to the security check above, but it's good practice.
             abort(404, "Team not found.")
 
         cursor.execute("""
@@ -1426,3 +1484,61 @@ def view_job_offer(offer_id):
     return render_template('recruiter_team_portal/job_offer_detail.html',
                            title=offer['Title'],
                            offer=offer)
+    
+    
+
+@recruiter_bp.route('/my-organization')
+@login_required_with_role(RECRUITER_PORTAL_ROLES)
+def manage_organization_entry():
+    """
+    [NEW] A smart entry point that redirects users to the correct
+    management page based on their role and assignments.
+    """
+    role = current_user.role_type
+    staff_id = current_user.specific_role_id
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if role in ORG_MANAGEMENT_ROLES: # HeadUnitManager, CEO, Founder
+            # Top-level managers go to the main units list.
+            return redirect(url_for('.list_units'))
+
+        elif role == 'UnitManager':
+            # Find the unit this manager is assigned to.
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (staff_id,))
+            unit = cursor.fetchone()
+            if unit:
+                return redirect(url_for('.manage_unit', unit_id=unit['UnitID']))
+            else:
+                flash("You are not assigned to manage a unit.", "warning")
+                return redirect(url_for('.dashboard'))
+
+        elif role == 'SourcingTeamLead':
+            # Find the team this lead is assigned to.
+            cursor.execute("SELECT TeamID FROM SourcingTeams WHERE TeamLeadStaffID = %s", (staff_id,))
+            team = cursor.fetchone()
+            if team:
+                return redirect(url_for('.manage_team', team_id=team['TeamID']))
+            else:
+                flash("You are not assigned to lead a team.", "warning")
+                return redirect(url_for('.dashboard'))
+        
+        elif role == 'SourcingRecruiter':
+            # Find the team this recruiter is a member of.
+            cursor.execute("SELECT TeamID FROM Staff WHERE StaffID = %s", (staff_id,))
+            staff_info = cursor.fetchone()
+            if staff_info and staff_info['TeamID']:
+                return redirect(url_for('.manage_team', team_id=staff_info['TeamID']))
+            else:
+                flash("You are not currently assigned to a team.", "info")
+                return redirect(url_for('.dashboard'))
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+    
+    # Fallback for any unhandled cases
+    flash("Could not determine your organizational view.", "danger")
+    return redirect(url_for('.dashboard'))
