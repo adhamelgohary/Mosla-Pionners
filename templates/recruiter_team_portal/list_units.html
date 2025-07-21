@@ -6,155 +6,114 @@
 <i class="bi bi-diagram-3-fill text-2xl text-primary"></i>
 {% endblock %}
 
-{% block recruiter_page_title %}
-{{ title }}
-{% endblock %}
+{% block recruiter_page_title %}Organization Management: Units{% endblock %}
 
 {% block recruiter_content %}
-<div x-data="{ createUnitModal: false, assignManagerModal: false, deactivateUnitModal: false, deleteUnitModal: false, selectedUnit: {} }">
-    <!-- Header with Action Buttons -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <a href="{{ url_for('organization_bp.list_units', show_all=not show_all) }}" class="btn btn-secondary text-sm">
-                <i class="bi bi-eye{{ '-slash' if show_all else '' }}"></i>
+<div class="space-y-8">
+    <!-- Create New Unit Section -->
+    <div x-data="{ open: false }" class="bg-card shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-medium leading-6 text-heading">Create a New Unit</h3>
+                <button @click="open = !open" class="btn btn-secondary">
+                    <span x-show="!open">Create</span>
+                    <span x-show="open">Cancel</span>
+                </button>
+            </div>
+            <div x-show="open" x-collapse class="mt-4">
+                <form action="{{ url_for('organization_bp.create_unit') }}" method="POST" class="space-y-4">
+                    <div>
+                        <label for="unit_name" class="form-label">Unit Name</label>
+                        <input type="text" name="unit_name" id="unit_name" class="form-input" required>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="btn btn-primary">Save Unit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Units List Section -->
+    <div class="bg-card shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg leading-6 font-medium text-heading">Sourcing Units</h3>
+                <p class="mt-1 max-w-2xl text-sm text-text-secondary">Manage organizational units and assign managers.</p>
+            </div>
+            <a href="{{ url_for('organization_bp.list_units', show_all=not show_all) }}" class="btn btn-secondary">
                 {{ 'Show Active Only' if show_all else 'Show All (incl. Inactive)' }}
             </a>
         </div>
-        <button @click="createUnitModal = true" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create New Unit
-        </button>
-    </div>
-
-    <!-- Units List -->
-    <div class="bg-card shadow-md rounded-lg overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-border">
-                <thead class="bg-background-alt">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Unit Name</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Manager</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Status</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-card divide-y divide-border">
-                    {% for unit in units %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{{ url_for('organization_bp.manage_unit', unit_id=unit.UnitID) }}" class="font-medium text-primary hover:text-primary-darker">
-                                {{ unit.UnitName }}
-                            </a>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-text">
-                            {{ unit.FirstName + ' ' + unit.LastName if unit.FirstName else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if unit.IsActive %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-alert-success-bg text-alert-success-text">Active</span>
-                            {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-alert-danger-bg text-alert-danger-text">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <button @click="selectedUnit = {{ unit | tojson }}; assignManagerModal = true" class="btn btn-secondary-outline btn-sm" title="Assign Manager"><i class="bi bi-person-plus"></i></button>
-                            {% if unit.IsActive %}
-                                <a href="{{ url_for('organization_bp.manage_unit', unit_id=unit.UnitID) }}" class="btn btn-secondary-outline btn-sm" title="Manage Unit"><i class="bi bi-pencil"></i></a>
-                                <button @click="selectedUnit = {{ unit | tojson }}; deactivateUnitModal = true" class="btn btn-warning-outline btn-sm" title="Deactivate Unit"><i class="bi bi-archive"></i></button>
-                            {% else %}
-                                <form action="{{ url_for('organization_bp.activate_unit', unit_id=unit.UnitID) }}" method="POST" class="inline-block">
-                                    <button type="submit" class="btn btn-success-outline btn-sm" title="Activate Unit"><i class="bi bi-check-circle"></i></button>
-                                </form>
-                                <button @click="selectedUnit = {{ unit | tojson }}; deleteUnitModal = true" class="btn btn-danger-outline btn-sm" title="Delete Unit Permanently"><i class="bi bi-trash"></i></button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center py-10 text-text-muted">No units found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <!-- Modals -->
-    <!-- Create Unit Modal -->
-    <div x-show="createUnitModal" class="fixed z-50 inset-0 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div x-show="createUnitModal" x-transition.opacity @click="createUnitModal = false" class="fixed inset-0 bg-gray-500 opacity-75"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">​</span>
-            <div x-show="createUnitModal" x-transition class="inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form action="{{ url_for('organization_bp.create_unit') }}" method="POST">
-                    <div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-medium text-heading">Create New Sourcing Unit</h3>
-                        <div class="mt-4"><label for="unit_name" class="block text-sm font-medium text-text-muted">Unit Name</label><input type="text" name="unit_name" id="unit_name" class="input mt-1 block w-full" required></div>
-                    </div>
-                    <div class="bg-background-alt px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="btn btn-primary w-full sm:ml-3 sm:w-auto">Create Unit</button>
-                        <button type="button" @click="createUnitModal = false" class="btn btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Assign Manager Modal -->
-    <div x-show="assignManagerModal" class="fixed z-50 inset-0 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div x-show="assignManagerModal" x-transition.opacity @click="assignManagerModal = false" class="fixed inset-0 bg-gray-500 opacity-75"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">​</span>
-            <div x-show="assignManagerModal" x-transition class="inline-block align-bottom bg-card rounded-lg text-left overflow-hidden shadow-xl transform sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form action="{{ url_for('organization_bp.assign_unit_manager') }}" method="POST">
-                    <input type="hidden" name="unit_id" :value="selectedUnit.UnitID">
-                    <div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-medium text-heading">Assign Manager to <span x-text="selectedUnit.UnitName" class="text-primary"></span></h3>
-                        <div class="mt-4">
-                            <label for="manager_staff_id" class="block text-sm font-medium text-text-muted">Select Manager</label>
-                            <select name="manager_staff_id" id="manager_staff_id" class="input mt-1 block w-full" required>
-                                <option value="">-- Choose a staff member --</option>
-                                {% for manager in potential_managers %}<option :selected="selectedUnit.UnitManagerStaffID == {{ manager.StaffID }}" value="{{ manager.StaffID }}">{{ manager.FullName }} ({{ manager.Role }})</option>{% endfor %}
-                            </select>
+        <div class="border-t border-gray-200 dark:border-slate-700">
+            <ul role="list" class="divide-y divide-gray-200 dark:divide-slate-700">
+                {% for unit in units %}
+                <li class="p-4 sm:p-6 hover:bg-background-hover {{ 'opacity-60' if not unit.IsActive }}" x-data="{ modalOpen: false }">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-x-3">
+                                <a href="{{ url_for('organization_bp.manage_unit', unit_id=unit.UnitID) }}" class="text-lg font-semibold text-primary hover:underline">{{ unit.UnitName }}</a>
+                                {% if unit.IsActive %}
+                                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Active</span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-800">Inactive</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-text-secondary mt-1">
+                                Manager: 
+                                {% if unit.FirstName %}
+                                    {{ unit.FirstName }} {{ unit.LastName }}
+                                {% else %}
+                                    <span class="text-yellow-600">Not Assigned</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-x-2">
+                           {% if unit.IsActive %}
+                            <!-- Deactivate Button -->
+                            <div x-data="{ modalOpen: false }">
+                                <button @click="modalOpen = true" class="btn btn-secondary text-yellow-600 hover:bg-yellow-100">Deactivate</button>
+                                {% with modal_id='deactivate-unit-'~unit.UnitID, action_url=url_for('organization_bp.deactivate_unit', unit_id=unit.UnitID), danger_level='warning', modal_title='Deactivate Unit?', modal_body='This will deactivate the unit and unassign all associated teams and staff. Are you sure?', button_text='Deactivate' %}
+                                    {% include 'recruiter_team_portal/partials/_confirmation_modal.html' %}
+                                {% endwith %}
+                            </div>
+                           {% else %}
+                            <!-- Activate Button -->
+                            <form action="{{ url_for('organization_bp.activate_unit', unit_id=unit.UnitID) }}" method="POST">
+                                <button type="submit" class="btn btn-secondary text-green-600 hover:bg-green-100">Activate</button>
+                            </form>
+                            <!-- Delete Button -->
+                            <div x-data="{ modalOpen: false }">
+                                <button @click="modalOpen = true" class="btn btn-danger">Delete</button>
+                                {% with modal_id='delete-unit-'~unit.UnitID, action_url=url_for('organization_bp.delete_unit', unit_id=unit.UnitID), danger_level='danger', modal_title='Permanently Delete Unit?', modal_body='This action is irreversible and will delete the unit and all teams within it. The unit must be inactive. Are you sure?', button_text='Delete Permanently' %}
+                                    {% include 'recruiter_team_portal/partials/_confirmation_modal.html' %}
+                                {% endwith %}
+                            </div>
+                           {% endif %}
                         </div>
                     </div>
-                    <div class="bg-background-alt px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="btn btn-primary w-full sm:ml-3 sm:w-auto">Assign Manager</button>
-                        <button type="button" @click="assignManagerModal = false" class="btn btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Deactivate Unit Modal -->
-    <div x-show="deactivateUnitModal" class="fixed z-50 inset-0 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen">
-            <div x-show="deactivateUnitModal" x-transition.opacity class="fixed inset-0" @click="deactivateUnitModal = false"><div class="absolute inset-0 bg-gray-500 opacity-75"></div></div>
-            <div x-show="deactivateUnitModal" x-transition class="bg-card rounded-lg text-left overflow-hidden shadow-xl transform sm:max-w-lg sm:w-full">
-                <form :action="'/recruiter-portal/organization/unit/' + selectedUnit.UnitID + '/deactivate'" method="POST">
-                    <div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 sm:mx-0 sm:h-10 sm:w-10"><i class="bi bi-exclamation-triangle-fill text-yellow-600"></i></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left"><h3 class="text-lg leading-6 font-medium text-heading">Deactivate Unit</h3><div class="mt-2"><p class="text-sm text-text-muted">Are you sure? This will deactivate all teams within <strong x-text="selectedUnit.UnitName"></strong> and unassign all staff.</p></div></div></div></div>
-                    <div class="bg-background-alt px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="btn btn-warning w-full sm:ml-3 sm:w-auto">Deactivate Unit</button>
-                        <button type="button" @click="deactivateUnitModal = false" class="btn btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <!-- Delete Unit Confirmation Modal -->
-    <div x-show="deleteUnitModal" class="fixed z-50 inset-0 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen">
-            <div x-show="deleteUnitModal" x-transition.opacity class="fixed inset-0" @click="deleteUnitModal = false"><div class="absolute inset-0 bg-gray-500 opacity-75"></div></div>
-            <div x-show="deleteUnitModal" x-transition class="bg-card rounded-lg text-left overflow-hidden shadow-xl transform sm:max-w-lg sm:w-full">
-                <form :action="'/recruiter-portal/organization/unit/' + selectedUnit.UnitID + '/delete'" method="POST">
-                    <div class="bg-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4"><div class="sm:flex sm:items-start"><div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10"><i class="bi bi-exclamation-triangle-fill text-red-600"></i></div><div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left"><h3 class="text-lg leading-6 font-medium text-heading">Permanently Delete Unit</h3><div class="mt-2"><p class="text-sm text-text-muted">Are you sure you want to delete <strong x-text="selectedUnit.UnitName"></strong>? This action is <strong class="text-red-500">permanent and cannot be undone</strong>. All teams within this unit will also be deleted.</p></div></div></div></div>
-                    <div class="bg-background-alt px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="btn btn-danger w-full sm:ml-3 sm:w-auto">Yes, Delete Permanently</button>
-                        <button type="button" @click="deleteUnitModal = false" class="btn btn-secondary mt-3 w-full sm:mt-0 sm:w-auto">Cancel</button>
-                    </div>
-                </form>
-            </div>
+                    <!-- Assign Manager Form -->
+                    <form action="{{ url_for('organization_bp.assign_unit_manager') }}" method="POST" class="mt-4 pt-4 border-t border-gray-200 dark:border-slate-800 flex items-end gap-4">
+                        <input type="hidden" name="unit_id" value="{{ unit.UnitID }}">
+                        <div class="flex-grow">
+                            <label for="manager_staff_id_{{ unit.UnitID }}" class="form-label">Assign Unit Manager</label>
+                            <select name="manager_staff_id" id="manager_staff_id_{{ unit.UnitID }}" class="form-input">
+                                <option value="">Select a Manager...</option>
+                                {% for manager in potential_managers %}
+                                    <option value="{{ manager.StaffID }}" {% if unit.UnitManagerStaffID == manager.StaffID %}selected{% endif %}>
+                                        {{ manager.FullName }} ({{ manager.Role }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Assign</button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-text-secondary">No units found.</li>
+                {% endfor %}
+            </ul>
         </div>
     </div>
 </div>
