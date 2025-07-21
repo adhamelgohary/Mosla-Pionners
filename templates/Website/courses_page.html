@@ -59,8 +59,8 @@
         
         {% if package.Benefits %}
         <div class="benefits-list">
-          {# --- FIX APPLIED HERE: Changed split(',') to split('✔') --- #}
-          {% for benefit in package.Benefits.split('✔') %}
+          {# --- FIX APPLIED HERE: Changed split(',')  #}
+          {% for benefit in package.Benefits.split(',') %}
             <div class="benefit-item">{{ benefit.strip() }}</div>
           {% endfor %}
         </div>
