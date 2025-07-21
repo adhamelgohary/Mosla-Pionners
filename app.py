@@ -61,6 +61,16 @@ from routes.Recruiter_Team_Portal.staff_routes import staff_bp
 from routes.Recruiter_Team_Portal.jobs_routes import jobs_bp
 
 
+
+# --- ROLE CONSTANTS ---
+from routes.Recruiter_Team_Portal.organization_routes import (
+    RECRUITER_PORTAL_ROLES,
+    LEADER_ROLES_IN_PORTAL,
+    ORG_MANAGEMENT_ROLES,
+    TEAM_ASSIGNMENT_ROLES,
+    UNIT_AND_ORG_MANAGEMENT_ROLES
+)
+
 # --- Create Flask App ---
 app = Flask(__name__)
 
@@ -200,6 +210,21 @@ def inject_global_template_variables():
 # --- END: COMBINED CONTEXT PROCESSOR ---
 # ==========================================================
 
+
+@app.context_processor
+def inject_role_constants():
+    """
+    Injects role constants into the context of all templates.
+    This allows templates to use expressions like:
+    {% if current_user.role_type in LEADER_ROLES_IN_PORTAL %}
+    """
+    return dict(
+        RECRUITER_PORTAL_ROLES=RECRUITER_PORTAL_ROLES,
+        LEADER_ROLES_IN_PORTAL=LEADER_ROLES_IN_PORTAL,
+        ORG_MANAGEMENT_ROLES=ORG_MANAGEMENT_ROLES,
+        TEAM_ASSIGNMENT_ROLES=TEAM_ASSIGNMENT_ROLES,
+        UNIT_AND_ORG_MANAGEMENT_ROLES=UNIT_AND_ORG_MANAGEMENT_ROLES
+    )
 
 # --- Global Error Handlers ---
 @app.errorhandler(404)
