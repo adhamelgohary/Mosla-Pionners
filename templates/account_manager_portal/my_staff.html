@@ -14,16 +14,7 @@
             <h1 class="text-xl font-semibold text-heading">My Staff</h1>
             <p class="mt-1 text-sm text-text-muted">A list of all Account Managers in your team. View their portfolios or manage their company assignments.</p>
         </div>
-
-        {% set self_assignment_roles = ['HeadAccountManager', 'CEO', 'Founder'] %}
-        {% if current_user.role_type in self_assignment_roles %}
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{{ url_for('company_assignment_bp.manage_assignments_for_am', manager_staff_id=current_user.specific_role_id) }}" class="btn-primary">
-                <i class="bi bi-person-plus-fill -ml-1 mr-2 h-5 w-5"></i>
-                Assign Companies to Myself
-            </a>
-        </div>
-        {% endif %}
+        <!-- [REMOVED] The "Assign to Myself" button is no longer needed -->
     </div>
 
     <!-- Staff Bento Grid -->

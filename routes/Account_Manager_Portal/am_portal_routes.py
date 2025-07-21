@@ -92,6 +92,11 @@ def _is_user_authorized_for_application(staff_id, application_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+
+        # Senior managers are authorized for any application
+        if current_user.role_type in STAFF_MANAGEMENT_ROLES:
+            return True
+
         cursor.execute("""
             SELECT c.ManagedByStaffID FROM JobApplications ja
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
@@ -126,6 +131,7 @@ def portal_home():
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def dashboard():
     staff_id = getattr(current_user, 'specific_role_id', None)
+    is_senior_manager = current_user.role_type in STAFF_MANAGEMENT_ROLES
     if not staff_id:
         flash("Your staff profile ID could not be found.", "danger")
         return redirect(url_for('staff_dashboard_bp.main_dashboard'))
@@ -134,27 +140,32 @@ def dashboard():
     dashboard_data = {}
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE ManagedByStaffID = %s", (staff_id,))
-        dashboard_data['managed_companies_count'] = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COUNT(*) as count FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND jo.Status = 'Open'", (staff_id,))
-        dashboard_data['open_offers_count'] = cursor.fetchone()['count']
-        
-        # [MODIFIED] This query now correctly counts all applications in the interview pipeline (Shortlisted AND Interview Scheduled)
-        cursor.execute("""
-            SELECT COUNT(ja.ApplicationID) as count 
-            FROM JobApplications ja 
-            JOIN JobOffers jo ON ja.OfferID = jo.OfferID 
-            JOIN Companies c ON jo.CompanyID = c.CompanyID 
-            WHERE c.ManagedByStaffID = %s AND ja.Status IN ('Shortlisted', 'Interview Scheduled')
-        """, (staff_id,))
-        dashboard_data['pending_interview_scheduling_count'] = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT c.CompanyID, c.CompanyName, c.CompanyLogoURL, (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs FROM Companies c WHERE ManagedByStaffID = %s ORDER BY CompanyName", (staff_id,))
-        dashboard_data['managed_companies_list'] = cursor.fetchall()
-        
-        cursor.execute("SELECT u.FirstName, u.LastName, jo.Title as JobTitle, ja.ApplicationDate, ja.ApplicationID, comp.CompanyName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE comp.ManagedByStaffID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC LIMIT 5", (staff_id,))
-        dashboard_data['recent_applicants'] = cursor.fetchall()
+        # --- [MODIFIED] Dynamic queries based on user role ---
+        if is_senior_manager:
+            # Senior managers see totals for ALL companies
+            cursor.execute("SELECT COUNT(*) as count FROM Companies")
+            dashboard_data['managed_companies_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT COUNT(*) as count FROM JobOffers WHERE Status = 'Open'")
+            dashboard_data['open_offers_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT COUNT(ja.ApplicationID) as count FROM JobApplications ja WHERE ja.Status IN ('Shortlisted', 'Interview Scheduled')")
+            dashboard_data['pending_interview_scheduling_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT c.CompanyID, c.CompanyName, c.CompanyLogoURL, (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs FROM Companies c ORDER BY CompanyName")
+            dashboard_data['managed_companies_list'] = cursor.fetchall()
+            cursor.execute("SELECT u.FirstName, u.LastName, jo.Title as JobTitle, ja.ApplicationDate, ja.ApplicationID, comp.CompanyName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC LIMIT 5")
+            dashboard_data['recent_applicants'] = cursor.fetchall()
+        else:
+            # Regular AMs see totals ONLY for their assigned companies
+            cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE ManagedByStaffID = %s", (staff_id,))
+            dashboard_data['managed_companies_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT COUNT(*) as count FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND jo.Status = 'Open'", (staff_id,))
+            dashboard_data['open_offers_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT COUNT(ja.ApplicationID) as count FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE c.ManagedByStaffID = %s AND ja.Status IN ('Shortlisted', 'Interview Scheduled')", (staff_id,))
+            dashboard_data['pending_interview_scheduling_count'] = cursor.fetchone()['count']
+            cursor.execute("SELECT c.CompanyID, c.CompanyName, c.CompanyLogoURL, (SELECT COUNT(*) FROM JobOffers WHERE CompanyID = c.CompanyID AND Status = 'Open') as OpenJobs FROM Companies c WHERE ManagedByStaffID = %s ORDER BY CompanyName", (staff_id,))
+            dashboard_data['managed_companies_list'] = cursor.fetchall()
+            cursor.execute("SELECT u.FirstName, u.LastName, jo.Title as JobTitle, ja.ApplicationDate, ja.ApplicationID, comp.CompanyName FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID WHERE comp.ManagedByStaffID = %s AND ja.Status IN ('Applied', 'Submitted') ORDER BY ja.ApplicationDate DESC LIMIT 5", (staff_id,))
+            dashboard_data['recent_applicants'] = cursor.fetchall()
     finally:
         if conn and conn.is_connected(): conn.close()
             
@@ -164,6 +175,7 @@ def dashboard():
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def interview_pipeline():
     staff_id = getattr(current_user, 'specific_role_id', None)
+    is_senior_manager = current_user.role_type in STAFF_MANAGEMENT_ROLES
     if not staff_id:
         flash("Your staff profile ID could not be found.", "danger")
         return redirect(url_for('.dashboard'))
@@ -173,7 +185,7 @@ def interview_pipeline():
     try:
         cursor = conn.cursor(dictionary=True)
         # Main query to get all pipeline applications
-        sql = """
+        sql_base = """
             SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, u.Email, 
                    jo.Title as OfferTitle, comp.CompanyName, comp.CompanyID,
                    i.InterviewID, i.ScheduledDateTime, i.Status as InterviewStatus
@@ -183,23 +195,31 @@ def interview_pipeline():
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
             JOIN Companies comp ON jo.CompanyID = comp.CompanyID
             LEFT JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
-            WHERE ja.Status IN ('Shortlisted', 'Interview Scheduled') AND comp.ManagedByStaffID = %s
-            ORDER BY CASE WHEN ja.Status = 'Shortlisted' THEN 0 ELSE 1 END, i.ScheduledDateTime, ja.ApplicationDate DESC;
+            WHERE ja.Status IN ('Shortlisted', 'Interview Scheduled')
         """
-        cursor.execute(sql, (staff_id,))
+        params = []
+        if not is_senior_manager:
+            sql_base += " AND comp.ManagedByStaffID = %s"
+            params.append(staff_id)
+        
+        sql_order = " ORDER BY CASE WHEN ja.Status = 'Shortlisted' THEN 0 ELSE 1 END, i.ScheduledDateTime, ja.ApplicationDate DESC;"
+        cursor.execute(sql_base + sql_order, tuple(params))
         pipeline_apps = cursor.fetchall()
         
         # New query to get a unique list of companies for the filter dropdown
         if pipeline_apps:
-            company_filter_sql = """
+            company_filter_sql_base = """
                 SELECT DISTINCT comp.CompanyID, comp.CompanyName
                 FROM JobApplications ja
                 JOIN JobOffers jo ON ja.OfferID = jo.OfferID
                 JOIN Companies comp ON jo.CompanyID = comp.CompanyID
-                WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
-                ORDER BY comp.CompanyName;
+                WHERE ja.Status = 'Interview Scheduled'
             """
-            cursor.execute(company_filter_sql, (staff_id,))
+            if not is_senior_manager:
+                company_filter_sql_base += " AND comp.ManagedByStaffID = %s"
+            
+            company_filter_sql_order = " ORDER BY comp.CompanyName;"
+            cursor.execute(company_filter_sql_base + company_filter_sql_order, tuple(params))
             companies_with_scheduled_interviews = cursor.fetchall()
 
     finally:
@@ -226,7 +246,6 @@ def my_staff():
         if conn and conn.is_connected(): conn.close()
     return render_template('account_manager_portal/my_staff.html', title="My Staff - Account Managers", staff_list=staff_list)
 
-# --- [NEW ROUTE] Master view for Head AMs to see all companies ---
 @account_manager_bp.route('/all-companies')
 @login_required_with_role(STAFF_MANAGEMENT_ROLES)
 def all_companies_overview():
@@ -260,9 +279,6 @@ def all_companies_overview():
             cursor.close()
             conn.close()
 
-    # NOTE: This route requires a new template: account_manager_portal/all_companies_overview.html
-    # This template should display a table of companies with columns for Company Name, Industry,
-    # Assigned Manager, Open Jobs, and Action links to view/manage the company.
     return render_template('account_manager_portal/all_companies_overview.html',
                            title="All Companies Overview",
                            companies=all_companies_list)
@@ -280,15 +296,30 @@ def my_portfolio():
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def view_manager_portfolio(manager_staff_id):
     is_own_portfolio = hasattr(current_user, 'specific_role_id') and current_user.specific_role_id == manager_staff_id
-    if not is_own_portfolio and current_user.role_type not in ['HeadAccountManager', 'CEO', 'Founder', 'Founder']:
+    is_senior_manager = current_user.role_type in STAFF_MANAGEMENT_ROLES
+
+    # --- [MODIFIED] Authorization logic ---
+    # Allow senior managers to view anyone's portfolio. Others can only view their own.
+    if not is_own_portfolio and not is_senior_manager:
         abort(403, "You are not authorized to view this portfolio.")
+
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT s.StaffID, u.FirstName, u.LastName, s.Role FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (manager_staff_id,))
         manager_details = cursor.fetchone()
         if not manager_details: abort(404, "Account Manager not found.")
-        cursor.execute("SELECT CompanyID, CompanyName, Industry FROM Companies WHERE ManagedByStaffID = %s ORDER BY CompanyName", (manager_staff_id,))
+
+        # --- [MODIFIED] Dynamic query for portfolio companies ---
+        # If the viewer is a senior manager and they are viewing THEIR OWN portfolio, show ALL companies.
+        # Otherwise, show only companies explicitly assigned to the manager_staff_id.
+        portfolio_title = f"Portfolio: {manager_details['FirstName']} {manager_details['LastName']}"
+        if is_senior_manager and is_own_portfolio:
+            cursor.execute("SELECT CompanyID, CompanyName, Industry FROM Companies ORDER BY CompanyName")
+            portfolio_title = "Master Portfolio (All Companies)"
+        else:
+            cursor.execute("SELECT CompanyID, CompanyName, Industry FROM Companies WHERE ManagedByStaffID = %s ORDER BY CompanyName", (manager_staff_id,))
+        
         managed_companies = cursor.fetchall()
         companies_with_data = []
         for company in managed_companies:
@@ -297,19 +328,25 @@ def view_manager_portfolio(manager_staff_id):
             companies_with_data.append(company)
     finally:
         if conn and conn.is_connected(): conn.close()
-    return render_template('account_manager_portal/portfolio_detailed.html', title=f"Portfolio: {manager_details['FirstName']} {manager_details['LastName']}", manager=manager_details, companies_data=companies_with_data)
+
+    return render_template('account_manager_portal/portfolio_detailed.html', 
+                           title=portfolio_title, 
+                           manager=manager_details, 
+                           companies_data=companies_with_data)
 
 @account_manager_bp.route('/application/<int:application_id>/update', methods=['POST'])
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def update_application_status(application_id):
     action = request.form.get('action')
-    manager_staff_id = request.form.get('manager_staff_id')
     offer_id_for_redirect = request.form.get('offer_id')
     feedback_notes = request.form.get('feedback_notes', '').strip()
-    if not all([action, manager_staff_id, offer_id_for_redirect]):
+    if not all([action, offer_id_for_redirect]):
         flash("Invalid request. Missing required data.", "danger")
         return redirect(url_for('.dashboard'))
-    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id): abort(403)
+
+    if not _is_user_authorized_for_application(current_user.specific_role_id, application_id): 
+        abort(403)
+
     new_status = {'approve': 'Shortlisted', 'reject': 'Rejected'}.get(action)
     if new_status:
         conn = get_db_connection()
@@ -361,16 +398,18 @@ def view_offer_applicants(offer_id):
         cursor.execute("SELECT jo.OfferID, jo.Title, jo.Status, c.CompanyID, c.CompanyName, c.ManagedByStaffID FROM JobOffers jo JOIN Companies c ON jo.CompanyID = c.CompanyID WHERE jo.OfferID = %s", (offer_id,))
         offer_info = cursor.fetchone()
         if not offer_info: abort(404, "Job offer not found.")
+        
         is_company_manager = offer_info['ManagedByStaffID'] == staff_id
         is_senior_manager = current_user.role_type in STAFF_MANAGEMENT_ROLES
         if not (is_company_manager or is_senior_manager):
              abort(403, "You are not authorized to view applicants for this offer.")
+
         offer_data['info'] = offer_info
         cursor.execute("SELECT ja.ApplicationID, ja.Status, ja.ApplicationDate, c.CandidateID, u.UserID, u.FirstName, u.LastName, u.Email, u.ProfilePictureURL FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ja.OfferID = %s ORDER BY CASE ja.Status WHEN 'Applied' THEN 1 WHEN 'Submitted' THEN 2 WHEN 'Shortlisted' THEN 3 ELSE 4 END, ja.ApplicationDate DESC", (offer_id,))
         offer_data['applicants'] = cursor.fetchall()
     finally:
         if conn and conn.is_connected(): conn.close()
-    return render_template('account_manager_portal/single_offer_view.html', title=f"Applicants for: {offer_data['info']['Title']}", offer_data=offer_data, manager_staff_id=staff_id)
+    return render_template('account_manager_portal/single_offer_view.html', title=f"Applicants for: {offer_data['info']['Title']}", offer_data=offer_data)
     
 @account_manager_bp.route('/application/<int:application_id>/review-details')
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
@@ -405,6 +444,7 @@ def review_application_details(application_id):
 @login_required_with_role(AM_PORTAL_ACCESS_ROLES)
 def export_scheduled_interviews():
     staff_id = getattr(current_user, 'specific_role_id', None)
+    is_senior_manager = current_user.role_type in STAFF_MANAGEMENT_ROLES
     if not staff_id:
         abort(403)
         
@@ -427,9 +467,13 @@ def export_scheduled_interviews():
             JOIN JobOffers jo ON ja.OfferID = jo.OfferID
             JOIN Companies comp ON jo.CompanyID = comp.CompanyID
             JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
-            WHERE ja.Status = 'Interview Scheduled' AND comp.ManagedByStaffID = %s
+            WHERE ja.Status = 'Interview Scheduled'
         """
-        params = [staff_id]
+        params = []
+        if not is_senior_manager:
+            sql += " AND comp.ManagedByStaffID = %s"
+            params.append(staff_id)
+
         if company_id_filter and company_id_filter.isdigit():
             sql += " AND comp.CompanyID = %s"
             params.append(int(company_id_filter))
