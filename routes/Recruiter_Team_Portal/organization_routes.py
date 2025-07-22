@@ -524,7 +524,7 @@ def delete_team(team_id):
         flash(f"Error permanently deleting team: {e}", "danger")
     finally:
         conn.close()
-    return redirect(request.referrer or url_for('organization_bp.list_units'))
+    return redirect(request.referrer or url_for('organization_bp.list_teams_in_unit', unit_id=request.form.get('unit_id')))
 
 
 # --- [FIXED] MODIFIED DEACTIVATE_TEAM ROUTE ---
