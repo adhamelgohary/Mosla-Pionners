@@ -499,16 +499,34 @@ def delete_unit(unit_id):
         conn.close()
     return redirect(url_for('organization_bp.list_units'))
 
+# in routes/Recruiter_Team_Portal/organization_routes.py
+
 @organization_bp.route('/team/<int:team_id>/delete', methods=['POST'])
-@login_required_with_role(ORG_MANAGEMENT_ROLES) # Only highest level can permanently delete
+@login_required_with_role(UNIT_AND_ORG_MANAGEMENT_ROLES) # <<< THIS IS THE CORRECT LINE
 def delete_team(team_id):
     conn = get_db_connection()
+    team_unit_id_for_redirect = None # For redirecting after deletion
     try:
         cursor = conn.cursor(dictionary=True)
-        # Ensure team is inactive
-        cursor.execute("SELECT IsActive FROM SourcingTeams WHERE TeamID = %s", (team_id,))
+
+        # Get the unit ID of the team being deleted for redirect later
+        cursor.execute("SELECT UnitID, IsActive FROM SourcingTeams WHERE TeamID = %s", (team_id,))
         team = cursor.fetchone()
-        if not team or team['IsActive'] == 1:
+        if not team:
+            abort(404, "Team not found.")
+        team_unit_id_for_redirect = team['UnitID']
+
+        # --- Authorization check for Unit Managers ---
+        if current_user.role_type == 'UnitManager':
+            cursor.execute("SELECT UnitID FROM SourcingUnits WHERE UnitManagerStaffID = %s", (current_user.specific_role_id,))
+            managed_unit = cursor.fetchone()
+            
+            # Ensure the team is within the manager's unit
+            if not managed_unit or managed_unit['UnitID'] != team_unit_id_for_redirect:
+                abort(403, "You are not authorized to delete teams outside of your own unit.")
+        
+        # Ensure team is inactive (existing safety check)
+        if team['IsActive'] == 1:
             flash("Team must be deactivated before it can be deleted.", "warning")
             return redirect(request.referrer)
 
@@ -518,13 +536,20 @@ def delete_team(team_id):
         cursor.execute("DELETE FROM SourcingTeams WHERE TeamID = %s", (team_id,))
         conn.commit()
         flash("Team has been permanently deleted.", "success")
+
     except Exception as e:
-        conn.rollback()
+        if conn: conn.rollback()
         current_app.logger.error(f"Error deleting team {team_id}: {e}", exc_info=True)
         flash(f"Error permanently deleting team: {e}", "danger")
     finally:
-        conn.close()
-    return redirect(request.referrer or url_for('organization_bp.list_teams_in_unit', unit_id=request.form.get('unit_id')))
+        if cursor: cursor.close()
+        if conn: conn.close()
+        
+    # Redirect back to the unit management page after deletion
+    if team_unit_id_for_redirect:
+        return redirect(url_for('organization_bp.manage_unit', unit_id=team_unit_id_for_redirect))
+    
+    return redirect(url_for('organization_bp.list_units'))
 
 
 # --- [FIXED] MODIFIED DEACTIVATE_TEAM ROUTE ---
