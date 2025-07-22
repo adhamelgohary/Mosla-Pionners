@@ -39,7 +39,7 @@
                         <div class="lg:col-span-2 bg-card/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl border border-border/50 space-y-8">
                             <!-- Personal Information Section -->
                             <div class="space-y-6">
-                                <h3 class="text-lg font-semibold text-heading border-b border-border/50 pb-3">Personal Information</h3>
+                                <!-- ... full_name and email fields are unchanged ... -->
                                 <div>
                                     <label for="fullName" class="block text-sm font-medium leading-6 text-text">Full Name <span class="text-danger-500">*</span></label>
                                     <div class="mt-2"><input type="text" id="fullName" name="full_name" value="{{ form_data.get('full_name', current_user.full_name or '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
@@ -55,15 +55,20 @@
                                     <div class="mt-2"><input type="tel" id="phoneNumber" name="phone_number" value="{{ form_data.get('phone_number', current_user.phone_number or '') }}" required class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
                                     <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_phone_number"></p>
                                 </div>
+                                
+                                <!-- --- MODIFIED REFERRAL CODE SECTION --- -->
                                 <div>
-                                    <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code (Optional)</label>
-                                    <div class="mt-2"><input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="e.g., JOHN123" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input"></div>
-                                    <div id="referralCodeFeedback" class="text-sm mt-2"></div>
+                                    <label for="referralCode" class="block text-sm font-medium leading-6 text-text">Referral Code</label>
+                                    <div class="mt-2">
+                                        <input type="text" id="referralCode" name="referral_code" value="{{ form_data.get('referral_code', '') }}" placeholder="Enter code here..." oninput="validateReferralCode(this.value)" class="block w-full rounded-md border-0 py-2.5 text-text shadow-sm ring-1 ring-inset ring-input-border placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary bg-input uppercase">
+                                    </div>
+                                    <div id="referralCodeFeedback" class="text-sm mt-2 font-medium"></div>
                                     <p class="invalid-feedback mt-2 text-sm text-danger-600" id="error_referral_code"></p>
                                 </div>
+                                <!-- --- END OF MODIFIED SECTION --- -->
                             </div>
                             
-                            <!-- Application Questions Section -->
+                            <!-- Application Questions Section (unchanged) -->
                             <div class="space-y-6 pt-8 border-t border-border/50">
                                 <h3 class="text-lg font-semibold text-heading border-b border-border/50 pb-3">Application Questions</h3>
                                 <div>
@@ -74,16 +79,14 @@
                             </div>
                         </div>
 
-                        <!-- Side Column (Right/Small) -->
+                        <!-- Side Column (Right/Small) (unchanged) -->
                         <div class="lg:col-span-1 space-y-6">
-                            <!-- Job Info Box -->
+                            <!-- ... Job Info Box and CV Upload Box are unchanged ... -->
                             <div class="bg-card/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-border/50">
                                 <h3 class="text-base font-semibold text-heading">Job Details</h3>
                                 <p class="text-sm text-text-muted mt-2">You are applying for the <strong class="text-text">{{ offer.Title }}</strong> position.</p>
                                 <a href="{{ url_for('job_board_bp.job_detail', offer_id=offer.OfferID) }}" class="mt-4 inline-block font-medium text-sm text-primary hover:text-primary-darker">View full job details →</a>
                             </div>
-
-                            <!-- CV Upload Box -->
                             <div class="bg-card/90 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-border/50">
                                 <h3 class="text-base font-semibold leading-6 text-heading">Upload Your CV <span class="text-danger-500">*</span></h3>
                                 <p class="mt-1 text-xs text-text-muted">Please upload your most recent CV in .pdf, .doc, or .docx format.</p>
@@ -92,9 +95,10 @@
                             </div>
                         </div>
 
-                        <!-- Voice Introduction Box (Full Width) -->
+                        <!-- Voice Introduction Box (Full Width) (unchanged) -->
                         <div class="lg:col-span-3 bg-card/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-xl border border-border/50">
-                             <h3 class="text-lg font-semibold leading-6 text-heading">Your Voice Introduction <span class="text-danger-500">*</span></h3>
+                            <!-- ... All voice recorder HTML is unchanged ... -->
+                            <h3 class="text-lg font-semibold leading-6 text-heading">Your Voice Introduction <span class="text-danger-500">*</span></h3>
                              <p class="mt-1 text-sm text-text-muted">Record a voice introduction (up to 140 seconds). Introduce yourself and briefly answer: 1. Why a call center role? 2. What makes you a great fit?</p>
                             <div id="recorder-container" class="mt-4 p-4 border border-dashed border-border/70 rounded-lg space-y-4">
                                 <div class="flex items-center justify-between flex-wrap gap-4">
@@ -158,11 +162,62 @@
 
 {% block page_scripts %}
     {{ super() }}
-    <!-- NEW: Include the MicRecorder library for simplified MP3 recording -->
+    <!-- MicRecorder library for MP3 recording -->
     <script src="https://unpkg.com/mic-recorder-to-mp3"></script>
 
     <script>
+    // --- NEW: Referral Code Validation Script ---
+    let debounceTimer;
+    async function validateReferralCode(code) {
+        const feedbackEl = document.getElementById('referralCodeFeedback');
+        const codeInput = document.getElementById('referralCode');
+        
+        // Clear previous timer
+        clearTimeout(debounceTimer);
+        
+        if (!code.trim()) {
+            feedbackEl.innerHTML = '';
+            return;
+        }
+
+        // Set a new timer to avoid spamming the server on every keystroke
+        debounceTimer = setTimeout(async () => {
+            feedbackEl.innerHTML = '<span class="text-text-muted">Checking...</span>';
+
+            try {
+                const response = await fetch("{{ url_for('job_board_bp.validate_referral_code_api') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    body: JSON.stringify({ referral_code: code })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    let successMessage = `<i class="bi bi-check-circle-fill"></i> Referred by: <strong>${result.recruiter_name}</strong>`;
+                    if (result.team_name) {
+                        successMessage += ` (Team: ${result.team_name})`;
+                    }
+                    feedbackEl.innerHTML = `<span class="text-success-600">${successMessage}</span>`;
+                    codeInput.classList.remove('ring-danger-500');
+                } else {
+                    feedbackEl.innerHTML = `<span class="text-danger-600"><i class="bi bi-x-circle-fill"></i> ${result.message || 'Invalid code'}</span>`;
+                    codeInput.classList.add('ring-danger-500');
+                }
+            } catch (error) {
+                console.error("Referral code validation error:", error);
+                feedbackEl.innerHTML = `<span class="text-danger-600">Could not validate code.</span>`;
+                codeInput.classList.add('ring-danger-500');
+            }
+        }, 400); // Wait 400ms after user stops typing
+    }
+    // --- END: Referral Code Validation Script ---
+
     document.addEventListener('DOMContentLoaded', () => {
+        // ... all existing voice recorder and form submission JS remains here, unchanged ...
         const applicationForm = document.getElementById('applicationForm');
         if (!applicationForm) return;
 

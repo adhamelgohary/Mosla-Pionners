@@ -227,23 +227,41 @@ def apply_to_job(offer_id):
 def validate_referral_code_api():
     if not request.is_json:
         return jsonify({'status': 'error', 'message': 'Invalid request format: JSON expected.'}), 400
+        
     data = request.get_json()
     referral_code = data.get('referral_code', '').strip().upper()
+    
     if not referral_code: 
         return jsonify({'status': 'valid_but_empty', 'message': 'Referral code field is empty.'}), 200
+        
     try:
         with get_db_connection() as conn:
             with conn.cursor(dictionary=True) as cursor:
+                # --- MODIFIED SQL QUERY ---
+                # We now LEFT JOIN SourcingTeams to get the TeamName
                 cursor.execute("""
-                    SELECT u.FirstName, u.LastName FROM Staff s
-                    JOIN Users u ON s.UserID = u.UserID WHERE s.ReferralCode = %s AND u.IsActive = 1
+                    SELECT u.FirstName, u.LastName, st.TeamName 
+                    FROM Staff s
+                    JOIN Users u ON s.UserID = u.UserID 
+                    LEFT JOIN SourcingTeams st ON s.TeamID = st.TeamID
+                    WHERE s.ReferralCode = %s AND u.IsActive = 1
                 """, (referral_code,))
+                
                 staff_member = cursor.fetchone()
+                
                 if staff_member:
                     recruiter_name = f"{staff_member['FirstName']} {staff_member['LastName']}"
-                    return jsonify({'status': 'success', 'recruiter_name': recruiter_name}), 200
+                    team_name = staff_member.get('TeamName') # This can be None, which is fine
+                    
+                    # --- MODIFIED JSON RESPONSE ---
+                    return jsonify({
+                        'status': 'success', 
+                        'recruiter_name': recruiter_name,
+                        'team_name': team_name 
+                    }), 200
                 else:
                     return jsonify({'status': 'error', 'message': 'Invalid or inactive referral code.'}), 404 
+                    
     except Exception as e:
         current_app.logger.error(f"API Error validating referral code '{referral_code}': {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Server error during validation.'}), 500
