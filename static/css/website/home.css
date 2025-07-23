@@ -416,8 +416,8 @@ html[data-theme="dark"] .hero::before {
 }
 
 .service-icon {
-    width: 48px;
-    height:48px;
+    width: 60px;
+    height: 60px;
     background: linear-gradient(135deg, #62bfe6, #4a9eff);
     border-radius: 15px;
     display: flex;
