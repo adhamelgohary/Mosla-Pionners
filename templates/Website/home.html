@@ -11,9 +11,9 @@
                 <p>We specialize in building elite teams for the nation's leading customer service, telesales, and real estate companies. Our end-to-end solutions allow you to focus on your core business, confident that your recruitment needs are in the hands of dedicated specialists.</p>
                 <div class="hero-buttons">
                     {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="btn-primary">Find Your Next Job</a>
+                        <a href="{{ url_for('job_board_bp.job_offers_list') }}" class="action-button">Find Your Next Job</a>
                     {% else %}
-                        <a href="{{ url_for('login_bp.login') }}" class="btn-primary">Find Your Next Job</a>
+                        <a href="{{ url_for('login_bp.login') }}" class="action-button">Find Your Next Job</a>
                     {% endif %}
                     <a href="#services" class="btn-secondary">Explore Our Services</a>
                 </div>
@@ -47,33 +47,31 @@
              <p>Tailored services to meet the needs of both job seekers and employers.</p>
         </div>
 
-      <div class="services-grid">
-    <div class="service-card fade-in">
-        <div class="service-header">
-            <div class="service-icon">
-                <img src="images/talent-hunt.gif" alt="Briefcase Icon" class="service-gif-icon">
-            </div>
-            <h3>Find Top Talent</h3>
-        </div>
-        <p>For employers looking to fill vacancies with the best candidates. Post your job and let us connect you with our pool of pre-screened, top-tier agents.</p>
-        <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
-    </div>
-</div>
+        <div class="services-grid">
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="images/graduate.gif" alt="Briefcase Icon" class="service-gif-icon">
+                        <img src="{{ url_for('static', filename='images/talent-hunt.gif') }}" alt="Talent Hunt Icon">
+                    </div>
+                    <h3>Find Top Talent</h3>
+                </div>
+                <p>For employers looking to fill vacancies with the best candidates. Post your job and let us connect you with our pool of pre-screened, top-tier agents.</p>
+                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
+            </div>
+            <div class="service-card fade-in">
+                <div class="service-header">
+                    <div class="service-icon">
+                        <img src="{{ url_for('static', filename='images/graduate.gif') }}" alt="Graduate Icon">
                     </div>
                     <h3>Train To Hire Courses</h3>
                 </div>
                 <p>Unlock new markets with our "Train to Hire" program. We cultivate fluent English and German communicators, custom-molded for your specific roles.</p>
                 <a href="{{ url_for('courses_page_bp.view_packages') }}" class="service-link">Learn More →</a>
             </div>
-
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="images/job-offer.gif" alt="Briefcase Icon" class="service-gif-icon">
+                        <img src="{{ url_for('static', filename='images/job-offer.gif') }}" alt="Job Offer Icon">
                     </div>
                     <h3>Advance Your Career</h3>
                 </div>
@@ -84,11 +82,11 @@
                     <a href="{{ url_for('login_bp.login', next=url_for('job_board_bp.job_offers_list')) }}" class="service-link">View Open Jobs →</a>
                 {% endif %}
             </div>
-            
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="images/team-build.gif" alt="Briefcase Icon" class="service-gif-icon"></div>
+                        <img src="{{ url_for('static', filename='images/team-build.gif') }}" alt="Team Building Icon">
+                    </div>
                     <h3>Join Our Team</h3>
                 </div>
                 <p>Ready to connect top talent with great opportunities? Start your journey as a recruiter with Mosla Pioneers and help shape the future of staffing.</p>
