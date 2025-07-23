@@ -189,38 +189,66 @@ def job_detail(offer_id, job_title_slug=None):
             
     return render_template('Website/job_offers/job_detail.html', offer=offer, title=offer.get('Title', 'Job Details'))
 
+# routes/Website/job_board_routes.py
+
 @job_board_bp.route('/offer/<int:offer_id>/apply', methods=['GET'])
 @login_required
 def apply_to_job(offer_id):
+    """
+    Prepares the application form page. 
+    Fetches the Job Category Name to allow JavaScript to display a dynamic voice prompt.
+    """
     role_redirect = check_candidate_role()
     if role_redirect:
         return role_redirect
+    
     conn = get_db_connection()
     offer = None
     form_data = {}
+    category_name = None # Variable to hold the category name
+
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT OfferID, Title FROM JobOffers WHERE OfferID = %s AND Status = 'Open'", (offer_id,))
+        
+        # Query now also gets the CategoryName for the JS logic
+        cursor.execute("""
+            SELECT jo.OfferID, jo.Title, jc.CategoryName 
+            FROM JobOffers jo
+            LEFT JOIN JobCategories jc ON jo.CategoryID = jc.CategoryID
+            WHERE jo.OfferID = %s AND jo.Status = 'Open'
+        """, (offer_id,))
         offer = cursor.fetchone()
+
         if not offer:
             flash("This job offer is no longer available.", "warning")
             return redirect(url_for('.job_offers_list'))
+
+        # Store the category name to pass to the template
+        category_name = offer.get('CategoryName')
+        
+        # Pre-fill user data
         form_data['full_name'] = f"{current_user.first_name} {current_user.last_name}"
         form_data['email'] = current_user.email
         cursor.execute("SELECT PhoneNumber FROM Users WHERE UserID = %s", (current_user.id,))
         user_details = cursor.fetchone()
         if user_details:
             form_data['phone_number'] = user_details.get('PhoneNumber', '')
+
     except Exception as e:
         current_app.logger.error(f"Error preparing application page for OfferID {offer_id}: {e}", exc_info=True)
         flash("Could not load the application page.", "danger")
         return redirect(url_for('.job_detail', offer_id=offer_id))
     finally:
         if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
+            if 'cursor' in locals(): cursor.close()
             conn.close()
-    return render_template('Website/job_offers/apply_to_job.html', offer=offer, form_data=form_data)
-
+            
+    return render_template(
+        'Website/job_offers/apply_to_job.html', 
+        offer=offer, 
+        form_data=form_data,
+        category_name=category_name  # Pass the category name to the template
+    )
 
 @job_board_bp.route('/api/validate-referral-code', methods=['POST'])
 @login_required 
