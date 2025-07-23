@@ -416,8 +416,8 @@ html[data-theme="dark"] .hero::before {
 }
 
 .service-icon {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
     background: linear-gradient(135deg, #62bfe6, #4a9eff);
     border-radius: 15px;
     display: flex;
@@ -429,8 +429,8 @@ html[data-theme="dark"] .hero::before {
 
 /* Use the new, more accurate class name */
 .service-img-icon {
-    width: 40px;  /* Adjust size to fit inside the container */
-    height: 40px; /* Adjust size to fit inside the container */
+    width: 20px;  /* Adjust size to fit inside the container */
+    height: 20px; /* Adjust size to fit inside the container */
 }
 
 .service-card h3 {
