@@ -530,8 +530,8 @@ html[data-theme="dark"] .btn-secondary:hover {
 }
 
 .service-img-icon {
-    width: 25px;
-    height: 25px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
 }
 
