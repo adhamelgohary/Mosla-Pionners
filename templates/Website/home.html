@@ -47,23 +47,21 @@
              <p>Tailored services to meet the needs of both job seekers and employers.</p>
         </div>
 
-    <div class="services-grid">
-    <div class="service-card fade-in">
-        <div class="service-header">
-            <div class="service-icon">
-                <!-- Corrected class name and alt attribute syntax -->
-                <img src="{{ url_for('static', filename='images/talent-search.png') }}" alt="Talent Search Icon" class="service-img-icon">
-            </div>
-            <h3>Find Top Talent</h3>
-        </div>
-        <p>For employers looking to fill vacancies with the best candidates. Post your job and let us connect you with our pool of pre-screened, top-tier agents.</p>
-        <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
-    </div>
-</div>
+        <div class="services-grid">
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="{{ url_for('static', filename='images/academy.png') }}" alt="Talent Search Icon" class="service-img-icon">
+                        <img src="{{ url_for('static', filename='images/talent-search.png') }}" alt="Talent Search Icon" class="service-img-icon">
+                    </div>
+                    <h3>Find Top Talent</h3>
+                </div>
+                <p>For employers looking to fill vacancies with the best candidates. Post your job and let us connect you with our pool of pre-screened, top-tier agents.</p>
+                <a href="{{ url_for('register_bp.register_client') }}" class="service-link">Post a Job Now →</a>
+            </div>
+            <div class="service-card fade-in">
+                <div class="service-header">
+                    <div class="service-icon">
+                        <img src="{{ url_for('static', filename='images/academy.png') }}" alt="Academy Icon" class="service-img-icon">
                     </div>
                     <h3>Train To Hire Courses</h3>
                 </div>
@@ -73,7 +71,7 @@
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="{{ url_for('static', filename='images/laptop.png') }}" alt="Talent Search Icon" class="service-img-icon">
+                        <img src="{{ url_for('static', filename='images/laptop.png') }}" alt="Laptop Icon" class="service-img-icon">
                     </div>
                     <h3>Advance Your Career</h3>
                 </div>
@@ -87,7 +85,8 @@
             <div class="service-card fade-in">
                 <div class="service-header">
                     <div class="service-icon">
-                        <img src="{{ url_for('static', filename='images/collaboration.png') }}" alt="Talent Search Icon" class="service-img-icon"></div>
+                        <img src="{{ url_for('static', filename='images/collaboration.png') }}" alt="Collaboration Icon" class="service-img-icon">
+                    </div>
                     <h3>Join Our Team</h3>
                 </div>
                 <p>Ready to connect top talent with great opportunities? Start your journey as a recruiter with Mosla Pioneers and help shape the future of staffing.</p>

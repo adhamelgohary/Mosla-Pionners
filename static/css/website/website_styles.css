@@ -529,6 +529,12 @@ html[data-theme="dark"] .btn-secondary:hover {
     font-size: 2rem;
 }
 
+.service-img-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
 .service-card h3 {
     font-size: 1.15rem;
     color: var(--text-color);
