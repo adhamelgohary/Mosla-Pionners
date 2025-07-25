@@ -1,3 +1,5 @@
+--- START OF MODIFIED FILE recruiter_profile.html ---
+
 {# templates/recruiter_team_portal/recruiter_profile.html #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
@@ -19,6 +21,7 @@
             <img class="w-24 h-24 rounded-full mx-auto object-cover" src="{{ profile_data.info.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="Profile picture of {{ profile_data.info.FirstName }}">
             <h2 class="mt-4 text-xl font-bold text-heading">{{ profile_data.info.FirstName }} {{ profile_data.info.LastName }}</h2>
             <p class="text-sm text-text-muted">{{ profile_data.info.Role }}</p>
+            <p class="mt-2 text-lg font-bold text-primary">{{ profile_data.info.TotalPoints or 0 }} Points</p> {# Display Total Points #}
             {% if profile_data.info.IsActive %}
                 <span class="mt-2 inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Active</span>
             {% else %}
@@ -27,10 +30,27 @@
             <p class="mt-4 text-xs text-text-muted">Member since {{ profile_data.info.RegistrationDate.strftime('%b %Y') }}</p>
         </div>
 
-        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+        {# Manager-specific actions will be determined in the route and passed in a flag #}
+        {% if can_manage_profile %}
         <div class="bg-card p-6 rounded-lg shadow border border-border">
             <h3 class="text-lg font-semibold text-heading mb-4">Admin Actions</h3>
             <div class="space-y-4">
+                
+                <!-- NEW: Assign Points Feature -->
+                {% if can_assign_points %}
+                <form action="{{ url_for('staff_bp.assign_points') }}" method="POST">
+                    <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
+                    <label for="points" class="form-label">Assign Points</label>
+                    <div class="flex gap-2 mt-1">
+                        <input type="number" id="points" name="points" class="form-input flex-grow" placeholder="e.g., 100" required>
+                        <button type="submit" class="btn-primary">Assign</button>
+                    </div>
+                </form>
+                <hr class="border-border">
+                {% endif %}
+                <!-- END NEW FEATURE -->
+
+                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
                 <form action="{{ url_for('staff_bp.change_staff_role') }}" method="POST">
                     <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
                     <label for="new_role" class="form-label">Change Role</label>
@@ -43,6 +63,7 @@
                         <button type="submit" class="btn-secondary">Save</button>
                     </div>
                 </form>
+                {% endif %}
 
                 <a href="{{ url_for('organization_bp.list_units') }}" class="btn-secondary w-full">
                     <i class="bi bi-diagram-3-fill mr-2"></i>
