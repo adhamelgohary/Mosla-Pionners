@@ -1,4 +1,5 @@
 # routes/Recruiter_Team_Portal/staff_routes.py
+# --- FULLY UPDATED CODE ---
 
 from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request
 from flask_login import current_user
@@ -7,18 +8,13 @@ from db import get_db_connection
 
 # --- ROLE CONSTANTS ---
 LEADER_ROLES_IN_PORTAL = ['SourcingTeamLead', 'HeadSourcingTeamLead', 'UnitManager', 'HeadUnitManager', 'CEO', 'Founder']
+TOP_LEVEL_MANAGEMENT = ['HeadUnitManager', 'CEO', 'Founder']
 ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 ASSIGNABLE_SOURCING_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
 MANAGEABLE_RECRUITER_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
 
-# --- NEW: HIERARCHY FOR POINT ASSIGNMENT ---
-# Defines who can assign points to whom.
-# Key: Manager's Role, Value: List of roles they can assign points to.
-POINT_ASSIGNMENT_HIERARCHY = {
-    'HeadUnitManager': ['UnitManager'],
-    'UnitManager': ['SourcingTeamLead'],
-    'SourcingTeamLead': ['SourcingRecruiter']
-}
+# NOTE: The POINT_ASSIGNMENT_HIERARCHY dictionary has been removed.
+# The logic is now handled directly in the routes to accommodate more complex rules.
 
 # Define a complete, self-contained blueprint for staff-related routes
 staff_bp = Blueprint('staff_bp', __name__,
@@ -35,7 +31,7 @@ def _get_performance_stats(cursor, staff_id):
 
 def _is_subordinate(cursor, manager_staff_id, subordinate_staff_id):
     """
-    SECURITY FIX: Checks if a staff member is a subordinate of a manager by traversing the reporting hierarchy.
+    Checks if a staff member is a subordinate of a manager by traversing the reporting hierarchy.
     Returns True if subordinate_staff_id reports to manager_staff_id directly or indirectly.
     """
     if not manager_staff_id or not subordinate_staff_id:
@@ -90,28 +86,39 @@ def view_recruiter_profile(staff_id_viewing):
         if not profile_info:
             abort(404, "Staff member not found.")
 
-        # --- UPDATED: Granular Authorization Logic ---
-        is_top_level_manager = current_user.role_type in ['CEO', 'Founder']
+        # --- Authorization Logic ---
+        is_top_level = current_user.role_type in TOP_LEVEL_MANAGEMENT
         is_own_profile = (str(staff_id_viewing) == str(viewer_staff_id))
         is_direct_manager = (str(profile_info['ReportsToStaffID']) == str(viewer_staff_id))
-        
-        # Check if the viewer is an indirect manager (e.g., HeadUnitManager viewing a SourcingRecruiter)
-        is_indirect_manager = False
-        if not is_direct_manager:
-            is_indirect_manager = _is_subordinate(cursor, viewer_staff_id, staff_id_viewing)
+        is_indirect_manager = not is_direct_manager and _is_subordinate(cursor, viewer_staff_id, staff_id_viewing)
 
         # 1. Determine who can VIEW the profile
-        can_view = is_own_profile or is_direct_manager or is_indirect_manager or is_top_level_manager
+        can_view = is_own_profile or is_direct_manager or is_indirect_manager or is_top_level
         if not can_view:
-            abort(403) # Access Denied
+            abort(403)
 
-        # 2. Determine who can see the "Admin Actions" box (any manager in the chain)
-        can_manage_profile = is_direct_manager or is_indirect_manager or is_top_level_manager
+        # 2. Determine who can see the "Admin Actions" box
+        can_manage_profile = is_direct_manager or is_indirect_manager or is_top_level
         
-        # 3. Determine who can ASSIGN POINTS (only a direct manager following the hierarchy rules)
-        allowed_subordinate_roles = POINT_ASSIGNMENT_HIERARCHY.get(current_user.role_type, [])
-        if is_direct_manager and profile_info['Role'] in allowed_subordinate_roles:
+        # --- REFACTORED: Point Assignment Authorization ---
+        manager_role = current_user.role_type
+        subordinate_role = profile_info['Role']
+
+        # Rule 1: Head Unit Manager / CEO / Founder can assign points to anyone.
+        if manager_role in TOP_LEVEL_MANAGEMENT:
             can_assign_points = True
+        # Rule 2: Unit Manager can assign points to anyone in their hierarchy.
+        elif manager_role == 'UnitManager':
+            if is_direct_manager or is_indirect_manager:
+                can_assign_points = True
+        # Rule 3: Team Lead can only assign to their direct-report Sourcing Recruiters.
+        elif manager_role == 'SourcingTeamLead':
+            if is_direct_manager and subordinate_role == 'SourcingRecruiter':
+                can_assign_points = True
+        
+        # Final check: Prevent assigning points to self
+        if is_own_profile:
+            can_assign_points = False
 
         profile_data['info'] = profile_info
         profile_data['kpis'] = {}; profile_data['kpis']['hires_all_time'], profile_data['kpis']['referrals_all_time'] = _get_performance_stats(cursor, staff_id_viewing)
@@ -127,7 +134,6 @@ def view_recruiter_profile(staff_id_viewing):
                            can_manage_profile=can_manage_profile,
                            can_assign_points=can_assign_points)
 
-# --- NEW ROUTE FOR ASSIGNING POINTS ---
 @staff_bp.route('/profile/assign-points', methods=['POST'])
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def assign_points():
@@ -138,43 +144,47 @@ def assign_points():
 
     redirect_url = url_for('staff_bp.view_recruiter_profile', staff_id_viewing=staff_id_to_reward)
 
-    # --- Input Validation ---
     if not all([staff_id_to_reward, points_to_add_str, manager_staff_id]):
-        flash("Missing required information.", "danger")
-        return redirect(redirect_url)
+        flash("Missing required information.", "danger"); return redirect(redirect_url)
     try:
         points_to_add = int(points_to_add_str)
-        if points_to_add <= 0:
-            flash("Points must be a positive number.", "warning")
-            return redirect(redirect_url)
+        if points_to_add <= 0: flash("Points must be a positive number.", "warning"); return redirect(redirect_url)
     except (ValueError, TypeError):
-        flash("Invalid number of points provided.", "danger")
-        return redirect(redirect_url)
+        flash("Invalid number of points provided.", "danger"); return redirect(redirect_url)
+    
+    if str(staff_id_to_reward) == str(manager_staff_id):
+        flash("You cannot assign points to yourself.", "warning"); return redirect(redirect_url)
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # --- Authorization Checks ---
-        # 1. Get the subordinate's info
         cursor.execute("SELECT Role, ReportsToStaffID FROM Staff WHERE StaffID = %s", (staff_id_to_reward,))
         subordinate = cursor.fetchone()
         if not subordinate:
-            flash("Staff member to reward not found.", "danger")
-            return redirect(url_for('staff_bp.manage_recruiters'))
+            flash("Staff member to reward not found.", "danger"); return redirect(url_for('staff_bp.manage_recruiters'))
         
-        # 2. Check if the current user is the DIRECT manager
-        if str(subordinate['ReportsToStaffID']) != str(manager_staff_id):
-            flash("You can only assign points to your direct reports.", "danger")
-            return redirect(redirect_url)
-            
-        # 3. Check if the role combination is allowed by your business rules
-        allowed_roles_for_manager = POINT_ASSIGNMENT_HIERARCHY.get(manager_role, [])
-        if subordinate['Role'] not in allowed_roles_for_manager:
-            flash(f"As a {manager_role}, you are not permitted to assign points to a {subordinate['Role']}.", "danger")
-            return redirect(redirect_url)
+        # --- REFACTORED: New Authorization Logic for Point Assignment ---
+        is_authorized = False
+        subordinate_role = subordinate['Role']
 
-        # --- Execution ---
+        # Rule 1: Head Unit Manager / CEO / Founder can assign points to anyone.
+        if manager_role in TOP_LEVEL_MANAGEMENT:
+            is_authorized = True
+        # Rule 2: Unit Manager can assign points to anyone in their unit hierarchy.
+        elif manager_role == 'UnitManager':
+            if _is_subordinate(cursor, manager_staff_id, staff_id_to_reward):
+                is_authorized = True
+        # Rule 3: Team Lead can only assign points to their direct-report Sourcing Recruiters.
+        elif manager_role == 'SourcingTeamLead':
+            is_direct_report = str(subordinate['ReportsToStaffID']) == str(manager_staff_id)
+            if is_direct_report and subordinate_role == 'SourcingRecruiter':
+                is_authorized = True
+
+        if not is_authorized:
+            flash("You do not have the required permissions to assign points to this staff member.", "danger")
+            return redirect(redirect_url)
+        # --- End of Authorization Logic ---
+
         cursor.execute("UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s", (points_to_add, staff_id_to_reward))
         conn.commit()
         flash(f"Successfully assigned {points_to_add} points.", "success")
@@ -264,9 +274,8 @@ def change_staff_role():
     try:
         cursor = conn.cursor()
         
-        # --- SECURED: Authorization Check ---
         is_authorized = False
-        if current_user.role_type in ['CEO', 'Founder']:
+        if current_user.role_type in TOP_LEVEL_MANAGEMENT:
             is_authorized = True
         elif manager_staff_id:
             is_authorized = _is_subordinate(cursor, manager_staff_id, staff_id_to_change)
@@ -274,7 +283,6 @@ def change_staff_role():
         if not is_authorized:
             flash("You are not authorized to modify this staff member's role.", "danger")
             return redirect(redirect_url)
-        # --- END SECURED ---
 
         cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_change))
         conn.commit()
