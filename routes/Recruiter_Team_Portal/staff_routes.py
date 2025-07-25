@@ -1,5 +1,5 @@
 # routes/Recruiter_Team_Portal/staff_routes.py
-# --- FULLY UPDATED CODE WITH POINT TRANSACTION LEDGER ---
+# --- CORRECTED CODE ---
 
 from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request
 from flask_login import current_user
@@ -17,13 +17,19 @@ staff_bp = Blueprint('staff_bp', __name__,
                      url_prefix='/recruiter-portal',
                      template_folder='../../../templates')
 
+# --- START OF FIX ---
 def _get_performance_stats(cursor, staff_id):
     """Fetches all-time hires and referrals for a staff member."""
     cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s AND Status = 'Hired'", (staff_id,))
     hires = cursor.fetchone()['count']
     cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ReferringStaffID = %s", (staff_id,))
     referrals = cursor.fetchone()['count']
-    return hires, referrals
+    # Return a dictionary that matches the keys expected by the template
+    return {
+        'hires_all_time': hires,
+        'referrals_all_time': referrals
+    }
+# --- END OF FIX ---
 
 def _is_subordinate(cursor, manager_staff_id, subordinate_staff_id):
     """
@@ -76,13 +82,11 @@ def view_recruiter_profile(staff_id_viewing):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # The 'TotalPoints' column has been removed from the Staff table.
         cursor.execute("SELECT s.StaffID, u.IsActive, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate, s.Role, s.ReportsToStaffID, s.ReferralCode FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (staff_id_viewing,))
         profile_info = cursor.fetchone()
         if not profile_info:
             abort(404, "Staff member not found.")
 
-        # Authorization logic for viewing and managing the profile
         is_top_level = current_user.role_type in TOP_LEVEL_MANAGEMENT
         is_own_profile = (str(staff_id_viewing) == str(viewer_staff_id))
         is_direct_manager = (str(profile_info['ReportsToStaffID']) == str(viewer_staff_id))
@@ -92,7 +96,6 @@ def view_recruiter_profile(staff_id_viewing):
         
         can_manage_profile = is_direct_manager or is_indirect_manager or is_top_level
         
-        # Authorization logic for point assignment
         manager_role = current_user.role_type
         subordinate_role = profile_info['Role']
         if manager_role in TOP_LEVEL_MANAGEMENT: can_assign_points = True
@@ -102,13 +105,10 @@ def view_recruiter_profile(staff_id_viewing):
             if is_direct_manager and subordinate_role == 'SourcingRecruiter': can_assign_points = True
         if is_own_profile: can_assign_points = False
         
-        # --- NEW: Point Data from Transaction Log ---
-        # 1. Calculate total points dynamically
         cursor.execute("SELECT SUM(Points) as total FROM PointTransactions WHERE RecipientStaffID = %s", (staff_id_viewing,))
         total_points_result = cursor.fetchone()
         profile_data['total_points'] = total_points_result['total'] if total_points_result and total_points_result['total'] is not None else 0
 
-        # 2. Get the transaction history
         log_query = """
             SELECT pt.*, u_assigner.FirstName as AssignerFirstName, u_assigner.LastName as AssignerLastName
             FROM PointTransactions pt
@@ -122,6 +122,7 @@ def view_recruiter_profile(staff_id_viewing):
         profile_data['point_transactions'] = cursor.fetchall()
 
         profile_data['info'] = profile_info
+        # With the fix in _get_performance_stats, this line now works correctly.
         profile_data['kpis'] = _get_performance_stats(cursor, staff_id_viewing)
 
     finally:
@@ -147,7 +148,6 @@ def assign_points():
 
     redirect_url = url_for('staff_bp.view_recruiter_profile', staff_id_viewing=staff_id_to_reward)
 
-    # Validate inputs
     if not all([staff_id_to_reward, points_str, manager_staff_id, reason]):
         flash("Points, reason, and staff ID are all required.", "danger"); return redirect(redirect_url)
     try:
@@ -168,7 +168,6 @@ def assign_points():
         if not subordinate:
             flash("Staff member not found.", "danger"); return redirect(url_for('staff_bp.manage_recruiters'))
         
-        # Check authorization based on role hierarchy
         is_authorized = False
         if manager_role in TOP_LEVEL_MANAGEMENT: is_authorized = True
         elif manager_role == 'UnitManager':
@@ -181,7 +180,6 @@ def assign_points():
             flash("You do not have permission to manage points for this staff member.", "danger")
             return redirect(redirect_url)
         
-        # Insert the transaction into the new log table
         cursor.execute(
             "INSERT INTO PointTransactions (AssignerStaffID, RecipientStaffID, Points, Reason) VALUES (%s, %s, %s, %s)",
             (manager_staff_id, staff_id_to_reward, points, reason)
