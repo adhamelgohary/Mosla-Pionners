@@ -1,5 +1,5 @@
 # routes/Recruiter_Team_Portal/staff_routes.py
-# --- FULLY UPDATED CODE ---
+# --- FULLY UPDATED CODE WITH POINT TRANSACTION LEDGER ---
 
 from flask import Blueprint, abort, render_template, flash, redirect, url_for, current_app, request
 from flask_login import current_user
@@ -13,10 +13,6 @@ ORG_MANAGEMENT_ROLES = ['HeadUnitManager', 'CEO', 'Founder']
 ASSIGNABLE_SOURCING_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
 MANAGEABLE_RECRUITER_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
 
-# NOTE: The POINT_ASSIGNMENT_HIERARCHY dictionary has been removed.
-# The logic is now handled directly in the routes to accommodate more complex rules.
-
-# Define a complete, self-contained blueprint for staff-related routes
 staff_bp = Blueprint('staff_bp', __name__,
                      url_prefix='/recruiter-portal',
                      template_folder='../../../templates')
@@ -32,13 +28,11 @@ def _get_performance_stats(cursor, staff_id):
 def _is_subordinate(cursor, manager_staff_id, subordinate_staff_id):
     """
     Checks if a staff member is a subordinate of a manager by traversing the reporting hierarchy.
-    Returns True if subordinate_staff_id reports to manager_staff_id directly or indirectly.
     """
     if not manager_staff_id or not subordinate_staff_id:
         return False
     if str(manager_staff_id) == str(subordinate_staff_id):
         return False
-    # This recursive SQL query efficiently checks the entire reporting chain.
     query = """
         WITH RECURSIVE SubordinateHierarchy AS (
             SELECT StaffID FROM Staff WHERE ReportsToStaffID = %s
@@ -81,51 +75,59 @@ def view_recruiter_profile(staff_id_viewing):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT s.StaffID, u.IsActive, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate, s.Role, s.ReportsToStaffID, s.TotalPoints, s.ReferralCode FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (staff_id_viewing,))
+        
+        # The 'TotalPoints' column has been removed from the Staff table.
+        cursor.execute("SELECT s.StaffID, u.IsActive, u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL, u.Email, u.RegistrationDate, s.Role, s.ReportsToStaffID, s.ReferralCode FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (staff_id_viewing,))
         profile_info = cursor.fetchone()
         if not profile_info:
             abort(404, "Staff member not found.")
 
-        # --- Authorization Logic ---
+        # Authorization logic for viewing and managing the profile
         is_top_level = current_user.role_type in TOP_LEVEL_MANAGEMENT
         is_own_profile = (str(staff_id_viewing) == str(viewer_staff_id))
         is_direct_manager = (str(profile_info['ReportsToStaffID']) == str(viewer_staff_id))
         is_indirect_manager = not is_direct_manager and _is_subordinate(cursor, viewer_staff_id, staff_id_viewing)
-
-        # 1. Determine who can VIEW the profile
         can_view = is_own_profile or is_direct_manager or is_indirect_manager or is_top_level
-        if not can_view:
-            abort(403)
-
-        # 2. Determine who can see the "Admin Actions" box
+        if not can_view: abort(403)
+        
         can_manage_profile = is_direct_manager or is_indirect_manager or is_top_level
         
-        # --- REFACTORED: Point Assignment Authorization ---
+        # Authorization logic for point assignment
         manager_role = current_user.role_type
         subordinate_role = profile_info['Role']
-
-        # Rule 1: Head Unit Manager / CEO / Founder can assign points to anyone.
-        if manager_role in TOP_LEVEL_MANAGEMENT:
-            can_assign_points = True
-        # Rule 2: Unit Manager can assign points to anyone in their hierarchy.
+        if manager_role in TOP_LEVEL_MANAGEMENT: can_assign_points = True
         elif manager_role == 'UnitManager':
-            if is_direct_manager or is_indirect_manager:
-                can_assign_points = True
-        # Rule 3: Team Lead can only assign to their direct-report Sourcing Recruiters.
+            if is_direct_manager or is_indirect_manager: can_assign_points = True
         elif manager_role == 'SourcingTeamLead':
-            if is_direct_manager and subordinate_role == 'SourcingRecruiter':
-                can_assign_points = True
+            if is_direct_manager and subordinate_role == 'SourcingRecruiter': can_assign_points = True
+        if is_own_profile: can_assign_points = False
         
-        # Final check: Prevent assigning points to self
-        if is_own_profile:
-            can_assign_points = False
+        # --- NEW: Point Data from Transaction Log ---
+        # 1. Calculate total points dynamically
+        cursor.execute("SELECT SUM(Points) as total FROM PointTransactions WHERE RecipientStaffID = %s", (staff_id_viewing,))
+        total_points_result = cursor.fetchone()
+        profile_data['total_points'] = total_points_result['total'] if total_points_result and total_points_result['total'] is not None else 0
+
+        # 2. Get the transaction history
+        log_query = """
+            SELECT pt.*, u_assigner.FirstName as AssignerFirstName, u_assigner.LastName as AssignerLastName
+            FROM PointTransactions pt
+            JOIN Staff s_assigner ON pt.AssignerStaffID = s_assigner.StaffID
+            JOIN Users u_assigner ON s_assigner.UserID = u_assigner.UserID
+            WHERE pt.RecipientStaffID = %s
+            ORDER BY pt.TransactionDate DESC
+            LIMIT 50;
+        """
+        cursor.execute(log_query, (staff_id_viewing,))
+        profile_data['point_transactions'] = cursor.fetchall()
 
         profile_data['info'] = profile_info
-        profile_data['kpis'] = {}; profile_data['kpis']['hires_all_time'], profile_data['kpis']['referrals_all_time'] = _get_performance_stats(cursor, staff_id_viewing)
-        cursor.execute("SELECT ja.ApplicationID, ja.Status, u.FirstName, u.LastName, jo.Title as JobTitle FROM JobApplications ja JOIN Candidates c ON ja.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID JOIN JobOffers jo ON ja.OfferID = jo.OfferID WHERE ja.ReferringStaffID = %s ORDER BY ja.ApplicationDate DESC LIMIT 10", (staff_id_viewing,))
-        profile_data['recent_applications'] = cursor.fetchall()
+        profile_data['kpis'] = _get_performance_stats(cursor, staff_id_viewing)
+
     finally:
-        conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
     
     return render_template('recruiter_team_portal/recruiter_profile.html', 
                            title=f"Profile: {profile_data['info']['FirstName']}", 
@@ -138,22 +140,25 @@ def view_recruiter_profile(staff_id_viewing):
 @login_required_with_role(LEADER_ROLES_IN_PORTAL)
 def assign_points():
     staff_id_to_reward = request.form.get('staff_id')
-    points_to_add_str = request.form.get('points')
+    points_str = request.form.get('points')
+    reason = request.form.get('reason', '').strip()
     manager_staff_id = getattr(current_user, 'specific_role_id', None)
     manager_role = current_user.role_type
 
     redirect_url = url_for('staff_bp.view_recruiter_profile', staff_id_viewing=staff_id_to_reward)
 
-    if not all([staff_id_to_reward, points_to_add_str, manager_staff_id]):
-        flash("Missing required information.", "danger"); return redirect(redirect_url)
+    # Validate inputs
+    if not all([staff_id_to_reward, points_str, manager_staff_id, reason]):
+        flash("Points, reason, and staff ID are all required.", "danger"); return redirect(redirect_url)
     try:
-        points_to_add = int(points_to_add_str)
-        if points_to_add <= 0: flash("Points must be a positive number.", "warning"); return redirect(redirect_url)
+        points = int(points_str)
+        if points == 0:
+            flash("Points value cannot be zero.", "warning"); return redirect(redirect_url)
     except (ValueError, TypeError):
         flash("Invalid number of points provided.", "danger"); return redirect(redirect_url)
     
     if str(staff_id_to_reward) == str(manager_staff_id):
-        flash("You cannot assign points to yourself.", "warning"); return redirect(redirect_url)
+        flash("You cannot make a point transaction for yourself.", "warning"); return redirect(redirect_url)
 
     conn = get_db_connection()
     try:
@@ -161,39 +166,36 @@ def assign_points():
         cursor.execute("SELECT Role, ReportsToStaffID FROM Staff WHERE StaffID = %s", (staff_id_to_reward,))
         subordinate = cursor.fetchone()
         if not subordinate:
-            flash("Staff member to reward not found.", "danger"); return redirect(url_for('staff_bp.manage_recruiters'))
+            flash("Staff member not found.", "danger"); return redirect(url_for('staff_bp.manage_recruiters'))
         
-        # --- REFACTORED: New Authorization Logic for Point Assignment ---
+        # Check authorization based on role hierarchy
         is_authorized = False
-        subordinate_role = subordinate['Role']
-
-        # Rule 1: Head Unit Manager / CEO / Founder can assign points to anyone.
-        if manager_role in TOP_LEVEL_MANAGEMENT:
-            is_authorized = True
-        # Rule 2: Unit Manager can assign points to anyone in their unit hierarchy.
+        if manager_role in TOP_LEVEL_MANAGEMENT: is_authorized = True
         elif manager_role == 'UnitManager':
-            if _is_subordinate(cursor, manager_staff_id, staff_id_to_reward):
-                is_authorized = True
-        # Rule 3: Team Lead can only assign points to their direct-report Sourcing Recruiters.
+            if _is_subordinate(cursor, manager_staff_id, staff_id_to_reward): is_authorized = True
         elif manager_role == 'SourcingTeamLead':
             is_direct_report = str(subordinate['ReportsToStaffID']) == str(manager_staff_id)
-            if is_direct_report and subordinate_role == 'SourcingRecruiter':
-                is_authorized = True
-
+            if is_direct_report and subordinate['Role'] == 'SourcingRecruiter': is_authorized = True
+        
         if not is_authorized:
-            flash("You do not have the required permissions to assign points to this staff member.", "danger")
+            flash("You do not have permission to manage points for this staff member.", "danger")
             return redirect(redirect_url)
-        # --- End of Authorization Logic ---
-
-        cursor.execute("UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s", (points_to_add, staff_id_to_reward))
+        
+        # Insert the transaction into the new log table
+        cursor.execute(
+            "INSERT INTO PointTransactions (AssignerStaffID, RecipientStaffID, Points, Reason) VALUES (%s, %s, %s, %s)",
+            (manager_staff_id, staff_id_to_reward, points, reason)
+        )
         conn.commit()
-        flash(f"Successfully assigned {points_to_add} points.", "success")
+        flash("Point transaction successfully logged.", "success")
     except Exception as e:
         conn.rollback()
-        current_app.logger.error(f"Error assigning points to StaffID {staff_id_to_reward} by ManagerID {manager_staff_id}: {e}")
-        flash("An error occurred while assigning points.", "danger")
+        current_app.logger.error(f"Error logging point transaction for StaffID {staff_id_to_reward}: {e}")
+        flash("An error occurred while logging the transaction.", "danger")
     finally:
-        conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
     
     return redirect(redirect_url)
 
@@ -206,7 +208,7 @@ def list_pending_staff():
         cursor.execute("SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.RegistrationDate, s.Role FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.IsActive = 0 ORDER BY u.RegistrationDate ASC")
         pending_staff = cursor.fetchall()
     finally:
-        conn.close()
+        if conn and conn.is_connected(): conn.close()
     return render_template('recruiter_team_portal/pending_users.html', title="Activate New Staff", pending_users=pending_staff)
 
 @staff_bp.route('/activate-staff', methods=['POST'])
@@ -220,18 +222,14 @@ def activate_staff_member():
     try:
         cursor = conn.cursor()
         cursor.execute("UPDATE Users u JOIN Staff s ON u.UserID = s.UserID SET u.IsActive = 1 WHERE s.StaffID = %s", (staff_id,))
-        if cursor.rowcount == 0:
-            flash("User not found.", "warning")
+        if cursor.rowcount == 0: flash("User not found.", "warning")
         else:
-            if initial_role:
-                cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (initial_role, staff_id))
-            conn.commit()
-            flash("Staff member successfully activated.", "success")
+            if initial_role: cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (initial_role, staff_id))
+            conn.commit(); flash("Staff member successfully activated.", "success")
     except Exception as e:
-        current_app.logger.error(f"Error activating staff for StaffID {staff_id}: {e}")
-        flash(f"Error activating staff: {e}", "danger")
+        current_app.logger.error(f"Error activating staff for StaffID {staff_id}: {e}"); flash(f"Error activating staff: {e}", "danger")
     finally:
-        conn.close()
+        if conn and conn.is_connected(): conn.close()
     return redirect(request.referrer or url_for('staff_bp.list_pending_staff'))
 
 @staff_bp.route('/deactivate-staff', methods=['POST'])
@@ -246,13 +244,11 @@ def deactivate_staff():
         cursor = conn.cursor()
         cursor.execute("UPDATE Users u JOIN Staff s ON u.UserID = s.UserID SET u.IsActive = 0 WHERE s.StaffID = %s", (staff_id,))
         cursor.execute("UPDATE Staff SET TeamID = NULL, ReportsToStaffID = NULL WHERE StaffID = %s", (staff_id,))
-        conn.commit()
-        flash("Staff member has been deactivated.", "success")
+        conn.commit(); flash("Staff member has been deactivated.", "success")
     except Exception as e:
-        current_app.logger.error(f"Error deactivating staff for StaffID {staff_id}: {e}")
-        flash(f"Error deactivating staff member: {e}", "danger")
+        current_app.logger.error(f"Error deactivating staff for StaffID {staff_id}: {e}"); flash(f"Error deactivating staff member: {e}", "danger")
     finally:
-        conn.close()
+        if conn and conn.is_connected(): conn.close()
     return redirect(request.referrer or url_for('organization_bp.list_units'))
 
 @staff_bp.route('/profile/change-role', methods=['POST'])
@@ -262,23 +258,17 @@ def change_staff_role():
     manager_staff_id = getattr(current_user, 'specific_role_id', None)
     redirect_url = url_for('staff_bp.view_recruiter_profile', staff_id_viewing=staff_id_to_change)
     if not staff_id_to_change or not new_role:
-        flash("Staff ID or new role is missing.", "danger")
-        return redirect(request.referrer or redirect_url)
+        flash("Staff ID or new role is missing.", "danger"); return redirect(request.referrer or redirect_url)
     if new_role not in ASSIGNABLE_SOURCING_ROLES:
-        flash("Invalid role selected.", "danger")
-        return redirect(redirect_url)
+        flash("Invalid role selected.", "danger"); return redirect(redirect_url)
     if str(staff_id_to_change) == str(manager_staff_id):
-        flash("You cannot change your own role from this page.", "warning")
-        return redirect(redirect_url)
+        flash("You cannot change your own role.", "warning"); return redirect(redirect_url)
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        
         is_authorized = False
-        if current_user.role_type in TOP_LEVEL_MANAGEMENT:
-            is_authorized = True
-        elif manager_staff_id:
-            is_authorized = _is_subordinate(cursor, manager_staff_id, staff_id_to_change)
+        if current_user.role_type in TOP_LEVEL_MANAGEMENT: is_authorized = True
+        elif manager_staff_id: is_authorized = _is_subordinate(cursor, manager_staff_id, staff_id_to_change)
         
         if not is_authorized:
             flash("You are not authorized to modify this staff member's role.", "danger")
@@ -286,11 +276,10 @@ def change_staff_role():
 
         cursor.execute("UPDATE Staff SET Role = %s WHERE StaffID = %s", (new_role, staff_id_to_change))
         conn.commit()
-        flash(f"Role successfully updated to '{new_role}'. Any necessary team or unit re-assignments should be done on the Organization Management page.", "success")
+        flash(f"Role successfully updated to '{new_role}'.", "success")
     except Exception as e:
         conn.rollback()
-        current_app.logger.error(f"Error changing role for StaffID {staff_id_to_change}: {e}")
-        flash(f"Error updating role: {e}", "danger")
+        current_app.logger.error(f"Error changing role for StaffID {staff_id_to_change}: {e}"); flash(f"Error updating role: {e}", "danger")
     finally:
-        conn.close()
+        if conn and conn.is_connected(): conn.close()
     return redirect(redirect_url)
