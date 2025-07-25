@@ -1,4 +1,5 @@
 {# templates/recruiter_team_portal/recruiter_profile.html #}
+{# --- FULLY UPDATED CODE WITH POINT TRANSACTION LEDGER --- #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
 {% block recruiter_title %}{{ title }}{% endblock %}
@@ -19,8 +20,10 @@
             <img class="w-24 h-24 rounded-full mx-auto object-cover" src="{{ profile_data.info.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="Profile picture of {{ profile_data.info.FirstName }}">
             <h2 class="mt-4 text-xl font-bold text-heading">{{ profile_data.info.FirstName }} {{ profile_data.info.LastName }}</h2>
             <p class="text-sm text-text-muted">{{ profile_data.info.Role }}</p>
-            {# UPDATED: Display calculated total points #}
+            
+            <!-- UPDATED: Display calculated total points from transaction log -->
             <p class="mt-2 text-lg font-bold text-primary">{{ profile_data.total_points or 0 }} Points</p>
+            
             {% if profile_data.info.IsActive %}
                 <span class="mt-2 inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Active</span>
             {% else %}
@@ -29,11 +32,14 @@
             <p class="mt-4 text-xs text-text-muted">Member since {{ profile_data.info.RegistrationDate.strftime('%b %Y') }}</p>
         </div>
 
-        {% if can_manage_profile and can_assign_points %}
+        <!-- Section for manager actions -->
+        {% if can_manage_profile %}
         <div class="bg-card p-6 rounded-lg shadow border border-border">
+            
+            <!-- Point management form, shown only if user has permission -->
+            {% if can_assign_points %}
             <h3 class="text-lg font-semibold text-heading mb-4">Manage Points</h3>
             <div class="space-y-4">
-                {# UPDATED: Point management form for adding/subtracting and reasons #}
                 <form action="{{ url_for('staff_bp.assign_points') }}" method="POST">
                     <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
                     
@@ -51,10 +57,14 @@
                         <button type="submit" class="btn-primary w-full">Submit Transaction</button>
                     </div>
                 </form>
-
                 <hr class="border-border">
-                
-                {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+            </div>
+            {% endif %}
+
+            <!-- Role change form, shown only to top-level management -->
+            {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+            <h3 class="text-lg font-semibold text-heading mb-4 mt-4">Admin Actions</h3>
+            <div class="space-y-4">
                 <form action="{{ url_for('staff_bp.change_staff_role') }}" method="POST">
                     <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
                     <label for="new_role" class="form-label">Change Role</label>
@@ -67,8 +77,8 @@
                         <button type="submit" class="btn-secondary">Save</button>
                     </div>
                 </form>
-                {% endif %}
             </div>
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -90,7 +100,7 @@
             </div>
         </div>
 
-        {# NEW: Point Transaction Log #}
+        <!-- NEW: Point Transaction Log -->
         <div class="bg-card rounded-lg shadow border border-border">
             <div class="p-6">
                 <h3 class="text-lg font-semibold text-heading">Point Transaction History</h3>
