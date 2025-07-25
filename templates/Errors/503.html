@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Unavailable (503) - Mosla Pioneers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-white overflow-hidden">
+
+    <!-- Particle Background with a deep blue "maintenance" gradient -->
+    <div id="particles-js" class="absolute inset-0 z-0 bg-gradient-to-br from-blue-900 via-slate-900 to-gray-800"></div>
+
+    <!-- Content -->
+    <main class="relative z-10 min-h-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+        <div class="max-w-xl mx-auto text-center transform transition-all duration-500 animate-fade-in-up">
+            
+            <div class="bg-white/10 backdrop-blur-md p-8 sm:p-12 rounded-3xl shadow-2xl border border-white/20">
+                <!-- 503 with deep blue gradient -->
+                <h1 class="text-7xl sm:text-9xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-slate-300">
+                    503
+                </h1>
+                
+                <!-- Messaging for maintenance/service down -->
+                <p class="mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    We'll Be Back Soon
+                </p>
+                <p class="mt-4 text-base text-slate-300">
+                    Our site is temporarily down for scheduled maintenance. We're working to improve things and will be back online shortly. Thank you for your patience.
+                </p>
+
+                <div class="mt-10 flex items-center justify-center">
+                    <!-- REMOVED 'Go back home' button -->
+                    <a href="{{ url_for('public_routes_bp.contact_page') }}" 
+                       class="text-sm font-semibold text-slate-200 hover:text-white transition-colors">
+                        Contact support <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bad Request (400) - Mosla Pioneers</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-white overflow-hidden">
+
+    <!-- Particle Background with an amber/warning gradient -->
+    <div id="particles-js" class="absolute inset-0 z-0 bg-gradient-to-br from-amber-800 via-slate-900 to-orange-900"></div>
+
+    <!-- Content -->
+    <main class="relative z-10 min-h-full flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+        <div class="max-w-xl mx-auto text-center transform transition-all duration-500 animate-fade-in-up">
+            
+            <div class="bg-white/10 backdrop-blur-md p-8 sm:p-12 rounded-3xl shadow-2xl border border-white/20">
+                <!-- 400 with amber/warning gradient -->
+                <h1 class="text-7xl sm:text-9xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
+                    400
+                </h1>
+                
+                <!-- Messaging for a bad request -->
+                <p class="mt-4 text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    Bad Request
+                </p>
+                <p class="mt-4 text-base text-slate-300">
+                    {{ error_description or "The server could not understand the request due to invalid syntax or missing data." }}
+                </p>
+
+                <div class="mt-10 flex items-center justify-center">
+                    <!-- REMOVED 'Go back home' button -->
+                    <a href="{{ url_for('public_routes_bp.contact_page') }}" 
+                       class="text-sm font-semibold text-slate-200 hover:text-white transition-colors">
+                        Contact support <span aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+
+</body>
+</html>
