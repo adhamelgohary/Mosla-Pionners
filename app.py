@@ -227,17 +227,41 @@ def inject_role_constants():
     )
 
 # --- Global Error Handlers ---
+@app.errorhandler(400)
+def bad_request(e):
+    description = e.description or "The server could not process the request due to a client error."
+    app.logger.warning(f"400 Bad Request: {description} - URL: {request.path}")
+    return render_template("Errors/400.html", title="Bad Request", error_description=description), 400
+
+@app.errorhandler(401)
+def unauthorized(e):
+    app.logger.info(f"401 Unauthorized: Access attempt to {request.path} by unauthenticated user.")
+    return render_template("Errors/401.html", title="Unauthorized"), 401
+
+@app.errorhandler(403)
+def forbidden(e):
+    app.logger.warning(f"403 Forbidden: Access denied for path {request.path} by user '{current_user.id if current_user.is_authenticated else 'Anonymous'}'")
+    return render_template("Errors/403.html", title="Access Forbidden"), 403
+
 @app.errorhandler(404)
 def page_not_found(e):
     app.logger.warning(f"404 Not Found: {request.path}")
-    # You might want to render a proper 404 template here
     return render_template("Errors/404.html", title="Page Not Found"), 404
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    app.logger.warning(f"429 Too Many Requests: Rate limit exceeded for {request.remote_addr} on path {request.path}")
+    return render_template("Errors/429.html", title="Too Many Requests"), 429
 
 @app.errorhandler(500)
 def internal_server_error(e):
     app.logger.error(f"500 Internal Server Error: {e} at {request.path}", exc_info=True)
-    # You might want to render a proper 500 template here
     return render_template("Errors/500.html", title="Internal Server Error"), 500
+
+@app.errorhandler(503)
+def service_unavailable(e):
+    app.logger.critical(f"503 Service Unavailable: {e.description or 'The service is temporarily down.'}")
+    return render_template("Errors/503.html", title="Service Unavailable"), 503
 
 # --- Theme Setter Route ---
 @app.route('/set_theme', methods=['POST'])

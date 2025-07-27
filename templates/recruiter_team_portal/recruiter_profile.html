@@ -1,4 +1,5 @@
 {# templates/recruiter_team_portal/recruiter_profile.html #}
+{# --- FULLY UPDATED CODE WITH POINT TRANSACTION LEDGER --- #}
 {% extends "recruiter_team_portal/recruiter_base.html" %}
 
 {% block recruiter_title %}{{ title }}{% endblock %}
@@ -19,6 +20,10 @@
             <img class="w-24 h-24 rounded-full mx-auto object-cover" src="{{ profile_data.info.ProfilePictureURL or url_for('static', filename='images/default-profile.png') }}" alt="Profile picture of {{ profile_data.info.FirstName }}">
             <h2 class="mt-4 text-xl font-bold text-heading">{{ profile_data.info.FirstName }} {{ profile_data.info.LastName }}</h2>
             <p class="text-sm text-text-muted">{{ profile_data.info.Role }}</p>
+            
+            <!-- UPDATED: Display calculated total points from transaction log -->
+            <p class="mt-2 text-lg font-bold text-primary">{{ profile_data.total_points or 0 }} Points</p>
+            
             {% if profile_data.info.IsActive %}
                 <span class="mt-2 inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Active</span>
             {% else %}
@@ -27,9 +32,38 @@
             <p class="mt-4 text-xs text-text-muted">Member since {{ profile_data.info.RegistrationDate.strftime('%b %Y') }}</p>
         </div>
 
-        {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+        <!-- Section for manager actions -->
+        {% if can_manage_profile %}
         <div class="bg-card p-6 rounded-lg shadow border border-border">
-            <h3 class="text-lg font-semibold text-heading mb-4">Admin Actions</h3>
+            
+            <!-- Point management form, shown only if user has permission -->
+            {% if can_assign_points %}
+            <h3 class="text-lg font-semibold text-heading mb-4">Manage Points</h3>
+            <div class="space-y-4">
+                <form action="{{ url_for('staff_bp.assign_points') }}" method="POST">
+                    <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
+                    
+                    <div>
+                        <label for="points" class="form-label">Points to Add/Subtract</label>
+                        <input type="number" id="points" name="points" class="form-input mt-1 w-full" placeholder="e.g., 100 or -50" required>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="reason" class="form-label">Reason</label>
+                        <textarea id="reason" name="reason" rows="3" class="form-input mt-1 w-full" placeholder="e.g., Exceeded monthly target" required maxlength="255"></textarea>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn-primary w-full">Submit Transaction</button>
+                    </div>
+                </form>
+                <hr class="border-border">
+            </div>
+            {% endif %}
+
+            <!-- Role change form, shown only to top-level management -->
+            {% if current_user.role_type in ['HeadUnitManager', 'CEO', 'Founder'] %}
+            <h3 class="text-lg font-semibold text-heading mb-4 mt-4">Admin Actions</h3>
             <div class="space-y-4">
                 <form action="{{ url_for('staff_bp.change_staff_role') }}" method="POST">
                     <input type="hidden" name="staff_id" value="{{ profile_data.info.StaffID }}">
@@ -43,17 +77,13 @@
                         <button type="submit" class="btn-secondary">Save</button>
                     </div>
                 </form>
-
-                <a href="{{ url_for('organization_bp.list_units') }}" class="btn-secondary w-full">
-                    <i class="bi bi-diagram-3-fill mr-2"></i>
-                    <span>Full Organization View</span>
-                </a>
             </div>
+            {% endif %}
         </div>
         {% endif %}
     </div>
 
-    <!-- Right Column: Performance & Details -->
+    <!-- Right Column: Performance, Details & Point Log -->
     <div class="md:col-span-2 space-y-6">
         <!-- Performance KPIs -->
         <div class="bg-card rounded-lg shadow border border-border p-6">
@@ -70,30 +100,34 @@
             </div>
         </div>
 
-        <!-- Recent Applications -->
+        <!-- NEW: Point Transaction Log -->
         <div class="bg-card rounded-lg shadow border border-border">
-             <div class="p-6">
-                <h3 class="text-lg font-semibold text-heading">Recent Applications</h3>
-                <p class="mt-1 text-sm text-text-muted">Last 10 applications referred by this staff member.</p>
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-heading">Point Transaction History</h3>
+                <p class="mt-1 text-sm text-text-muted">A log of all points added or subtracted for this staff member.</p>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm divide-y divide-border">
                     <thead class="bg-background">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Candidate</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Job Title</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Reason</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Assigned By</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border">
-                        {% for app in profile_data.recent_applications %}
+                        {% for tx in profile_data.point_transactions %}
                         <tr class="hover:bg-background/50">
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-heading">{{ app.FirstName }} {{ app.LastName }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-text">{{ app.JobTitle }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ app.Status }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ tx.TransactionDate.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap font-medium {% if tx.Points > 0 %}text-success-600{% else %}text-danger-600{% endif %}">
+                                {% if tx.Points > 0 %}+{% endif %}{{ tx.Points }}
+                            </td>
+                            <td class="px-6 py-4 text-text">{{ tx.Reason }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-text-muted">{{ tx.AssignerFirstName }} {{ tx.AssignerLastName }}</td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="3" class="text-center py-10 text-text-muted">No recent applications found.</td></tr>
+                        <tr><td colspan="4" class="text-center py-10 text-text-muted">No point transactions found.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
