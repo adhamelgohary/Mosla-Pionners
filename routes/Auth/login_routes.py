@@ -217,4 +217,4 @@ def logout():
     logout_user()
     flash('You have been logged out.', 'success')
     current_app.logger.info(f"User {user_email} logged out.")
-    return redirect(url_for('login_bp.login'))
+    return redirect(url_for('public_routes_bp.home_page'))
