@@ -1,0 +1,79 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-person-plus-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 sm:p-8 border border-gray-200 dark:border-slate-700">
+    <form method="POST" action="">
+        <div class="space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="FirstName" class="form-label">First Name*</label>
+                    <input type="text" id="FirstName" name="FirstName" value="{{ form_data.FirstName or '' }}" class="form-input" required>
+                </div>
+                <div>
+                    <label for="LastName" class="form-label">Last Name</label>
+                    <input type="text" id="LastName" name="LastName" value="{{ form_data.LastName or '' }}" class="form-input">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="Email" class="form-label">Email Address*</label>
+                    <input type="email" id="Email" name="Email" value="{{ form_data.Email or '' }}" class="form-input" required>
+                </div>
+                <div>
+                    <label for="PhoneNumber" class="form-label">Phone Number</label>
+                    <input type="tel" id="PhoneNumber" name="PhoneNumber" value="{{ form_data.PhoneNumber or '' }}" class="form-input">
+                </div>
+            </div>
+
+            <div>
+                <label for="Password" class="form-label">Password</label>
+                <input type="password" id="Password" name="Password" class="form-input" {% if not form_data.StaffID %}required{% endif %}>
+                {% if form_data.StaffID %}
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to keep the current password.</p>
+                {% else %}
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A temporary password for the instructor's first login.</p>
+                {% endif %}
+            </div>
+
+            <hr class="dark:border-slate-600">
+
+            <div>
+                <label for="Specialization" class="form-label">Specialization</label>
+                <input type="text" id="Specialization" name="Specialization" value="{{ form_data.Specialization or '' }}" class="form-input" placeholder="e.g., Business English, Conversational Spanish">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">The main subject or language this instructor teaches.</p>
+            </div>
+
+            <div>
+                <label for="Bio" class="form-label">Bio / Profile Summary</label>
+                <textarea id="Bio" name="Bio" rows="4" class="form-textarea">{{ form_data.Bio or '' }}</textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A short summary of the instructor's experience and teaching style.</p>
+            </div>
+            
+            <div>
+                <label for="AccountStatus" class="form-label">Account Status</label>
+                <select id="AccountStatus" name="AccountStatus" class="form-select">
+                    <option value="Active" {% if form_data.AccountStatus == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if form_data.AccountStatus == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="Suspended" {% if form_data.AccountStatus == 'Suspended' %}selected{% endif %}>Suspended</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-gray-200 dark:border-slate-600 flex items-center justify-end gap-x-3">
+            <a href="{{ url_for('group_mgmt_bp.list_instructors') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-save-fill mr-1"></i> Save Instructor
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

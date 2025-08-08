@@ -4,6 +4,7 @@ from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
 import mysql.connector
+from werkzeug.security import generate_password_hash
 
 # Roles with management access
 GROUP_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder', 'Admin'] 
@@ -12,7 +13,6 @@ group_mgmt_bp = Blueprint('group_mgmt_bp', __name__,
                           template_folder='../../../templates',
                           url_prefix='/course-groups')
 
-# --- Instructor Management ---
 @group_mgmt_bp.route('/instructors')
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
 def list_instructors():
@@ -21,10 +21,11 @@ def list_instructors():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Assuming you'll create a view or a separate process for adding instructors
-        # For now, we list them.
+        # UPDATED to fetch more data for the list view
         cursor.execute("""
-            SELECT s.StaffID, u.FirstName, u.LastName, u.Email, s.Specialization
+            SELECT 
+                s.StaffID, s.Specialization,
+                u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.AccountStatus
             FROM Staff s
             JOIN Users u ON s.UserID = u.UserID
             WHERE s.Role = 'Instructor'
@@ -33,7 +34,7 @@ def list_instructors():
         instructors = cursor.fetchall()
     except Exception as e:
         flash("Could not load instructors.", "danger")
-        current_app.logger.error(f"Error fetching instructors: {e}")
+        current_app.logger.error(f"Error fetching instructors: {e}", exc_info=True)
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -41,8 +42,164 @@ def list_instructors():
     return render_template('agency_staff_portal/courses/groups/list_instructors.html',
                            title="Manage Instructors",
                            instructors=instructors)
-    # NOTE: You will need to build the add/edit instructor forms and routes.
-    # These would be similar to other staff management forms you might have.
+
+@group_mgmt_bp.route('/instructors/add', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_instructor():
+    """Adds a new instructor, which involves creating a User and a Staff record."""
+    if request.method == 'POST':
+        form = request.form
+        email = form.get('Email')
+        password = form.get('Password')
+        first_name = form.get('FirstName')
+        
+        if not all([email, password, first_name]):
+            flash("First Name, Email, and Password are required.", "danger")
+            return render_template('agency_staff_portal/courses/groups/add_edit_instructor.html', title="Add New Instructor", form_data=form)
+
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            # Step 1: Create the User record
+            hashed_password = generate_password_hash(password)
+            sql_user = """
+                INSERT INTO Users (FirstName, LastName, Email, PasswordHash, PhoneNumber, AccountStatus)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            params_user = (
+                first_name, form.get('LastName'), email, hashed_password,
+                form.get('PhoneNumber'), form.get('AccountStatus', 'Active')
+            )
+            cursor.execute(sql_user, params_user)
+            new_user_id = cursor.lastrowid
+
+            # Step 2: Create the Staff record with the 'Instructor' role
+            sql_staff = """
+                INSERT INTO Staff (UserID, Role, Specialization, Bio)
+                VALUES (%s, 'Instructor', %s, %s)
+            """
+            params_staff = (new_user_id, form.get('Specialization'), form.get('Bio'))
+            cursor.execute(sql_staff, params_staff)
+            
+            conn.commit()
+            flash('Instructor added successfully!', 'success')
+            return redirect(url_for('.list_instructors'))
+
+        except mysql.connector.Error as err:
+            if conn and conn.is_connected(): conn.rollback()
+            if err.errno == 1062: # Duplicate entry
+                flash('An account with this email already exists.', 'danger')
+            else:
+                flash(f'Database error: {err.msg}', 'danger')
+            return render_template('agency_staff_portal/courses/groups/add_edit_instructor.html', title="Add New Instructor", form_data=form)
+        finally:
+            if conn and conn.is_connected(): conn.close()
+            
+    return render_template('agency_staff_portal/courses/groups/add_edit_instructor.html', title="Add New Instructor", form_data={})
+
+@group_mgmt_bp.route('/instructors/edit/<int:staff_id>', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def edit_instructor(staff_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        if request.method == 'POST':
+            form = request.form
+            password = form.get('Password')
+            
+            # Get UserID for updates
+            cursor.execute("SELECT UserID FROM Staff WHERE StaffID = %s", (staff_id,))
+            user = cursor.fetchone()
+            if not user:
+                flash("Instructor not found.", "danger")
+                return redirect(url_for('.list_instructors'))
+            user_id = user['UserID']
+
+            # Update Users table
+            sql_user_update = """
+                UPDATE Users SET FirstName=%s, LastName=%s, Email=%s, PhoneNumber=%s, AccountStatus=%s
+                WHERE UserID = %s
+            """
+            params_user = (form.get('FirstName'), form.get('LastName'), form.get('Email'),
+                           form.get('PhoneNumber'), form.get('AccountStatus'), user_id)
+            cursor.execute(sql_user_update, params_user)
+            
+            # Optionally update password
+            if password:
+                hashed_password = generate_password_hash(password)
+                cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (hashed_password, user_id))
+
+            # Update Staff table
+            sql_staff_update = "UPDATE Staff SET Specialization=%s, Bio=%s WHERE StaffID = %s"
+            params_staff = (form.get('Specialization'), form.get('Bio'), staff_id)
+            cursor.execute(sql_staff_update, params_staff)
+            
+            conn.commit()
+            flash('Instructor details updated successfully!', 'success')
+            return redirect(url_for('.list_instructors'))
+
+        # GET request: Fetch current data
+        cursor.execute("""
+            SELECT s.StaffID, s.Specialization, s.Bio,
+                   u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.AccountStatus
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.StaffID = %s AND s.Role = 'Instructor'
+        """, (staff_id,))
+        form_data = cursor.fetchone()
+        
+        if not form_data:
+            flash("Instructor not found.", "danger")
+            return redirect(url_for('.list_instructors'))
+            
+        return render_template('agency_staff_portal/courses/groups/add_edit_instructor.html',
+                               title="Edit Instructor", form_data=form_data)
+                               
+    except mysql.connector.Error as err:
+        if conn and conn.is_connected(): conn.rollback()
+        if err.errno == 1062:
+            flash('An account with this email already exists.', 'danger')
+        else:
+            flash(f'Database error: {err.msg}', 'danger')
+        # On POST error, we need to refetch data for the form
+        cursor.execute("""
+            SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.AccountStatus, s.Specialization, s.Bio
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.StaffID = %s AND s.Role = 'Instructor'
+        """, (staff_id,))
+        form_data = cursor.fetchone()
+        return render_template('agency_staff_portal/courses/groups/add_edit_instructor.html', title="Edit Instructor", form_data=form_data)
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+
+@group_mgmt_bp.route('/instructors/delete/<int:staff_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_instructor(staff_id):
+    """ Deletes an instructor. The ON DELETE CASCADE on fk_staff_user will handle removing the Staff record. """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Find the UserID associated with this StaffID
+        cursor.execute("SELECT UserID FROM Staff WHERE StaffID = %s", (staff_id,))
+        user = cursor.fetchone()
+        
+        if user:
+            # Deleting the User will trigger a cascade delete on the Staff table
+            cursor.execute("DELETE FROM Users WHERE UserID = %s", (user[0],))
+            conn.commit()
+            flash("Instructor deleted successfully.", "success")
+        else:
+            flash("Instructor not found.", "danger")
+
+    except mysql.connector.Error as err:
+        if conn and conn.is_connected(): conn.rollback()
+        # You might have foreign key constraints if an instructor is a TeamLead, etc.
+        flash(f"Could not delete instructor. They may be linked to other records. Error: {err.msg}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return redirect(url_for('.list_instructors'))
+
 
 # --- Group Management ---
 @group_mgmt_bp.route('/')
