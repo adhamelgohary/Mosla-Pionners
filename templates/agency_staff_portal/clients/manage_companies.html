@@ -1,0 +1,66 @@
+<!-- templates/agency_staff_portal/clients/manage_companies.html -->
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-base font-semibold leading-6 text-gray-900">Companies</h1>
+            <p class="mt-2 text-sm text-gray-700">A list of all client companies in the system.</p>
+        </div>
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex sm:gap-x-4">
+            <a href="{{ url_for('client_mgmt_bp.review_client_registrations') }}" class="relative block rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                Review Registrations
+                {% if pending_count > 0 %}
+                <span class="absolute -top-2 -right-2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-600 text-xs font-bold text-white">
+                    {{ pending_count }}
+                </span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('client_mgmt_bp.add_company') }}" class="mt-2 sm:mt-0 block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
+                Add New Company
+            </a>
+        </div>
+    </div>
+    <div class="mt-8 flow-root">
+        <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead>
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Company Name</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Primary Contact</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Industry</th>
+                        <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for company in companies %}
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ company.CompanyName }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {% if company.ContactFirstName %}
+                                {{ company.ContactFirstName }} {{ company.ContactLastName }}
+                                <span class="block text-xs text-gray-400">{{ company.ContactEmail }}</span>
+                            {% else %}
+                                <span class="italic text-gray-400">No registered contact</span>
+                            {% endif %}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ company.Industry or 'N/A' }}</td>
+                        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                            <a href="{{ url_for('client_mgmt_bp.edit_company', company_id=company.CompanyID) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-10 text-gray-500">No companies found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

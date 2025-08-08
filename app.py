@@ -33,6 +33,8 @@ from routes.Agency_Staff_Portal.staff_candidate_routes import staff_candidate_bp
 from routes.Agency_Staff_Portal.reporting_routes import reporting_bp
 from routes.Agency_Staff_Portal.staff_and_performance_routes import staff_perf_bp
 from routes.Agency_Staff_Portal.inquiry_mgmt_routes import inquiry_mgmt_bp
+from routes.Agency_Staff_Portal.client_management_routes import client_mgmt_bp
+
 
 # Candidate Portal Routes
 from routes.Candidate_Portal.candidate_routes import candidate_bp
@@ -162,6 +164,7 @@ app.register_blueprint(public_routes_bp)
 app.register_blueprint(job_board_bp)
 app.register_blueprint(candidate_bp)
 app.register_blueprint(courses_page_bp)
+app.register_blueprint(client_mgmt_bp)
 
 # --- Recruiter Portal Routes ---
 app.register_blueprint(dashboard_bp)

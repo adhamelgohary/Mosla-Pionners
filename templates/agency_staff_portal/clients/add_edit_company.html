@@ -1,0 +1,38 @@
+<!-- templates/agency_staff_portal/clients/add_edit_company.html -->
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}{{ title }}{% endblock %}
+
+{% block staff_content %}
+<div class="max-w-4xl mx-auto">
+    <form method="POST" class="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+        <div class="space-y-6">
+            <div>
+                <label for="company_name" class="block text-sm font-medium leading-6 text-gray-900">Company Name <span class="text-red-500">*</span></label>
+                <input type="text" name="company_name" id="company_name" value="{{ company.CompanyName if company else '' }}" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+            <div>
+                <label for="company_website" class="block text-sm font-medium leading-6 text-gray-900">Company Website</label>
+                <input type="url" name="company_website" id="company_website" value="{{ company.CompanyWebsite if company else '' }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+            <div>
+                <label for="industry" class="block text-sm font-medium leading-6 text-gray-900">Industry</label>
+                <input type="text" name="industry" id="industry" value="{{ company.Industry if company else '' }}" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+            <div>
+                <label for="address" class="block text-sm font-medium leading-6 text-gray-900">Address</label>
+                <textarea name="address" id="address" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">{{ company.Address if company else '' }}</textarea>
+            </div>
+            <div>
+                <label for="description" class="block text-sm font-medium leading-6 text-gray-900">Description</label>
+                <textarea name="description" id="description" rows="3" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">{{ company.Description if company else '' }}</textarea>
+            </div>
+        </div>
+        <div class="mt-6 flex items-center justify-end gap-x-6">
+            <a href="{{ url_for('client_mgmt_bp.list_companies') }}" class="text-sm font-semibold leading-6 text-gray-900">Cancel</a>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">Save Company</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
