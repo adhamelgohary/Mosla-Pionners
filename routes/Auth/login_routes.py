@@ -17,12 +17,12 @@ RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitMana
 CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
-    def __init__(self, user_id, email, first_name, last_name, is_active_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
+    def __init__(self, user_id, email, first_name, last_name, account_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
         self.id = int(user_id)
         self.email = email
         self.first_name = first_name
         self.last_name = last_name
-        self._is_active_status = bool(is_active_status)
+        self.account_status = account_status
         self.role_type = role_type
         self.specific_role_id = specific_role_id
         self.company_id = company_id
@@ -31,7 +31,7 @@ class LoginUser(UserMixin):
 
     @property
     def is_active(self):
-        return self._is_active_status
+        return self.account_status == 'Active'
 
     def check_password(self, password_to_check):
         if self.password_hash is None: return False
@@ -64,12 +64,16 @@ def determine_user_identity(user_id, db_connection):
         if cursor: cursor.close()
     return identity
 
-def get_user_by_id(user_id):
+def get_user_by_id_or_email(identifier, by_email=False):
     conn = get_db_connection()
     if not conn: return None
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE UserID = %s", (user_id,))
+        query = "SELECT UserID, Email, FirstName, LastName, AccountStatus, PasswordHash FROM Users WHERE "
+        query += "Email = %s" if by_email else "UserID = %s"
+        
+        cursor.execute(query, (identifier,))
+
         if user_data := cursor.fetchone():
             identity = determine_user_identity(user_data['UserID'], conn)
             user_args = {
@@ -77,7 +81,7 @@ def get_user_by_id(user_id):
                 'email': user_data['Email'],
                 'first_name': user_data['FirstName'],
                 'last_name': user_data['LastName'],
-                'is_active_status': user_data['IsActive'],
+                'account_status': user_data['AccountStatus'],
                 'password_hash': user_data.get('PasswordHash'),
                 'role_type': identity['role'],
                 'specific_role_id': identity.get('id'),
@@ -86,37 +90,18 @@ def get_user_by_id(user_id):
             }
             return LoginUser(**user_args)
     except Exception as e:
-        current_app.logger.error(f"Error in get_user_by_id for {user_id}: {e}", exc_info=True)
+        current_app.logger.error(f"Error in user retrieval for {identifier}: {e}", exc_info=True)
     finally:
-        if conn: conn.close()
+        if conn and conn.is_connected():
+            if 'cursor' in locals(): cursor.close()
+            conn.close()
     return None
 
+def get_user_by_id(user_id):
+    return get_user_by_id_or_email(user_id, by_email=False)
+
 def get_user_by_email(email):
-    conn = get_db_connection()
-    if not conn: return None
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT UserID, Email, FirstName, LastName, IsActive, PasswordHash FROM Users WHERE Email = %s", (email,))
-        if user_data := cursor.fetchone():
-            identity = determine_user_identity(user_data['UserID'], conn)
-            user_args = {
-                'user_id': user_data['UserID'],
-                'email': user_data['Email'],
-                'first_name': user_data['FirstName'],
-                'last_name': user_data['LastName'],
-                'is_active_status': user_data['IsActive'],
-                'password_hash': user_data.get('PasswordHash'),
-                'role_type': identity['role'],
-                'specific_role_id': identity.get('id'),
-                'company_id': identity.get('company_id'),
-                'reports_to_id': identity.get('reports_to_id')
-            }
-            return LoginUser(**user_args)
-    except Exception as e:
-        current_app.logger.error(f"Error in get_user_by_email for {email}: {e}", exc_info=True)
-    finally:
-        if conn: conn.close()
-    return None
+    return get_user_by_id_or_email(email, by_email=True)
 
 def is_valid_email_format(email):
     return email and re.match(r"[^@]+@[^@]+\.[^@]+", email)
@@ -139,7 +124,6 @@ def init_login_manager(app):
 def login():
     if current_user.is_authenticated:
         role = current_user.role_type
-        # [MODIFIED] Added special case for SalesManager
         if role == 'SalesManager':
             return redirect(url_for('package_mgmt_bp.packages_dashboard'))
         elif role in MANAGERIAL_PORTAL_ROLES:
@@ -180,7 +164,6 @@ def login():
                     except Exception as e_update:
                         current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
 
-                    # [MODIFIED] Added special case for SalesManager
                     role = user_obj.role_type
                     if role == 'SalesManager':
                         return redirect(url_for('package_mgmt_bp.packages_dashboard'))
@@ -201,7 +184,12 @@ def login():
                         current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
                         return redirect(url_for('public_routes_bp.home_page'))
                 else:
-                    flash('Your account is inactive. It may be pending activation or has been deactivated. Please contact an administrator.', 'warning')
+                    if user_obj.account_status == 'PendingApproval':
+                        flash('Your account is pending approval. You will be notified by email once it is activated.', 'warning')
+                    elif user_obj.account_status == 'Suspended':
+                        flash('Your account has been suspended. Please contact support.', 'danger')
+                    else:
+                        flash('Your account is currently inactive. Please contact an administrator.', 'warning')
             else:
                 flash('Invalid email or password. Please try again.', 'danger')
         else:

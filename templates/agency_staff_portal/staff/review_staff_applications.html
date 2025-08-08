@@ -1,0 +1,70 @@
+{# templates/agency_staff_portal/staff/review_staff_applications.html #}
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-person-check-fill text-gray-500"></i>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-base font-semibold leading-6 text-gray-900">Review New Staff Applications</h1>
+            <p class="mt-2 text-sm text-gray-700">Approve or reject applications from individuals who want to join the team.</p>
+        </div>
+    </div>
+    <div class="mt-8 flow-root">
+        <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <table class="min-w-full divide-y divide-gray-300">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Applicant Name</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Email</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Desired Role</th>
+                            <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Applied On</th>
+                            <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for app in pending_applications %}
+                        <tr>
+                            <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                                {{ app.FirstName }} {{ app.LastName }}
+                                {% if app.CVFilePath %}
+                                    <a href="{{ url_for('static', filename=app.CVFilePath) }}" target="_blank" class="ml-2 text-blue-600 hover:text-blue-800" title="View CV">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ app.Email }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ app.DesiredRole }}</td>
+                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ app.RegistrationDate.strftime('%Y-%m-%d') if app.RegistrationDate else 'N/A' }}</td>
+                            <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                                <div class="flex items-center justify-end gap-x-4">
+                                    <form action="{{ url_for('staff_perf_bp.approve_application', application_id=app.ApplicationID) }}" method="POST" onsubmit="return confirm('Are you sure you want to approve this applicant? They will become an active staff member.');">
+                                        <button type="submit" class="text-green-600 hover:text-green-900 font-semibold">Approve</button>
+                                    </form>
+                                    <form action="{{ url_for('staff_perf_bp.reject_application', application_id=app.ApplicationID) }}" method="POST" onsubmit="return confirm('Are you sure you want to reject this application?');">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-gray-500">
+                                There are no new staff applications to review.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

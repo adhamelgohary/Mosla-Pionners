@@ -1,5 +1,4 @@
 # routes/Auth/register_routes.py
-
 from flask import Blueprint, render_template, request, flash, redirect, session, url_for, current_app
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
@@ -8,11 +7,9 @@ import datetime
 import re
 import mysql.connector
 from db import get_db_connection
-# from .login_routes import is_safe_url # No longer needed
 
 register_bp = Blueprint('register_bp', __name__, template_folder='../../templates/auth')
 
-# --- Helper Functions (Unchanged) ---
 def check_email_exists_in_db(email):
     """Checks if an email already exists in the Users table."""
     conn = get_db_connection()
@@ -32,8 +29,11 @@ def check_email_exists_in_db(email):
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
-def create_user_in_db(email, password, first_name, last_name, phone_number=None, profile_picture_url=None, is_active=True):
-    """Creates a new user and returns their ID, or None on failure."""
+def create_user_in_db(email, password, first_name, last_name, phone_number=None, profile_picture_url=None, account_status='Active'):
+    """
+    Creates a new user with a specific account status and returns their ID.
+    Defaults to 'Active' for candidates, but will be 'PendingApproval' for clients/staff.
+    """
     conn = get_db_connection()
     if not conn:
         current_app.logger.error("create_user_in_db: Database connection failed.")
@@ -42,9 +42,9 @@ def create_user_in_db(email, password, first_name, last_name, phone_number=None,
         cursor = conn.cursor()
         hashed_password = generate_password_hash(password)
         cursor.execute(
-            """INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, ProfilePictureURL, IsActive)
+            """INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, ProfilePictureURL, AccountStatus)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (email, hashed_password, first_name, last_name, phone_number, profile_picture_url, is_active)
+            (email, hashed_password, first_name, last_name, phone_number, profile_picture_url, account_status)
         )
         conn.commit()
         user_id = cursor.lastrowid
@@ -58,7 +58,6 @@ def create_user_in_db(email, password, first_name, last_name, phone_number=None,
             if 'cursor' in locals() and cursor: cursor.close()
             conn.close()
 
-# This function is not used in this file, but can be kept if it's part of a shared utility pattern
 def save_file(file_storage, subfolder='general'):
     """Saves an uploaded file and returns its relative path for DB or None."""
     if file_storage and file_storage.filename:
@@ -77,12 +76,10 @@ def save_file(file_storage, subfolder='general'):
             return None
     return None
 
-# --- Main Routes ---
 @register_bp.route('/register', methods=['GET'])
 def register_options():
     """Presents the choice to register as a Candidate, a Client, or Apply to be Staff."""
     return render_template('auth/register_options.html', title='Register')
-
 
 @register_bp.route('/register/candidate', methods=['GET', 'POST'])
 def register_candidate():
@@ -139,7 +136,8 @@ def register_candidate():
                 user_id = create_user_in_db(
                     email=step1_data['email'], password=step1_data['password'],
                     first_name=step1_data['first_name'], last_name=step1_data['last_name'],
-                    phone_number=step1_data['phone_number']
+                    phone_number=step1_data['phone_number'],
+                    account_status='Active' # Candidates are auto-approved
                 )
                 
                 if user_id:
@@ -179,7 +177,6 @@ def register_candidate():
 
     return render_template('auth/register_candidate.html', title='Register as Candidate', step=step, errors=errors, form_data=form_data)
 
-
 @register_bp.route('/register/client', methods=['GET', 'POST'])
 def register_client():
     errors, form_data = {}, {}
@@ -188,10 +185,11 @@ def register_client():
         company_name = request.form.get('company_name', '').strip()
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
-        email = request.form.get('email', '').strip() 
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         phone_number = request.form.get('phone_number', '').strip()
+        job_title = request.form.get('job_title', '').strip()
 
         if not company_name: errors['company_name'] = 'Company name is required.'
         if not first_name: errors['first_name'] = 'Your first name is required.'
@@ -199,53 +197,59 @@ def register_client():
         if not email: errors['email'] = 'Work email is required for the contact person.'
         elif not re.match(r"[^@]+@[^@]+\.[^@]+", email): errors['email'] = 'Invalid email format for contact person.'
         elif check_email_exists_in_db(email): errors['email'] = 'This email is already registered. Please log in or use a different email.'
+        if not job_title: errors['job_title'] = 'Your job title is required.'
         
         if len(password) < 8: errors['password'] = 'Password must be at least 8 characters long.'
         if password != confirm_password: errors['confirm_password'] = 'Passwords do not match.'
 
         if not errors:
-            conn = None
-            try:
-                conn = get_db_connection()
-                cursor = conn.cursor()
+            user_id = create_user_in_db(
+                email, password, first_name, last_name, phone_number,
+                account_status='PendingApproval'
+            )
+            
+            if user_id:
+                conn = None
+                try:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO ClientRegistrations (UserID, CompanyName, CompanyWebsite, Industry, JobTitle, Message)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        user_id,
+                        company_name,
+                        request.form.get('company_website'),
+                        request.form.get('industry'),
+                        job_title,
+                        request.form.get('message')
+                    ))
+                    conn.commit()
+                    
+                    flash('Thank you for registering! Your application has been submitted for review. You will be notified by email once it is approved.', 'success')
+                    current_app.logger.info(f"New client registration submitted for {email} (UserID: {user_id}) from company {company_name}")
+                    return redirect(url_for('public_routes_bp.home_page'))
 
-                cursor.execute("SELECT CompanyID FROM Companies WHERE CompanyName = %s", (company_name,))
-                if company_result := cursor.fetchone():
-                    company_id = company_result[0]
-                else:
-                    cursor.execute("INSERT INTO Companies (CompanyName) VALUES (%s)", (company_name,))
-                    company_id = cursor.lastrowid
-                
-                user_id = create_user_in_db(email, password, first_name, last_name, phone_number)
-                if not user_id:
-                    raise Exception(f"User account creation failed in DB for client contact {email}.")
-
-                cursor.execute("INSERT INTO CompanyContacts (UserID, CompanyID, IsPrimaryContact) VALUES (%s, %s, %s)", (user_id, company_id, True))
-                conn.commit()
-                flash(f'Company account for "{company_name}" and your contact profile have been registered! You can now log in.', 'success')
-                current_app.logger.info(f"New client contact registered: {email} (UserID: {user_id}) for CompanyID: {company_id}")
-                
-                # --- UPDATED: Simplified redirect ---
-                # Always redirect to the login page, passing only the email for user convenience.
-                return redirect(url_for('login_bp.login', email=email))
-
-            except Exception as e:
-                if conn: conn.rollback()
-                current_app.logger.error(f"Error during client registration process for {email} and company {company_name}: {e}", exc_info=True)
-                flash('An unexpected server error occurred during registration. Please try again or contact support.', 'danger')
-            finally:
-                if conn and conn.is_connected():
-                    if 'cursor' in locals() and cursor: cursor.close()
-                    conn.close()
+                except Exception as e:
+                    if conn: conn.rollback()
+                    current_app.logger.error(f"Error creating client registration record for {email}: {e}", exc_info=True)
+                    flash('A server error occurred during registration. Please try again or contact support.', 'danger')
+                finally:
+                    if conn and conn.is_connected():
+                        if 'cursor' in locals() and cursor: cursor.close()
+                        conn.close()
+            else:
+                flash('An unexpected server error occurred creating your account. Please try again.', 'danger')
         else:
             flash('Please correct the form errors and try again.', 'warning')
             
     return render_template('auth/register_client.html', title='Register as Client', errors=errors, form_data=form_data)
 
-
 @register_bp.route('/register/apply-staff', methods=['GET', 'POST'])
 def apply_to_be_staff():
     errors, form_data = {}, {}
+    staff_roles = ['SourcingRecruiter', 'AccountManager', 'SalesManager', 'UnitManager']
+
     if request.method == 'POST':
         form_data = request.form.to_dict()
         email = request.form.get('email', '').strip()
@@ -254,6 +258,8 @@ def apply_to_be_staff():
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
         phone_number = request.form.get('phone_number', '').strip()
+        desired_role = request.form.get('desired_role', '')
+        cv_file = request.files.get('cv_file')
 
         if not first_name: errors['first_name'] = 'First name is required.'
         if not last_name: errors['last_name'] = 'Last name is required.'
@@ -262,34 +268,50 @@ def apply_to_be_staff():
         elif check_email_exists_in_db(email): errors['email'] = 'This email is already registered. If you are already staff, please log in.'
         if len(password) < 8: errors['password'] = 'Password must be at least 8 characters long.'
         if password != confirm_password: errors['confirm_password'] = 'Passwords do not match.'
-
+        if not desired_role: errors['desired_role'] = 'Please select the role you are applying for.'
+        if not cv_file or not cv_file.filename: errors['cv_file'] = 'Your CV is required for the application.'
+        
         if not errors:
-            # Create the user as inactive by default for staff applications
-            user_id = create_user_in_db(email, password, first_name, last_name, phone_number, is_active=False)
-            if not user_id:
-                flash('Account creation failed. Please try again.', 'danger')
+            cv_path = save_file(cv_file, subfolder='staff_cvs')
+            if not cv_path:
+                flash('There was an error uploading your CV. Please try again.', 'danger')
+                errors['cv_file'] = 'CV upload failed. Please try again.'
             else:
-                conn = None
-                try:
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    initial_staff_role = 'SourcingRecruiter' 
-
-                    cursor.execute("INSERT INTO Staff (UserID, Role) VALUES (%s, %s)", (user_id, initial_staff_role))
-                    conn.commit()
-                    flash('Your application to join our staff has been submitted! Our team will review it and contact you if your application is approved.', 'success')
-                    current_app.logger.info(f"New staff application submitted: {email}, UserID: {user_id}")
-                    return redirect(url_for('public_routes_bp.home_page')) 
-                
-                except Exception as e:
-                    if conn: conn.rollback()
-                    current_app.logger.error(f"DB error creating Staff profile for applicant {email} (UserID: {user_id}): {e}", exc_info=True)
-                    flash('A database error occurred while submitting your application.', 'danger')
-                finally:
-                    if conn and conn.is_connected():
-                        if 'cursor' in locals() and cursor: cursor.close()
-                        conn.close()
+                user_id = create_user_in_db(
+                    email, password, first_name, last_name, phone_number,
+                    account_status='PendingApproval'
+                )
+                if not user_id:
+                    flash('Account creation failed. Please try again.', 'danger')
+                else:
+                    conn = None
+                    try:
+                        conn = get_db_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            INSERT INTO StaffApplications (UserID, DesiredRole, CVFilePath, LinkedInProfileURL, CoverLetter)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, (
+                            user_id,
+                            desired_role,
+                            cv_path,
+                            request.form.get('linkedin_profile_url'),
+                            request.form.get('cover_letter')
+                        ))
+                        conn.commit()
+                        flash('Your application to join our staff has been submitted! Our team will review it and contact you if your application is approved.', 'success')
+                        current_app.logger.info(f"New staff application submitted: {email}, UserID: {user_id}")
+                        return redirect(url_for('public_routes_bp.home_page')) 
+                    
+                    except Exception as e:
+                        if conn: conn.rollback()
+                        current_app.logger.error(f"DB error creating Staff application for applicant {email} (UserID: {user_id}): {e}", exc_info=True)
+                        flash('A database error occurred while submitting your application.', 'danger')
+                    finally:
+                        if conn and conn.is_connected():
+                            if 'cursor' in locals() and cursor: cursor.close()
+                            conn.close()
         else:
             flash('Please correct the errors in the form and try again.', 'warning')
 
-    return render_template('auth/apply_staff.html', title='Apply to Join Our Team', errors=errors, form_data=form_data)
+    return render_template('auth/apply_staff.html', title='Apply to Join Our Team', errors=errors, form_data=form_data, staff_roles=staff_roles)

@@ -14,7 +14,7 @@ staff_perf_bp = Blueprint('staff_perf_bp', __name__,
                           url_prefix='/managerial/staff-performance')
 
 
-# --- Helper Functions for Data Integrity ---
+# --- Helper Functions ---
 def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
     """Prevents creating a reporting loop."""
     if staff_to_change_id == new_leader_staff_id: return False
@@ -45,33 +45,126 @@ def check_email_exists_in_db(email, conn):
     return exists
 
 
-# --- Staff Management Views ---
+# --- [NEW] Application Review Flow ---
 
-@staff_perf_bp.route('/')
+@staff_perf_bp.route('/review-applications')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
-def list_all_staff():
-    """Main view: Displays a list of all staff members."""
+def review_staff_applications():
+    """Displays a list of all staff applications awaiting review from the new table."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.IsActive, s.Role,
+        SELECT sa.ApplicationID, u.FirstName, u.LastName, u.Email, u.RegistrationDate, sa.DesiredRole, sa.CVFilePath
+        FROM StaffApplications sa
+        JOIN Users u ON sa.UserID = u.UserID
+        WHERE sa.Status = 'Pending'
+        ORDER BY sa.CreatedAt ASC
+    """)
+    pending_applications = cursor.fetchall()
+    conn.close()
+    return render_template('agency_staff_portal/staff/review_staff_applications.html',
+                           title="Review Staff Applications",
+                           pending_applications=pending_applications)
+
+@staff_perf_bp.route('/applications/<int:application_id>/approve', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def approve_application(application_id):
+    """Approves a staff application: Creates the Staff record and activates the User account."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT UserID, DesiredRole FROM StaffApplications WHERE ApplicationID = %s AND Status = 'Pending'", (application_id,))
+        app_data = cursor.fetchone()
+
+        if not app_data:
+            flash("Application not found or has already been processed.", "warning")
+            return redirect(url_for('.review_staff_applications'))
+            
+        user_id = app_data['UserID']
+        role = app_data['DesiredRole']
+
+        cursor.execute("INSERT INTO Staff (UserID, Role) VALUES (%s, %s)", (user_id, role))
+        staff_id = cursor.lastrowid
+
+        cursor.execute("UPDATE Users SET AccountStatus = 'Active' WHERE UserID = %s", (user_id,))
+
+        cursor.execute("""
+            UPDATE StaffApplications SET Status = 'Approved', ReviewedByStaffID = %s, ReviewedAt = NOW(), ApprovedStaffID = %s WHERE ApplicationID = %s
+        """, (current_user.specific_role_id, staff_id, application_id))
+        
+        conn.commit()
+        flash("Application approved. The staff member is now active and can log in.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error approving staff application {application_id}: {e}")
+        flash("An error occurred during the approval process.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    
+    return redirect(url_for('.review_staff_applications'))
+
+@staff_perf_bp.route('/applications/<int:application_id>/reject', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def reject_application(application_id):
+    """Rejects a staff application and deactivates the associated user account."""
+    notes = request.form.get('rejection_notes', 'Application rejected by management.')
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT UserID FROM StaffApplications WHERE ApplicationID = %s", (application_id,))
+        app_data = cursor.fetchone()
+        if app_data:
+             cursor.execute("UPDATE Users SET AccountStatus = 'Inactive' WHERE UserID = %s", (app_data['UserID'],))
+
+        cursor.execute("""
+            UPDATE StaffApplications SET Status = 'Rejected', ReviewedByStaffID = %s, ReviewedAt = NOW(), ReviewerNotes = %s WHERE ApplicationID = %s
+        """, (current_user.specific_role_id, notes, application_id))
+
+        conn.commit()
+        flash("Application has been successfully rejected.", "info")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error rejecting staff application {application_id}: {e}")
+        flash("An error occurred while rejecting the application.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return redirect(url_for('.review_staff_applications'))
+
+
+# --- Direct Staff Management (for Admins) ---
+
+@staff_perf_bp.route('/list')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def list_all_staff():
+    """Main view: Displays a list of all active and inactive staff members."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.AccountStatus, s.Role,
                leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName
         FROM Staff s
         JOIN Users u ON s.UserID = u.UserID
         LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
         LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
-        ORDER BY u.IsActive DESC, s.Role, u.LastName, u.FirstName
+        WHERE u.AccountStatus IN ('Active', 'Inactive')
+        ORDER BY u.AccountStatus, s.Role, u.LastName, u.FirstName
     """)
     staff_list = cursor.fetchall()
+    
+    cursor.execute("SELECT COUNT(ApplicationID) as pending_count FROM StaffApplications WHERE Status = 'Pending'")
+    pending_count = cursor.fetchone()['pending_count']
+
     conn.close()
     return render_template('agency_staff_portal/staff/list_all_staff.html',
                            title="Manage All Staff",
-                           staff_list=staff_list)
+                           staff_list=staff_list,
+                           pending_count=pending_count)
 
 @staff_perf_bp.route('/add-staff', methods=['GET', 'POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def add_staff():
-    """Provides a form to add a new User and Staff entry, creating them as PENDING."""
+    """Provides a form for a manager to directly add a new ACTIVE staff member."""
     errors, form_data = {}, {}
     conn_data = get_db_connection()
     cursor_data = conn_data.cursor()
@@ -99,14 +192,12 @@ def add_staff():
             if not errors:
                 hashed_password = generate_password_hash(password)
                 cursor = conn.cursor()
-                # [MODIFIED] New users are now created as IsActive = 0 (pending)
-                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, IsActive) VALUES (%s, %s, %s, %s, %s, 0)", (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
+                cursor.execute("INSERT INTO Users (Email, PasswordHash, FirstName, LastName, PhoneNumber, AccountStatus) VALUES (%s, %s, %s, %s, %s, 'Active')", (email, hashed_password, form_data.get('first_name'), form_data.get('last_name'), form_data.get('phone_number')))
                 user_id = cursor.lastrowid
                 cursor.execute("INSERT INTO Staff (UserID, Role, EmployeeID) VALUES (%s, %s, %s)", (user_id, form_data.get('role'), form_data.get('employee_id')))
                 conn.commit()
-                # [MODIFIED] Flash message and redirect are updated
-                flash(f"Staff member '{form_data.get('first_name')}' created. They are now awaiting activation.", "success")
-                return redirect(url_for('.list_pending_staff'))
+                flash(f"Active staff member '{form_data.get('first_name')}' created successfully.", "success")
+                return redirect(url_for('.list_all_staff'))
         except Exception as e:
             if conn: conn.rollback()
             flash(f"An error occurred while creating the new staff member: {e}", "danger")
@@ -117,41 +208,14 @@ def add_staff():
                            title="Add New Staff Member",
                            errors=errors, form_data=form_data, possible_roles=possible_roles)
 
-# [NEW] Route to list pending staff members
-@staff_perf_bp.route('/pending-registrations')
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
-def list_pending_staff():
-    """Displays a list of all staff members awaiting activation (IsActive=0)."""
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT u.UserID, s.StaffID, u.FirstName, u.LastName, u.Email, u.RegistrationDate, s.Role
-        FROM Users u
-        JOIN Staff s ON u.UserID = s.UserID
-        WHERE u.IsActive = 0
-        ORDER BY u.RegistrationDate ASC
-    """)
-    pending_staff = cursor.fetchall()
-    conn.close()
-    return render_template('agency_staff_portal/staff/pending_staff_registrations.html',
-                           title="Pending Staff Registrations",
-                           pending_staff=pending_staff)
-
-
-# [NEW] Route to activate a staff member
 @staff_perf_bp.route('/staff/<int:staff_id>/activate', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def activate_staff(staff_id):
-    """Sets a user's IsActive flag to 1."""
+    """Sets an inactive user's AccountStatus to 'Active'."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE Users u
-            JOIN Staff s ON u.UserID = s.UserID
-            SET u.IsActive = 1
-            WHERE s.StaffID = %s
-        """, (staff_id,))
+        cursor.execute("UPDATE Users u JOIN Staff s ON u.UserID = s.UserID SET u.AccountStatus = 'Active' WHERE s.StaffID = %s", (staff_id,))
         conn.commit()
         flash("Staff member has been activated successfully.", "success")
     except Exception as e:
@@ -163,33 +227,17 @@ def activate_staff(staff_id):
     
     return redirect(request.referrer or url_for('.list_all_staff'))
 
-
 @staff_perf_bp.route('/staff/<int:staff_id>/deactivate', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def deactivate_staff(staff_id):
-    """Sets a user's IsActive flag to 0 and cleans up all structural links."""
+    """Sets a user's AccountStatus to 'Inactive' and cleans up all structural links."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        
-        # Step 1: Deactivate the user
-        cursor.execute("""
-            UPDATE Users u
-            JOIN Staff s ON u.UserID = s.UserID
-            SET u.IsActive = 0
-            WHERE s.StaffID = %s
-        """, (staff_id,))
-        
-        # Step 2: Remove them as a manager for any direct reports
+        cursor.execute("UPDATE Users u JOIN Staff s ON u.UserID = s.UserID SET u.AccountStatus = 'Inactive' WHERE s.StaffID = %s", (staff_id,))
         cursor.execute("UPDATE Staff SET ReportsToStaffID = NULL WHERE ReportsToStaffID = %s", (staff_id,))
-        
-        # --- [NEW LOGIC] ---
-        # Step 3: Un-assign them as a Team Lead from any team they lead
         cursor.execute("UPDATE SourcingTeams SET TeamLeadStaffID = NULL WHERE TeamLeadStaffID = %s", (staff_id,))
-        
-        # Step 4: Un-assign them as a Unit Manager from any unit they manage
         cursor.execute("UPDATE SourcingUnits SET UnitManagerStaffID = NULL WHERE UnitManagerStaffID = %s", (staff_id,))
-        
         conn.commit()
         flash("Staff member has been deactivated and removed from all structural roles.", "success")
     except Exception as e:
@@ -201,30 +249,86 @@ def deactivate_staff(staff_id):
         
     return redirect(url_for('.list_all_staff'))
 
+
+# --- Profile and Team Views ---
+
+@staff_perf_bp.route('/my-team')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def my_team():
+    """Shows a performance overview of the current manager's direct reports or the whole company."""
+    current_sort = request.args.get('sort', 'monthly')
+    order_by_clause = "NetMonthlyPoints DESC" if current_sort == 'monthly' else "s.TotalPoints DESC"
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Base query to get members with their monthly points calculated
+    base_query = f"""
+        SELECT 
+            u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL,
+            s.StaffID, s.Role, s.TotalPoints,
+            COALESCE(monthly.NetMonthlyPoints, 0) as NetMonthlyPoints
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        LEFT JOIN (
+            SELECT AwardedToStaffID, SUM(PointsAmount) as NetMonthlyPoints
+            FROM StaffPointsLog
+            WHERE AwardDate >= DATE_FORMAT(NOW() ,'%Y-%m-01')
+            GROUP BY AwardedToStaffID
+        ) as monthly ON s.StaffID = monthly.AwardedToStaffID
+    """
+    
+    # Determine view scope
+    is_global_view = current_user.role_type in ['CEO', 'OperationsManager', 'Admin']
+    params = []
+    where_clause = "WHERE u.AccountStatus = 'Active'"
+
+    if not is_global_view:
+        where_clause += " AND s.ReportsToStaffID = %s"
+        params.append(current_user.specific_role_id)
+    
+    # Fetch team members
+    final_query = f"{base_query} {where_clause} ORDER BY {order_by_clause}"
+    cursor.execute(final_query, tuple(params))
+    team_members = cursor.fetchall()
+    
+    # Fetch team KPIs
+    kpi_query_where = "WHERE u.AccountStatus = 'Active'"
+    if not is_global_view:
+        kpi_query_where += f" AND s.ReportsToStaffID = {current_user.specific_role_id}"
+        
+    kpi_query = f"""
+        SELECT
+            COUNT(s.StaffID) as member_count,
+            SUM(s.TotalPoints) as total_points,
+            (SELECT SUM(PointsAmount) FROM StaffPointsLog spl JOIN Staff s_inner ON spl.AwardedToStaffID = s_inner.StaffID JOIN Users u_inner ON s_inner.UserID = u_inner.UserID WHERE AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND {kpi_query_where.replace('WHERE', '')}) as monthly_net_points
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        {kpi_query_where}
+    """
+    cursor.execute(kpi_query)
+    team_kpis = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('agency_staff_portal/staff/my_team.html',
+                           title="My Team Performance",
+                           team_members=team_members,
+                           team_kpis=team_kpis,
+                           current_sort=current_sort,
+                           is_global_view=is_global_view)
+
 @staff_perf_bp.route('/profile/<int:user_id_viewing>')
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager']) # Allow both managers and SalesManager to HIT the route
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
 def view_staff_profile(user_id_viewing):
-    """
-    Displays the profile page for a staff member with strict access control.
-    - Top-level managers can view any profile.
-    - A SalesManager can ONLY view their own profile.
-    """
     is_self_view = (current_user.id == user_id_viewing)
-    user_role = getattr(current_user, 'role_type', None)
-
-    # --- Granular Access Control Inside the Function ---
-    # A SalesManager is only allowed if they are viewing their own profile.
-    if user_role == 'SalesManager' and not is_self_view:
+    if getattr(current_user, 'role_type', None) == 'SalesManager' and not is_self_view:
         flash("You only have permission to view your own profile.", "danger")
-        # Redirect them to their own profile page if they try to access someone else's
         return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
-
-    # All other roles in MANAGERIAL_PORTAL_ROLES can proceed.
 
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        
         cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
         user_profile_data = cursor.fetchone()
 
@@ -232,38 +336,18 @@ def view_staff_profile(user_id_viewing):
             flash("Staff profile not found.", "danger")
             return redirect(url_for('.list_all_staff'))
         
-        # --- Render different templates based on who is viewing ---
         if is_self_view:
-            # Render the personal "My Profile" template for self-view
-            return render_template('agency_staff_portal/staff/my_profile.html',
-                                   title="My Profile",
-                                   user_profile=user_profile_data)
+            return render_template('agency_staff_portal/staff/my_profile.html', title="My Profile", user_profile=user_profile_data)
         else:
-            # Render the managerial view for another user
             cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
             team_leaders = cursor.fetchall()
-            
             cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
             possible_roles = cursor.fetchone()['Type'].replace("enum('", "").replace("')", "").split("','")
-            
-            points_log, direct_reports = [], []
-            if user_profile_data.get('StaffID'):
-                cursor.execute("SELECT * FROM StaffPointsLog WHERE AwardedToStaffID = %s ORDER BY AwardDate DESC LIMIT 20", (user_profile_data['StaffID'],))
-                points_log = cursor.fetchall()
-                cursor.execute("SELECT u_report.UserID, u_report.FirstName, u_report.LastName, s_report.Role FROM Staff s_report JOIN Users u_report ON s_report.UserID = u_report.UserID WHERE s_report.ReportsToStaffID = %s", (user_profile_data['StaffID'],))
-                direct_reports = cursor.fetchall()
-            
-            return render_template('agency_staff_portal/staff/view_staff_profile.html',
-                                   title=f"Profile: {user_profile_data['FirstName']}",
-                                   user_profile=user_profile_data, team_leaders=team_leaders,
-                                   points_log=points_log, possible_roles=possible_roles,
-                                   direct_reports=direct_reports)
+            return render_template('agency_staff_portal/staff/view_staff_profile.html', title=f"Profile: {user_profile_data['FirstName']}", user_profile=user_profile_data, team_leaders=team_leaders, possible_roles=possible_roles)
     finally:
         if conn and conn.is_connected():
              if 'cursor' in locals() and cursor: cursor.close()
              conn.close()
-
-# --- Staff Profile Action Routes ---
 
 @staff_perf_bp.route('/profile/<int:staff_id_to_edit>/update-role', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -271,9 +355,6 @@ def update_role(staff_id_to_edit):
     user_id_redirect = request.form.get('user_id')
     new_role = request.form.get('role')
     
-    # --- [NEW VALIDATION] ---
-    # These roles have structural implications and should only be assigned
-    # from the Recruiter Portal's Organization Management page.
     structural_roles = ['SourcingTeamLead', 'UnitManager', 'HeadUnitManager']
     if new_role in structural_roles:
         flash(f"The '{new_role}' role must be assigned from the Recruiter Portal's Organization page to ensure the structure is updated correctly.", "warning")
@@ -347,48 +428,98 @@ def generate_referral_code(target_staff_id):
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 
-# --- Team Structure View ---
+# --- My Profile Routes ---
+
+@staff_perf_bp.route('/my-profile/update-details', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
+def my_profile_update_details():
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    phone_number = request.form.get('phone_number', '').strip()
+
+    if not first_name or not last_name:
+        flash("First and last names are required.", "danger")
+        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Users SET FirstName = %s, LastName = %s, PhoneNumber = %s WHERE UserID = %s", (first_name, last_name, phone_number, current_user.id))
+        conn.commit()
+        flash("Your profile details have been updated successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash("A database error occurred. Please try again.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
+
+@staff_perf_bp.route('/my-profile/update-password', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
+def my_profile_update_password():
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    redirect_url = url_for('.view_staff_profile', user_id_viewing=current_user.id)
+
+    if not all([current_password, new_password, confirm_password]):
+        flash("All password fields are required.", "danger")
+        return redirect(redirect_url)
+    if len(new_password) < 8:
+        flash("New password must be at least 8 characters long.", "danger")
+        return redirect(redirect_url)
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "danger")
+        return redirect(redirect_url)
+        
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT PasswordHash FROM Users WHERE UserID = %s", (current_user.id,))
+        user = cursor.fetchone()
+        
+        if not user or not check_password_hash(user['PasswordHash'], current_password):
+            flash("Your current password is not correct.", "danger")
+            return redirect(redirect_url)
+            
+        new_hashed_password = generate_password_hash(new_password)
+        cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (new_hashed_password, current_user.id))
+        conn.commit()
+        flash("Your password has been changed successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash("A database error occurred while changing your password.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+            
+    return redirect(redirect_url)
+
+
+# --- Team Structure and Leaderboard Views ---
 
 @staff_perf_bp.route('/team-structure')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def global_team_overview():
-    """Renders the page that will display the org chart."""
-    return render_template('agency_staff_portal/staff/global_team_overview.html',
-                           title="Global Team Structure")
+    return render_template('agency_staff_portal/staff/global_team_overview.html', title="Global Team Structure")
 
 @staff_perf_bp.route('/api/team-hierarchy')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def api_team_hierarchy():
-    """API endpoint that returns the staff data structured as a hierarchy for D3.js."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # Fetch all staff members with their manager's ID
     cursor.execute("""
-        SELECT 
-            s.StaffID AS id, 
-            s.ReportsToStaffID AS parentId,
-            u.FirstName, 
-            u.LastName, 
-            s.Role,
-            u.ProfilePictureURL
-        FROM Staff s
-        JOIN Users u ON s.UserID = u.UserID
-        WHERE u.IsActive = 1
+        SELECT s.StaffID AS id, s.ReportsToStaffID AS parentId, u.FirstName, u.LastName, s.Role, u.ProfilePictureURL
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE u.AccountStatus = 'Active'
     """)
     nodes = cursor.fetchall()
     conn.close()
 
-    # The root of our organization chart
     root_node = {
-        'id': None,
-        'parentId': 'root', 
-        'FirstName': 'Mosla',
-        'LastName': 'Pioneers',
-        'Role': 'Organization',
-        'ProfilePictureURL': url_for('static', filename='images/company-logo.png')
+        'id': None, 'parentId': 'root', 'FirstName': 'Mosla', 'LastName': 'Pioneers',
+        'Role': 'Organization', 'ProfilePictureURL': url_for('static', filename='images/mosla.jpg')
     }
-    
     nodes.append(root_node)
 
     node_map = {node['id']: node for node in nodes}
@@ -397,20 +528,11 @@ def api_team_hierarchy():
         parent_id = node.get('parentId')
         if parent_id in node_map:
             parent = node_map[parent_id]
-            if 'children' not in parent:
-                parent['children'] = []
+            if 'children' not in parent: parent['children'] = []
             parent['children'].append(node)
 
-    hierarchy_data = None
-    for node in nodes:
-        if node.get('parentId') == 'root':
-            hierarchy_data = node
-            break
-
+    hierarchy_data = next((node for node in nodes if node.get('parentId') == 'root'), None)
     return jsonify(hierarchy_data)
-
-
-# --- Leaderboard Views ---
 
 @staff_perf_bp.route('/leaderboard/performance')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -419,9 +541,8 @@ def performance_leaderboard():
     title = "All-Time Performance Leaderboard"
     sql = """
         SELECT u.FirstName, u.LastName, s.Role, s.TotalPoints as Points
-        FROM Staff s
-        JOIN Users u ON s.UserID = u.UserID
-        WHERE s.TotalPoints IS NOT NULL AND s.TotalPoints != 0
+        FROM Staff s JOIN Users u ON s.UserID = u.UserID
+        WHERE s.TotalPoints IS NOT NULL AND s.TotalPoints != 0 AND u.AccountStatus = 'Active'
         ORDER BY s.TotalPoints DESC LIMIT 20
     """
     if period == 'monthly':
@@ -431,7 +552,7 @@ def performance_leaderboard():
             FROM StaffPointsLog spl
             JOIN Staff s ON spl.AwardedToStaffID = s.StaffID
             JOIN Users u ON s.UserID = u.UserID
-            WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
+            WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
             GROUP BY u.UserID, u.FirstName, u.LastName, s.Role
             HAVING SUM(spl.PointsAmount) != 0
             ORDER BY Points DESC LIMIT 20
@@ -463,86 +584,3 @@ def company_leaderboard():
                            title="Top Partner Companies",
                            subtitle="Ranked by number of successfully filled positions.",
                            top_companies=top_companies)
-    
-@staff_perf_bp.route('/my-profile/update-details', methods=['POST'])
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
-def my_profile_update_details():
-    """Handles updates to the user's own basic details."""
-    first_name = request.form.get('first_name', '').strip()
-    last_name = request.form.get('last_name', '').strip()
-    phone_number = request.form.get('phone_number', '').strip()
-
-    if not first_name or not last_name:
-        flash("First and last names are required.", "danger")
-        return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
-
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE Users SET FirstName = %s, LastName = %s, PhoneNumber = %s WHERE UserID = %s",
-            (first_name, last_name, phone_number, current_user.id)
-        )
-        conn.commit()
-        flash("Your profile details have been updated successfully.", "success")
-    except Exception as e:
-        if conn: conn.rollback()
-        current_app.logger.error(f"Error updating user details for UserID {current_user.id}: {e}")
-        flash("A database error occurred. Please try again.", "danger")
-    finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
-
-    return redirect(url_for('.view_staff_profile', user_id_viewing=current_user.id))
-
-
-@staff_perf_bp.route('/my-profile/update-password', methods=['POST'])
-# --- MODIFIED: Explicitly add 'SalesManager' to the list of allowed roles ---
-@login_required_with_role(MANAGERIAL_PORTAL_ROLES + ['SalesManager'])
-def my_profile_update_password():
-    """Handles updating the user's own password."""
-    current_password = request.form.get('current_password')
-    new_password = request.form.get('new_password')
-    confirm_password = request.form.get('confirm_password')
-
-    # Central redirect point
-    redirect_url = url_for('.view_staff_profile', user_id_viewing=current_user.id)
-
-    if not all([current_password, new_password, confirm_password]):
-        flash("All password fields are required.", "danger")
-        return redirect(redirect_url)
-    
-    if len(new_password) < 8:
-        flash("New password must be at least 8 characters long.", "danger")
-        return redirect(redirect_url)
-        
-    if new_password != confirm_password:
-        flash("New passwords do not match.", "danger")
-        return redirect(redirect_url)
-        
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT PasswordHash FROM Users WHERE UserID = %s", (current_user.id,))
-        user = cursor.fetchone()
-        
-        if not user or not check_password_hash(user['PasswordHash'], current_password):
-            flash("Your current password is not correct.", "danger")
-            return redirect(redirect_url)
-            
-        new_hashed_password = generate_password_hash(new_password)
-        cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (new_hashed_password, current_user.id))
-        conn.commit()
-        flash("Your password has been changed successfully.", "success")
-    
-    except Exception as e:
-        if conn: conn.rollback()
-        current_app.logger.error(f"Error updating password for UserID {current_user.id}: {e}")
-        flash("A database error occurred while changing your password.", "danger")
-    finally:
-        if conn and conn.is_connected():
-            if 'cursor' in locals() and cursor: cursor.close()
-            conn.close()
-            
-    return redirect(redirect_url)

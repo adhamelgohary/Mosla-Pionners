@@ -15,8 +15,17 @@
             <h1 class="text-base font-semibold leading-6 text-gray-900">All Staff Members</h1>
             <p class="mt-2 text-sm text-gray-700">A comprehensive list of all active and inactive staff in the system.</p>
         </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex sm:gap-x-4">
+            <!-- [NEW] Link to the application review page -->
+            <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="relative block rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                Review Applications
+                {% if pending_count > 0 %}
+                <span class="absolute -top-2 -right-2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-600 text-xs font-bold text-white">
+                    {{ pending_count }}
+                </span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="mt-2 sm:mt-0 block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500">
                 Add New Staff
             </a>
         </div>
@@ -40,29 +49,36 @@
                             <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ staff.FirstName }} {{ staff.LastName }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.Role }}</td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                {% if staff.IsActive %}
+                                <!-- [MODIFIED] Logic to show correct status badge -->
+                                {% if staff.AccountStatus == 'Active' %}
                                     <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Active</span>
-                                {% else %}
+                                {% elif staff.AccountStatus == 'Inactive' %}
                                     <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Inactive</span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">{{ staff.AccountStatus }}</span>
                                 {% endif %}
                             </td>
                             <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ staff.LeaderFirstName + ' ' + staff.LeaderLastName if staff.LeaderFirstName else 'N/A' }}</td>
                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                                <!-- [MODIFIED] Action buttons based on status -->
                                 <div class="flex items-center justify-end gap-x-4">
                                     <a href="{{ url_for('staff_perf_bp.view_staff_profile', user_id_viewing=staff.UserID) }}" class="text-gray-600 hover:text-indigo-600">Manage</a>
                                     
-                                    {% if staff.IsActive %}
+                                    <!-- [MODIFIED] Action buttons based on status -->
+                                    {% if staff.AccountStatus == 'Active' %}
                                         <form action="{{ url_for('staff_perf_bp.deactivate_staff', staff_id=staff.StaffID) }}" method="POST" onsubmit="return confirm('Are you sure you want to deactivate this user?');">
                                             <button type="submit" class="text-red-600 hover:text-red-900">Deactivate</button>
                                         </form>
-                                    {% else %}
+                                    {% elif staff.AccountStatus == 'Inactive' %}
                                         <form action="{{ url_for('staff_perf_bp.activate_staff', staff_id=staff.StaffID) }}" method="POST">
                                             <button type="submit" class="text-green-600 hover:text-green-900">Activate</button>
                                         </form>
                                     {% endif %}
                                 </div>
                             </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-gray-500">No active or inactive staff members found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
