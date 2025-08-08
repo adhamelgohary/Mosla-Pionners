@@ -197,3 +197,23 @@ def edit_company(company_id):
         abort(404)
         
     return render_template('agency_staff_portal/clients/add_edit_company.html', title="Edit Company", company=company)
+
+@client_mgmt_bp.route('/delete-company/<int:company_id>', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def delete_company(company_id):
+    """Deletes a company and all its associated data (contacts, job offers, etc.)."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # The database's ON DELETE CASCADE constraints will handle associated records.
+        cursor.execute("DELETE FROM Companies WHERE CompanyID = %s", (company_id,))
+        conn.commit()
+        flash("Company and all associated data have been permanently deleted.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error deleting company with ID {company_id}: {e}")
+        flash("An error occurred while trying to delete the company.", "danger")
+    finally:
+        if conn: conn.close()
+    
+    return redirect(url_for('.list_companies'))
