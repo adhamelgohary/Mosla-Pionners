@@ -1,0 +1,54 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-people-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="mb-6 flex justify-end">
+    <a href="{{ url_for('group_mgmt_bp.add_group') }}" class="btn-primary">
+        <i class="bi bi-plus-circle-fill mr-1"></i> Add New Group
+    </a>
+</div>
+
+<div class="bg-white dark:bg-slate-800 shadow-md rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <thead class="bg-gray-50 dark:bg-slate-700/50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Group Name & Package</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Instructors</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Students</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status & Dates</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-600">
+                {% for group in groups %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ group.GroupName }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ group.MainPackageName }} / {{ group.SubPackageName }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ group.instructors or 'N/A' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ group.member_count }} assigned</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{{ group.Status }}</span>
+                        <div class="text-xs text-gray-400 mt-1">
+                            {{ group.StartDate.strftime('%b %d, %Y') if group.StartDate else 'TBD' }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="{{ url_for('.manage_group_members', group_id=group.GroupID) }}" class="btn-secondary !text-xs !py-1 !px-2"><i class="bi bi-gear-fill mr-1"></i>Manage</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center p-6 text-gray-500">No course groups have been created yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

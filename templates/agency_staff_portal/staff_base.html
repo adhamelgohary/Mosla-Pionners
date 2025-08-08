@@ -44,8 +44,6 @@
                                             <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Staff</a>
                                             <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Review Applications</a>
                                             <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Team Structure</a>
-                                            <a href="{{ url_for('staff_perf_bp.performance_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Performance Leaderboard</a>
-                                            <a href="{{ url_for('staff_perf_bp.company_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Company Leaderboard</a>
                                         </div></div>
                                     </div>
                                     
@@ -67,14 +65,20 @@
                                 
                                 <!-- Packages Dropdown -->
                                 <div class="relative" x-on:click.away="packagesMenuOpen = false">
-                                     <button @click="packagesMenuOpen = !packagesMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('package_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
+                                     <button @click="packagesMenuOpen = !packagesMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('package_mgmt_bp') or request.endpoint.startswith('group_mgmt_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
                                         <span>Packages</span><i class="bi bi-chevron-down -mr-1 h-5 w-5 text-gray-400"></i>
                                     </button>
-                                     <div x-show="packagesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5" style="display:none;"><div class="py-1">
-                                        <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Packages Dashboard</a>
-                                        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
-                                        <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Packages</a>
-                                    </div></div>
+                                     <div x-show="packagesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5" style="display:none;">
+                                        <div class="py-1">
+                                            <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Packages Dashboard</a>
+                                            <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
+                                            <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Packages</a>
+                                        </div>
+                                        <div class="py-1 border-t border-gray-100">
+                                            <a href="{{ url_for('group_mgmt_bp.list_groups') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Course Groups</a>
+                                            <a href="{{ url_for('group_mgmt_bp.list_instructors') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Instructors</a>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 {% if current_user.role_type != 'SalesManager' %}
@@ -149,6 +153,9 @@
                         <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Jobs</a>
                     {% endif %}
                     <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Packages</a>
+                    <a href="{{ url_for('group_mgmt_bp.list_groups') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Course Groups</a>
+                    <a href="{{ url_for('group_mgmt_bp.list_instructors') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Instructors</a>
+
                     {% if current_user.role_type != 'SalesManager' %}
                         <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Inquiries</a>
                         <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Announcements</a>
