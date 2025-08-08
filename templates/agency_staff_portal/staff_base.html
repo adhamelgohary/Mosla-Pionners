@@ -19,7 +19,6 @@
         <!-- ===== Top Navigation Bar ===== -->
         <nav class="bg-white border-b border-gray-200" x-data="{ open: false, profileMenuOpen: false, managementMenuOpen: false, packagesMenuOpen: false, reportsMenuOpen: false }">
             
-            <!-- MODIFIED: Removed 'mx-auto' and 'max-w-7xl' to make the nav content container full-width -->
             <div class="w-full px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
@@ -42,7 +41,10 @@
                                         <div x-show="managementMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5" style="display:none;"><div class="py-1">
                                             <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Staff</a>
                                             <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Team Structure</a>
-                                            <a href="{{ url_for('staff_perf_bp.list_pending_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Pending Registrations</a>
+                                            
+                                            <!-- ===== THIS IS THE CORRECTED LINE ===== -->
+                                            <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Review Applications</a>
+                                            
                                             <a href="{{ url_for('staff_perf_bp.performance_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Performance Leaderboard</a>
                                             <a href="{{ url_for('staff_perf_bp.company_leaderboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Company Leaderboard</a>
                                         </div></div>
@@ -123,7 +125,10 @@
                     {% if current_user.role_type != 'SalesManager' %}
                         <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
                         <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
-                        <a href="{{ url_for('staff_perf_bp.list_pending_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Pending Registrations</a>
+                        
+                        <!-- ===== THIS IS THE CORRECTED LINE FOR MOBILE MENU ===== -->
+                        <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Review Applications</a>
+                        
                         <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Jobs</a>
                     {% endif %}
                     <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Packages</a>
@@ -149,14 +154,12 @@
             </div>
         </nav>
         
-        <!-- MODIFIED: Removed 'mx-auto' and 'max-w-7xl' from the header to match the full-width nav bar -->
         <header class="bg-white shadow-sm">
             <div class="w-full px-4 py-4 sm:px-6 lg:px-8">
                 <h1 class="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-2">{% block staff_page_title %}{% endblock %}</h1>
             </div>
         </header>
         
-        <!-- MODIFIED: The main content area still uses 'max-w-7xl' to keep page content centered and readable -->
         <main>
             <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
                 <div class="space-y-4 mb-6">
