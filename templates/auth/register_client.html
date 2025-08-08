@@ -20,10 +20,9 @@
         .eye-slashed { display: none; }
         .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
         .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
-        .alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
         .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
-        .input-group input.is-invalid { border-color: #dc3545; }
+        .feedback-match { color: #155724; } /* Green color for matching passwords */
+        .input-group input.is-invalid { border-color: #dc3545 !important; }
     </style>
 </head>
 <body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
@@ -34,92 +33,101 @@
             <img src="{{ url_for('static', filename='png/customer-service.png') }}" alt="" class="bg-image image-10">
         </div>
         <div class="form-wrapper">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
-                <span>Mosla Pioneers</span>
-            </div>
+            <div class="logo"><img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image"><span>Mosla Pioneers</span></div>
             <h2>Register Your Company</h2>
             <p class="subtitle">Partner with us to find top-tier talent. Submit your details for review.</p>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
             
             <form method="POST" action="{{ url_for('register_bp.register_client') }}">
-                
-                <div class="input-group">
-                    <input type="text" name="company_name" id="company_name" placeholder="Company Name" value="{{ form_data.get('company_name', '') }}" class="{{ 'is-invalid' if errors.get('company_name') }}" required>
-                    {% if errors.get('company_name') %}<div class="invalid-feedback">{{ errors.get('company_name') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="text" name="first_name" id="first_name" placeholder="Your First Name (Contact)" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}" required>
-                    {% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="text" name="last_name" id="last_name" placeholder="Your Last Name (Contact)" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}" required>
-                    {% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="email" name="email" id="email" placeholder="Work Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>
-                    {% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}
-                </div>
+                <div class="input-group"><input type="text" name="company_name" placeholder="Company Name" value="{{ form_data.get('company_name', '') }}" class="{{ 'is-invalid' if errors.get('company_name') }}" required>{% if errors.get('company_name') %}<div class="invalid-feedback">{{ errors.get('company_name') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="text" name="first_name" placeholder="Your First Name (Contact)" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}" required>{% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="text" name="last_name" placeholder="Your Last Name (Contact)" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}" required>{% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="email" name="email" placeholder="Work Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>{% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}</div>
 
                 <div class="input-group">
                     <div class="password-input-wrapper">
                         <input type="password" name="password" id="password" placeholder="Create Password" class="{{ 'is-invalid' if errors.get('password') }}" required>
+                        <span class="password-toggle-icon" data-target="password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
                     </div>
                     {% if errors.get('password') %}<div class="invalid-feedback">{{ errors.get('password') }}</div>{% endif %}
                 </div>
-
                 <div class="input-group">
                      <div class="password-input-wrapper">
                         <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" class="{{ 'is-invalid' if errors.get('confirm_password') }}" required>
+                        <span class="password-toggle-icon" data-target="confirm_password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
                     </div>
                     {% if errors.get('confirm_password') %}<div class="invalid-feedback">{{ errors.get('confirm_password') }}</div>{% endif %}
+                    <div id="password-match-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
 
                 <hr style="border: 1px solid var(--input-border, #eee); margin: 2rem 0; border-radius: 5px;">
-
-                <div class="input-group">
-                    <input type="url" name="company_website" id="company_website" placeholder="Company Website (Optional)" value="{{ form_data.get('company_website', '') }}">
-                </div>
-                
-                <div class="input-group">
-                    <input type="text" name="industry" id="industry" placeholder="Industry (e.g., BPO, Tech) (Optional)" value="{{ form_data.get('industry', '') }}">
-                </div>
-
-                <div class="input-group">
-                    <input type="tel" name="phone_number" id="phone_number" placeholder="Contact Phone (Optional)" value="{{ form_data.get('phone_number', '') }}">
-                </div>
+                <div class="input-group"><input type="url" name="company_website" placeholder="Company Website (Optional)" value="{{ form_data.get('company_website', '') }}"></div>
+                <div class="input-group"><input type="text" name="industry" placeholder="Industry (e.g., BPO, Tech) (Optional)" value="{{ form_data.get('industry', '') }}"></div>
+                <div class="input-group"><input type="tel" name="phone_number" placeholder="Contact Phone (Optional)" value="{{ form_data.get('phone_number', '') }}"></div>
                 
                 <button type="submit" class="login-button">Submit for Review</button>
             </form>
-            <div class="signup-link">
-                <p>Already have an account? <a href="{{ url_for('login_bp.login') }}">Log In</a></p>
-                 <p>Not a Client? <a href="{{ url_for('register_bp.register_options') }}">Back to Register Options</a></p>
-            </div>
+            <div class="signup-link"><p>Already have an account? <a href="{{ url_for('login_bp.login') }}">Log In</a> or <a href="{{ url_for('register_bp.register_options') }}">Back to Options</a></p></div>
         </div>
     </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Universal Password Toggle Logic ---
     document.querySelectorAll('.password-toggle-icon').forEach(toggle => {
         const targetId = toggle.getAttribute('data-target');
         const passwordInput = document.getElementById(targetId);
-        if (passwordInput) {
-            toggle.addEventListener('click', function () {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-                // Optional: Toggle eye icon
-            });
-        }
+        const openEye = toggle.querySelector('.eye-open');
+        const slashedEye = toggle.querySelector('.eye-slashed');
+
+        if (!passwordInput || !openEye || !slashedEye) return;
+        
+        const setIcons = () => {
+            if (passwordInput.type === 'password') {
+                openEye.style.display = 'inline-block';
+                slashedEye.style.display = 'none';
+            } else {
+                openEye.style.display = 'none';
+                slashedEye.style.display = 'inline-block';
+            }
+        };
+        setIcons();
+
+        toggle.addEventListener('click', () => {
+            passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+            setIcons();
+        });
     });
+
+    // --- Real-time Password Matching Logic ---
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const feedbackElement = document.getElementById('password-match-feedback');
+
+    if (passwordField && confirmPasswordField && feedbackElement) {
+        const checkPasswords = () => {
+            const pass1 = passwordField.value;
+            const pass2 = confirmPasswordField.value;
+
+            if (pass2.length === 0) {
+                feedbackElement.style.display = 'none';
+                return;
+            }
+            
+            feedbackElement.style.display = 'block';
+
+            if (pass1 === pass2) {
+                feedbackElement.textContent = 'Passwords match!';
+                feedbackElement.classList.add('feedback-match');
+            } else {
+                feedbackElement.textContent = 'Passwords do not match.';
+                feedbackElement.classList.remove('feedback-match');
+            }
+        };
+
+        passwordField.addEventListener('input', checkPasswords);
+        confirmPasswordField.addEventListener('input', checkPasswords);
+    }
 });
 </script>
 </body>

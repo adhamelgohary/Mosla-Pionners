@@ -14,30 +14,22 @@
             width: 100%; padding: 14px 20px 14px 45px; border: 1px solid var(--input-border, #D0D5DD); border-radius: 8px;
             font-family: 'Poppins', sans-serif; font-size: 1rem; background-color: var(--input-background); color: var(--text-color);
         }
-        .input-group select {
-            -webkit-appearance: none; -moz-appearance: none; appearance: none;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23667085' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.7rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em;
-        }
-        body.dark-mode .input-group select {
-             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-        }
+        .input-group select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23667085' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.7rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em; }
+        body.dark-mode .input-group select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--primary-accent); }
         .password-input-wrapper { position: relative; }
         .password-toggle-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--icon-color, #9CA3AF); }
         .eye-slashed { display: none; }
         .file-upload-group { display: flex; align-items: center; width: 100%; border: 1px solid var(--input-border, #ccc); border-radius: 8px; padding-left: 12px; transition: border-color 0.3s; margin-bottom: 1.5rem; }
         .file-upload-group:has(input:focus-visible), .file-upload-group:hover { border-color: var(--primary-accent); }
-        .file-upload-group .icon { color: var(--icon-color, #9CA3AF); margin-right: 10px; }
         .file-upload-label { flex-grow: 1; padding: 14px 0; cursor: pointer; color: var(--subtle-text-color, #888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; }
-        body.dark-mode .file-upload-label { color: var(--subtle-text-color, #aaa); }
         .file-upload-label.has-file { color: var(--text-color); }
         .file-upload-group input[type="file"] { display: none; }
         .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
         .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
         .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
-        .input-group input.is-invalid, .file-upload-group.is-invalid, .input-group select.is-invalid { border-color: #dc3545; }
+        .feedback-match { color: #155724; } /* Green color for matching passwords */
+        .input-group input.is-invalid, .file-upload-group.is-invalid, .input-group select.is-invalid { border-color: #dc3545 !important; } /* Use !important to override focus styles */
     </style>
 </head>
 <body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
@@ -54,81 +46,46 @@
             <h2>Apply to Join Our Team</h2>
             <p class="subtitle">We're looking for talented individuals to join Mosla Pioneers.</p>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
             
             <form method="POST" action="{{ url_for('register_bp.apply_to_be_staff') }}" enctype="multipart/form-data">
-                
-                <div class="input-group">
-                    <input type="text" name="first_name" id="first_name" placeholder="First Name" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}" required>
-                    {% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="text" name="last_name" id="last_name" placeholder="Last Name" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}" required>
-                    {% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="email" name="email" id="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>
-                    {% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}
-                </div>
-
-                <div class="input-group">
-                    <input type="tel" name="phone_number" id="phone_number" placeholder="Phone Number (Optional)" value="{{ form_data.get('phone_number', '') }}" class="{{ 'is-invalid' if errors.get('phone_number') }}">
-                    {% if errors.get('phone_number') %}<div class="invalid-feedback">{{ errors.get('phone_number') }}</div>{% endif %}
-                </div>
+                <div class="input-group"><input type="text" name="first_name" placeholder="First Name" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}" required>{% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="text" name="last_name" placeholder="Last Name" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}" required>{% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="email" name="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>{% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}</div>
+                <div class="input-group"><input type="tel" name="phone_number" placeholder="Phone Number (Optional)" value="{{ form_data.get('phone_number', '') }}" class="{{ 'is-invalid' if errors.get('phone_number') }}">{% if errors.get('phone_number') %}<div class="invalid-feedback">{{ errors.get('phone_number') }}</div>{% endif %}</div>
                 
                 <div class="input-group">
                     <div class="password-input-wrapper">
                         <input type="password" name="password" id="password" placeholder="Create Password" class="{{ 'is-invalid' if errors.get('password') }}" required>
+                        <span class="password-toggle-icon" data-target="password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
                     </div>
                     {% if errors.get('password') %}<div class="invalid-feedback">{{ errors.get('password') }}</div>{% endif %}
                 </div>
-
                 <div class="input-group">
                      <div class="password-input-wrapper">
                         <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" class="{{ 'is-invalid' if errors.get('confirm_password') }}" required>
+                        <span class="password-toggle-icon" data-target="confirm_password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
                     </div>
                     {% if errors.get('confirm_password') %}<div class="invalid-feedback">{{ errors.get('confirm_password') }}</div>{% endif %}
+                    <div id="password-match-feedback" class="invalid-feedback" style="display: none;"></div>
                 </div>
                 
                 <hr style="border: 1px solid var(--input-border, #eee); margin: 2rem 0; border-radius: 5px;">
-
                 <div class="input-group">
-                    <select name="desired_role" id="desired_role" class="{{ 'is-invalid' if errors.get('desired_role') }}" required>
-                        <option value="" disabled {% if not form_data.get('desired_role') %}selected{% endif %}>Select Desired Role...</option>
-                        {% for role in staff_roles %}
-                            <option value="{{ role }}" {% if form_data.get('desired_role') == role %}selected{% endif %}>{{ role.replace('Sourcing', '').replace('Manager', ' Manager') }}</option>
-                        {% endfor %}
-                    </select>
+                    <select name="desired_role" class="{{ 'is-invalid' if errors.get('desired_role') }}" required><option value="" disabled {% if not form_data.get('desired_role') %}selected{% endif %}>Select Desired Role...</option>{% for role in staff_roles %}<option value="{{ role }}" {% if form_data.get('desired_role') == role %}selected{% endif %}>{{ role.replace('Sourcing', '').replace('Manager', ' Manager') }}</option>{% endfor %}</select>
                     {% if errors.get('desired_role') %}<div class="invalid-feedback">{{ errors.get('desired_role') }}</div>{% endif %}
                 </div>
-                
-                <div class="file-upload-group {{ 'is-invalid' if errors.get('cv_file') }}">
-                    <label for="cv_file" id="cv_label" class="file-upload-label">Upload your CV (Required)</label>
-                    <input type="file" name="cv_file" id="cv_file" accept=".pdf,.doc,.docx" required>
-                </div>
+                <div class="file-upload-group {{ 'is-invalid' if errors.get('cv_file') }}"><label for="cv_file" id="cv_label" class="file-upload-label">Upload your CV (Required)</label><input type="file" name="cv_file" id="cv_file" accept=".pdf,.doc,.docx" required></div>
                 {% if errors.get('cv_file') %}<div class="invalid-feedback" style="margin-top: -1.25rem; margin-bottom: 1.5rem;">{{ errors.get('cv_file') }}</div>{% endif %}
-
-                <div class="input-group">
-                    <input type="url" name="linkedin_profile_url" id="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}">
-                </div>
-
+                <div class="input-group"><input type="url" name="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}"></div>
                 <button type="submit" class="login-button">Submit Application</button>
             </form>
-            <div class="signup-link">
-                <p>Already registered or looking for other options? <a href="{{ url_for('login_bp.login') }}">Log In</a> or <a href="{{ url_for('register_bp.register_options') }}">Back to Register Options</a></p>
-            </div>
+            <div class="signup-link"><p>Already registered? <a href="{{ url_for('login_bp.login') }}">Log In</a> or <a href="{{ url_for('register_bp.register_options') }}">Back to Options</a></p></div>
         </div>
     </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Universal File Input Label Updater ---
     function setupFileInputLabel(inputId, labelId) {
         const fileInput = document.getElementById(inputId);
         const fileLabel = document.getElementById(labelId);
@@ -146,6 +103,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     setupFileInputLabel('cv_file', 'cv_label');
+
+    // --- Universal Password Toggle Logic ---
+    document.querySelectorAll('.password-toggle-icon').forEach(toggle => {
+        const targetId = toggle.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+        const openEye = toggle.querySelector('.eye-open');
+        const slashedEye = toggle.querySelector('.eye-slashed');
+
+        if (!passwordInput || !openEye || !slashedEye) return;
+        
+        const setIcons = () => {
+            if (passwordInput.type === 'password') {
+                openEye.style.display = 'inline-block';
+                slashedEye.style.display = 'none';
+            } else {
+                openEye.style.display = 'none';
+                slashedEye.style.display = 'inline-block';
+            }
+        };
+        setIcons();
+
+        toggle.addEventListener('click', () => {
+            passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+            setIcons();
+        });
+    });
+
+    // --- Real-time Password Matching Logic ---
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const feedbackElement = document.getElementById('password-match-feedback');
+
+    if (passwordField && confirmPasswordField && feedbackElement) {
+        const checkPasswords = () => {
+            const pass1 = passwordField.value;
+            const pass2 = confirmPasswordField.value;
+
+            if (pass2.length === 0) {
+                feedbackElement.style.display = 'none';
+                return;
+            }
+            
+            feedbackElement.style.display = 'block';
+
+            if (pass1 === pass2) {
+                feedbackElement.textContent = 'Passwords match!';
+                feedbackElement.classList.add('feedback-match');
+            } else {
+                feedbackElement.textContent = 'Passwords do not match.';
+                feedbackElement.classList.remove('feedback-match');
+            }
+        };
+
+        passwordField.addEventListener('input', checkPasswords);
+        confirmPasswordField.addEventListener('input', checkPasswords);
+    }
 });
 </script>
 </body>

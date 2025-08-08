@@ -14,154 +14,71 @@
             font-family: 'Poppins', sans-serif; font-size: 1rem; background-color: var(--input-background); color: var(--text-color);
         }
         .input-group input:focus { outline: none; border-color: var(--primary-accent); }
-        .input-group input.is-invalid { border-color: #dc3545; }
         .password-input-wrapper { position: relative; }
         .password-toggle-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--icon-color, #9CA3AF); }
         .eye-slashed { display: none; }
         .form-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.9rem; }
         .remember-me-group { display: flex; align-items: center; }
-        .remember-me-group input[type="checkbox"] { margin-right: 8px; width: 16px; height: 16px; accent-color: var(--primary-accent); }
-        .remember-me-group label { color: var(--text-color); cursor:pointer; }
+        .remember-me-group input[type="checkbox"] { margin-right: 8px; }
         .forgot-password { color: var(--primary-accent); text-decoration: none; }
-        .forgot-password:hover { text-decoration: underline; }
-        .login-button { width: 100%; padding: 14px 20px; background-color: var(--primary-accent); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.3s; }
-        .login-button:hover { background-color: var(--primary-accent-darker, #0056b3); } 
         .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
         .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
-        .alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
-        .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
         .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
+        .input-group input.is-invalid { border-color: #dc3545 !important; }
     </style>
 </head>
 <body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
     <div class="login-page-container">
-        <div class="background-images">
-            <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
-            <img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-2">
-            <img src="{{ url_for('static', filename='png/recruitment-specialist.png') }}" alt="" class="bg-image image-3">
-            <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-4">
-            <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-5">
-            <img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-6">
-            <img src="{{ url_for('static', filename='png/recruitment-specialist.png') }}" alt="" class="bg-image image-7">
-            <img src="{{ url_for('static', filename='png/search-user.png') }}" alt="" class="bg-image image-8">
-            <img src="{{ url_for('static', filename='png/support.png') }}" alt="" class="bg-image image-9">
-            <img src="{{ url_for('static', filename='png/customer-service.png') }}" alt="" class="bg-image image-10">
-        </div>
-
+        <div class="background-images"><img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1"><img src="{{ url_for('static', filename='png/r.png') }}" alt="" class="bg-image image-2"></div>
         <div class="form-wrapper">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
-                <span>Mosla Pioneers</span>
-            </div>
+            <div class="logo"><img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image"><span>Mosla Pioneers</span></div>
             <h2>Welcome Back!</h2>
             <p class="subtitle">Sign in to manage your recruitment pipeline.</p>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            {% if errors.get('form') %}<div class="alert alert-danger">{{ errors.get('form') }}</div>{% endif %}
-
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
             <form method="POST" action="{{ url_for('login_bp.login') }}">
-                
                 <div class="input-group">
-                    <span class="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H20C20.5523 2 21 2.44772 21 3V21C21 21.5523 20.5523 22 20 22ZM19 20V4H5V20H19ZM12 13C10.6193 13 9.5 11.8807 9.5 10.5C9.5 9.11929 10.6193 8 12 8C13.3807 8 14.5 9.11929 14.5 10.5C14.5 11.8807 13.3807 13 12 13ZM7.00104 18C7.06833 15.7533 8.84534 14 11 14H13C15.1547 14 16.9317 15.7533 16.9989 18H7.00104Z"/></svg>
-                    </span>
-                    <input type="email" name="email" id="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>
+                    <input type="email" name="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>
                     {% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}
                 </div>
-
                 <div class="input-group">
-                    <span class="icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8H17V6C17 3.23858 14.7614 1 12 1C9.23858 1 7 3.23858 7 6V8H6C4.89543 8 4 8.89543 4 10V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V10C20 8.89543 19.1046 8 18 8ZM15 8H9V6C9 4.34315 10.3431 3 12 3C13.6569 3 15 4.34315 15 6V8Z"/></svg>
-                    </span>
                     <div class="password-input-wrapper">
                         <input type="password" name="password" id="password" placeholder="Password" class="{{ 'is-invalid' if errors.get('password') }}" required>
-                        <span class="password-toggle-icon" data-target="password" aria-label="Show password" title="Show password">
-                            <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg>
-                            <svg class="eye-icon eye-slashed" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg>
-                        </span>
+                        <span class="password-toggle-icon" data-target="password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
                     </div>
                      {% if errors.get('password') %}<div class="invalid-feedback">{{ errors.get('password') }}</div>{% endif %}
                 </div>
-
                 <div class="form-options">
-                    <div class="remember-me-group">
-                        <input type="checkbox" name="remember" id="remember" {% if form_data.get('remember') == 'on' %}checked{% endif %}>
-                        <label for="remember">Remember me</label>
-                    </div>
+                    <div class="remember-me-group"><input type="checkbox" name="remember" id="remember" {% if form_data.get('remember') == 'on' %}checked{% endif %}><label for="remember">Remember me</label></div>
                     <a href="#" class="forgot-password">Forgot Password?</a>
                 </div>
-                
                 <button type="submit" class="login-button">Sign In</button>
             </form>
-            <div class="signup-link">
-                <p>Don't have an account? <a href="{{ url_for('register_bp.register_options') }}">Sign Up</a></p>
-            </div>
+            <div class="signup-link"><p>Don't have an account? <a href="{{ url_for('register_bp.register_options') }}">Sign Up</a></p></div>
         </div>
     </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const themeToggle = document.getElementById('theme-toggle');
-    const body = document.body;
-
-    const applyTheme = (theme) => {
-        if (theme === 'dark') {
-            body.classList.add('dark-mode');
-            if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to light theme');
-        } else {
-            body.classList.remove('dark-mode');
-            if(themeToggle) themeToggle.setAttribute('aria-label', 'Switch to dark theme');
-        }
-    };
-    let currentTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(currentTheme);
-
-    if(themeToggle){
-        themeToggle.addEventListener('click', () => {
-            const isDarkMode = body.classList.toggle('dark-mode');
-            currentTheme = isDarkMode ? 'dark' : 'light';
-            localStorage.setItem('theme', currentTheme);
-            applyTheme(currentTheme);
-            fetch("{{ url_for('set_theme') }}", {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({theme: currentTheme})
-            }).catch(error => console.error("Error sending theme preference:", error));
-        });
-    }
-
+    // --- Universal Password Toggle Logic ---
     document.querySelectorAll('.password-toggle-icon').forEach(toggle => {
-        const openEyeIcon = toggle.querySelector('svg.eye-open');
-        const slashedEyeIcon = toggle.querySelector('svg.eye-slashed');
         const targetId = toggle.getAttribute('data-target');
         const passwordInput = document.getElementById(targetId);
+        const openEye = toggle.querySelector('.eye-open');
+        const slashedEye = toggle.querySelector('.eye-slashed');
 
-        if (!passwordInput || !openEyeIcon || !slashedEyeIcon) { return; }
-
+        if (!passwordInput || !openEye || !slashedEye) return;
+        
         const setIcons = () => {
-             if (passwordInput.type === 'password') {
-                openEyeIcon.style.display = 'inline-block';
-                slashedEyeIcon.style.display = 'none';
-                toggle.setAttribute('aria-label', 'Show password');
-                toggle.setAttribute('title', 'Show password');
+            if (passwordInput.type === 'password') {
+                openEye.style.display = 'inline-block';
+                slashedEye.style.display = 'none';
             } else {
-                openEyeIcon.style.display = 'none';
-                slashedEyeIcon.style.display = 'inline-block';
-                toggle.setAttribute('aria-label', 'Hide password');
-                toggle.setAttribute('title', 'Hide password');
+                openEye.style.display = 'none';
+                slashedEye.style.display = 'inline-block';
             }
         };
-        setIcons(); // Initial state
+        setIcons();
 
-        toggle.addEventListener('click', function () {
+        toggle.addEventListener('click', () => {
             passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
             setIcons();
         });

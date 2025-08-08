@@ -6,11 +6,6 @@
     <title>{{ title }} - Mosla Pioneers</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/website/login.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Alpine.js for multi-step form interactivity -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <!-- Inline styles from your previous template -->
     <style>
         .input-group { position: relative; margin-bottom: 1.5rem; }
         .input-group .icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--icon-color, #9CA3AF); pointer-events: none; }
@@ -18,126 +13,123 @@
             width: 100%; padding: 14px 20px 14px 45px; border: 1px solid var(--input-border, #D0D5DD); border-radius: 8px;
             font-family: 'Poppins', sans-serif; font-size: 1rem; background-color: var(--input-background); color: var(--text-color);
         }
-        .input-group input[type="date"] { padding-left: 20px; }
-        .input-group select { padding-left: 20px; -webkit-appearance: none; appearance: none; }
+        .input-group input[type="date"], .input-group select { padding-left: 20px; }
+        .input-group select { -webkit-appearance: none; appearance: none; }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: var(--primary-accent); }
         .password-input-wrapper { position: relative; }
         .password-toggle-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--icon-color, #9CA3AF); }
         .eye-slashed { display: none; }
         .alert { padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
         .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
-        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
-        .alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
         .invalid-feedback { display: block; width: 100%; margin-top: .25rem; font-size: .875em; color: #dc3545; }
-        .input-group input.is-invalid { border-color: #dc3545; }
-        [x-cloak] { display: none !important; }
+        .feedback-match { color: #155724; }
+        .input-group input.is-invalid { border-color: #dc3545 !important; }
     </style>
 </head>
 <body {% if session.get('theme') == 'dark' %}class="dark-mode"{% endif %}>
     <div class="login-page-container">
-        <div class="background-images">
-            <!-- Background images as before -->
-            <img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1">
-            <img src="{{ url_for('static', filename='png/customer-service.png') }}" alt="" class="bg-image image-10">
-        </div>
-        
+        <div class="background-images"><img src="{{ url_for('static', filename='png/hiring.png') }}" alt="" class="bg-image image-1"><img src="{{ url_for('static', filename='png/customer-service.png') }}" alt="" class="bg-image image-10"></div>
         <div class="form-wrapper">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image">
-                <span>Mosla Pioneers</span>
-            </div>
-
-            <!-- Dynamic Title based on step -->
-            <div x-data="{ currentStep: {{ step }} }">
-                <h2 x-show="currentStep === 1">Create Your Candidate Profile</h2>
-                <p class="subtitle" x-show="currentStep === 1">Step 1: Create your account.</p>
-
-                <h2 x-show="currentStep === 2" x-cloak>Complete Your Profile</h2>
-                <p class="subtitle" x-show="currentStep === 2" x-cloak>Step 2: Tell us more about you.</p>
-            </div>
-
+            <div class="logo"><img src="{{ url_for('static', filename='images/mosla.jpg') }}" alt="Mosla Pioneers Logo" class="logo-image"><span>Mosla Pioneers</span></div>
+            <h2>{% if step == 1 %}Create Your Candidate Account{% else %}Complete Your Profile{% endif %}</h2>
+            <p class="subtitle">Step {{ step }}: {% if step == 1 %}Your account details.{% else %}Tell us about you.{% endif %}</p>
             {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
 
             <form method="POST" action="{{ url_for('register_bp.register_candidate') }}">
-                
                 <input type="hidden" name="step" value="{{ step }}">
-                
-                <!-- ===== STEP 1: Account Info ===== -->
                 <div {% if step != 1 %}style="display: none;"{% endif %}>
+                    <div class="input-group"><input type="text" name="first_name" placeholder="First Name" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}" required>{% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}</div>
+                    <div class="input-group"><input type="text" name="last_name" placeholder="Last Name" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}" required>{% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}</div>
+                    <div class="input-group"><input type="email" name="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}" required>{% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}</div>
+                    <div class="input-group"><input type="tel" name="phone_number" placeholder="Phone Number" value="{{ form_data.get('phone_number', '') }}"></div>
                     <div class="input-group">
-                        <input type="text" name="first_name" placeholder="First Name" value="{{ form_data.get('first_name', '') }}" class="{{ 'is-invalid' if errors.get('first_name') }}">
-                        {% if errors.get('first_name') %}<div class="invalid-feedback">{{ errors.get('first_name') }}</div>{% endif %}
-                    </div>
-                    <div class="input-group">
-                        <input type="text" name="last_name" placeholder="Last Name" value="{{ form_data.get('last_name', '') }}" class="{{ 'is-invalid' if errors.get('last_name') }}">
-                        {% if errors.get('last_name') %}<div class="invalid-feedback">{{ errors.get('last_name') }}</div>{% endif %}
-                    </div>
-                    <div class="input-group">
-                        <input type="email" name="email" placeholder="Email Address" value="{{ form_data.get('email', '') }}" class="{{ 'is-invalid' if errors.get('email') }}">
-                        {% if errors.get('email') %}<div class="invalid-feedback">{{ errors.get('email') }}</div>{% endif %}
-                    </div>
-                    <div class="input-group">
-                        <input type="tel" name="phone_number" placeholder="Phone Number" value="{{ form_data.get('phone_number', '') }}">
-                    </div>
-                    <div class="input-group">
-                        <input type="password" name="password" id="password" placeholder="Create Password" class="{{ 'is-invalid' if errors.get('password') }}">
+                        <div class="password-input-wrapper">
+                            <input type="password" name="password" id="password" placeholder="Create Password" class="{{ 'is-invalid' if errors.get('password') }}" required>
+                            <span class="password-toggle-icon" data-target="password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
+                        </div>
                         {% if errors.get('password') %}<div class="invalid-feedback">{{ errors.get('password') }}</div>{% endif %}
                     </div>
                     <div class="input-group">
-                        <input type="password" name="confirm_password" placeholder="Confirm Password" class="{{ 'is-invalid' if errors.get('confirm_password') }}">
+                        <div class="password-input-wrapper">
+                            <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" class="{{ 'is-invalid' if errors.get('confirm_password') }}" required>
+                            <span class="password-toggle-icon" data-target="confirm_password"><svg class="eye-icon eye-open" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/></svg><svg class="eye-icon eye-slashed" viewBox="0 0 16 16" fill="currentColor"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/></svg></span>
+                        </div>
                         {% if errors.get('confirm_password') %}<div class="invalid-feedback">{{ errors.get('confirm_password') }}</div>{% endif %}
+                        <div id="password-match-feedback" class="invalid-feedback" style="display: none;"></div>
                     </div>
                     <button type="submit" class="login-button">Next: Profile Details</button>
                 </div>
-
-                <!-- ===== STEP 2: Profile Details ===== -->
                 <div {% if step != 2 %}style="display: none;"{% endif %}>
-                    <div class="input-group">
-                        <input type="url" name="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}">
-                    </div>
-                    <div class="input-group">
-                        <select name="educational_status">
-                            <option value="" disabled {% if not form_data.get('educational_status') %}selected{% endif %}>Select Graduation Status...</option>
-                            <option value="grad" {% if form_data.get('educational_status') == 'grad' %}selected{% endif %}>Graduate</option>
-                            <option value="ungrad" {% if form_data.get('educational_status') == 'ungrad' %}selected{% endif %}>Undergraduate / Student</option>
-                            <option value="dropout" {% if form_data.get('educational_status') == 'dropout' %}selected{% endif %}>Dropout</option>
-                            <option value="gap_year" {% if form_data.get('educational_status') == 'gap_year' %}selected{% endif %}>Gap Year</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <select name="language">
-                            <option value="" disabled {% if not form_data.get('language') %}selected{% endif %}>Select Primary Language...</option>
-                            <option value="English" {% if form_data.get('language') == 'English' %}selected{% endif %}>English</option>
-                            <option value="Spanish" {% if form_data.get('language') == 'Spanish' %}selected{% endif %}>Spanish</option>
-                            <option value="Portuguese" {% if form_data.get('language') == 'Portuguese' %}selected{% endif %}>Portuguese</option>
-                            <option value="German" {% if form_data.get('language') == 'German' %}selected{% endif %}>German</option>
-                            <option value="Arabic" {% if form_data.get('language') == 'Arabic' %}selected{% endif %}>Arabic</option>
-                            <option value="French" {% if form_data.get('language') == 'French' %}selected{% endif %}>French</option>
-                        </select>
-                    </div>
-                     <div class="input-group">
-                        <select name="language_level">
-                            <option value="" disabled {% if not form_data.get('language_level') %}selected{% endif %}>Select Language Level...</option>
-                            <option value="B1" {% if form_data.get('language_level') == 'B1' %}selected{% endif %}>B1</option>
-                            <option value="B1+" {% if form_data.get('language_level') == 'B1+' %}selected{% endif %}>B1+</option>
-                            <option value="B2" {% if form_data.get('language_level') == 'B2' %}selected{% endif %}>B2</option>
-                            <option value="B2+" {% if form_data.get('language_level') == 'B2+' %}selected{% endif %}>B2+</option>
-                            <option value="C1" {% if form_data.get('language_level') == 'C1' %}selected{% endif %}>C1</option>
-                            <option value="C2" {% if form_data.get('language_level') == 'C2' %}selected{% endif %}>C2</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <input type="date" name="date_of_birth" placeholder="Date of Birth (Optional)" value="{{ form_data.get('date_of_birth', '') }}" class="{{ 'is-invalid' if errors.get('date_of_birth') }}">
-                        {% if errors.get('date_of_birth') %}<div class="invalid-feedback">{{ errors.get('date_of_birth') }}</div>{% endif %}
-                    </div>
-                    <p class="text-sm text-center my-4">You can upload your CV and Profile Picture from your dashboard after creating your account.</p>
+                    <div class="input-group"><input type="url" name="linkedin_profile_url" placeholder="LinkedIn Profile URL (Optional)" value="{{ form_data.get('linkedin_profile_url', '') }}"></div>
+                    <div class="input-group"><select name="educational_status"><option value="" disabled {% if not form_data.get('educational_status') %}selected{% endif %}>Select Graduation Status...</option><option value="grad">Graduate</option><option value="ungrad">Undergraduate</option><option value="dropout">Dropout</option><option value="gap_year">Gap Year</option></select></div>
+                    <div class="input-group"><select name="language"><option value="" disabled selected>Select Primary Language...</option><option value="English">English</option><option value="Spanish">Spanish</option><option value="Portuguese">Portuguese</option><option value="German">German</option><option value="Arabic">Arabic</option><option value="French">French</option></select></div>
+                    <div class="input-group"><select name="language_level"><option value="" disabled selected>Select Language Level...</option><option value="B1">B1</option><option value="B1+">B1+</option><option value="B2">B2</option><option value="B2+">B2+</option><option value="C1">C1</option><option value="C2">C2</option></select></div>
+                    <div class="input-group"><input type="date" name="date_of_birth" placeholder="Date of Birth (Optional)" value="{{ form_data.get('date_of_birth', '') }}" class="{{ 'is-invalid' if errors.get('date_of_birth') }}">{% if errors.get('date_of_birth') %}<div class="invalid-feedback">{{ errors.get('date_of_birth') }}</div>{% endif %}</div>
+                    <p class="text-sm text-center my-4">You can upload your CV from your dashboard later.</p>
                     <button type="submit" class="login-button">Create Account</button>
                 </div>
             </form>
-            <div class="signup-link">
-                <p>Already have an account? <a href="{{ url_for('login_bp.login') }}">Log In</a></p>
-            </div>
+            <div class="signup-link"><p>Already have an account? <a href="{{ url_for('login_bp.login') }}">Log In</a></p></div>
         </div>
     </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Universal Password Toggle Logic ---
+    document.querySelectorAll('.password-toggle-icon').forEach(toggle => {
+        const targetId = toggle.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+        const openEye = toggle.querySelector('.eye-open');
+        const slashedEye = toggle.querySelector('.eye-slashed');
+
+        if (!passwordInput || !openEye || !slashedEye) return;
+        
+        const setIcons = () => {
+            if (passwordInput.type === 'password') {
+                openEye.style.display = 'inline-block';
+                slashedEye.style.display = 'none';
+            } else {
+                openEye.style.display = 'none';
+                slashedEye.style.display = 'inline-block';
+            }
+        };
+        setIcons();
+
+        toggle.addEventListener('click', () => {
+            passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
+            setIcons();
+        });
+    });
+
+    // --- Real-time Password Matching Logic ---
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    const feedbackElement = document.getElementById('password-match-feedback');
+
+    if (passwordField && confirmPasswordField && feedbackElement) {
+        const checkPasswords = () => {
+            const pass1 = passwordField.value;
+            const pass2 = confirmPasswordField.value;
+
+            if (pass2.length === 0) {
+                feedbackElement.style.display = 'none';
+                return;
+            }
+            
+            feedbackElement.style.display = 'block';
+
+            if (pass1 === pass2) {
+                feedbackElement.textContent = 'Passwords match!';
+                feedbackElement.classList.add('feedback-match');
+            } else {
+                feedbackElement.textContent = 'Passwords do not match.';
+                feedbackElement.classList.remove('feedback-match');
+            }
+        };
+
+        passwordField.addEventListener('input', checkPasswords);
+        confirmPasswordField.addEventListener('input', checkPasswords);
+    }
+});
+</script>
 </body>
 </html>
