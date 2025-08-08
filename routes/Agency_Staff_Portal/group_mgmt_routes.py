@@ -13,6 +13,7 @@ group_mgmt_bp = Blueprint('group_mgmt_bp', __name__,
                           template_folder='../../../templates',
                           url_prefix='/course-groups')
 
+# --- Instructor Management ---
 @group_mgmt_bp.route('/instructors')
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
 def list_instructors():
@@ -21,7 +22,6 @@ def list_instructors():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # UPDATED to fetch more data for the list view
         cursor.execute("""
             SELECT 
                 s.StaffID, s.Specialization,
@@ -60,7 +60,6 @@ def add_instructor():
         conn = get_db_connection()
         try:
             cursor = conn.cursor()
-            # Step 1: Create the User record
             hashed_password = generate_password_hash(password)
             sql_user = """
                 INSERT INTO Users (FirstName, LastName, Email, PasswordHash, PhoneNumber, AccountStatus)
@@ -73,7 +72,6 @@ def add_instructor():
             cursor.execute(sql_user, params_user)
             new_user_id = cursor.lastrowid
 
-            # Step 2: Create the Staff record with the 'Instructor' role
             sql_staff = """
                 INSERT INTO Staff (UserID, Role, Specialization, Bio)
                 VALUES (%s, 'Instructor', %s, %s)
@@ -87,7 +85,7 @@ def add_instructor():
 
         except mysql.connector.Error as err:
             if conn and conn.is_connected(): conn.rollback()
-            if err.errno == 1062: # Duplicate entry
+            if err.errno == 1062:
                 flash('An account with this email already exists.', 'danger')
             else:
                 flash(f'Database error: {err.msg}', 'danger')
@@ -107,7 +105,6 @@ def edit_instructor(staff_id):
             form = request.form
             password = form.get('Password')
             
-            # Get UserID for updates
             cursor.execute("SELECT UserID FROM Staff WHERE StaffID = %s", (staff_id,))
             user = cursor.fetchone()
             if not user:
@@ -115,7 +112,6 @@ def edit_instructor(staff_id):
                 return redirect(url_for('.list_instructors'))
             user_id = user['UserID']
 
-            # Update Users table
             sql_user_update = """
                 UPDATE Users SET FirstName=%s, LastName=%s, Email=%s, PhoneNumber=%s, AccountStatus=%s
                 WHERE UserID = %s
@@ -124,12 +120,10 @@ def edit_instructor(staff_id):
                            form.get('PhoneNumber'), form.get('AccountStatus'), user_id)
             cursor.execute(sql_user_update, params_user)
             
-            # Optionally update password
             if password:
                 hashed_password = generate_password_hash(password)
                 cursor.execute("UPDATE Users SET PasswordHash = %s WHERE UserID = %s", (hashed_password, user_id))
 
-            # Update Staff table
             sql_staff_update = "UPDATE Staff SET Specialization=%s, Bio=%s WHERE StaffID = %s"
             params_staff = (form.get('Specialization'), form.get('Bio'), staff_id)
             cursor.execute(sql_staff_update, params_staff)
@@ -138,7 +132,6 @@ def edit_instructor(staff_id):
             flash('Instructor details updated successfully!', 'success')
             return redirect(url_for('.list_instructors'))
 
-        # GET request: Fetch current data
         cursor.execute("""
             SELECT s.StaffID, s.Specialization, s.Bio,
                    u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.AccountStatus
@@ -160,7 +153,6 @@ def edit_instructor(staff_id):
             flash('An account with this email already exists.', 'danger')
         else:
             flash(f'Database error: {err.msg}', 'danger')
-        # On POST error, we need to refetch data for the form
         cursor.execute("""
             SELECT s.StaffID, u.UserID, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.AccountStatus, s.Specialization, s.Bio
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -175,29 +167,22 @@ def edit_instructor(staff_id):
 @group_mgmt_bp.route('/instructors/delete/<int:staff_id>', methods=['POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
 def delete_instructor(staff_id):
-    """ Deletes an instructor. The ON DELETE CASCADE on fk_staff_user will handle removing the Staff record. """
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        # Find the UserID associated with this StaffID
         cursor.execute("SELECT UserID FROM Staff WHERE StaffID = %s", (staff_id,))
         user = cursor.fetchone()
-        
         if user:
-            # Deleting the User will trigger a cascade delete on the Staff table
             cursor.execute("DELETE FROM Users WHERE UserID = %s", (user[0],))
             conn.commit()
             flash("Instructor deleted successfully.", "success")
         else:
             flash("Instructor not found.", "danger")
-
     except mysql.connector.Error as err:
         if conn and conn.is_connected(): conn.rollback()
-        # You might have foreign key constraints if an instructor is a TeamLead, etc.
         flash(f"Could not delete instructor. They may be linked to other records. Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
-        
     return redirect(url_for('.list_instructors'))
 
 
@@ -246,8 +231,6 @@ def add_group():
     instructors = []
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        # Fetch sub-packages for the dropdown
         cursor.execute("""
             SELECT sp.SubPackageID, CONCAT(mp.Name, ' - ', sp.Name) AS FullName
             FROM SubPackages sp
@@ -256,7 +239,6 @@ def add_group():
         """)
         sub_packages = cursor.fetchall()
         
-        # Fetch instructors for the multi-select
         cursor.execute("""
             SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) AS FullName
             FROM Staff s JOIN Users u ON s.UserID = u.UserID
@@ -272,12 +254,10 @@ def add_group():
             
             if not group_name or not sub_package_id:
                 flash("Group Name and a Sub-Package are required.", "danger")
-                # Return with form data preserved
                 return render_template('agency_staff_portal/courses/groups/add_edit_group.html',
                                        title="Add New Group", sub_packages=sub_packages,
                                        instructors=instructors, form_data=form)
             
-            # Insert into CourseGroups
             sql_group = """
                 INSERT INTO CourseGroups (GroupName, SubPackageID, StartDate, EndDate, Status, MaxCapacity, Notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -291,7 +271,6 @@ def add_group():
             cursor.execute(sql_group, params_group)
             new_group_id = cursor.lastrowid
             
-            # Insert into CourseGroupInstructors
             if selected_instructors:
                 sql_instructors = "INSERT INTO CourseGroupInstructors (GroupID, InstructorStaffID) VALUES (%s, %s)"
                 instructor_data = [(new_group_id, inst_id) for inst_id in selected_instructors]
@@ -312,6 +291,85 @@ def add_group():
                            title="Add New Group", sub_packages=sub_packages,
                            instructors=instructors, form_data={})
 
+@group_mgmt_bp.route('/edit/<int:group_id>', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def edit_group(group_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT sp.SubPackageID, CONCAT(mp.Name, ' - ', sp.Name) AS FullName
+            FROM SubPackages sp JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE sp.Status = 'Active' ORDER BY FullName
+        """)
+        sub_packages = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) AS FullName
+            FROM Staff s JOIN Users u ON s.UserID = u.UserID
+            WHERE s.Role = 'Instructor' AND u.AccountStatus = 'Active' ORDER BY FullName
+        """)
+        instructors = cursor.fetchall()
+
+        if request.method == 'POST':
+            form = request.form
+            group_name = form.get('GroupName')
+            sub_package_id = form.get('SubPackageID')
+            selected_instructors = form.getlist('InstructorStaffID')
+
+            if not group_name or not sub_package_id:
+                flash("Group Name and a Sub-Package are required.", "danger")
+                cursor.execute("SELECT * FROM CourseGroups WHERE GroupID = %s", (group_id,))
+                form_data = cursor.fetchone()
+                cursor.execute("SELECT InstructorStaffID FROM CourseGroupInstructors WHERE GroupID = %s", (group_id,))
+                form_data['selected_instructors'] = [row['InstructorStaffID'] for row in cursor.fetchall()]
+                return render_template('agency_staff_portal/courses/groups/add_edit_group.html',
+                                       title="Edit Group", sub_packages=sub_packages, instructors=instructors,
+                                       form_data=form_data, group_id=group_id)
+            
+            sql_update_group = """
+                UPDATE CourseGroups SET
+                GroupName = %s, SubPackageID = %s, StartDate = %s, EndDate = %s,
+                Status = %s, MaxCapacity = %s, Notes = %s, UpdatedAt = NOW()
+                WHERE GroupID = %s
+            """
+            params_update = (
+                group_name, sub_package_id, form.get('StartDate') or None, form.get('EndDate') or None,
+                form.get('Status'), form.get('MaxCapacity', 0), form.get('Notes'), group_id
+            )
+            cursor.execute(sql_update_group, params_update)
+
+            cursor.execute("DELETE FROM CourseGroupInstructors WHERE GroupID = %s", (group_id,))
+            if selected_instructors:
+                sql_instructors = "INSERT INTO CourseGroupInstructors (GroupID, InstructorStaffID) VALUES (%s, %s)"
+                instructor_data = [(group_id, inst_id) for inst_id in selected_instructors]
+                cursor.executemany(sql_instructors, instructor_data)
+
+            conn.commit()
+            flash("Course Group updated successfully!", "success")
+            return redirect(url_for('.list_groups'))
+
+        cursor.execute("SELECT * FROM CourseGroups WHERE GroupID = %s", (group_id,))
+        form_data = cursor.fetchone()
+        if not form_data:
+            flash("Group not found.", "danger")
+            return redirect(url_for('.list_groups'))
+
+        cursor.execute("SELECT InstructorStaffID FROM CourseGroupInstructors WHERE GroupID = %s", (group_id,))
+        form_data['selected_instructors'] = [row['InstructorStaffID'] for row in cursor.fetchall()]
+        
+        return render_template('agency_staff_portal/courses/groups/add_edit_group.html',
+                               title="Edit Group", form_data=form_data, group_id=group_id,
+                               sub_packages=sub_packages, instructors=instructors)
+
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+        current_app.logger.error(f"Error editing group {group_id}: {e}", exc_info=True)
+        return redirect(url_for('.list_groups'))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
 @group_mgmt_bp.route('/manage/<int:group_id>', methods=['GET', 'POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
 def manage_group_members(group_id):
@@ -323,7 +381,6 @@ def manage_group_members(group_id):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # Get Group Details
         cursor.execute("SELECT cg.*, sp.Name as SubPackageName FROM CourseGroups cg JOIN SubPackages sp ON cg.SubPackageID = sp.SubPackageID WHERE cg.GroupID = %s", (group_id,))
         group_details = cursor.fetchone()
         
@@ -331,7 +388,6 @@ def manage_group_members(group_id):
             flash("Group not found.", "danger")
             return redirect(url_for('.list_groups'))
 
-        # Get Assigned Members
         cursor.execute("""
             SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID
             FROM CourseGroupMembers cgm
@@ -342,7 +398,6 @@ def manage_group_members(group_id):
         """, (group_id,))
         assigned_members = cursor.fetchall()
         
-        # Get Available (Enrolled but not assigned) Candidates for this Sub-Package
         cursor.execute("""
             SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID
             FROM CourseEnrollments ce
@@ -368,7 +423,7 @@ def manage_group_members(group_id):
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
         flash(f"An error occurred: {e}", "danger")
-        current_app.logger.error(f"Error managing group {group_id}: {e}")
+        current_app.logger.error(f"Error managing group {group_id}: {e}", exc_info=True)
     finally:
         if conn and conn.is_connected(): conn.close()
     

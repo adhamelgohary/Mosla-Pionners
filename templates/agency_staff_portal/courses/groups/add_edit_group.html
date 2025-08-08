@@ -1,0 +1,88 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-people-fill"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 sm:p-8 border border-gray-200 dark:border-slate-700">
+    <form method="POST" action="{{ url_for('.edit_group', group_id=group_id) if group_id else url_for('.add_group') }}">
+        <div class="space-y-6">
+            
+            <div>
+                <label for="GroupName" class="form-label">Group Name*</label>
+                <input type="text" id="GroupName" name="GroupName" value="{{ form_data.GroupName or '' }}" class="form-input" required placeholder="e.g., Business English - Q4 2025 Cohort">
+            </div>
+
+            <div>
+                <label for="SubPackageID" class="form-label">Course Package*</label>
+                <select id="SubPackageID" name="SubPackageID" class="form-select" required>
+                    <option value="">-- Select a Course Package --</option>
+                    {% for sp in sub_packages %}
+                    <option value="{{ sp.SubPackageID }}" {% if form_data.SubPackageID == sp.SubPackageID %}selected{% endif %}>
+                        {{ sp.FullName }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="InstructorStaffID" class="form-label">Assigned Instructors</label>
+                <select id="InstructorStaffID" name="InstructorStaffID" class="form-select" multiple>
+                    {% for instructor in instructors %}
+                    <option value="{{ instructor.StaffID }}" {% if form_data.selected_instructors and instructor.StaffID in form_data.selected_instructors %}selected{% endif %}>
+                        {{ instructor.FullName }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-text-muted">Hold Ctrl/Cmd to select multiple instructors.</p>
+            </div>
+            
+            <hr class="dark:border-slate-600">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="StartDate" class="form-label">Start Date</label>
+                    <input type="date" id="StartDate" name="StartDate" value="{{ form_data.StartDate.strftime('%Y-%m-%d') if form_data.StartDate else '' }}" class="form-input">
+                </div>
+                <div>
+                    <label for="EndDate" class="form-label">End Date</label>
+                    <input type="date" id="EndDate" name="EndDate" value="{{ form_data.EndDate.strftime('%Y-%m-%d') if form_data.EndDate else '' }}" class="form-input">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="MaxCapacity" class="form-label">Max Capacity</label>
+                    <input type="number" id="MaxCapacity" name="MaxCapacity" value="{{ form_data.MaxCapacity or '0' }}" class="form-input">
+                    <p class="mt-1 text-xs text-text-muted">Set to 0 for unlimited.</p>
+                </div>
+                <div>
+                    <label for="Status" class="form-label">Status</label>
+                    <select id="Status" name="Status" class="form-select">
+                        <option value="Planning" {% if form_data.Status == 'Planning' %}selected{% endif %}>Planning</option>
+                        <option value="Active" {% if form_data.Status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Completed" {% if form_data.Status == 'Completed' %}selected{% endif %}>Completed</option>
+                        <option value="Cancelled" {% if form_data.Status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="Notes" class="form-label">Internal Notes</label>
+                <textarea id="Notes" name="Notes" rows="4" class="form-textarea">{{ form_data.Notes or '' }}</textarea>
+            </div>
+
+        </div>
+
+        <div class="mt-8 pt-5 border-t border-gray-200 dark:border-slate-600 flex items-center justify-end gap-x-3">
+            <a href="{{ url_for('group_mgmt_bp.list_groups') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                <i class="bi bi-save-fill mr-1"></i> Save Group
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
