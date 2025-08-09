@@ -1,25 +1,48 @@
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_content %}
-<div class="mt-4">
-    <h3 class="text-lg leading-6 font-medium text-gray-900">Welcome back, {{ current_user.first_name }}!</h3>
-    <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div class="px-4 py-5 bg-white shadow rounded-lg overflow-hidden sm:p-6">
+<div class="space-y-8">
+    <!-- Animated Welcome Header -->
+    <h3 class="text-2xl leading-6 font-medium text-gray-800 animate-fade-in-down">
+        Welcome back, {{ current_user.first_name }}!
+    </h3>
+
+    <!-- Stat Cards with Hover Transitions -->
+    <dl class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="transform hover:scale-105 transition-transform duration-300 ease-in-out px-4 py-5 bg-white shadow-lg rounded-xl overflow-hidden sm:p-6">
             <dt class="text-sm font-medium text-gray-500 truncate">Active Groups</dt>
-            <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ dashboard_data.group_count }}</dd>
+            <dd class="mt-1 text-4xl font-semibold text-indigo-600">{{ dashboard_data.group_count }}</dd>
         </div>
-        <div class="px-4 py-5 bg-white shadow rounded-lg overflow-hidden sm:p-6">
+        <div class="transform hover:scale-105 transition-transform duration-300 ease-in-out px-4 py-5 bg-white shadow-lg rounded-xl overflow-hidden sm:p-6">
             <dt class="text-sm font-medium text-gray-500 truncate">Total Students</dt>
-            <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ dashboard_data.student_count }}</dd>
+            <dd class="mt-1 text-4xl font-semibold text-indigo-600">{{ dashboard_data.student_count }}</dd>
         </div>
     </dl>
-</div>
 
-<!-- Placeholder for upcoming tasks -->
-<div class="mt-8">
-    <h3 class="text-lg leading-6 font-medium text-gray-900">Upcoming Deadlines</h3>
-    <div class="mt-4 bg-white shadow rounded-lg p-6">
-        <p class="text-center text-gray-500">Upcoming assessment and task deadlines will be shown here.</p>
+    <!-- Modernized Placeholder for Upcoming Tasks -->
+    <div>
+        <h3 class="text-xl leading-6 font-medium text-gray-800">Upcoming Deadlines</h3>
+        <div class="mt-4 bg-gray-50 border-l-4 border-indigo-400 rounded-lg p-6">
+            <p class="text-center text-gray-600">Upcoming assessment and task deadlines will be shown here.</p>
+        </div>
     </div>
 </div>
+
+<!-- Simple CSS Animation Definition -->
+<style>
+  @keyframes fade-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-down {
+    animation: fade-in-down 0.5s ease-out forwards;
+  }
+</style>
 {% endblock %}
