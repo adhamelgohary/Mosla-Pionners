@@ -1,0 +1,30 @@
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}{{ title }}{% endblock %}
+
+{% block portal_content %}
+<div class="bg-white shadow-md rounded-lg p-6 sm:p-8 border border-gray-200">
+    <div class="text-center">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+            <i class="bi bi-exclamation-triangle-fill text-2xl text-yellow-600"></i>
+        </div>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">Confirm Action</h3>
+        <div class="mt-2 max-w-xl text-sm text-gray-500 mx-auto">
+            <p>
+                You are about to run a utility to find all existing course groups that are missing their session and attendance records.
+            </p>
+            <p class="mt-2">
+                This process will retroactively create these records based on the number of sessions defined in each group's Sub-Package. This action is safe to run multiple times, as it will only affect groups with zero sessions.
+            </p>
+        </div>
+        <div class="mt-5">
+            <form action="{{ url_for('instructor_portal_bp.sync_sessions_utility') }}" method="POST">
+                <a href="{{ url_for('instructor_portal_bp.my_groups') }}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary ml-3">
+                    <i class="bi bi-arrow-repeat mr-1"></i> Run Sync Now
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

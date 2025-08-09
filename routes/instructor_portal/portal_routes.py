@@ -6,6 +6,8 @@ from db import get_db_connection
 import uuid
 import mysql.connector
 
+from utils.group_utils import sync_sessions_for_groups
+
 instructor_portal_bp = Blueprint('instructor_portal_bp', __name__,
                                  template_folder='../../../templates',
                                  url_prefix='/instructor')
@@ -544,3 +546,14 @@ def update_roster_notes(group_id, enrollment_id):
         if conn and conn.is_connected(): conn.close()
         
     return redirect(url_for('.manage_roster', group_id=group_id))
+
+@instructor_portal_bp.route('/utility/sync-sessions', methods=['GET', 'POST'])
+@instructor_required
+def sync_sessions_utility():
+    if request.method == 'POST':
+        message, category = sync_sessions_for_groups()
+        flash(message, category)
+        return redirect(url_for('.my_groups'))
+    
+    return render_template('instructor_portal/sync_sessions_utility.html',
+                           title="Sync Group Sessions")
