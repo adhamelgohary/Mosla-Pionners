@@ -2,8 +2,11 @@
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_title %}
-    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-gray-400 hover:text-gray-600"><i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}</a>
-    <span class="mx-2 text-gray-300">/</span>
+    <!-- Updated link color for better visibility on a white background -->
+    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-indigo-600 hover:text-indigo-800">
+        <i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}
+    </a>
+    <span class="mx-2 text-gray-400">/</span>
     <span>Manage Roster</span>
 {% endblock %}
 
@@ -12,9 +15,10 @@
 
     <!-- Left Column: Add Students -->
     <div class="lg:col-span-1">
-        <div class="bg-white dark:bg-slate-800 shadow rounded-lg p-6 sticky top-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Add Student to Group</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Select an enrolled candidate to add them to this group.</p>
+        <!-- Removed dark theme classes -->
+        <div class="bg-white shadow rounded-lg p-6 sticky top-6">
+            <h3 class="text-lg font-medium text-gray-900">Add Student to Group</h3>
+            <p class="text-sm text-gray-500 mt-1">Select an enrolled candidate to add them to this group.</p>
 
             {% if available_candidates %}
             <form action="{{ url_for('.manage_roster', group_id=group_id) }}" method="POST" class="mt-4">
@@ -29,8 +33,9 @@
                 </button>
             </form>
             {% else %}
-            <div class="mt-4 text-center p-4 bg-gray-50 dark:bg-slate-700 rounded-md">
-                <p class="text-sm text-gray-500 dark:text-gray-400">No available candidates found for this course package.</p>
+            <!-- Removed dark theme classes -->
+            <div class="mt-4 text-center p-4 bg-gray-50 rounded-md">
+                <p class="text-sm text-gray-500">No available candidates found for this course package.</p>
                 <p class="text-xs text-gray-400 mt-1">Students must be in 'Enrolled' status to be added.</p>
             </div>
             {% endif %}
@@ -39,16 +44,18 @@
 
     <!-- Right Column: Current Roster -->
     <div class="lg:col-span-2">
-        <div class="bg-white dark:bg-slate-800 shadow rounded-lg">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Current Roster ({{ members|length }})</h3>
+        <!-- Removed dark theme classes -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Current Roster ({{ members|length }})</h3>
             </div>
-            <ul class="divide-y divide-gray-200 dark:divide-slate-700">
+            <ul class="divide-y divide-gray-200">
                 {% for member in members %}
-                <li class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                <!-- Removed dark theme classes -->
+                <li class="p-4 flex items-center justify-between hover:bg-gray-50">
                     <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-gray-200">{{ member.LastName }}, {{ member.FirstName }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.Email }}</p>
+                        <p class="text-sm font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
+                        <p class="text-sm text-gray-500">{{ member.Email }}</p>
                     </div>
                     <!-- The form for removal -->
                     <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this student?');">
