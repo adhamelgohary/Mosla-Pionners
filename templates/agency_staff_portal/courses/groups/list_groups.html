@@ -7,7 +7,11 @@
 {% endblock %}
 
 {% block staff_content %}
-<div class="mb-6 flex justify-end">
+<div class="mb-6 flex justify-between items-center flex-wrap gap-2">
+    <!-- SYNC BUTTON ADDED HERE -->
+    <a href="{{ url_for('group_mgmt_bp.sync_sessions_utility') }}" class="btn-secondary">
+        <i class="bi bi-arrow-repeat mr-1"></i> Sync Missing Sessions
+    </a>
     <a href="{{ url_for('group_mgmt_bp.add_group') }}" class="btn-primary">
         <i class="bi bi-plus-circle-fill mr-1"></i> Add New Group
     </a>
@@ -36,10 +40,10 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ group.member_count }} assigned</td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {% set status_colors = {
-                            'Planning': 'bg-gray-100 text-gray-800',
-                            'Active': 'bg-blue-100 text-blue-800',
-                            'Completed': 'bg-green-100 text-green-800',
-                            'Cancelled': 'bg-red-100 text-red-800'
+                            'Planning': 'bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300',
+                            'Active': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                            'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+                            'Cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
                         } %}
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ status_colors.get(group.Status, 'bg-gray-100') }}">{{ group.Status }}</span>
                         <div class="text-xs text-gray-400 mt-1">
@@ -52,7 +56,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="text-center p-6 text-gray-500">No course groups have been created yet.</td></tr>
+                <tr><td colspan="5" class="text-center p-6 text-gray-500 dark:text-gray-400">No course groups have been created yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

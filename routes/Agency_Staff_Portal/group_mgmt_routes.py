@@ -6,6 +6,9 @@ from db import get_db_connection
 import mysql.connector
 from werkzeug.security import generate_password_hash
 
+
+from utils.group_utils import sync_sessions_for_groups
+
 # Roles with management access
 GROUP_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder', 'Admin'] 
 
@@ -455,3 +458,14 @@ def remove_group_member(group_id, enrollment_id):
         if conn and conn.is_connected(): conn.close()
         
     return redirect(url_for('.manage_group_members', group_id=group_id))
+
+@group_mgmt_bp.route('/utility/sync-sessions', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def sync_sessions_utility():
+    if request.method == 'POST':
+        message, category = sync_sessions_for_groups()
+        flash(message, category)
+        return redirect(url_for('.list_groups'))
+    
+    return render_template('agency_staff_portal/courses/groups/sync_sessions_utility.html',
+                           title="Sync Group Sessions")

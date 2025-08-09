@@ -1,8 +1,14 @@
 <!-- templates/instructor_portal/my_groups.html -->
 {% extends 'instructor_portal/instructor_base.html' %}
 
+{% block portal_title %}{{ title }}{% endblock %}
+
 {% block portal_content %}
-<div class="flex justify-end mb-4">
+<div class="flex justify-between items-center flex-wrap gap-2 mb-4">
+    <!-- SYNC BUTTON ADDED HERE -->
+    <a href="{{ url_for('instructor_portal_bp.sync_sessions_utility') }}" class="btn-secondary">
+        <i class="bi bi-arrow-repeat mr-1"></i> Sync Missing Sessions
+    </a>
     <a href="{{ url_for('instructor_portal_bp.add_group') }}" class="btn-primary">
         <i class="bi bi-plus-circle-fill mr-1"></i> Create New Group
     </a>
@@ -24,14 +30,26 @@
                         </div>
                     </div>
                     <div class="ml-2 flex-shrink-0 flex items-center space-x-2">
-                        <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ group.Status }}</p>
+                        {% set status_colors = {
+                            'Planning': 'bg-gray-100 text-gray-800',
+                            'Active': 'bg-blue-100 text-blue-800',
+                            'Completed': 'bg-green-100 text-green-800',
+                            'Cancelled': 'bg-red-100 text-red-800'
+                        } %}
+                        <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ status_colors.get(group.Status, 'bg-gray-100') }}">{{ group.Status }}</p>
                         <a href="{{ url_for('.edit_group', group_id=group.GroupID) }}" class="btn-secondary !text-xs !py-1" title="Edit Group Details"><i class="bi bi-pencil-fill"></i></a>
                     </div>
                 </div>
             </div>
         </li>
         {% else %}
-        <li class="p-6 text-center text-gray-500">You are not assigned to any groups yet.</li>
+        <li class="p-6 text-center text-gray-500">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <i class="bi bi-people text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No Groups Found</h3>
+            <p class="mt-1 text-sm text-gray-500">You are not assigned to any groups yet, or you can create a new one to get started.</p>
+        </li>
         {% endfor %}
     </ul>
 </div>

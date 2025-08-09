@@ -1,0 +1,85 @@
+<!-- templates/instructor_portal/attendance.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}
+    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-gray-500 hover:text-gray-700"><i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}</a>
+    <span class="mx-2 text-gray-300">/</span>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block portal_content %}
+<form action="{{ url_for('.update_attendance', group_id=group_id) }}" method="POST">
+    <div class="flex justify-between items-center mb-4">
+        <p class="text-gray-600">Select the status for each student and add optional notes.</p>
+        <button type="submit" class="btn-primary"><i class="bi bi-save-fill mr-1"></i> Save All Changes</button>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">Student Name</th>
+                    {% for session in sessions %}
+                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                        {{ session.SessionTitle }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for enrollment_id, student in students_attendance.items() %}
+                <tr x-data="{ notesOpen: null }">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 align-top">
+                        {{ student.LastName }}, {{ student.FirstName }}
+                    </td>
+                    {% for session in sessions %}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center align-top">
+                        {% set current = student.attendance.get(session.SessionID, {}) %}
+                        {% set current_status = current.get('Status', 'Pending') %}
+                        <select name="status_{{ session.SessionID }}_{{ enrollment_id }}" class="form-select !text-xs !py-1 !px-2 w-full
+                            {% if current_status == 'Present' %} bg-green-50 border-green-300 text-green-800
+                            {% elif current_status == 'Absent' %} bg-red-50 border-red-300 text-red-800
+                            {% elif current_status == 'Excused' %} bg-yellow-50 border-yellow-300 text-yellow-800
+                            {% else %} border-gray-300
+                            {% endif %}
+                        ">
+                            <option value="Pending" {% if current_status == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option value="Present" {% if current_status == 'Present' %}selected{% endif %}>Present</option>
+                            <option value="Absent" {% if current_status == 'Absent' %}selected{% endif %}>Absent</option>
+                            <option value="Excused" {% if current_status == 'Excused' %}selected{% endif %}>Excused</option>
+                        </select>
+                        
+                        <!-- Notes button -->
+                        <button type="button" @click="notesOpen = (notesOpen === {{ session.SessionID }} ? null : {{ session.SessionID }})" class="mt-1 text-xs text-gray-500 hover:text-indigo-600 focus:outline-none">
+                            <i class="bi bi-chat-left-text"></i> Notes
+                        </button>
+
+                        <!-- Collapsible Notes Area -->
+                        <div x-show="notesOpen === {{ session.SessionID }}" x-collapse class="mt-2 text-left p-2 border rounded-md bg-gray-50">
+                             <div>
+                                <label for="attendance_notes_{{ session.SessionID }}_{{ enrollment_id }}" class="text-xs font-medium text-gray-600">Attendance Note</label>
+                                <input type="text" name="attendance_notes_{{ session.SessionID }}_{{ enrollment_id }}" value="{{ current.get('AttendanceNotes', '') or '' }}" class="form-input !text-xs !py-1" placeholder="e.g., Arrived late">
+                             </div>
+                             <div class="mt-2">
+                                <label for="performance_notes_{{ session.SessionID }}_{{ enrollment_id }}" class="text-xs font-medium text-gray-600">Performance Note</label>
+                                <textarea name="performance_notes_{{ session.SessionID }}_{{ enrollment_id }}" rows="2" class="form-textarea !text-xs !py-1" placeholder="e.g., Excellent participation">{{ current.get('PerformanceNotes', '') or '' }}</textarea>
+                             </div>
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ sessions|length + 1 }}" class="text-center p-6 text-gray-500">
+                        No students have been added to this group's roster yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-4 flex justify-end">
+        <button type="submit" class="btn-primary"><i class="bi bi-save-fill mr-1"></i> Save All Changes</button>
+    </div>
+</form>
+{% endblock %}
