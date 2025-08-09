@@ -82,6 +82,7 @@ def profile():
 
     return render_template('instructor_portal/profile.html', title='My Profile', profile_data=profile_data)
 
+# --- Group Listing and Management ---
 @instructor_portal_bp.route('/my-groups')
 @instructor_required
 def my_groups():
@@ -110,7 +111,111 @@ def my_groups():
     return render_template('instructor_portal/my_groups.html', title='My Groups', groups=groups)
 
 
-# --- NEW: Group & Assessment Management Routes ---
+# --- NEW AND UPDATED: Full CRUD for Groups by Instructors ---
+
+@instructor_portal_bp.route('/groups/add', methods=['GET', 'POST'])
+@instructor_required
+def add_group():
+    """Allows an instructor to create a new group."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT sp.SubPackageID, CONCAT(mp.Name, ' - ', sp.Name) AS FullName
+            FROM SubPackages sp JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE sp.Status = 'Active' ORDER BY FullName
+        """)
+        sub_packages = cursor.fetchall()
+
+        if request.method == 'POST':
+            form = request.form
+            if not form.get('GroupName') or not form.get('SubPackageID'):
+                flash("Group Name and a Course Package are required.", "danger")
+                return render_template('instructor_portal/add_edit_group.html', title="Create New Group", sub_packages=sub_packages, form_data=form)
+            
+            sql_group = """INSERT INTO CourseGroups (GroupName, SubPackageID, StartDate, EndDate, Status, MaxCapacity, Notes) VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+            params_group = (form.get('GroupName'), form.get('SubPackageID'), form.get('StartDate') or None, form.get('EndDate') or None, form.get('Status', 'Planning'), form.get('MaxCapacity', 0), form.get('Notes'))
+            cursor.execute(sql_group, params_group)
+            new_group_id = cursor.lastrowid
+            
+            sql_assign = "INSERT INTO CourseGroupInstructors (GroupID, InstructorStaffID, IsLeadInstructor) VALUES (%s, %s, 1)"
+            cursor.execute(sql_assign, (new_group_id, current_user.specific_role_id))
+            
+            conn.commit()
+            flash("Course Group created successfully!", "success")
+            return redirect(url_for('.my_groups'))
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return render_template('instructor_portal/add_edit_group.html', title="Create New Group", sub_packages=sub_packages, form_data={})
+
+@instructor_portal_bp.route('/group/<int:group_id>/edit', methods=['GET', 'POST'])
+@instructor_required
+def edit_group(group_id):
+    """Allows an instructor to edit a group they are assigned to."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Authorization check: Ensure instructor is assigned to this group
+        cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
+        if not cursor.fetchone():
+            flash("You are not authorized to edit this group.", "danger")
+            return redirect(url_for('.my_groups'))
+            
+        # Fetch data for form dropdowns
+        cursor.execute("""
+            SELECT sp.SubPackageID, CONCAT(mp.Name, ' - ', sp.Name) AS FullName
+            FROM SubPackages sp JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE sp.Status = 'Active' ORDER BY FullName
+        """)
+        sub_packages = cursor.fetchall()
+
+        if request.method == 'POST':
+            form = request.form
+            sql_update = """UPDATE CourseGroups SET GroupName=%s, SubPackageID=%s, StartDate=%s, EndDate=%s, Status=%s, MaxCapacity=%s, Notes=%s, UpdatedAt=NOW() WHERE GroupID=%s"""
+            params = (form.get('GroupName'), form.get('SubPackageID'), form.get('StartDate') or None, form.get('EndDate') or None, form.get('Status'), form.get('MaxCapacity', 0), form.get('Notes'), group_id)
+            cursor.execute(sql_update, params)
+            conn.commit()
+            flash("Group details updated successfully.", "success")
+            return redirect(url_for('.group_dashboard', group_id=group_id))
+
+        # GET request: Fetch current group data
+        cursor.execute("SELECT * FROM CourseGroups WHERE GroupID = %s", (group_id,))
+        form_data = cursor.fetchone()
+        return render_template('instructor_portal/add_edit_group.html', title="Edit Group", form_data=form_data, group_id=group_id, sub_packages=sub_packages)
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+        return redirect(url_for('.my_groups'))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@instructor_portal_bp.route('/group/<int:group_id>/delete', methods=['POST'])
+@instructor_required
+def delete_group(group_id):
+    """Deletes a group if the instructor is assigned to it."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Authorization check
+        cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
+        if not cursor.fetchone():
+            flash("You are not authorized to delete this group.", "danger")
+            return redirect(url_for('.my_groups'))
+
+        # The ON DELETE CASCADE in the DB schema will handle cleanup of members, instructors, and assessments.
+        cursor.execute("DELETE FROM CourseGroups WHERE GroupID = %s", (group_id,))
+        conn.commit()
+        flash("Group and all its associated data have been deleted.", "success")
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred while trying to delete the group: {e}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return redirect(url_for('.my_groups'))
+
 
 @instructor_portal_bp.route('/group/<int:group_id>')
 @instructor_required

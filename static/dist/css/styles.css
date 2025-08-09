@@ -4125,6 +4125,11 @@ html[data-theme="dark"] {
   font-family: Poppins, Arial, sans-serif;
 }
 
+.\!text-xs {
+  font-size: 0.75rem !important;
+  line-height: 1rem !important;
+}
+
 .text-2xl {
   font-size: 1.5rem;
   line-height: 2rem;
@@ -4913,6 +4918,11 @@ html[data-theme="dark"] {
 
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.\!text-xs {
+  font-size: clamp(0.8680555555555557rem, calc(0.8680555555555557rem + ((0.8888888888888888 - 0.8680555555555557) * ((100vw - 20rem) / (96 - 20)))), 0.8888888888888888rem) !important;
+  line-height: 1.6 !important;
 }
 
 .text-xs {
