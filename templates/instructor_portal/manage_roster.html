@@ -1,25 +1,19 @@
-<!-- templates/instructor_portal/manage_roster.html -->
+<!-- templates/instructor_portal/manage_roster.html (CORRECTED) -->
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_title %}
-    <!-- Updated link color for better visibility on a white background -->
-    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-indigo-600 hover:text-indigo-800">
-        <i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}
-    </a>
-    <span class="mx-2 text-gray-400">/</span>
-    <span>Manage Roster</span>
+    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-gray-500 hover:text-gray-700"><i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}</a>
+    <span class="mx-2 text-gray-300">/</span>
+    <span>{{ title }}</span> {# <-- FIX: Added title variable #}
 {% endblock %}
 
 {% block portal_content %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
     <!-- Left Column: Add Students -->
     <div class="lg:col-span-1">
-        <!-- Removed dark theme classes -->
         <div class="bg-white shadow rounded-lg p-6 sticky top-6">
             <h3 class="text-lg font-medium text-gray-900">Add Student to Group</h3>
             <p class="text-sm text-gray-500 mt-1">Select an enrolled candidate to add them to this group.</p>
-
             {% if available_candidates %}
             <form action="{{ url_for('.manage_roster', group_id=group_id) }}" method="POST" class="mt-4">
                 <label for="enrollment_id" class="form-label">Available Enrolled Candidates</label>
@@ -28,12 +22,9 @@
                     <option value="{{ candidate.EnrollmentID }}">{{ candidate.LastName }}, {{ candidate.FirstName }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="btn-primary mt-4 w-full">
-                    <i class="bi bi-plus-circle mr-1"></i> Add to Roster
-                </button>
+                <button type="submit" class="btn-primary mt-4 w-full"><i class="bi bi-plus-circle mr-1"></i> Add to Roster</button>
             </form>
             {% else %}
-            <!-- Removed dark theme classes -->
             <div class="mt-4 text-center p-4 bg-gray-50 rounded-md">
                 <p class="text-sm text-gray-500">No available candidates found for this course package.</p>
                 <p class="text-xs text-gray-400 mt-1">Students must be in 'Enrolled' status to be added.</p>
@@ -44,24 +35,19 @@
 
     <!-- Right Column: Current Roster -->
     <div class="lg:col-span-2">
-        <!-- Removed dark theme classes -->
         <div class="bg-white shadow rounded-lg">
             <div class="px-6 py-4 border-b border-gray-200">
                 <h3 class="text-lg font-medium text-gray-900">Current Roster ({{ members|length }})</h3>
             </div>
             <ul class="divide-y divide-gray-200">
                 {% for member in members %}
-                <!-- Removed dark theme classes -->
                 <li class="p-4 flex items-center justify-between hover:bg-gray-50">
                     <div>
                         <p class="text-sm font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
                         <p class="text-sm text-gray-500">{{ member.Email }}</p>
                     </div>
-                    <!-- The form for removal -->
                     <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this student?');">
-                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium" title="Remove from group">
-                            <i class="bi bi-x-circle-fill"></i> Remove
-                        </button>
+                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium" title="Remove from group"><i class="bi bi-x-circle-fill"></i> Remove</button>
                     </form>
                 </li>
                 {% else %}
@@ -70,6 +56,5 @@
             </ul>
         </div>
     </div>
-
 </div>
 {% endblock %}

@@ -4,6 +4,7 @@ from flask_login import current_user
 from utils.decorators import instructor_required # Use the new decorator
 from db import get_db_connection
 import uuid
+import mysql.connector
 
 instructor_portal_bp = Blueprint('instructor_portal_bp', __name__,
                                  template_folder='../../../templates',
