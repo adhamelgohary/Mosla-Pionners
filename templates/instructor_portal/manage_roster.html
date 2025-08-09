@@ -1,14 +1,15 @@
-<!-- templates/instructor_portal/manage_roster.html (CORRECTED) -->
+<!-- templates/instructor_portal/manage_roster.html -->
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_title %}
     <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-gray-500 hover:text-gray-700"><i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}</a>
     <span class="mx-2 text-gray-300">/</span>
-    <span>{{ title }}</span> {# <-- FIX: Added title variable #}
+    <span>{{ title }}</span>
 {% endblock %}
 
 {% block portal_content %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
     <!-- Left Column: Add Students -->
     <div class="lg:col-span-1">
         <div class="bg-white shadow rounded-lg p-6 sticky top-6">
@@ -33,25 +34,47 @@
         </div>
     </div>
 
-    <!-- Right Column: Current Roster -->
+    <!-- Right Column: Current Roster & Performance Notes -->
     <div class="lg:col-span-2">
         <div class="bg-white shadow rounded-lg">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Current Roster ({{ members|length }})</h3>
+                <h3 class="text-lg font-medium text-gray-900">Current Roster & Overall Performance Notes</h3>
             </div>
             <ul class="divide-y divide-gray-200">
                 {% for member in members %}
-                <li class="p-4 flex items-center justify-between hover:bg-gray-50">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
-                        <p class="text-sm text-gray-500">{{ member.Email }}</p>
+                <li class="p-4 sm:p-6" x-data="{ open: false }">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
+                            <p class="text-sm text-gray-500">{{ member.Email }}</p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button @click="open = !open" class="text-sm text-indigo-600 hover:text-indigo-800 focus:outline-none">
+                                <span x-show="!open"><i class="bi bi-pencil-square mr-1"></i> View/Edit Notes</span>
+                                <span x-show="open"><i class="bi bi-chevron-up mr-1"></i> Hide Notes</span>
+                            </button>
+                            <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this student?');">
+                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium" title="Remove from group"><i class="bi bi-trash-fill"></i></button>
+                            </form>
+                        </div>
                     </div>
-                    <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this student?');">
-                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium" title="Remove from group"><i class="bi bi-x-circle-fill"></i> Remove</button>
-                    </form>
+                    <!-- Collapsible Notes Section -->
+                    <div x-show="open" x-collapse class="mt-4">
+                        <form action="{{ url_for('.update_roster_notes', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST">
+                            <label for="notes_{{ member.EnrollmentID }}" class="form-label text-xs">Overall Performance Notes</label>
+                            <textarea name="notes" id="notes_{{ member.EnrollmentID }}" rows="4" class="form-textarea" placeholder="e.g., Strong grasp of concepts but needs to improve confidence in speaking...">{{ member.PerformanceNotes or '' }}</textarea>
+                            <div class="mt-2 flex justify-end">
+                                <button type="submit" class="btn-primary !text-xs !py-1">Save Notes</button>
+                            </div>
+                        </form>
+                    </div>
                 </li>
                 {% else %}
-                <li class="p-6 text-center text-gray-500">This group has no students yet.</li>
+                <li class="p-6 text-center text-gray-500">
+                    <i class="bi bi-people text-3xl text-gray-400"></i>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No Students in Roster</h3>
+                    <p class="mt-1 text-sm text-gray-500">Add students from the panel on the left.</p>
+                </li>
                 {% endfor %}
             </ul>
         </div>
