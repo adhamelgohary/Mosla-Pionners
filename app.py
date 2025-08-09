@@ -62,7 +62,8 @@ from routes.Recruiter_Team_Portal.organization_routes import organization_bp
 from routes.Recruiter_Team_Portal.staff_routes import staff_bp
 from routes.Recruiter_Team_Portal.jobs_routes import jobs_bp
 
-
+# instructor portal routes
+from routes.instructor_portal.portal_routes import instructor_portal_bp
 
 # --- ROLE CONSTANTS ---
 from routes.Recruiter_Team_Portal.organization_routes import (
@@ -172,6 +173,9 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(organization_bp)
 app.register_blueprint(staff_bp)
 app.register_blueprint(jobs_bp)
+
+# --- Instructor Portal Routes ---
+app.register_blueprint(instructor_portal_bp, url_prefix='/instructor-portal')
 
 
 # ==========================================================
