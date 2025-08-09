@@ -354,3 +354,110 @@ def grade_assessment(assessment_id):
         if conn and conn.is_connected(): conn.close()
 
     return render_template('instructor_portal/grade_assessment.html', title=f"Grade: {assessment['Title']}", assessment=assessment, submissions=submissions)
+
+@instructor_portal_bp.route('/group/<int:group_id>/roster', methods=['GET', 'POST'])
+@instructor_required
+def manage_roster(group_id):
+    """
+    Allows an instructor to view, add, and remove students from a group they manage.
+    """
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        instructor_staff_id = current_user.specific_role_id
+
+        # Authorization Check: Ensure instructor is assigned to this group
+        cursor.execute("""
+            SELECT cg.GroupName, sp.SubPackageID
+            FROM CourseGroups cg
+            JOIN CourseGroupInstructors cgi ON cg.GroupID = cgi.GroupID
+            JOIN SubPackages sp ON cg.SubPackageID = sp.SubPackageID
+            WHERE cg.GroupID = %s AND cgi.InstructorStaffID = %s
+        """, (group_id, instructor_staff_id))
+        group_info = cursor.fetchone()
+
+        if not group_info:
+            flash("You are not authorized to manage this group's roster.", "danger")
+            return redirect(url_for('.my_groups'))
+
+        # Handle adding a new member
+        if request.method == 'POST':
+            enrollment_id_to_add = request.form.get('enrollment_id')
+            if enrollment_id_to_add:
+                # Check if the group is at capacity
+                cursor.execute("SELECT MaxCapacity, (SELECT COUNT(*) FROM CourseGroupMembers WHERE GroupID = %s) as member_count FROM CourseGroups WHERE GroupID = %s", (group_id, group_id))
+                capacity_info = cursor.fetchone()
+                if capacity_info['MaxCapacity'] > 0 and capacity_info['member_count'] >= capacity_info['MaxCapacity']:
+                    flash("Cannot add member. The group is at full capacity.", "warning")
+                else:
+                    cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id_to_add))
+                    conn.commit()
+                    flash("Student added to the group successfully.", "success")
+                return redirect(url_for('.manage_roster', group_id=group_id))
+
+        # --- Data Fetching for GET request ---
+        # 1. Get currently assigned members (the roster)
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID
+            FROM CourseGroupMembers cgm
+            JOIN CourseEnrollments ce ON cgm.EnrollmentID = ce.EnrollmentID
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            WHERE cgm.GroupID = %s ORDER BY u.LastName, u.FirstName
+        """, (group_id,))
+        assigned_members = cursor.fetchall()
+
+        # 2. Get available candidates (enrolled in the package, but not in any group yet)
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName, ce.EnrollmentID
+            FROM CourseEnrollments ce
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            WHERE ce.SubPackageID = %s
+            AND ce.Status IN ('Enrolled', 'InProgress')
+            AND ce.EnrollmentID NOT IN (SELECT EnrollmentID FROM CourseGroupMembers)
+            ORDER BY u.LastName, u.FirstName
+        """, (group_info['SubPackageID'],))
+        available_candidates = cursor.fetchall()
+
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+        return redirect(url_for('.group_dashboard', group_id=group_id))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return render_template('instructor_portal/manage_roster.html',
+                           title=f"Manage Roster: {group_info['GroupName']}",
+                           group_id=group_id,
+                           group_name=group_info['GroupName'],
+                           members=assigned_members,
+                           available_candidates=available_candidates)
+
+
+@instructor_portal_bp.route('/group/<int:group_id>/roster/remove/<int:enrollment_id>', methods=['POST'])
+@instructor_required
+def remove_from_roster(group_id, enrollment_id):
+    """Handles removing a student from a group."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Authorization check
+        cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
+        if not cursor.fetchone():
+            flash("You are not authorized to manage this group's roster.", "danger")
+            return redirect(url_for('.my_groups'))
+            
+        cursor.execute("DELETE FROM CourseGroupMembers WHERE GroupID = %s AND EnrollmentID = %s", (group_id, enrollment_id))
+        conn.commit()
+        if cursor.rowcount > 0:
+            flash("Student removed from group successfully.", "success")
+        else:
+            flash("Student not found in this group.", "warning")
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred while removing the student: {e}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return redirect(url_for('.manage_roster', group_id=group_id))

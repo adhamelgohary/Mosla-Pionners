@@ -1,0 +1,68 @@
+<!-- templates/instructor_portal/manage_roster.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}
+    <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="text-gray-400 hover:text-gray-600"><i class="bi bi-arrow-left-circle"></i> Back to {{ group_name }}</a>
+    <span class="mx-2 text-gray-300">/</span>
+    <span>Manage Roster</span>
+{% endblock %}
+
+{% block portal_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- Left Column: Add Students -->
+    <div class="lg:col-span-1">
+        <div class="bg-white dark:bg-slate-800 shadow rounded-lg p-6 sticky top-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Add Student to Group</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Select an enrolled candidate to add them to this group.</p>
+
+            {% if available_candidates %}
+            <form action="{{ url_for('.manage_roster', group_id=group_id) }}" method="POST" class="mt-4">
+                <label for="enrollment_id" class="form-label">Available Enrolled Candidates</label>
+                <select name="enrollment_id" id="enrollment_id" class="form-select">
+                    {% for candidate in available_candidates %}
+                    <option value="{{ candidate.EnrollmentID }}">{{ candidate.LastName }}, {{ candidate.FirstName }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary mt-4 w-full">
+                    <i class="bi bi-plus-circle mr-1"></i> Add to Roster
+                </button>
+            </form>
+            {% else %}
+            <div class="mt-4 text-center p-4 bg-gray-50 dark:bg-slate-700 rounded-md">
+                <p class="text-sm text-gray-500 dark:text-gray-400">No available candidates found for this course package.</p>
+                <p class="text-xs text-gray-400 mt-1">Students must be in 'Enrolled' status to be added.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Current Roster -->
+    <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-slate-800 shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Current Roster ({{ members|length }})</h3>
+            </div>
+            <ul class="divide-y divide-gray-200 dark:divide-slate-700">
+                {% for member in members %}
+                <li class="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-200">{{ member.LastName }}, {{ member.FirstName }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.Email }}</p>
+                    </div>
+                    <!-- The form for removal -->
+                    <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this student?');">
+                        <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-medium" title="Remove from group">
+                            <i class="bi bi-x-circle-fill"></i> Remove
+                        </button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-gray-500">This group has no students yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

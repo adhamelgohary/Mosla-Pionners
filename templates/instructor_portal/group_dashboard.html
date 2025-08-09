@@ -8,18 +8,23 @@
 {% endblock %}
 
 {% block portal_content %}
+
+<!-- ==================== ACTION HEADER ==================== -->
 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-    <!-- Primary Action: Add Assessment -->
+    <!-- Primary Actions: Roster and Assessment Creation -->
     <div class="flex items-center space-x-2">
-        <a href="{{ url_for('.add_assessment', group_id=group_id) }}" class="btn-primary">
-            <i class="bi bi-plus-lg mr-1"></i> Create New Assessment
+        <a href="{{ url_for('.manage_roster', group_id=group_id) }}" class="btn-primary">
+            <i class="bi bi-person-plus-fill mr-1"></i> Manage Roster
+        </a>
+        <a href="{{ url_for('.add_assessment', group_id=group_id) }}" class="btn-secondary">
+            <i class="bi bi-plus-lg mr-1"></i> Create Assessment
         </a>
     </div>
     
-    <!-- Secondary Actions: Edit and Delete Group -->
+    <!-- Secondary Actions: Group Edit and Delete -->
     <div class="flex items-center space-x-2">
          <a href="{{ url_for('.edit_group', group_id=group_id) }}" class="btn-secondary">
-            <i class="bi bi-pencil-square mr-1"></i> Edit Group Details
+            <i class="bi bi-pencil-square mr-1"></i> Edit Details
         </a>
         <form action="{{ url_for('.delete_group', group_id=group_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this group? This will also delete all associated assessments and grades. This action cannot be undone.');">
             <button type="submit" class="btn-danger">
@@ -29,8 +34,9 @@
     </div>
 </div>
 
+<!-- ==================== ASSESSMENTS LIST ==================== -->
 <div class="bg-white shadow overflow-hidden sm:rounded-md">
-    <div class="px-4 py-3 sm:px-6 bg-gray-50 border-b">
+    <div class="px-4 py-3 sm:px-6 bg-gray-50 border-b border-gray-200">
         <h3 class="text-lg leading-6 font-medium text-gray-900">Assessments</h3>
         <p class="mt-1 max-w-2xl text-sm text-gray-500">
           A list of all quizzes, assignments, and projects for this group.
@@ -58,8 +64,11 @@
             </div>
         </li>
         {% else %}
+        <!-- Empty State: When no assessments exist -->
         <li class="p-6 text-center text-gray-500">
-            <i class="bi bi-journal-x text-3xl text-gray-400"></i>
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <i class="bi bi-journal-x text-2xl text-gray-400"></i>
+            </div>
             <h3 class="mt-2 text-sm font-medium text-gray-900">No Assessments Yet</h3>
             <p class="mt-1 text-sm text-gray-500">Get started by creating a new assessment for this group.</p>
         </li>

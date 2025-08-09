@@ -2268,6 +2268,10 @@ html[data-theme="dark"] {
   top: 6rem;
 }
 
+.top-6 {
+  top: 1.5rem;
+}
+
 .isolate {
   isolation: isolate;
 }
