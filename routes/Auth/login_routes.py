@@ -14,7 +14,7 @@ login_manager = LoginManager()
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder', 'SalesManager', 'Admin', 'OperationsManager']
 ACCOUNT_MANAGER_PORTAL_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
 RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitManager', 'UnitManager']
-INSTRUCTOR_PORTAL_ROLES = ['Instructor'] # <-- NEW: Added instructor role
+INSTRUCTOR_PORTAL_ROLES = ['Instructor', 'Admin'] # <-- NEW: Added instructor role
 CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
