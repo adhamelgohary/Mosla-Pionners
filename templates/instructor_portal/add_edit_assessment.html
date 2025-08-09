@@ -1,0 +1,41 @@
+<!-- templates/instructor_portal/add_edit_assessment.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_content %}
+<div class="bg-white shadow rounded-lg">
+    <form method="POST" class="p-6 sm:p-8 space-y-6">
+        <div>
+            <label for="Title" class="form-label">Title*</label>
+            <input type="text" name="Title" id="Title" class="form-input" required>
+        </div>
+        <div>
+            <label for="Description" class="form-label">Description</label>
+            <textarea name="Description" id="Description" rows="4" class="form-textarea"></textarea>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label for="AssessmentType" class="form-label">Type</label>
+                <select name="AssessmentType" id="AssessmentType" class="form-select">
+                    <option value="Assignment">Assignment</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Homework">Homework</option>
+                    <option value="Project">Project</option>
+                    <option value="Exam">Exam</option>
+                </select>
+            </div>
+            <div>
+                <label for="DueDate" class="form-label">Due Date</label>
+                <input type="datetime-local" name="DueDate" id="DueDate" class="form-input">
+            </div>
+            <div>
+                <label for="MaxPoints" class="form-label">Max Points</label>
+                <input type="number" name="MaxPoints" id="MaxPoints" value="100" class="form-input">
+            </div>
+        </div>
+        <div class="pt-5 border-t flex justify-end gap-x-3">
+            <a href="{{ url_for('.group_dashboard', group_id=group_id) }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">Create Assessment</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

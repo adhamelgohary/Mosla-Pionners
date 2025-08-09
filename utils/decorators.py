@@ -90,3 +90,16 @@ def announcement_management_access_required(f):
 
 def job_offer_management_required(f):
     return login_required_with_role(JOB_OFFER_MANAGEMENT_ROLES, insufficient_role_redirect='managerial_dashboard_bp.main_dashboard')(f)
+
+
+def instructor_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login_bp.login')) # Or your login route
+        # Check for the specific 'Instructor' role
+        if not hasattr(current_user, 'specific_role_details') or current_user.specific_role_details.get('Role') != 'Instructor':
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for('public_routes_bp.home_page')) # Or a general access-denied page
+        return f(*args, **kwargs)
+    return decorated_function

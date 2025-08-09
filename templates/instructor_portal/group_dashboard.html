@@ -1,0 +1,42 @@
+<!-- templates/instructor_portal/group_dashboard.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}
+    <a href="{{ url_for('.my_groups') }}" class="text-gray-400 hover:text-gray-600"><i class="bi bi-arrow-left-circle"></i> Back to My Groups</a>
+    <span class="mx-2 text-gray-300">/</span>
+    <span>{{ title }}</span>
+{% endblock %}
+
+{% block portal_content %}
+<div class="flex justify-end mb-4">
+    <a href="{{ url_for('.add_assessment', group_id=group_id) }}" class="btn-primary">
+        <i class="bi bi-plus-lg mr-1"></i> Create New Assessment
+    </a>
+</div>
+
+<div class="bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-3 sm:px-6 bg-gray-50 border-b">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Assessments</h3>
+    </div>
+    <ul role="list" class="divide-y divide-gray-200">
+        {% for ass in assessments %}
+        <li class="px-4 py-4 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-md font-medium text-gray-800">{{ ass.Title }} <span class="text-sm font-normal text-gray-500">({{ ass.AssessmentType }})</span></p>
+                    <p class="text-sm text-gray-600 mt-1">{{ ass.Description or 'No description.' }}</p>
+                    <p class="text-xs text-gray-400 mt-2">Due: {{ ass.DueDate.strftime('%b %d, %Y') if ass.DueDate else 'No due date' }} &middot; Max Points: {{ ass.MaxPoints }}</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('.grade_assessment', assessment_id=ass.AssessmentID) }}" class="btn-secondary">
+                        <i class="bi bi-pencil-square mr-1"></i> Grade
+                    </a>
+                </div>
+            </div>
+        </li>
+        {% else %}
+        <li class="p-6 text-center text-gray-500">No assessments have been created for this group.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

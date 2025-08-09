@@ -1,0 +1,57 @@
+<!-- templates/instructor_portal/grade_assessment.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}
+    <a href="{{ url_for('.group_dashboard', group_id=assessment.GroupID) }}" class="text-gray-400 hover:text-gray-600"><i class="bi bi-arrow-left-circle"></i> Back to {{ assessment.GroupName }}</a>
+    <span class="mx-2 text-gray-300">/</span>
+    <span>Grade: {{ assessment.Title }}</span>
+{% endblock %}
+
+{% block portal_content %}
+<form method="POST">
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <p class="text-gray-600">Enter scores and feedback for each student.</p>
+            <p class="text-sm text-gray-500">Max Points: {{ assessment.MaxPoints }}</p>
+        </div>
+        <button type="submit" class="btn-primary"><i class="bi bi-save-fill mr-1"></i> Save All Grades</button>
+    </div>
+
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul role="list" class="divide-y divide-gray-200">
+            {% for sub in submissions %}
+            <li class="px-4 py-4 sm:px-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                    <!-- Student Info -->
+                    <div class="md:col-span-1">
+                        <p class="text-md font-medium text-gray-900">{{ sub.FirstName }} {{ sub.LastName }}</p>
+                        {% if sub.Status == 'Graded' %}
+                        <span class="text-xs font-semibold text-green-600">Graded on {{ sub.GradedAt.strftime('%b %d') if sub.GradedAt }}</span>
+                        {% else %}
+                        <span class="text-xs font-semibold text-yellow-600">Pending Grade</span>
+                        {% endif %}
+                    </div>
+                    <!-- Grading Inputs -->
+                    <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-1">
+                            <label for="score_{{ sub.SubmissionID }}" class="block text-sm font-medium text-gray-700">Score</label>
+                            <input type="number" name="score_{{ sub.SubmissionID }}" id="score_{{ sub.SubmissionID }}" value="{{ sub.Score if sub.Score is not none }}" class="form-input text-sm" placeholder="e.g. 85">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="feedback_{{ sub.SubmissionID }}" class="block text-sm font-medium text-gray-700">Feedback</label>
+                            <textarea name="feedback_{{ sub.SubmissionID }}" id="feedback_{{ sub.SubmissionID }}" rows="1" class="form-textarea text-sm">{{ sub.InstructorFeedback or '' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            {% else %}
+            <li class="p-6 text-center text-gray-500">There are no students in this group to grade.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="mt-4 flex justify-end">
+        <button type="submit" class="btn-primary"><i class="bi bi-save-fill mr-1"></i> Save All Grades</button>
+    </div>
+</form>
+{% endblock %}
