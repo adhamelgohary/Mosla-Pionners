@@ -14,6 +14,7 @@ login_manager = LoginManager()
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder', 'SalesManager', 'Admin', 'OperationsManager']
 ACCOUNT_MANAGER_PORTAL_ROLES = ['AccountManager', 'SeniorAccountManager', 'HeadAccountManager']
 RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitManager', 'UnitManager']
+INSTRUCTOR_PORTAL_ROLES = ['Instructor'] # <-- NEW: Added instructor role
 CLIENT_ROLES = ['ClientContact']
 
 class LoginUser(UserMixin):
@@ -28,6 +29,11 @@ class LoginUser(UserMixin):
         self.company_id = company_id
         self.reports_to_id = reports_to_id
         self.password_hash = password_hash
+        
+        # Add the specific_role_details to the user object upon creation
+        # This is useful for decorators that need role details immediately
+        self.specific_role_details = {'Role': role_type, 'StaffID': specific_role_id} if role_type != 'ClientContact' else {}
+
 
     @property
     def is_active(self):
@@ -132,6 +138,9 @@ def login():
             return redirect(url_for('account_manager_bp.dashboard'))
         elif role in RECRUITER_PORTAL_ROLES:
             return redirect(url_for('dashboard_bp.dashboard'))
+        # --- NEW: Added redirect for instructors ---
+        elif role in INSTRUCTOR_PORTAL_ROLES:
+            return redirect(url_for('instructor_portal_bp.dashboard'))
         elif role in CLIENT_ROLES:
             return redirect(url_for('client_dashboard_bp.dashboard'))
         elif role == 'Candidate':
@@ -173,6 +182,9 @@ def login():
                         return redirect(url_for('account_manager_bp.dashboard'))
                     elif role in RECRUITER_PORTAL_ROLES:
                         return redirect(url_for('dashboard_bp.dashboard'))
+                    # --- NEW: Added redirect for instructors ---
+                    elif role in INSTRUCTOR_PORTAL_ROLES:
+                        return redirect(url_for('instructor_portal_bp.dashboard'))
                     elif role in CLIENT_ROLES:
                         return redirect(url_for('client_dashboard_bp.dashboard'))
                     elif role == 'Candidate':
