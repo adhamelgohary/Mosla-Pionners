@@ -1,4 +1,4 @@
-<!-- templates/instructor_portal/manage_roster.html (NEW & IMPROVED) -->
+<!-- templates/instructor_portal/manage_roster.html (CORRECTED AND FINAL) -->
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_title %}
@@ -8,68 +8,101 @@
 {% endblock %}
 
 {% block portal_content %}
-<div class="bg-white shadow rounded-lg">
-    <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900">Student Management</h3>
-        <p class="text-sm text-gray-500 mt-1">View contact details, update placement status, and add recommendations for each student.</p>
-    </div>
-    <ul class="divide-y divide-gray-200">
-        {% for member in members %}
-        <li class="p-4 sm:p-6" x-data="{ open: false }">
-            <!-- Student Header -->
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-md font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
-                    <div class="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                        <span><i class="bi bi-envelope-fill mr-1"></i> {{ member.Email }}</span>
-                        <span><i class="bi bi-telephone-fill mr-1"></i> {{ member.PhoneNumber or 'N/A' }}</span>
-                    </div>
-                </div>
-                <button @click="open = !open" class="btn-secondary !text-xs !py-1">
-                    <span x-show="!open"><i class="bi bi-pencil-square mr-1"></i> Manage</span>
-                    <span x-show="open"><i class="bi bi-chevron-up mr-1"></i> Collapse</span>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- ================================== -->
+    <!-- Left Column: ADD STUDENT (RESTORED) -->
+    <!-- ================================== -->
+    <div class="lg:col-span-1">
+        <div class="bg-white shadow rounded-lg p-6 sticky top-6">
+            <h3 class="text-lg font-medium text-gray-900">Add Student to Roster</h3>
+            <p class="text-sm text-gray-500 mt-1">Select an enrolled candidate to add them to this group.</p>
+
+            {% if available_candidates %}
+            <form action="{{ url_for('.manage_roster', group_id=group_id) }}" method="POST" class="mt-4">
+                <label for="enrollment_id" class="form-label">Available Enrolled Candidates</label>
+                <select name="enrollment_id" id="enrollment_id" class="form-select">
+                    {% for candidate in available_candidates %}
+                    <option value="{{ candidate.EnrollmentID }}">{{ candidate.LastName }}, {{ candidate.FirstName }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-primary mt-4 w-full">
+                    <i class="bi bi-plus-circle mr-1"></i> Add to Roster
                 </button>
+            </form>
+            {% else %}
+            <div class="mt-4 text-center p-4 bg-gray-50 rounded-md">
+                <p class="text-sm text-gray-500">No available candidates found for this course package.</p>
+                <p class="text-xs text-gray-400 mt-1">Students must be in 'Enrolled' status to be added.</p>
             </div>
+            {% endif %}
+        </div>
+    </div>
 
-            <!-- Collapsible Management Section -->
-            <div x-show="open" x-collapse class="mt-6 border-t pt-4">
-                <form action="{{ url_for('.update_student_details', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" class="space-y-4">
-                    
-                    <!-- Placement Status -->
-                    <div>
-                        <label for="placement_status_{{ member.EnrollmentID }}" class="form-label">Placement Status</label>
-                        <select name="placement_status" id="placement_status_{{ member.EnrollmentID }}" class="form-select">
-                            <option value="NotStarted" {% if member.PlacementStatus == 'NotStarted' %}selected{% endif %}>Not Started</option>
-                            <option value="Interviewing" {% if member.PlacementStatus == 'Interviewing' %}selected{% endif %}>Interviewing</option>
-                            <option value="Hired" {% if member.PlacementStatus == 'Hired' %}selected{% endif %}>Hired</option>
-                            <option value="NotHired" {% if member.PlacementStatus == 'NotHired' %}selected{% endif %}>Not Hired</option>
-                        </select>
-                    </div>
-
-                    <!-- Company Recommendations -->
-                    <div>
-                        <label for="recommendation_{{ member.EnrollmentID }}" class="form-label">Company Recommendations</label>
-                        <textarea name="recommendation" id="recommendation_{{ member.EnrollmentID }}" rows="3" class="form-textarea" placeholder="e.g., Recommended for technical support roles at Company X due to strong problem-solving skills.">{{ member.CompanyRecommendation or '' }}</textarea>
-                    </div>
-
-                    <!-- Overall Performance Notes (from previous step) -->
-                    <div>
-                        <label for="notes_{{ member.EnrollmentID }}" class="form-label">Overall Performance Notes</label>
-                        <p class="text-sm text-gray-500 bg-gray-50 p-3 rounded-md border">{{ member.PerformanceNotes or 'No overall performance notes have been added yet.' }}</p>
-                        <p class="text-xs text-gray-400 mt-1">Overall notes are managed from the main roster page.</p> <!-- Assuming a different page or AJAX save -->
-                    </div>
-
-                    <div class="flex justify-end">
-                        <button type="submit" class="btn-primary">Save Changes</button>
-                    </div>
-                </form>
+    <!-- ============================================ -->
+    <!-- Right Column: CURRENT ROSTER & STUDENT MGMT -->
+    <!-- ============================================ -->
+    <div class="lg:col-span-2">
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Student Management ({{ members|length }})</h3>
+                <p class="text-sm text-gray-500 mt-1">View contact details, update placement status, and add recommendations.</p>
             </div>
-        </li>
-        {% else %}
-        <li class="p-6 text-center text-gray-500">
-            <p>No students are currently in this group's roster.</p>
-        </li>
-        {% endfor %}
-    </ul>
+            <ul class="divide-y divide-gray-200">
+                {% for member in members %}
+                <li class="p-4 sm:p-6" x-data="{ open: false }">
+                    <!-- Student Header -->
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-md font-medium text-gray-900">{{ member.LastName }}, {{ member.FirstName }}</p>
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-sm text-gray-500 mt-1">
+                                <span><i class="bi bi-envelope-fill mr-1"></i> {{ member.Email }}</span>
+                                <span><i class="bi bi-telephone-fill mr-1"></i> {{ member.PhoneNumber or 'N/A' }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 flex-shrink-0">
+                            <button @click="open = !open" class="btn-secondary !text-xs !py-1">
+                                <span x-show="!open"><i class="bi bi-pencil-square"></i> Manage</span>
+                                <span x-show="open"><i class="bi bi-chevron-up"></i> Collapse</span>
+                            </button>
+                            <form action="{{ url_for('.remove_from_roster', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                <button type="submit" class="btn-danger !text-xs !py-1" title="Remove from group"><i class="bi bi-trash-fill"></i></button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Management Section -->
+                    <div x-show="open" x-collapse class="mt-6 border-t pt-4">
+                        <form action="{{ url_for('.update_student_details', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" class="space-y-4">
+                            
+                            <div>
+                                <label for="placement_status_{{ member.EnrollmentID }}" class="form-label">Placement Status</label>
+                                <select name="placement_status" id="placement_status_{{ member.EnrollmentID }}" class="form-select">
+                                    <option value="NotStarted" {% if member.PlacementStatus == 'NotStarted' %}selected{% endif %}>Not Started</option>
+                                    <option value="Interviewing" {% if member.PlacementStatus == 'Interviewing' %}selected{% endif %}>Interviewing</option>
+                                    <option value="Hired" {% if member.PlacementStatus == 'Hired' %}selected{% endif %}>Hired</option>
+                                    <option value="NotHired" {% if member.PlacementStatus == 'NotHired' %}selected{% endif %}>Not Hired</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="recommendation_{{ member.EnrollmentID }}" class="form-label">Company Recommendations</label>
+                                <textarea name="recommendation" id="recommendation_{{ member.EnrollmentID }}" rows="3" class="form-textarea" placeholder="e.g., Recommended for technical support roles at Company X...">{{ member.CompanyRecommendation or '' }}</textarea>
+                            </div>
+
+                            <div class="flex justify-end">
+                                <button type="submit" class="btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-gray-500">
+                    <p>No students are currently in this group's roster.</p>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </div>
 {% endblock %}

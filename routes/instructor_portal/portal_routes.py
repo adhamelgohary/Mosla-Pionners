@@ -223,10 +223,16 @@ def group_dashboard(group_id):
 @instructor_portal_bp.route('/group/<int:group_id>/roster', methods=['GET', 'POST'])
 @instructor_required
 def manage_roster(group_id):
+    """
+    Allows an instructor to view, add, and remove students from a group they manage,
+    and also update their placement details.
+    """
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
+
+        # Authorization Check
         cursor.execute("""
             SELECT cg.GroupName, sp.SubPackageID
             FROM CourseGroups cg
@@ -240,6 +246,7 @@ def manage_roster(group_id):
             flash("You are not authorized to manage this group's roster.", "danger")
             return redirect(url_for('.my_groups'))
 
+        # Handle adding a new member via POST request
         if request.method == 'POST':
             enrollment_id_to_add = request.form.get('enrollment_id')
             if enrollment_id_to_add:
@@ -259,6 +266,8 @@ def manage_roster(group_id):
                     flash("Student added and attendance records created.", "success")
                 return redirect(url_for('.manage_roster', group_id=group_id))
 
+        # --- Data Fetching for GET request ---
+        # 1. Get currently assigned members with all details
         cursor.execute("""
             SELECT 
                 u.FirstName, u.LastName, u.Email, u.PhoneNumber, 
@@ -271,7 +280,8 @@ def manage_roster(group_id):
             WHERE cgm.GroupID = %s ORDER BY u.LastName, u.FirstName
         """, (group_id,))
         assigned_members = cursor.fetchall()
-        
+
+        # 2. Get available candidates for the "Add Student" dropdown
         cursor.execute("""
             SELECT u.FirstName, u.LastName, ce.EnrollmentID
             FROM CourseEnrollments ce
@@ -290,7 +300,14 @@ def manage_roster(group_id):
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
         if conn and conn.is_connected(): conn.close()
-    return render_template('instructor_portal/manage_roster.html', title=f"Manage Roster: {group_info['GroupName']}", group_id=group_id, group_name=group_info['GroupName'], members=assigned_members, available_candidates=available_candidates)
+
+    return render_template('instructor_portal/manage_roster.html',
+                           title=f"Manage Roster: {group_info['GroupName']}",
+                           group_id=group_id,
+                           group_name=group_info['GroupName'],
+                           members=assigned_members,
+                           available_candidates=available_candidates)
+    
 
 @instructor_portal_bp.route('/group/<int:group_id>/roster/remove/<int:enrollment_id>', methods=['POST'])
 @instructor_required
