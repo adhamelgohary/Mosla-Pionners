@@ -2320,6 +2320,10 @@ html[data-theme="dark"] {
   margin: -0.5rem;
 }
 
+.-m-6 {
+  margin: -1.5rem;
+}
+
 .m-0 {
   margin: 0px;
 }
@@ -3704,6 +3708,11 @@ html[data-theme="dark"] {
   background-color: rgb(240 253 250 / var(--tw-bg-opacity, 1));
 }
 
+.bg-teal-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(20 184 166 / var(--tw-bg-opacity, 1));
+}
+
 .bg-transparent {
   background-color: transparent;
 }
@@ -4362,6 +4371,11 @@ html[data-theme="dark"] {
 
 .text-danger {
   color: var(--danger-color);
+}
+
+.text-danger-300 {
+  --tw-text-opacity: 1;
+  color: rgb(252 165 165 / var(--tw-text-opacity, 1));
 }
 
 .text-danger-400 {

@@ -2,35 +2,38 @@
 
 {% block content %}
 <div class="space-y-10" 
-     x-data="systemHealthMonitor()" 
+     x-data="dashboardMonitor()" 
      x-init="init()">
 
     <!-- Header -->
     <header>
         <h1 class="text-3xl font-bold tracking-tight text-heading">Dashboard</h1>
-        <p class="mt-1 text-md text-text-muted">A quick overview of your application's status.</p>
+        <p class="mt-1 text-md text-text-muted">Live overview of your application and server status.</p>
     </header>
 
-    <!-- Section: Key Statistics (This section remains unchanged) -->
+    <!-- Section: Key Application Metrics -->
     <div>
-        <h2 class="text-lg font-medium text-heading">Key Statistics</h2>
+        <h2 class="text-lg font-medium text-heading">Application Metrics</h2>
         <div class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <!-- Stats cards... -->
-            <div class="rounded-lg bg-blue-600 p-5 text-white shadow-lg">
+            <!-- New Users (24h) - NOW REAL-TIME -->
+            <div class="rounded-lg bg-teal-500 p-5 text-white shadow-lg">
                 <i class="fas fa-user-plus fa-2x opacity-50"></i>
-                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_client_registrations }}</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Clients</p>
+                <div class="mt-3 text-3xl font-bold" x-text="appStats.new_users_24h">...</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">New Users (24h)</p>
             </div>
+            <!-- Pending Staff Apps (Static) -->
             <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
                 <i class="fas fa-user-tie fa-2x opacity-50"></i>
                 <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Staff Apps</p>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Staff Apps</p>
             </div>
+            <!-- Active Jobs (Static) -->
             <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
                 <i class="fas fa-briefcase fa-2x opacity-50"></i>
                 <div class="mt-3 text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
                 <p class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</p>
             </div>
+            <!-- Logins (24h) (Static) -->
             <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
                 <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
                 <div class="mt-3 text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
@@ -39,40 +42,67 @@
         </div>
     </div>
 
-    <!-- Section: System Health (This section is now REAL-TIME) -->
+    <!-- Section: System Health & Activity -->
     <div>
-        <h2 class="text-lg font-medium text-heading">System Health</h2>
-        <div class="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <!-- Global Server Performance Card -->
-            <div class="card">
+        <h2 class="text-lg font-medium text-heading">System Health & Activity</h2>
+        <div class="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            
+            <!-- Column 1: Server Resources -->
+            <div class="card lg:col-span-1">
                 <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-server mr-2 text-text-muted"></i>Server Resources</h3></div>
-                <div class="card-body space-y-4">
-                    <div>
-                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>Total CPU Usage</span><span x-text="stats.global.cpu_percent + '%'">...</span></div>
-                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-primary h-2 rounded-full" :style="`width: ${stats.global.cpu_percent}%`"></div></div>
+                <div class="card-body divide-y divide-border">
+                    <div class="py-3">
+                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>CPU Usage</span><span x-text="systemStats.global.cpu_percent + '%'">...</span></div>
+                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-primary h-2 rounded-full" :style="`width: ${systemStats.global.cpu_percent}%`"></div></div>
                     </div>
-                    <div>
-                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>Total Memory Usage</span><span x-text="stats.global.memory_percent + '%'">...</span></div>
-                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-success-500 h-2 rounded-full" :style="`width: ${stats.global.memory_percent}%`"></div></div>
+                    <div class="py-3">
+                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span x-text="systemStats.global.memory_percent + '%'">...</span></div>
+                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-success-500 h-2 rounded-full" :style="`width: ${systemStats.global.memory_percent}%`"></div></div>
+                    </div>
+                    <div class="py-3 text-sm text-text-muted">
+                        <strong>Load Avg (1, 5, 15m):</strong> <span x-text="systemStats.global.load_avg.join('%, ') + '%'">...</span>
+                    </div>
+                     <div class="py-3 text-sm text-text-muted">
+                        <strong>Uptime:</strong> <span x-text="systemStats.global.uptime_str">...</span>
                     </div>
                 </div>
             </div>
-            <!-- Service Status Card -->
-            <div class="card">
-                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Service Status</h3></div>
+
+            <!-- Column 2: Service Status & Network I/O -->
+            <div class="card lg:col-span-1">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Services & Network</h3></div>
+                <div class="card-body divide-y divide-border">
+                    <ul class="divide-y divide-border -m-6 p-6">
+                        <template x-for="service in Object.keys(systemStats.services)" :key="service">
+                            <li class="flex items-center justify-between py-3">
+                                <div class="flex items-center"><span class="h-2 w-2 rounded-full mr-3" :class="systemStats.services[service].status === 'Running' ? 'bg-green-500' : 'bg-red-500'"></span><p class="font-medium text-heading" x-text="service"></p></div>
+                                <div class="text-sm text-text-muted" x-text="systemStats.services[service].status">...</div>
+                            </li>
+                        </template>
+                    </ul>
+                    <div class="pt-4 text-sm text-text-muted">
+                        <div class="flex justify-between"><span>Network Sent:</span> <strong class="text-heading" x-text="systemStats.global.net_sent_gb + ' GB'">...</strong></div>
+                        <div class="flex justify-between"><span>Network Received:</span> <strong class="text-heading" x-text="systemStats.global.net_recv_gb + ' GB'">...</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Real-time Security Log -->
+            <div class="card lg:col-span-1">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-shield-alt mr-2 text-danger"></i>Recent Failed Logins</h3></div>
                 <div class="card-body">
-                    <ul class="divide-y divide-border">
-                        <template x-for="service in Object.keys(stats.services)" :key="service">
-                             <li class="flex items-center justify-between py-3">
-                                <div class="flex items-center">
-                                    <span class="h-2 w-2 rounded-full mr-3" :class="stats.services[service].status === 'Running' ? 'bg-green-500' : 'bg-red-500'"></span>
-                                    <p class="font-medium text-heading" x-text="service"></p>
-                                </div>
-                                <div class="text-sm text-text-muted">
-                                    <span x-text="stats.services[service].status">...</span>
-                                    <template x-if="stats.services[service].status === 'Running'">
-                                        <span>(<span x-text="stats.services[service].cpu + '% CPU'"></span>, <span x-text="stats.services[service].memory + ' MB'"></span>)</span>
-                                    </template>
+                    <ul class="space-y-3">
+                        <template x-if="appStats.recent_failed_logins.length === 0">
+                            <li class="text-center text-sm text-text-muted py-4">
+                                <i class="fas fa-check-circle text-green-500"></i> No failed logins recently.
+                            </li>
+                        </template>
+                        <template x-for="log in appStats.recent_failed_logins" :key="log.AttemptedAt">
+                            <li class="flex items-center text-sm">
+                                <i class="fas fa-user-secret mr-3 text-danger-300"></i>
+                                <div>
+                                    <p class="font-semibold text-heading truncate" x-text="log.EmailAttempt"></p>
+                                    <p class="text-text-muted"><span x-text="log.IPAddress"></span> at <span x-text="log.AttemptedAt"></span></p>
                                 </div>
                             </li>
                         </template>
@@ -84,34 +114,40 @@
 </div>
 
 <script>
-function systemHealthMonitor() {
+function dashboardMonitor() {
     return {
         // Default state before first fetch
-        stats: {
-            global: { cpu_percent: 0, memory_percent: 0 },
-            services: { 
-                'Nginx': { status: 'Loading...', cpu: 0, memory: 0 },
-                'MySQL': { status: 'Loading...', cpu: 0, memory: 0 },
-            }
+        systemStats: {
+            global: { cpu_percent: 0, memory_percent: 0, load_avg: [0,0,0], net_sent_gb: 0, net_recv_gb: 0, uptime_str: '...' },
+            services: { 'Nginx': { status: 'Loading...' }, 'MySQL': { status: 'Loading...' } }
+        },
+        appStats: {
+            new_users_24h: '...',
+            recent_failed_logins: []
         },
         // Fetch data immediately on load, then set an interval to repeat
         init() {
-            this.fetchStats();
+            this.fetchSystemStats();
+            this.fetchAppStats();
+            
             setInterval(() => {
-                this.fetchStats();
-            }, 3000); // Refresh every 3 seconds
+                this.fetchSystemStats();
+                this.fetchAppStats();
+            }, 5000); // Refresh every 5 seconds
         },
-        // The function that gets the data
-        async fetchStats() {
+        // Fetcher for system/service health
+        async fetchSystemStats() {
             try {
                 const response = await fetch('/admin/system-stats');
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-                this.stats = data;
-            } catch (error) {
-                console.error("Failed to fetch system stats:", error);
-                // You could update the UI to show an error state here
-            }
+                if (response.ok) this.systemStats = await response.json();
+            } catch (error) { console.error("Failed to fetch system stats:", error); }
+        },
+        // Fetcher for application activity
+        async fetchAppStats() {
+            try {
+                const response = await fetch('/admin/app-activity-stats');
+                if (response.ok) this.appStats = await response.json();
+            } catch (error) { console.error("Failed to fetch app stats:", error); }
         }
     }
 }

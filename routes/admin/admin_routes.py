@@ -1,5 +1,6 @@
 # routes/admin/admin_routes.py
 
+from datetime import time
 from flask import Blueprint, render_template, request, abort, current_app, Response, jsonify
 from flask_login import login_required, current_user
 from db import get_db_connection
@@ -59,13 +60,28 @@ def get_application_stats(conn):
 # --- Helper Functions for Real-time System Health ---
 
 def get_system_performance():
-    """Returns a dictionary with GLOBAL CPU and Memory usage."""
+    """Returns a dictionary with GLOBAL CPU, Memory, Disk, and Network usage."""
     memory = psutil.virtual_memory()
+    disk_io = psutil.disk_io_counters()
+    net_io = psutil.net_io_counters()
+    
+    # Calculate uptime
+    boot_time_timestamp = psutil.boot_time()
+    uptime_seconds = time.time() - boot_time_timestamp
+    uptime_days = int(uptime_seconds // (24 * 3600))
+    uptime_hours = int((uptime_seconds % (24 * 3600)) // 3600)
+    
     return {
         'cpu_percent': psutil.cpu_percent(interval=None),
+        'load_avg': [round(x / psutil.cpu_count() * 100, 1) for x in psutil.getloadavg()], # Load avg as %
         'memory_percent': memory.percent,
+        'disk_read_mb': round(disk_io.read_bytes / (1024*1024), 2),
+        'disk_write_mb': round(disk_io.write_bytes / (1024*1024), 2),
+        'net_sent_gb': round(net_io.bytes_sent / (1024*1024*1024), 2),
+        'net_recv_gb': round(net_io.bytes_recv / (1024*1024*1024), 2),
+        'uptime_str': f"{uptime_days}d {uptime_hours}h",
+        'process_count': len(psutil.pids())
     }
-
 def get_service_stats(service_names):
     """
     Checks the status and resource usage of specific services by process name.
@@ -91,6 +107,35 @@ def get_service_stats(service_names):
         stats[display_name]['memory'] = round(stats[display_name]['memory'], 2)
         
     return stats
+
+def get_app_activity_stats(conn):
+    """Gathers real-time application activity stats."""
+    stats = {}
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # New Users in last 24 hours
+        cursor.execute("SELECT COUNT(*) as count FROM Users WHERE CreatedAt >= NOW() - INTERVAL 1 DAY")
+        stats['new_users_24h'] = cursor.fetchone()['count']
+        
+        # Recent Failed Logins (last 5)
+        cursor.execute("""
+            SELECT EmailAttempt, IPAddress, AttemptedAt 
+            FROM LoginHistory 
+            WHERE Status LIKE 'Failed%' 
+            ORDER BY AttemptedAt DESC 
+            LIMIT 5
+        """)
+        failed_logins = cursor.fetchall()
+        # Convert datetime objects to strings for JSON serialization
+        stats['recent_failed_logins'] = [
+            {**log, 'AttemptedAt': log['AttemptedAt'].strftime('%H:%M:%S')} for log in failed_logins
+        ]
+        return stats
+    except Exception as e:
+        current_app.logger.error(f"Failed to get app activity stats: {e}", exc_info=True)
+        return {'new_users_24h': 'N/A', 'recent_failed_logins': []}
+
+
 
 # --- Admin Page Routes ---
 
@@ -196,20 +241,24 @@ def view_full_log():
 @login_required
 @admin_required
 def system_stats_api():
-    """
-    API endpoint that returns system and service health as JSON.
-    This is called by the JavaScript on the dashboard for live updates.
-    """
-    # IMPORTANT: Verify these process names on your server using `ps aux`.
-    # Common names are 'nginx', 'apache2', 'httpd', 'mysqld', 'mariadbd'.
-    services_to_monitor = {
-        "Nginx": "nginx",
-        "MySQL": "mysqld",
-        # phpMyAdmin is part of the Nginx/PHP-FPM stack, not a separate service.
-    }
-
+    """API endpoint that returns system and service health as JSON."""
+    services_to_monitor = {"Nginx": "nginx", "MySQL": "mysqld"}
     all_stats = {
         'global': get_system_performance(),
         'services': get_service_stats(services_to_monitor)
     }
     return jsonify(all_stats)
+
+
+@admin_bp.route('/app-activity-stats')
+@login_required
+@admin_required
+def app_activity_api():
+    """API endpoint for real-time application activity."""
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({"error": "DB connection failed"}), 500
+    
+    activity_stats = get_app_activity_stats(conn)
+    conn.close()
+    return jsonify(activity_stats)
