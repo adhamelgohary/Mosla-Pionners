@@ -28,9 +28,7 @@
                                 <!-- Desktop Navigation Links -->
                                 <a href="{{ url_for('instructor_portal_bp.dashboard') }}" class="{{ 'bg-gray-100 text-gray-900' if 'dashboard' in request.endpoint else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }} rounded-md px-3 py-2 text-sm font-medium" aria-current="page">Dashboard</a>
                                 <a href="{{ url_for('instructor_portal_bp.my_groups') }}" class="{{ 'bg-gray-100 text-gray-900' if 'groups' in request.endpoint else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }} rounded-md px-3 py-2 text-sm font-medium">My Groups</a>
-                                <a href="{{ url_for('instructor_portal_bp.my_placements') }}" class="{{ 'bg-slate-900 text-white' if 'placements' in request.endpoint else 'text-slate-300 hover:bg-slate-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-        <i class="bi bi-trophy-fill mr-3"></i> My Placements
-    </a>
+                                <a href="{{ url_for('instructor_portal_bp.my_placements') }}" class="{{ 'bg-gray-100 text-gray-900' if 'placements' in request.endpoint else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }} rounded-md px-3 py-2 text-sm font-medium"><i class="bi bi-trophy-fill mr-3"></i> My Placements</a>
                             </div>
                         
                         </div>
