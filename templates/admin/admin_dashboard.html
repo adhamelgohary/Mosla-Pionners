@@ -1,176 +1,89 @@
---- START OF FILE admin_dashboard.html ---
-
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Admin Dashboard</h1>
-    </div>
+<div>
+    <header class="pb-4 mb-4 border-b border-border">
+        <h1 class="text-2xl font-bold tracking-tight text-heading">Admin Dashboard</h1>
+    </header>
 
-    <!-- Section: Key Application Stats (Original Row) -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-primary text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.pending_client_registrations }}</div>
-                        <div>Pending Clients</div>
-                    </div>
-                    <i class="fas fa-user-plus fa-3x"></i>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Cards use Tailwind color utilities directly, as they are for status colors -->
+        <div class="rounded-lg bg-blue-600 p-5 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-3xl font-bold">{{ data.app_stats.pending_client_registrations }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Clients</div>
                 </div>
-                <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="#" class="btn btn-outline-light stretched-link">View Approvals</a>
-                </div>
+                <i class="fas fa-user-plus fa-3x opacity-50"></i>
             </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-warning text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.pending_staff_applications }}</div>
-                        <div>Staff Applications</div>
-                    </div>
-                    <i class="fas fa-user-tie fa-3x"></i>
+        <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Staff Apps</div>
                 </div>
-                 <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="#" class="btn btn-outline-light stretched-link">View Applications</a>
-                </div>
+                <i class="fas fa-user-tie fa-3x opacity-50"></i>
             </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-success text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.active_jobs }}</div>
-                        <div>Active Job Offers</div>
-                    </div>
-                    <i class="fas fa-briefcase fa-3x"></i>
+        <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
+             <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</div>
                 </div>
-                 <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="#" class="btn btn-outline-light stretched-link">Manage Offers</a>
-                </div>
+                <i class="fas fa-briefcase fa-3x opacity-50"></i>
             </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-secondary text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.logins_24h }}</div>
-                        <div>Logins (24h)</div>
-                    </div>
-                    <i class="fas fa-sign-in-alt fa-3x"></i>
+        <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
+             <div class="flex items-center justify-between">
+                <div>
+                    <div class="text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
+                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Logins (24h)</div>
                 </div>
-                 <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="{{ url_for('admin_bp.login_history') }}" class="btn btn-outline-light stretched-link">View History</a>
-                </div>
+                <i class="fas fa-sign-in-alt fa-3x opacity-50"></i>
             </div>
         </div>
     </div>
     
-    <!-- ========================================================= -->
-    <!-- NEW WIDGETS ROW -->
-    <!-- ========================================================= -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-info text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.new_applications_24h }}</div>
-                        <div>New Job Apps (24h)</div>
-                    </div>
-                    <i class="fas fa-file-import fa-3x"></i>
+    <!-- System Health Section -->
+    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <!-- System Performance -->
+        <div class="card">
+            <div class="card-header"><h5 class="text-lg font-semibold text-heading"><i class="fas fa-tachometer-alt mr-2 text-text-muted"></i>System Performance</h5></div>
+            <div class="card-body space-y-4">
+                <div>
+                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>CPU Usage</span><span>{{ data.performance.cpu_percent }}%</span></div>
+                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-primary h-2.5 rounded-full" style="width: {{ data.performance.cpu_percent }}%"></div></div>
                 </div>
-                <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="#" class="btn btn-outline-light stretched-link">View Applications</a>
+                <div>
+                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span>{{ data.performance.memory_used_gb }} / {{ data.performance.memory_total_gb }} GB</span></div>
+                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-success-500 h-2.5 rounded-full" style="width: {{ data.performance.memory_percent }}%"></div></div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="card bg-danger text-white h-100">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fs-4 fw-bold">{{ data.app_stats.unassigned_companies }}</div>
-                        <div>Unassigned Companies</div>
-                    </div>
-                    <i class="fas fa-link-slash fa-3x"></i>
-                </div>
-                 <div class="card-footer d-grid">
-                    <!-- UPDATED: Replaced custom class with standard Bootstrap btn-outline-light -->
-                    <a href="#" class="btn btn-outline-light stretched-link">Assign Managers</a>
+                <div>
+                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>Disk Usage</span><span>{{ data.performance.disk_used_gb }} / {{ data.performance.disk_total_gb }} GB</span></div>
+                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-warning-500 h-2.5 rounded-full" style="width: {{ data.performance.disk_percent }}%"></div></div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-xl-3">
-            <!-- Placeholder for a future widget -->
-            <div class="card bg-light h-100">
-                <div class="card-body d-flex justify-content-between align-items-center text-muted">
-                    <div>
-                        <div class="fs-4 fw-bold">...</div>
-                        <div>Future Metric</div>
-                    </div>
-                    <i class="fas fa-chart-line fa-3x"></i>
-                </div>
+        
+        <!-- Recent Logs -->
+        <div class="card">
+            <div class="card-header flex justify-between items-center">
+                <h5 class="text-lg font-semibold text-heading"><i class="fas fa-exclamation-triangle mr-2 text-danger"></i>Recent Application Logs</h5>
+                <a href="{{ url_for('admin_bp.view_full_log') }}" target="_blank" class="btn-secondary">View Full Log</a>
             </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <!-- Placeholder for a future widget -->
-            <div class="card bg-light h-100">
-                <div class="card-body d-flex justify-content-between align-items-center text-muted">
-                    <div>
-                        <div class="fs-4 fw-bold">...</div>
-                        <div>Future Metric</div>
-                    </div>
-                    <i class="fas fa-cogs fa-3x"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Section: System Health & Logs (This section remains unchanged) -->
-    <div class="row g-4">
-        <!-- System Performance Card -->
-        <div class="col-lg-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header"><h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>System Performance</h5></div>
-                <div class="card-body">
-                    <strong>CPU Usage:</strong> {{ data.performance.cpu_percent }}%
-                    <div class="progress mb-3">
-                        <div class="progress-bar" role="progressbar" style="width: {{ data.performance.cpu_percent }}%;" aria-valuenow="{{ data.performance.cpu_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <strong>Memory Usage:</strong> {{ data.performance.memory_percent }}% ({{ data.performance.memory_used_gb }} GB / {{ data.performance.memory_total_gb }} GB)
-                    <div class="progress mb-3">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ data.performance.memory_percent }}%;" aria-valuenow="{{ data.performance.memory_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    <strong>Disk Usage:</strong> {{ data.performance.disk_percent }}% ({{ data.performance.disk_used_gb }} GB / {{ data.performance.disk_total_gb }} GB)
-                    <div class="progress">
-                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ data.performance.disk_percent }}%;" aria-valuenow="{{ data.performance.disk_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Application Errors Card -->
-        <div class="col-lg-6">
-            <div class="card h-100 shadow-sm">
-                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Recent Application Logs</h5>
-                    <a href="{{ url_for('admin_bp.view_full_log') }}" target="_blank" class="btn btn-outline-secondary btn-sm">View Full Log</a>
-                </div>
-                <!-- UPDATED: Replaced inline style with Tailwind classes -->
-                <div class="card-body max-h-[300px] overflow-y-auto">
+            <div class="card-body">
+                <div class="h-64 overflow-y-auto rounded-md bg-gray-900 p-3">
                     {% if data.recent_errors %}
-                        <pre class="bg-light p-2 rounded small"><code>{% for error in data.recent_errors %}{{ error }}
-{% endfor %}</code></pre>
+                        <pre class="text-xs text-gray-200"><code>{% for error in data.recent_errors %}{{ error }}{% endfor %}</code></pre>
                     {% else %}
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>No recent warnings or errors found in the log.
+                        <div class="flex items-center justify-center h-full text-center text-gray-400">
+                            <div>
+                                <i class="fas fa-check-circle text-3xl text-success-500"></i>
+                                <p class="mt-2 font-medium">No recent errors found.</p>
+                            </div>
                         </div>
                     {% endif %}
                 </div>

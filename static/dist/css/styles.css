@@ -2387,10 +2387,6 @@ html[data-theme="dark"] {
   margin-right: -0.75rem;
 }
 
-.mb-0 {
-  margin-bottom: 0px;
-}
-
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -2409,10 +2405,6 @@ html[data-theme="dark"] {
 
 .mb-8 {
   margin-bottom: 2rem;
-}
-
-.me-2 {
-  margin-inline-end: 0.5rem;
 }
 
 .ml-1 {
@@ -2457,10 +2449,6 @@ html[data-theme="dark"] {
 
 .mr-4 {
   margin-right: 1rem;
-}
-
-.ms-auto {
-  margin-inline-start: auto;
 }
 
 .mt-0\.5 {
@@ -2567,6 +2555,10 @@ html[data-theme="dark"] {
   height: 0.5rem;
 }
 
+.h-2\.5 {
+  height: 0.625rem;
+}
+
 .h-20 {
   height: 5rem;
 }
@@ -2629,10 +2621,6 @@ html[data-theme="dark"] {
 
 .max-h-96 {
   max-height: 24rem;
-}
-
-.max-h-\[300px\] {
-  max-height: 300px;
 }
 
 .min-h-full {
@@ -2721,10 +2709,6 @@ html[data-theme="dark"] {
 
 .min-w-\[200px\] {
   min-width: 200px;
-}
-
-.min-w-\[250px\] {
-  min-width: 250px;
 }
 
 .min-w-full {
@@ -3410,11 +3394,6 @@ html[data-theme="dark"] {
   border-color: rgb(239 68 68 / var(--tw-border-opacity, 1));
 }
 
-.border-secondary {
-  --tw-border-opacity: 1;
-  border-color: rgb(var(--secondary-color-rgb) / var(--tw-border-opacity, 1));
-}
-
 .border-slate-200 {
   --tw-border-opacity: 1;
   border-color: rgb(226 232 240 / var(--tw-border-opacity, 1));
@@ -3569,6 +3548,11 @@ html[data-theme="dark"] {
   background-color: rgb(249 250 251 / 0.5);
 }
 
+.bg-gray-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
+}
+
 .bg-green-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
@@ -3665,6 +3649,11 @@ html[data-theme="dark"] {
   background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));
 }
 
+.bg-slate-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(51 65 85 / var(--tw-bg-opacity, 1));
+}
+
 .bg-slate-800 {
   --tw-bg-opacity: 1;
   background-color: rgb(30 41 59 / var(--tw-bg-opacity, 1));
@@ -3677,6 +3666,11 @@ html[data-theme="dark"] {
 
 .bg-slate-900\/90 {
   background-color: rgb(15 23 42 / 0.9);
+}
+
+.bg-success-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(34 197 94 / var(--tw-bg-opacity, 1));
 }
 
 .bg-success-600 {
@@ -3713,6 +3707,11 @@ html[data-theme="dark"] {
 .bg-warning-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
+}
+
+.bg-warning-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
 }
 
 .bg-white {
@@ -4110,10 +4109,6 @@ html[data-theme="dark"] {
   padding-right: 1rem;
 }
 
-.ps-3 {
-  padding-inline-start: 0.75rem;
-}
-
 .pt-1\.5 {
   padding-top: 0.375rem;
 }
@@ -4390,6 +4385,11 @@ html[data-theme="dark"] {
   color: rgb(185 28 28 / var(--tw-text-opacity, 1));
 }
 
+.text-gray-200 {
+  --tw-text-opacity: 1;
+  color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+}
+
 .text-gray-300 {
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity, 1));
@@ -4516,11 +4516,6 @@ html[data-theme="dark"] {
 .text-red-800 {
   --tw-text-opacity: 1;
   color: rgb(153 27 27 / var(--tw-text-opacity, 1));
-}
-
-.text-secondary {
-  --tw-text-opacity: 1;
-  color: rgb(var(--secondary-color-rgb) / var(--tw-text-opacity, 1));
 }
 
 .text-sky-600 {
@@ -4693,12 +4688,20 @@ html[data-theme="dark"] {
   opacity: 1;
 }
 
+.opacity-50 {
+  opacity: 0.5;
+}
+
 .opacity-60 {
   opacity: 0.6;
 }
 
 .opacity-70 {
   opacity: 0.7;
+}
+
+.opacity-75 {
+  opacity: 0.75;
 }
 
 .shadow {
@@ -5849,6 +5852,10 @@ body {
     max-width: 56rem;
   }
 
+  .sm\:flex-1 {
+    flex: 1 1 0%;
+  }
+
   .sm\:flex-auto {
     flex: 1 1 auto;
   }
@@ -5899,6 +5906,10 @@ body {
 
   .sm\:justify-end {
     justify-content: flex-end;
+  }
+
+  .sm\:justify-center {
+    justify-content: center;
   }
 
   .sm\:justify-between {
@@ -6107,6 +6118,10 @@ body {
     grid-column: span 2 / span 2;
   }
 
+  .md\:col-span-4 {
+    grid-column: span 4 / span 4;
+  }
+
   .md\:ml-6 {
     margin-left: 1.5rem;
   }
@@ -6121,6 +6136,10 @@ body {
 
   .md\:hidden {
     display: none;
+  }
+
+  .md\:grid-cols-12 {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
   }
 
   .md\:grid-cols-2 {
