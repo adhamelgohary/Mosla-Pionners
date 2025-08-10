@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block content %}
 <div class="space-y-10" 
@@ -12,17 +12,40 @@
     </header>
 
     <!-- Section: Key Application Metrics -->
-    <!-- This section remains the same -->
-    
+    <div>
+        <h2 class="text-lg font-medium text-heading">Application Metrics</h2>
+        <div class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-lg bg-teal-500 p-5 text-white shadow-lg">
+                <i class="fas fa-user-plus fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold" x-text="appStats.new_users_24h">...</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">New Users (24h)</p>
+            </div>
+            <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
+                <i class="fas fa-user-tie fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Staff Apps</p>
+            </div>
+            <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
+                <i class="fas fa-briefcase fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</p>
+            </div>
+            <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
+                <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Logins (24h)</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Section: System Health & Activity -->
     <div>
         <h2 class="text-lg font-medium text-heading">System Health & Activity</h2>
-        <!-- UPDATED: Changed grid to lg:grid-cols-4 to make space for the new card -->
-        <div class="mt-2 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-2 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             
-            <!-- Column 1: Server Resources Card -->
+            <!-- Column 1: Server & Network -->
             <div class="card lg:col-span-1">
-                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-server mr-2 text-text-muted"></i>Server Resources</h3></div>
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-server mr-2 text-text-muted"></i>Server & Network</h3></div>
                 <div class="card-body divide-y divide-border">
                     <div class="py-3">
                         <div class="flex justify-between text-sm font-medium text-text-muted"><span>CPU Usage</span><span x-text="systemStats.global.cpu_percent + '%'">...</span></div>
@@ -32,17 +55,29 @@
                         <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span x-text="systemStats.global.memory_percent + '%'">...</span></div>
                         <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-success-500 h-2 rounded-full" :style="`width: ${systemStats.global.memory_percent}%`"></div></div>
                     </div>
-                     <div class="py-3 text-sm text-text-muted">
-                        <strong>Uptime:</strong> <span x-text="systemStats.global.uptime_str">...</span>
+                    <div class="py-3 text-sm flex justify-between">
+                        <span class="text-text-muted">Uptime:</span>
+                        <strong class="text-heading" x-text="systemStats.global.uptime_str">...</strong>
+                    </div>
+                    <!-- NEW: Real-time Bandwidth Speed -->
+                    <div class="pt-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-text-muted flex items-center"><i class="fas fa-arrow-up text-red-400 mr-2"></i>Upload</span>
+                            <strong class="text-heading" x-text="net_upload_speed_mbps.toFixed(2) + ' Mbps'">...</strong>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                             <span class="text-text-muted flex items-center"><i class="fas fa-arrow-down text-green-400 mr-2"></i>Download</span>
+                            <strong class="text-heading" x-text="net_download_speed_mbps.toFixed(2) + ' Mbps'">...</strong>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Column 2: Service Status Card -->
+            <!-- Column 2: Services & Monthly Bandwidth -->
             <div class="card lg:col-span-1">
-                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Service Status</h3></div>
-                <div class="card-body">
-                    <ul class="divide-y divide-border">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Services & Usage</h3></div>
+                <div class="card-body divide-y divide-border">
+                    <ul class="divide-y divide-border -m-6 p-6">
                         <template x-for="service in Object.keys(systemStats.services)" :key="service">
                             <li class="flex items-center justify-between py-3">
                                 <div class="flex items-center"><span class="h-2 w-2 rounded-full mr-3" :class="systemStats.services[service].status === 'Running' ? 'bg-green-500' : 'bg-red-500'"></span><p class="font-medium text-heading" x-text="service"></p></div>
@@ -50,46 +85,30 @@
                             </li>
                         </template>
                     </ul>
+                     <div class="pt-4">
+                        <template x-if="!systemStats.bandwidth.error">
+                            <div class="text-center">
+                                <p class="text-sm text-text-muted" x-text="systemStats.bandwidth.month + ' Usage'"></p>
+                                <p class="text-3xl font-bold text-heading mt-1" x-text="systemStats.bandwidth.total_gb + ' GB'"></p>
+                            </div>
+                        </template>
+                        <template x-if="systemStats.bandwidth.error">
+                            <div class="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md"><i class="fas fa-exclamation-triangle mr-1"></i><span x-text="systemStats.bandwidth.error"></span></div>
+                        </template>
+                    </div>
                 </div>
             </div>
 
-            <!-- Column 3: NEW Bandwidth Usage Card -->
-            <div class="card lg:col-span-1">
-                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-exchange-alt mr-2 text-text-muted"></i>Bandwidth Usage</h3></div>
-                <div class="card-body">
-                    <template x-if="!systemStats.bandwidth.error">
-                        <div class="text-center">
-                            <p class="text-sm text-text-muted" x-text="systemStats.bandwidth.month + ' Usage'"></p>
-                            <p class="text-4xl font-bold text-heading mt-2" x-text="systemStats.bandwidth.total_gb + ' GB'"></p>
-                        </div>
-                    </template>
-                    <template x-if="systemStats.bandwidth.error">
-                        <div class="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>
-                            <span x-text="systemStats.bandwidth.error"></span>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Column 4: Real-time Security Log -->
+            <!-- Column 3: Real-time Security Log -->
             <div class="card lg:col-span-1">
                 <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-shield-alt mr-2 text-danger"></i>Recent Failed Logins</h3></div>
                 <div class="card-body">
-                    <ul class="space-y-3 h-28 overflow-y-auto">
+                    <ul class="space-y-3 h-48 overflow-y-auto">
                         <template x-if="!appStats.recent_failed_logins || appStats.recent_failed_logins.length === 0">
-                            <li class="text-center text-sm text-text-muted pt-4">
-                                <i class="fas fa-check-circle text-green-500"></i> No failed logins recently.
-                            </li>
+                            <li class="text-center text-sm text-text-muted pt-4"><i class="fas fa-check-circle text-green-500"></i> No failed logins recently.</li>
                         </template>
                         <template x-for="log in appStats.recent_failed_logins" :key="log.AttemptedAt">
-                            <li class="flex items-center text-sm">
-                                <i class="fas fa-user-secret mr-3 text-danger-300"></i>
-                                <div>
-                                    <p class="font-semibold text-heading truncate" x-text="log.EmailAttempt"></p>
-                                    <p class="text-text-muted"><span x-text="log.IPAddress"></span> at <span x-text="log.AttemptedAt"></span></p>
-                                </div>
-                            </li>
+                            <li class="flex items-center text-sm"><i class="fas fa-user-secret mr-3 text-danger-300"></i><div><p class="font-semibold text-heading truncate" x-text="log.EmailAttempt"></p><p class="text-text-muted"><span x-text="log.IPAddress"></span> at <span x-text="log.AttemptedAt"></span></p></div></li>
                         </template>
                     </ul>
                 </div>
@@ -98,41 +117,62 @@
     </div>
 </div>
 
-<!-- Alpine.js script remains the same -->
 <script>
 function dashboardMonitor() {
     return {
-        // Add bandwidth to the default state
         systemStats: {
-            global: { cpu_percent: 0, memory_percent: 0, load_avg: [0,0,0], uptime_str: '...' },
+            global: { cpu_percent: 0, memory_percent: 0, load_avg: [0,0,0], uptime_str: '...', net_bytes_sent_raw: 0, net_bytes_recv_raw: 0 },
             services: { 'Nginx': { status: 'Loading...' }, 'MySQL': { status: 'Loading...' } },
             bandwidth: { month: '...', total_gb: '...', error: null }
         },
-        appStats: {
-            new_users_24h: '...',
-            recent_failed_logins: []
-        },
-        // init() and fetch functions remain the same
+        appStats: { new_users_24h: '...', recent_failed_logins: [] },
+        // State for real-time speed calculation
+        last_net_sent: 0, last_net_recv: 0, last_fetch_time: 0,
+        net_upload_speed_mbps: 0, net_download_speed_mbps: 0,
+
         init() {
-            this.fetchSystemStats();
-            this.fetchAppStats();
-            
-            setInterval(() => {
-                this.fetchSystemStats();
-                this.fetchAppStats();
-            }, 5000); // Refresh every 5 seconds
+            this.fetchData();
+            setInterval(() => this.fetchData(), 3000); // Refresh every 3 seconds
         },
-        async fetchSystemStats() {
+        async fetchData() {
             try {
-                const response = await fetch('/admin/system-stats');
-                if (response.ok) this.systemStats = await response.json();
-            } catch (error) { console.error("Failed to fetch system stats:", error); }
+                // Fetch both APIs concurrently
+                const [sysResponse, appResponse] = await Promise.all([
+                    fetch('/admin/system-stats'),
+                    fetch('/admin/app-activity-stats')
+                ]);
+                if (sysResponse.ok) {
+                    const data = await sysResponse.json();
+                    this.calculateNetworkSpeed(data.global); // Calculate speed before updating state
+                    this.systemStats = data;
+                }
+                if (appResponse.ok) this.appStats = await appResponse.json();
+            } catch (error) { console.error("Dashboard fetch error:", error); }
         },
-        async fetchAppStats() {
-            try {
-                const response = await fetch('/admin/app-activity-stats');
-                if (response.ok) this.appStats = await response.json();
-            } catch (error) { console.error("Failed to fetch app stats:", error); }
+        calculateNetworkSpeed(globalStats) {
+            const now = Date.now();
+            if (this.last_fetch_time === 0) {
+                // First run, just set initial values
+                this.last_net_sent = globalStats.net_bytes_sent_raw;
+                this.last_net_recv = globalStats.net_bytes_recv_raw;
+                this.last_fetch_time = now;
+                return;
+            }
+
+            const time_diff_sec = (now - this.last_fetch_time) / 1000;
+            if (time_diff_sec < 1) return; // Avoid division by zero or tiny intervals
+
+            const sent_diff = globalStats.net_bytes_sent_raw - this.last_net_sent;
+            const recv_diff = globalStats.net_bytes_recv_raw - this.last_net_recv;
+
+            // Speed in Megabits per second (Bytes * 8 / time / 1,000,000)
+            this.net_upload_speed_mbps = (sent_diff * 8) / time_diff_sec / 1000000;
+            this.net_download_speed_mbps = (recv_diff * 8) / time_diff_sec / 1000000;
+
+            // Update values for the next calculation
+            this.last_net_sent = globalStats.net_bytes_sent_raw;
+            this.last_net_recv = globalStats.net_bytes_recv_raw;
+            this.last_fetch_time = now;
         }
     }
 }
