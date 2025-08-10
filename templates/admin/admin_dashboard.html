@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Admin Dashboard</h1>
+    </div>
+
+    <!-- Section: Key Application Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-4 fw-bold">{{ data.app_stats.pending_users }}</div>
+                        <div>Pending Users</div>
+                    </div>
+                    <i class="fas fa-user-plus fa-3x"></i>
+                </div>
+                <div class="card-footer d-grid">
+                    <a href="#" class="btn btn-primary-outline stretched-link text-white">View Approvals</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-4 fw-bold">{{ data.app_stats.pending_staff }}</div>
+                        <div>Staff Applications</div>
+                    </div>
+                    <i class="fas fa-user-tie fa-3x"></i>
+                </div>
+                 <div class="card-footer d-grid">
+                    <a href="#" class="btn btn-info-outline stretched-link text-white">View Applications</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-4 fw-bold">{{ data.app_stats.active_jobs }}</div>
+                        <div>Active Job Offers</div>
+                    </div>
+                    <i class="fas fa-briefcase fa-3x"></i>
+                </div>
+                 <div class="card-footer d-grid">
+                    <a href="#" class="btn btn-success-outline stretched-link text-white">Manage Offers</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fs-4 fw-bold">{{ data.app_stats.logins_24h }}</div>
+                        <div>Logins (24h)</div>
+                    </div>
+                    <i class="fas fa-sign-in-alt fa-3x"></i>
+                </div>
+                 <div class="card-footer d-grid">
+                    <a href="{{ url_for('admin_bp.login_history') }}" class="btn btn-secondary-outline stretched-link text-white">View History</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: System Health & Logs -->
+    <div class="row g-4">
+        <!-- System Performance -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header"><h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>System Performance</h5></div>
+                <div class="card-body">
+                    <strong>CPU Usage:</strong> {{ data.performance.cpu_percent }}%
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" style="width: {{ data.performance.cpu_percent }}%;" aria-valuenow="{{ data.performance.cpu_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <strong>Memory Usage:</strong> {{ data.performance.memory_percent }}% ({{ data.performance.memory_used_gb }} GB / {{ data.performance.memory_total_gb }} GB)
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ data.performance.memory_percent }}%;" aria-valuenow="{{ data.performance.memory_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <strong>Disk Usage:</strong> {{ data.performance.disk_percent }}% ({{ data.performance.disk_used_gb }} GB / {{ data.performance.disk_total_gb }} GB)
+                    <div class="progress">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ data.performance.disk_percent }}%;" aria-valuenow="{{ data.performance.disk_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Application Errors -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                 <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Recent Application Logs</h5>
+                    <a href="{{ url_for('admin_bp.view_full_log') }}" target="_blank" class="btn btn-outline-secondary btn-sm">View Full Log</a>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    {% if data.recent_errors %}
+                        <pre class="bg-light p-2 rounded small"><code>{% for error in data.recent_errors %}{{ error }}
+{% endfor %}</code></pre>
+                    {% else %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>No recent warnings or errors found in the log.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

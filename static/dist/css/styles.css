@@ -2387,6 +2387,10 @@ html[data-theme="dark"] {
   margin-right: -0.75rem;
 }
 
+.mb-0 {
+  margin-bottom: 0px;
+}
+
 .mb-2 {
   margin-bottom: 0.5rem;
 }
@@ -2405,6 +2409,18 @@ html[data-theme="dark"] {
 
 .mb-8 {
   margin-bottom: 2rem;
+}
+
+.me-1 {
+  margin-inline-end: 0.25rem;
+}
+
+.me-2 {
+  margin-inline-end: 0.5rem;
+}
+
+.me-auto {
+  margin-inline-end: auto;
 }
 
 .ml-1 {
@@ -2449,6 +2465,10 @@ html[data-theme="dark"] {
 
 .mr-4 {
   margin-right: 1rem;
+}
+
+.ms-auto {
+  margin-inline-start: auto;
 }
 
 .mt-0\.5 {

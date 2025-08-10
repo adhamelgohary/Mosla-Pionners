@@ -6,8 +6,6 @@ from flask import Flask, current_app, g, jsonify, session, request, url_for, ren
 from flask_login import current_user
 from dotenv import load_dotenv
 import humanize
-# --- [CORRECTED] ---
-# Import the 'date' and 'timedelta' classes alongside 'datetime'
 from datetime import datetime, timezone, date, timedelta
 
 load_dotenv()
@@ -19,6 +17,9 @@ from utils.directory_configs import configure_directories
 from utils.template_helpers import register_template_helpers
 
 # --- Import Blueprints ---
+
+# [# <-- KEY FOR DASHBOARD] 1. Import the admin blueprint
+from routes.admin.admin_routes import admin_bp
 
 # Authentication Routes
 from routes.Auth.login_routes import login_bp, init_login_manager
@@ -125,9 +126,11 @@ app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB limit
 
-# --- Configure Production Logging ---
+# [# <-- KEY FOR DASHBOARD] 2. This logging configuration writes errors and other info to a file,
+# which the admin dashboard reads to display recent logs. This block is essential.
 if not app.debug:
     log_file = os.environ.get('LOG_FILE_PATH', 'app.log')
+    # Using RotatingFileHandler to prevent log files from becoming excessively large.
     file_handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s [in %(pathname)s:%(lineno)d]')
     file_handler.setFormatter(formatter)
@@ -142,7 +145,10 @@ register_template_helpers(app)
 # --- Initialize Extensions ---
 init_login_manager(app) # Initialize Flask-Login
 
-# --- Register Blueprints ---
+# [# <-- KEY FOR DASHBOARD] 3. Register the admin blueprint so its routes are active.
+app.register_blueprint(admin_bp, url_prefix='/admin')
+
+# --- Register Other Blueprints ---
 app.register_blueprint(login_bp, url_prefix='/auth')
 app.register_blueprint(register_bp, url_prefix='/auth')
 app.register_blueprint(managerial_dashboard_bp, url_prefix='/staff-portal')
@@ -179,7 +185,7 @@ app.register_blueprint(instructor_portal_bp, url_prefix='/instructor-portal')
 
 
 # ==========================================================
-# --- START: COMBINED CONTEXT PROCESSOR (THE FIX) ---
+# --- START: COMBINED CONTEXT PROCESSOR ---
 # ==========================================================
 @app.context_processor
 def inject_global_template_variables():
@@ -287,7 +293,3 @@ def set_theme():
 def health_check():
     """A simple endpoint to check if the application is alive."""
     return "OK", 200
-
-# --- DELETED THE SECOND CONTEXT PROCESSOR ---
-# The function inject_current_app_utilities() has been removed.
-# Its logic is now inside inject_global_template_variables().

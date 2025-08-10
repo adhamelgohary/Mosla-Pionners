@@ -17,6 +17,35 @@ RECRUITER_PORTAL_ROLES = ['SourcingRecruiter', 'SourcingTeamLead', 'HeadUnitMana
 INSTRUCTOR_PORTAL_ROLES = ['Instructor', 'Admin'] # <-- NEW: Added instructor role
 CLIENT_ROLES = ['ClientContact']
 
+# --- NEW: Helper function to log login attempts ---
+def log_login_attempt(email, status, user_id=None):
+    """Logs a login attempt to the database."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        if not conn:
+            current_app.logger.error("Failed to get DB connection for login history.")
+            return
+
+        cursor = conn.cursor()
+        ip_address = request.remote_addr
+        user_agent = request.headers.get('User-Agent')
+        
+        query = """
+            INSERT INTO LoginHistory (UserID, EmailAttempt, IPAddress, UserAgent, Status)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (user_id, email, ip_address, user_agent, status))
+        conn.commit()
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"Error logging login attempt for {email}: {e}", exc_info=True)
+    finally:
+        if conn and conn.is_connected():
+            if 'cursor' in locals() and cursor: cursor.close()
+            conn.close()
+
+
 class LoginUser(UserMixin):
     def __init__(self, user_id, email, first_name, last_name, account_status, role_type, specific_role_id=None, company_id=None, reports_to_id=None, password_hash=None):
         self.id = int(user_id)
@@ -130,7 +159,9 @@ def init_login_manager(app):
 def login():
     if current_user.is_authenticated:
         role = current_user.role_type
-        if role == 'SalesManager':
+        if role == 'Admin':
+            return redirect(url_for('admin_bp.admin_dashboard'))
+        elif role == 'SalesManager':
             return redirect(url_for('package_mgmt_bp.packages_dashboard'))
         elif role in MANAGERIAL_PORTAL_ROLES:
             return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
@@ -138,7 +169,6 @@ def login():
             return redirect(url_for('account_manager_bp.dashboard'))
         elif role in RECRUITER_PORTAL_ROLES:
             return redirect(url_for('dashboard_bp.dashboard'))
-        # --- NEW: Added redirect for instructors ---
         elif role in INSTRUCTOR_PORTAL_ROLES:
             return redirect(url_for('instructor_portal_bp.dashboard'))
         elif role in CLIENT_ROLES:
@@ -159,51 +189,61 @@ def login():
 
         if not errors:
             user_obj = get_user_by_email(email)
-            if user_obj and user_obj.check_password(password):
-                if user_obj.is_active:
-                    login_user(user_obj, remember=remember)
-                    current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in successfully.")
-                    try:
-                        conn_update = get_db_connection()
-                        cursor_update = conn_update.cursor()
-                        cursor_update.execute("UPDATE Users SET LastLoginDate = NOW() WHERE UserID = %s", (user_obj.id,))
-                        conn_update.commit()
-                        cursor_update.close()
-                        conn_update.close()
-                    except Exception as e_update:
-                        current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
 
-                    role = user_obj.role_type
-                    if role == 'SalesManager':
-                        return redirect(url_for('package_mgmt_bp.packages_dashboard'))
-                    elif role in MANAGERIAL_PORTAL_ROLES:
-                        return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
-                    elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
-                        return redirect(url_for('account_manager_bp.dashboard'))
-                    elif role in RECRUITER_PORTAL_ROLES:
-                        return redirect(url_for('dashboard_bp.dashboard'))
-                    # --- NEW: Added redirect for instructors ---
-                    elif role in INSTRUCTOR_PORTAL_ROLES:
-                        return redirect(url_for('instructor_portal_bp.dashboard'))
-                    elif role in CLIENT_ROLES:
-                        return redirect(url_for('client_dashboard_bp.dashboard'))
-                    elif role == 'Candidate':
-                        intended_destination = session.pop('candidate_intended_destination', None)
-                        if intended_destination:
-                            return redirect(intended_destination)
-                        return redirect(url_for('candidate_bp.dashboard'))
-                    else: 
-                        current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
-                        return redirect(url_for('public_routes_bp.home_page'))
-                else:
-                    if user_obj.account_status == 'PendingApproval':
-                        flash('Your account is pending approval. You will be notified by email once it is activated.', 'warning')
-                    elif user_obj.account_status == 'Suspended':
-                        flash('Your account has been suspended. Please contact support.', 'danger')
-                    else:
-                        flash('Your account is currently inactive. Please contact an administrator.', 'warning')
-            else:
+            # --- REFACTORED LOGIN LOGIC FOR HISTORY TRACKING ---
+            if not user_obj:
+                log_login_attempt(email, 'Failed - No User')
                 flash('Invalid email or password. Please try again.', 'danger')
+            elif not user_obj.check_password(password):
+                log_login_attempt(email, 'Failed - Password', user_obj.id)
+                flash('Invalid email or password. Please try again.', 'danger')
+            elif not user_obj.is_active:
+                log_login_attempt(email, 'Failed - Inactive', user_obj.id)
+                if user_obj.account_status == 'PendingApproval':
+                    flash('Your account is pending approval. You will be notified by email once it is activated.', 'warning')
+                elif user_obj.account_status == 'Suspended':
+                    flash('Your account has been suspended. Please contact support.', 'danger')
+                else:
+                    flash('Your account is currently inactive. Please contact an administrator.', 'warning')
+            else:
+                # Successful Login
+                login_user(user_obj, remember=remember)
+                log_login_attempt(email, 'Success', user_obj.id)
+                current_app.logger.info(f"User {user_obj.email} (Role: {user_obj.role_type}) logged in successfully.")
+                
+                try:
+                    conn_update = get_db_connection()
+                    cursor_update = conn_update.cursor()
+                    cursor_update.execute("UPDATE Users SET LastLoginDate = NOW() WHERE UserID = %s", (user_obj.id,))
+                    conn_update.commit()
+                    cursor_update.close()
+                    conn_update.close()
+                except Exception as e_update:
+                    current_app.logger.error(f"Error updating LastLoginDate for user {user_obj.id}: {e_update}")
+
+                role = user_obj.role_type
+                if role == 'Admin':
+                    return redirect(url_for('admin_bp.admin_dashboard'))
+                elif role == 'SalesManager':
+                    return redirect(url_for('package_mgmt_bp.packages_dashboard'))
+                elif role in MANAGERIAL_PORTAL_ROLES:
+                    return redirect(url_for('managerial_dashboard_bp.main_dashboard'))
+                elif role in ACCOUNT_MANAGER_PORTAL_ROLES:
+                    return redirect(url_for('account_manager_bp.dashboard'))
+                elif role in RECRUITER_PORTAL_ROLES:
+                    return redirect(url_for('dashboard_bp.dashboard'))
+                elif role in INSTRUCTOR_PORTAL_ROLES:
+                    return redirect(url_for('instructor_portal_bp.dashboard'))
+                elif role in CLIENT_ROLES:
+                    return redirect(url_for('client_dashboard_bp.dashboard'))
+                elif role == 'Candidate':
+                    intended_destination = session.pop('candidate_intended_destination', None)
+                    if intended_destination:
+                        return redirect(intended_destination)
+                    return redirect(url_for('candidate_bp.dashboard'))
+                else: 
+                    current_app.logger.warning(f"User {user_obj.email} with unknown role '{role}' logged in.")
+                    return redirect(url_for('public_routes_bp.home_page'))
         else:
             flash('Please correct the errors below.', 'danger')
             
