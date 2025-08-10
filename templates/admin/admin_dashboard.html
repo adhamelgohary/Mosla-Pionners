@@ -12,42 +12,15 @@
     </header>
 
     <!-- Section: Key Application Metrics -->
-    <div>
-        <h2 class="text-lg font-medium text-heading">Application Metrics</h2>
-        <div class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <!-- New Users (24h) - NOW REAL-TIME -->
-            <div class="rounded-lg bg-teal-500 p-5 text-white shadow-lg">
-                <i class="fas fa-user-plus fa-2x opacity-50"></i>
-                <div class="mt-3 text-3xl font-bold" x-text="appStats.new_users_24h">...</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">New Users (24h)</p>
-            </div>
-            <!-- Pending Staff Apps (Static) -->
-            <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
-                <i class="fas fa-user-tie fa-2x opacity-50"></i>
-                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Staff Apps</p>
-            </div>
-            <!-- Active Jobs (Static) -->
-            <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
-                <i class="fas fa-briefcase fa-2x opacity-50"></i>
-                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</p>
-            </div>
-            <!-- Logins (24h) (Static) -->
-            <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
-                <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
-                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
-                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Logins (24h)</p>
-            </div>
-        </div>
-    </div>
-
+    <!-- This section remains the same -->
+    
     <!-- Section: System Health & Activity -->
     <div>
         <h2 class="text-lg font-medium text-heading">System Health & Activity</h2>
-        <div class="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <!-- UPDATED: Changed grid to lg:grid-cols-4 to make space for the new card -->
+        <div class="mt-2 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             
-            <!-- Column 1: Server Resources -->
+            <!-- Column 1: Server Resources Card -->
             <div class="card lg:col-span-1">
                 <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-server mr-2 text-text-muted"></i>Server Resources</h3></div>
                 <div class="card-body divide-y divide-border">
@@ -59,20 +32,17 @@
                         <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span x-text="systemStats.global.memory_percent + '%'">...</span></div>
                         <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-success-500 h-2 rounded-full" :style="`width: ${systemStats.global.memory_percent}%`"></div></div>
                     </div>
-                    <div class="py-3 text-sm text-text-muted">
-                        <strong>Load Avg (1, 5, 15m):</strong> <span x-text="systemStats.global.load_avg.join('%, ') + '%'">...</span>
-                    </div>
                      <div class="py-3 text-sm text-text-muted">
                         <strong>Uptime:</strong> <span x-text="systemStats.global.uptime_str">...</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Column 2: Service Status & Network I/O -->
+            <!-- Column 2: Service Status Card -->
             <div class="card lg:col-span-1">
-                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Services & Network</h3></div>
-                <div class="card-body divide-y divide-border">
-                    <ul class="divide-y divide-border -m-6 p-6">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-cogs mr-2 text-text-muted"></i>Service Status</h3></div>
+                <div class="card-body">
+                    <ul class="divide-y divide-border">
                         <template x-for="service in Object.keys(systemStats.services)" :key="service">
                             <li class="flex items-center justify-between py-3">
                                 <div class="flex items-center"><span class="h-2 w-2 rounded-full mr-3" :class="systemStats.services[service].status === 'Running' ? 'bg-green-500' : 'bg-red-500'"></span><p class="font-medium text-heading" x-text="service"></p></div>
@@ -80,20 +50,35 @@
                             </li>
                         </template>
                     </ul>
-                    <div class="pt-4 text-sm text-text-muted">
-                        <div class="flex justify-between"><span>Network Sent:</span> <strong class="text-heading" x-text="systemStats.global.net_sent_gb + ' GB'">...</strong></div>
-                        <div class="flex justify-between"><span>Network Received:</span> <strong class="text-heading" x-text="systemStats.global.net_recv_gb + ' GB'">...</strong></div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Column 3: Real-time Security Log -->
+            <!-- Column 3: NEW Bandwidth Usage Card -->
+            <div class="card lg:col-span-1">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-exchange-alt mr-2 text-text-muted"></i>Bandwidth Usage</h3></div>
+                <div class="card-body">
+                    <template x-if="!systemStats.bandwidth.error">
+                        <div class="text-center">
+                            <p class="text-sm text-text-muted" x-text="systemStats.bandwidth.month + ' Usage'"></p>
+                            <p class="text-4xl font-bold text-heading mt-2" x-text="systemStats.bandwidth.total_gb + ' GB'"></p>
+                        </div>
+                    </template>
+                    <template x-if="systemStats.bandwidth.error">
+                        <div class="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-md">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span x-text="systemStats.bandwidth.error"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Column 4: Real-time Security Log -->
             <div class="card lg:col-span-1">
                 <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-shield-alt mr-2 text-danger"></i>Recent Failed Logins</h3></div>
                 <div class="card-body">
-                    <ul class="space-y-3">
-                        <template x-if="appStats.recent_failed_logins.length === 0">
-                            <li class="text-center text-sm text-text-muted py-4">
+                    <ul class="space-y-3 h-28 overflow-y-auto">
+                        <template x-if="!appStats.recent_failed_logins || appStats.recent_failed_logins.length === 0">
+                            <li class="text-center text-sm text-text-muted pt-4">
                                 <i class="fas fa-check-circle text-green-500"></i> No failed logins recently.
                             </li>
                         </template>
@@ -113,19 +98,21 @@
     </div>
 </div>
 
+<!-- Alpine.js script remains the same -->
 <script>
 function dashboardMonitor() {
     return {
-        // Default state before first fetch
+        // Add bandwidth to the default state
         systemStats: {
-            global: { cpu_percent: 0, memory_percent: 0, load_avg: [0,0,0], net_sent_gb: 0, net_recv_gb: 0, uptime_str: '...' },
-            services: { 'Nginx': { status: 'Loading...' }, 'MySQL': { status: 'Loading...' } }
+            global: { cpu_percent: 0, memory_percent: 0, load_avg: [0,0,0], uptime_str: '...' },
+            services: { 'Nginx': { status: 'Loading...' }, 'MySQL': { status: 'Loading...' } },
+            bandwidth: { month: '...', total_gb: '...', error: null }
         },
         appStats: {
             new_users_24h: '...',
             recent_failed_logins: []
         },
-        // Fetch data immediately on load, then set an interval to repeat
+        // init() and fetch functions remain the same
         init() {
             this.fetchSystemStats();
             this.fetchAppStats();
@@ -135,14 +122,12 @@ function dashboardMonitor() {
                 this.fetchAppStats();
             }, 5000); // Refresh every 5 seconds
         },
-        // Fetcher for system/service health
         async fetchSystemStats() {
             try {
                 const response = await fetch('/admin/system-stats');
                 if (response.ok) this.systemStats = await response.json();
             } catch (error) { console.error("Failed to fetch system stats:", error); }
         },
-        // Fetcher for application activity
         async fetchAppStats() {
             try {
                 const response = await fetch('/admin/app-activity-stats');

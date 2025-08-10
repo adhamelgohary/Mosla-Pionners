@@ -1,12 +1,11 @@
 # routes/admin/admin_routes.py
-
-# --- Corrected Imports ---
-# By importing 'time' and 'datetime' as whole modules, we avoid name collisions.
 import time
 import datetime
 import os
+import subprocess # Add for running shell commands
+import json       # Add for parsing JSON output
 from functools import wraps
-import psutil  # For system stats
+import psutil
 from flask import Blueprint, render_template, request, abort, current_app, Response, jsonify
 from flask_login import login_required, current_user
 from db import get_db_connection
@@ -24,6 +23,46 @@ def admin_required(f):
     return decorated_function
 
 # --- Helper Functions for Static Dashboard Data ---
+
+def get_bandwidth_usage():
+    """
+    Executes vnstat to get monthly bandwidth usage and parses the JSON output.
+    Returns a dictionary with usage stats or an error message.
+    """
+    try:
+        # Execute 'vnstat' for the current month's data in JSON format
+        # The 'm' flag is for monthly, '1' gets the current month
+        result = subprocess.run(
+            ['vnstat', '--json', 'm', '1'],
+            capture_output=True,
+            text=True,
+            check=True # This will raise an error if the command fails
+        )
+        data = json.loads(result.stdout)
+        
+        # vnstat provides data for each network interface. We'll use the first one.
+        interface = data['interfaces'][0]
+        current_month_data = interface['traffic']['months'][0]
+        
+        # Convert KiB to GB for easier reading
+        total_kib = current_month_data['rx'] + current_month_data['tx']
+        total_gb = round(total_kib / (1024 * 1024), 2)
+        
+        month_name = current_month_data.get('date', {}).get('month_name', 'Current Month')
+
+        return {
+            "month": month_name,
+            "total_gb": total_gb,
+            "error": None
+        }
+
+    except FileNotFoundError:
+        # This error occurs if 'vnstat' is not installed
+        return {"error": "vnstat is not installed or not in PATH."}
+    except (subprocess.CalledProcessError, json.JSONDecodeError, IndexError) as e:
+        # Handle cases where vnstat has no data yet, or other errors
+        return {"error": f"Could not retrieve vnstat data. It may still be collecting. Error: {e}"}
+
 
 def get_recent_error_logs(num_lines=20):
     """Reads the last N lines from the application log file that contain errors or warnings."""
@@ -226,11 +265,13 @@ def view_full_log():
 @login_required
 @admin_required
 def system_stats_api():
-    """API endpoint for system and service health."""
+    """API endpoint for system, service, and bandwidth health."""
     services_to_monitor = {"Nginx": "nginx", "MySQL": "mysqld"}
+    
     all_stats = {
         'global': get_system_performance(),
-        'services': get_service_stats(services_to_monitor)
+        'services': get_service_stats(services_to_monitor),
+        'bandwidth': get_bandwidth_usage() # Add bandwidth data here
     }
     return jsonify(all_stats)
 
