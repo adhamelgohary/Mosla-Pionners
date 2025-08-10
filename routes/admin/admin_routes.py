@@ -1,12 +1,15 @@
 # routes/admin/admin_routes.py
 
-from datetime import time
+# --- Corrected Imports ---
+# By importing 'time' and 'datetime' as whole modules, we avoid name collisions.
+import time
+import datetime
+import os
+from functools import wraps
+import psutil  # For system stats
 from flask import Blueprint, render_template, request, abort, current_app, Response, jsonify
 from flask_login import login_required, current_user
 from db import get_db_connection
-from functools import wraps
-import psutil  # For system stats
-import os      # For log file path
 
 # --- Blueprint Setup ---
 admin_bp = Blueprint('admin_bp', __name__, template_folder='../../templates/admin', url_prefix='/admin')
@@ -67,13 +70,14 @@ def get_system_performance():
     
     # Calculate uptime
     boot_time_timestamp = psutil.boot_time()
+    # FIX: Use time.time() explicitly from the time module
     uptime_seconds = time.time() - boot_time_timestamp
     uptime_days = int(uptime_seconds // (24 * 3600))
     uptime_hours = int((uptime_seconds % (24 * 3600)) // 3600)
     
     return {
         'cpu_percent': psutil.cpu_percent(interval=None),
-        'load_avg': [round(x / psutil.cpu_count() * 100, 1) for x in psutil.getloadavg()], # Load avg as %
+        'load_avg': [round(x / psutil.cpu_count() * 100, 1) for x in psutil.getloadavg()],
         'memory_percent': memory.percent,
         'disk_read_mb': round(disk_io.read_bytes / (1024*1024), 2),
         'disk_write_mb': round(disk_io.write_bytes / (1024*1024), 2),
@@ -82,14 +86,9 @@ def get_system_performance():
         'uptime_str': f"{uptime_days}d {uptime_hours}h",
         'process_count': len(psutil.pids())
     }
+
 def get_service_stats(service_names):
-    """
-    Checks the status and resource usage of specific services by process name.
-    
-    Args:
-        service_names (dict): A dictionary mapping a display name (e.g., "Nginx") 
-                              to a process name to search for (e.g., "nginx").
-    """
+    """Checks the status and resource usage of specific services by process name."""
     stats = {name: {'status': 'Stopped', 'cpu': 0, 'memory': 0} for name in service_names.keys()}
     
     for proc in psutil.process_iter(['name', 'cpu_percent', 'memory_info']):
@@ -99,9 +98,8 @@ def get_service_stats(service_names):
                     stats[display_name]['status'] = 'Running'
                 
                 stats[display_name]['cpu'] += proc.info['cpu_percent']
-                stats[display_name]['memory'] += proc.info['memory_info'].rss / (1024 * 1024) # Convert to MB
+                stats[display_name]['memory'] += proc.info['memory_info'].rss / (1024 * 1024)
 
-    # Round the final values for cleaner display
     for display_name in stats:
         stats[display_name]['cpu'] = round(stats[display_name]['cpu'], 2)
         stats[display_name]['memory'] = round(stats[display_name]['memory'], 2)
@@ -113,11 +111,9 @@ def get_app_activity_stats(conn):
     stats = {}
     try:
         cursor = conn.cursor(dictionary=True)
-        # New Users in last 24 hours
         cursor.execute("SELECT COUNT(*) as count FROM Users WHERE CreatedAt >= NOW() - INTERVAL 1 DAY")
         stats['new_users_24h'] = cursor.fetchone()['count']
         
-        # Recent Failed Logins (last 5)
         cursor.execute("""
             SELECT EmailAttempt, IPAddress, AttemptedAt 
             FROM LoginHistory 
@@ -126,7 +122,6 @@ def get_app_activity_stats(conn):
             LIMIT 5
         """)
         failed_logins = cursor.fetchall()
-        # Convert datetime objects to strings for JSON serialization
         stats['recent_failed_logins'] = [
             {**log, 'AttemptedAt': log['AttemptedAt'].strftime('%H:%M:%S')} for log in failed_logins
         ]
@@ -135,19 +130,13 @@ def get_app_activity_stats(conn):
         current_app.logger.error(f"Failed to get app activity stats: {e}", exc_info=True)
         return {'new_users_24h': 'N/A', 'recent_failed_logins': []}
 
-
-
 # --- Admin Page Routes ---
 
 @admin_bp.route('/dashboard')
 @login_required
 @admin_required
 def admin_dashboard():
-    """
-    Renders the main admin dashboard page.
-    This route now only loads the initial, non-realtime data. The live stats
-    are fetched by JavaScript from the '/system-stats' API endpoint.
-    """
+    """Renders the main admin dashboard page."""
     conn = get_db_connection()
     if not conn:
         abort(500, "Database connection failed.")
@@ -175,15 +164,15 @@ def login_history():
     search_email = request.args.get('email', '').strip()
     filter_status = request.args.get('status', '').strip()
 
-    base_query = "FROM LoginHistory lh LEFT JOIN Users u ON lh.UserID = u.UserID"
+    base_query = "FROM LoginHistory"
     where_clauses = []
     params = []
 
     if search_email:
-        where_clauses.append("lh.EmailAttempt LIKE %s")
+        where_clauses.append("EmailAttempt LIKE %s")
         params.append(f"%{search_email}%")
     if filter_status:
-        where_clauses.append("lh.Status = %s")
+        where_clauses.append("Status = %s")
         params.append(filter_status)
 
     if where_clauses:
@@ -194,12 +183,9 @@ def login_history():
         count_query = "SELECT COUNT(*) as total " + base_query
         cursor.execute(count_query, tuple(params))
         total_records = cursor.fetchone()['total']
-        total_pages = (total_records + per_page - 1) // per_page
+        total_pages = (total_records + per_page - 1) // per_page if per_page > 0 else 0
 
-        data_query = """
-            SELECT lh.HistoryID, lh.EmailAttempt, lh.Status, lh.AttemptedAt
-        """ + base_query + " ORDER BY lh.AttemptedAt DESC LIMIT %s OFFSET %s"
-        
+        data_query = "SELECT HistoryID, EmailAttempt, Status, AttemptedAt " + base_query + " ORDER BY AttemptedAt DESC LIMIT %s OFFSET %s"
         paginated_params = tuple(params) + (per_page, offset)
         cursor.execute(data_query, paginated_params)
         history_logs = cursor.fetchall()
@@ -208,7 +194,7 @@ def login_history():
         current_app.logger.error(f"Error fetching login history: {e}", exc_info=True)
         history_logs, total_pages = [], 0
     finally:
-        if conn.is_connected():
+        if conn and conn.is_connected():
             cursor.close()
             conn.close()
 
@@ -224,7 +210,7 @@ def login_history():
 @login_required
 @admin_required
 def view_full_log():
-    """Streams the full application log file for viewing as plain text."""
+    """Streams the full application log file as plain text."""
     log_file_path = os.path.join(current_app.root_path, '..', 'logs', 'app.log')
     if not os.path.exists(log_file_path):
         abort(404, "Log file not found.")
@@ -234,21 +220,19 @@ def view_full_log():
     
     return Response(content, mimetype='text/plain')
 
-
-# --- NEW API Endpoint for Real-time Stats ---
+# --- API Endpoints for Real-time Data ---
 
 @admin_bp.route('/system-stats')
 @login_required
 @admin_required
 def system_stats_api():
-    """API endpoint that returns system and service health as JSON."""
+    """API endpoint for system and service health."""
     services_to_monitor = {"Nginx": "nginx", "MySQL": "mysqld"}
     all_stats = {
         'global': get_system_performance(),
         'services': get_service_stats(services_to_monitor)
     }
     return jsonify(all_stats)
-
 
 @admin_bp.route('/app-activity-stats')
 @login_required
