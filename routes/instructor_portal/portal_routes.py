@@ -6,8 +6,6 @@ from db import get_db_connection
 import uuid
 import mysql.connector
 
-from utils.group_utils import sync_sessions_for_groups
-
 instructor_portal_bp = Blueprint('instructor_portal_bp', __name__,
                                  template_folder='../../../templates',
                                  url_prefix='/instructor')
@@ -22,7 +20,6 @@ def dashboard():
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
-
         cursor.execute("""
             SELECT 
                 COUNT(DISTINCT cgi.GroupID) as group_count,
@@ -40,7 +37,6 @@ def dashboard():
         current_app.logger.error(f"Instructor dashboard error: {e}")
     finally:
         if conn and conn.is_connected(): conn.close()
-        
     return render_template('instructor_portal/dashboard.html', 
                            title='Instructor Dashboard', 
                            dashboard_data=dashboard_data)
@@ -53,7 +49,6 @@ def profile():
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
-
         if request.method == 'POST' and 'generate_code' in request.form:
             new_code = f"INST-{str(uuid.uuid4())[:8].upper()}"
             cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (new_code, instructor_staff_id))
@@ -61,20 +56,17 @@ def profile():
             flash(f"Referral code generated: {new_code}", "success")
             current_user.specific_role_details['ReferralCode'] = new_code
             return redirect(url_for('.profile'))
-
         cursor.execute("""
             SELECT u.*, s.Role, s.Bio, s.Specialization, s.ReferralCode
             FROM Users u JOIN Staff s ON u.UserID = s.UserID
             WHERE s.StaffID = %s
         """, (instructor_staff_id,))
         profile_data = cursor.fetchone()
-
     except Exception as e:
         flash("An error occurred while fetching your profile.", "danger")
         profile_data = {}
     finally:
         if conn and conn.is_connected(): conn.close()
-
     return render_template('instructor_portal/profile.html', title='My Profile', profile_data=profile_data)
 
 # --- Group Listing & Management ---
@@ -227,20 +219,14 @@ def group_dashboard(group_id):
         if conn and conn.is_connected(): conn.close()
     return render_template('instructor_portal/group_dashboard.html', title=group['GroupName'], group=group, group_id=group_id, assessments=assessments)
 
-# --- Roster Management ---
+# --- Roster & Student Management ---
 @instructor_portal_bp.route('/group/<int:group_id>/roster', methods=['GET', 'POST'])
 @instructor_required
 def manage_roster(group_id):
-    """
-    Allows an instructor to view, add, and remove students from a group they manage.
-    Also fetches and displays overall performance notes.
-    """
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
-
-        # Authorization Check
         cursor.execute("""
             SELECT cg.GroupName, sp.SubPackageID
             FROM CourseGroups cg
@@ -254,7 +240,6 @@ def manage_roster(group_id):
             flash("You are not authorized to manage this group's roster.", "danger")
             return redirect(url_for('.my_groups'))
 
-        # Handle adding a new member
         if request.method == 'POST':
             enrollment_id_to_add = request.form.get('enrollment_id')
             if enrollment_id_to_add:
@@ -263,27 +248,22 @@ def manage_roster(group_id):
                 if capacity_info['MaxCapacity'] > 0 and capacity_info['member_count'] >= capacity_info['MaxCapacity']:
                     flash("Cannot add member. The group is at full capacity.", "warning")
                 else:
-                    # Add the member first
                     cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id_to_add))
-                    
-                    # Now, find all sessions for this group
                     cursor.execute("SELECT SessionID FROM GroupSessions WHERE GroupID = %s", (group_id,))
                     sessions = cursor.fetchall()
-                    
-                    # Create a pending attendance record for this student for each session
                     if sessions:
                         attendance_data = [(s['SessionID'], enrollment_id_to_add) for s in sessions]
                         sql_insert_attendance = "INSERT INTO SessionAttendance (SessionID, EnrollmentID) VALUES (%s, %s)"
                         cursor.executemany(sql_insert_attendance, attendance_data)
-                    
                     conn.commit()
                     flash("Student added and attendance records created.", "success")
                 return redirect(url_for('.manage_roster', group_id=group_id))
 
-        # --- Data Fetching for GET request ---
-        # 1. Get currently assigned members (the roster) with their overall notes
         cursor.execute("""
-            SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID, cgm.PerformanceNotes
+            SELECT 
+                u.FirstName, u.LastName, u.Email, u.PhoneNumber, 
+                ce.EnrollmentID, 
+                cgm.PerformanceNotes, cgm.PlacementStatus, cgm.CompanyRecommendation
             FROM CourseGroupMembers cgm
             JOIN CourseEnrollments ce ON cgm.EnrollmentID = ce.EnrollmentID
             JOIN Candidates c ON ce.CandidateID = c.CandidateID
@@ -291,8 +271,7 @@ def manage_roster(group_id):
             WHERE cgm.GroupID = %s ORDER BY u.LastName, u.FirstName
         """, (group_id,))
         assigned_members = cursor.fetchall()
-
-        # 2. Get available candidates
+        
         cursor.execute("""
             SELECT u.FirstName, u.LastName, ce.EnrollmentID
             FROM CourseEnrollments ce
@@ -311,18 +290,12 @@ def manage_roster(group_id):
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
         if conn and conn.is_connected(): conn.close()
-
-    return render_template('instructor_portal/manage_roster.html',
-                           title=f"Manage Roster: {group_info['GroupName']}",
-                           group_id=group_id,
-                           group_name=group_info['GroupName'],
-                           members=assigned_members,
-                           available_candidates=available_candidates)
-
+    return render_template('instructor_portal/manage_roster.html', title=f"Manage Roster: {group_info['GroupName']}", group_id=group_id, group_name=group_info['GroupName'], members=assigned_members, available_candidates=available_candidates)
 
 @instructor_portal_bp.route('/group/<int:group_id>/roster/remove/<int:enrollment_id>', methods=['POST'])
 @instructor_required
 def remove_from_roster(group_id, enrollment_id):
+    """Handles removing a student from a group."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
@@ -344,6 +317,28 @@ def remove_from_roster(group_id, enrollment_id):
         if conn and conn.is_connected(): conn.close()
     return redirect(url_for('.manage_roster', group_id=group_id))
 
+@instructor_portal_bp.route('/group/<int:group_id>/roster/update-student/<int:enrollment_id>', methods=['POST'])
+@instructor_required
+def update_student_details(group_id, enrollment_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
+        if not cursor.fetchone():
+            flash("Unauthorized.", "danger")
+            return redirect(url_for('.my_groups'))
+        placement_status = request.form.get('placement_status')
+        recommendation = request.form.get('recommendation')
+        cursor.execute("UPDATE CourseGroupMembers SET PlacementStatus = %s, CompanyRecommendation = %s WHERE GroupID = %s AND EnrollmentID = %s", (placement_status, recommendation, group_id, enrollment_id))
+        conn.commit()
+        flash("Student details updated successfully.", "success")
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"A database error occurred: {e}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return redirect(url_for('.manage_roster', group_id=group_id))
+    
 # --- Assessment & Attendance Routes ---
 @instructor_portal_bp.route('/group/<int:group_id>/assessment/add', methods=['GET', 'POST'])
 @instructor_required
@@ -419,22 +414,18 @@ def grade_assessment(assessment_id):
 @instructor_portal_bp.route('/group/<int:group_id>/attendance')
 @instructor_required
 def attendance(group_id):
-    """Displays the attendance grid for a group, including per-session notes."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Authorization check
         cursor.execute("SELECT GroupName FROM CourseGroups cg JOIN CourseGroupInstructors cgi ON cg.GroupID = cgi.GroupID WHERE cg.GroupID = %s AND cgi.InstructorStaffID = %s", (group_id, current_user.specific_role_id))
         group = cursor.fetchone()
         if not group:
             flash("You are not authorized to view this group.", "danger")
             return redirect(url_for('.my_groups'))
         
-        # 1. Get all sessions for the group header
         cursor.execute("SELECT SessionID, SessionNumber, SessionTitle FROM GroupSessions WHERE GroupID = %s ORDER BY SessionNumber", (group_id,))
         sessions = cursor.fetchall()
 
-        # 2. Get all students and their attendance status for each session
         cursor.execute("""
             SELECT 
                 u.UserID, u.FirstName, u.LastName, cgm.EnrollmentID,
@@ -449,44 +440,30 @@ def attendance(group_id):
         """, (group_id, group_id))
         attendance_raw = cursor.fetchall()
         
-        # 3. Process the raw data into a structured grid for the template
         students_attendance = {}
         for row in attendance_raw:
             enrollment_id = row['EnrollmentID']
             if enrollment_id not in students_attendance:
-                students_attendance[enrollment_id] = {
-                    'FirstName': row['FirstName'],
-                    'LastName': row['LastName'],
-                    'attendance': {}
-                }
-            if row['SessionID']: # Ensure there's a session to map to
+                students_attendance[enrollment_id] = {'FirstName': row['FirstName'], 'LastName': row['LastName'], 'attendance': {}}
+            if row['SessionID']:
                 students_attendance[enrollment_id]['attendance'][row['SessionID']] = {
                     'Status': row['Status'],
                     'AttendanceNotes': row['AttendanceNotes'],
                     'PerformanceNotes': row['PerformanceNotes']
                 }
-
     except Exception as e:
         flash(f"An error occurred while loading attendance data: {e}", "danger")
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
         if conn and conn.is_connected(): conn.close()
-
-    return render_template('instructor_portal/attendance.html',
-                           title=f"Attendance: {group['GroupName']}",
-                           group_id=group_id,
-                           group_name=group['GroupName'],
-                           sessions=sessions,
-                           students_attendance=students_attendance)
+    return render_template('instructor_portal/attendance.html', title=f"Attendance: {group['GroupName']}", group_id=group_id, group_name=group['GroupName'], sessions=sessions, students_attendance=students_attendance)
 
 @instructor_portal_bp.route('/group/<int:group_id>/attendance/update', methods=['POST'])
 @instructor_required
 def update_attendance(group_id):
-    """Handles the form submission for updating attendance statuses and per-session notes."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        # Authorization check
         cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
         if not cursor.fetchone():
             flash("You are not authorized to update this group's attendance.", "danger")
@@ -496,64 +473,35 @@ def update_attendance(group_id):
             if key.startswith('status_'):
                 _, session_id, enrollment_id = key.split('_')
                 new_status = value
-                
-                # Get the corresponding notes for this entry
                 attendance_notes = request.form.get(f'attendance_notes_{session_id}_{enrollment_id}', '')
                 performance_notes = request.form.get(f'performance_notes_{session_id}_{enrollment_id}', '')
-                
-                # Update the specific attendance record with the new notes
-                cursor.execute("""
-                    UPDATE SessionAttendance 
-                    SET Status = %s, AttendanceNotes = %s, PerformanceNotes = %s 
-                    WHERE SessionID = %s AND EnrollmentID = %s
-                """, (new_status, attendance_notes, performance_notes, session_id, enrollment_id))
+                cursor.execute("UPDATE SessionAttendance SET Status = %s, AttendanceNotes = %s, PerformanceNotes = %s WHERE SessionID = %s AND EnrollmentID = %s", (new_status, attendance_notes, performance_notes, session_id, enrollment_id))
         
         conn.commit()
         flash("Attendance updated successfully!", "success")
-
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
         flash(f"A database error occurred: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
-        
     return redirect(url_for('.attendance', group_id=group_id))
-
-@instructor_portal_bp.route('/group/<int:group_id>/roster/update-notes/<int:enrollment_id>', methods=['POST'])
-@instructor_required
-def update_roster_notes(group_id, enrollment_id):
-    """Handles updating the overall performance notes for a student in a group."""
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        # Authorization check
-        cursor.execute("SELECT 1 FROM CourseGroupInstructors WHERE GroupID = %s AND InstructorStaffID = %s", (group_id, current_user.specific_role_id))
-        if not cursor.fetchone():
-            flash("You are not authorized to update notes for this group.", "danger")
-            return redirect(url_for('.my_groups'))
-        
-        notes = request.form.get('notes', '')
-        cursor.execute("""
-            UPDATE CourseGroupMembers SET PerformanceNotes = %s 
-            WHERE GroupID = %s AND EnrollmentID = %s
-        """, (notes, group_id, enrollment_id))
-        conn.commit()
-        flash("Performance notes updated successfully.", "success")
-    except Exception as e:
-        if conn and conn.is_connected(): conn.rollback()
-        flash(f"A database error occurred: {e}", "danger")
-    finally:
-        if conn and conn.is_connected(): conn.close()
-        
-    return redirect(url_for('.manage_roster', group_id=group_id))
-
+    
+# --- Utility and Placement Tracking ---
 @instructor_portal_bp.route('/utility/sync-sessions', methods=['GET', 'POST'])
 @instructor_required
 def sync_sessions_utility():
+    from utils.group_utils import sync_sessions_for_groups # Local import
     if request.method == 'POST':
         message, category = sync_sessions_for_groups()
         flash(message, category)
         return redirect(url_for('.my_groups'))
-    
-    return render_template('instructor_portal/sync_sessions_utility.html',
-                           title="Sync Group Sessions")
+    return render_template('instructor_portal/sync_sessions_utility.html', title="Sync Group Sessions")
+
+@instructor_portal_bp.route('/my-placements')
+@instructor_required
+def my_placements():
+    placements = []
+    # Logic to query `InstructorPlacements` table will go here
+    return render_template('instructor_portal/my_placements.html', 
+                           title="My Placements & Commissions",
+                           placements=placements)
