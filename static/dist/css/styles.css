@@ -3671,6 +3671,11 @@ html[data-theme="dark"] {
   background-color: var(--tag-location-bg);
 }
 
+.bg-teal-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(204 251 241 / var(--tw-bg-opacity, 1));
+}
+
 .bg-teal-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(240 253 250 / var(--tw-bg-opacity, 1));
@@ -6177,10 +6182,6 @@ body {
 
   .lg\:grid-cols-5 {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .lg\:grid-rows-\[auto_auto\] {
-    grid-template-rows: auto auto;
   }
 
   .lg\:gap-6 {

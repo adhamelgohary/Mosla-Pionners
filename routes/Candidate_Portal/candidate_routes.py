@@ -36,14 +36,15 @@ def dashboard():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Fetch full candidate profile
+        # Fetch full candidate profile (existing code)
         cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         candidate_profile = cursor.fetchone()
         
+        # Fetch CVs (existing code)
         cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC", (candidate_id,))
         cv_list = cursor.fetchall()
 
-        # --- UPDATED QUERY to fetch interview details ---
+        # Fetch job applications (existing code)
         cursor.execute("""
             SELECT 
                 ja.ApplicationID, ja.Status, 
@@ -58,6 +59,21 @@ def dashboard():
             ORDER BY ja.ApplicationDate DESC
         """, (candidate_id,))
         applied_jobs = cursor.fetchall()
+        
+        # --- NEW QUERY: Fetch Course Enrollments ---
+        cursor.execute("""
+            SELECT 
+                ce.Status, ce.EnrollmentDate,
+                sp.Name AS SubPackageName,
+                mp.Name AS MainPackageName
+            FROM CourseEnrollments ce
+            JOIN SubPackages sp ON ce.SubPackageID = sp.SubPackageID
+            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE ce.CandidateID = %s
+            ORDER BY ce.EnrollmentDate DESC
+        """, (candidate_id,))
+        enrolled_courses = cursor.fetchall()
+        # --- END OF NEW QUERY ---
 
     except Exception as e:
         flash("An error occurred while loading your profile.", "danger")
@@ -72,7 +88,8 @@ def dashboard():
                            title="My Dashboard",
                            candidate=candidate_profile,
                            cv_list=cv_list,
-                           applied_jobs=applied_jobs)
+                           applied_jobs=applied_jobs,
+                           enrolled_courses=enrolled_courses)
     
 
 @candidate_bp.route('/profile/edit', methods=['GET', 'POST'])

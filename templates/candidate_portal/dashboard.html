@@ -36,7 +36,7 @@
         {% set edu_status_map = {'grad': 'Graduate', 'ungrad': 'Undergraduate / Student', 'dropout': 'Dropout', 'gap_year': 'Gap Year'} %}
 
         <!-- Bento Grid Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 lg:grid-rows-[auto_auto] gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
             <!-- Box 1: Profile Information (Large) -->
             <div class="lg:col-span-3 lg:row-span-2 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
@@ -98,8 +98,47 @@
                 </div>
             </div>
 
-            <!-- Box 3: Job Applications -->
-            <div class="lg:col-span-2 lg:row-span-1 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
+            <!-- Box 3: My Courses (NEW SECTION) -->
+            <div class="lg:col-span-3 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
+                <div class="flex items-center gap-3 mb-6">
+                    <i class="bi bi-journal-bookmark-fill text-2xl text-indigo-600 dark:text-indigo-400"></i>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">My Courses</h3>
+                </div>
+                <div class="flex-grow -mr-3 pr-3 overflow-y-auto">
+                    {% if enrolled_courses %}
+                    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for course in enrolled_courses %}
+                        {% set status_colors = {
+                            'Applied': 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+                            'PendingPayment': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
+                            'Enrolled': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+                            'InProgress': 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
+                            'Completed': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300',
+                            'Cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+                            'DroppedOut': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                        } %}
+                        <li class="py-3 flex justify-between items-center gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ course.MainPackageName }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ course.SubPackageName }}</p>
+                            </div>
+                            <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap {{ status_colors.get(course.Status, 'bg-gray-100 text-gray-800') }}">
+                                {{ course.Status.replace('PendingPayment', 'Pending Payment') }}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
+                        <i class="bi bi-journal-x text-4xl text-gray-400 dark:text-gray-500"></i>
+                        <p class="mt-2 text-sm">You have not enrolled in any courses yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Box 4: Job Applications -->
+            <div class="lg:col-span-2 p-6 bg-white rounded-2xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
                 <div class="flex items-center gap-3 mb-6">
                     <i class="bi bi-briefcase text-2xl text-indigo-600 dark:text-indigo-400"></i>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">My Job Applications</h3>
@@ -115,18 +154,13 @@
                             </div>
                             
                             {% if app.Status == 'Interview Scheduled' and app.ScheduledDateTime %}
-                                <!-- Enhanced Interview Schedule Block -->
                                 <div class="flex-shrink-0 w-48 text-center bg-teal-50 border border-teal-200 rounded-xl p-3 shadow-sm dark:bg-teal-900/50 dark:border-teal-700">
                                     <div class="flex items-center justify-center gap-1.5 mb-2">
                                         <i class="bi bi-calendar-check-fill text-sm text-teal-600 dark:text-teal-400"></i>
                                         <span class="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">Interview</span>
                                     </div>
-                                    <p class="text-lg font-bold text-teal-900 dark:text-white">
-                                        {{ app.ScheduledDateTime.strftime('%b %d, %Y') }}
-                                    </p>
-                                    <p class="text-base font-medium text-teal-800 dark:text-teal-200">
-                                        at {{ app.ScheduledDateTime.strftime('%I:%M %p') }}
-                                    </p>
+                                    <p class="text-lg font-bold text-teal-900 dark:text-white">{{ app.ScheduledDateTime.strftime('%b %d, %Y') }}</p>
+                                    <p class="text-base font-medium text-teal-800 dark:text-teal-200">at {{ app.ScheduledDateTime.strftime('%I:%M %p') }}</p>
                                 </div>
                             {% elif app.Status == 'Shortlisted' %}
                                 <a href="{{ url_for('candidate_bp.view_interview_slots', application_id=app.ApplicationID) }}" class="px-3 py-1.5 text-xs font-semibold rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors whitespace-nowrap animate-pulse">Schedule Interview</a>
@@ -152,7 +186,6 @@
 </div>
 
 <script>
-// These functions remain unchanged as they handle backend logic
 function deleteCV(cvId) { if (!confirm('Are you sure you want to permanently delete this CV?')) return; fetch(`/candidate/cv/delete/${cvId}`,{method:'POST'}).then(r=>r.json()).then(d=>{if(d.status==='success'){window.location.reload()}else{alert('Error: '+d.message)}}).catch(e=>alert('An unexpected network error occurred.'))}
 function setPrimaryCV(cvId) { fetch(`/candidate/cv/set-primary/${cvId}`,{method:'POST'}).then(r=>r.json()).then(d=>{if(d.status==='success'){window.location.reload()}else{alert('Error: '+d.message)}}).catch(e=>alert('An unexpected network error occurred.'))}
 </script>
