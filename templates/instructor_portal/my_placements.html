@@ -1,41 +1,9 @@
-<a href="{% url 'my_placements' %}" class="text-blue-600 hover:bg-gray-200 [any other existing classes]">My Placements</a>```
-
 <!-- templates/instructor_portal/my_placements.html -->
 {% extends 'instructor_portal/instructor_base.html' %}
 
 {% block portal_title %}{{ title }}{% endblock %}
 
 {% block portal_content %}
-<!-- 
-  NOTE: The following <nav> block is an EXAMPLE. 
-  You should apply the class changes to your actual navigation bar, 
-  which is likely located in 'instructor_base.html'.
--->
-<nav class="bg-white shadow mb-4">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <!-- Example link for another page -->
-                    <a href="#" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:bg-gray-200 hover:text-gray-700">
-                        Dashboard
-                    </a>
-                    
-                    <!-- 
-                      MODIFIED LINK FOR "My Placements":
-                      - `text-blue-600` makes the font blue.
-                      - `hover:bg-gray-200` changes the background to light grey on hover.
-                    -->
-                    <a href="#" class="inline-flex items-center px-1 pt-1 border-b-2 border-indigo-500 text-sm font-medium text-blue-600 hover:bg-gray-200">
-                        My Placements
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<!-- The rest of your page content remains the same -->
 <div class="bg-white shadow overflow-hidden sm:rounded-md">
     <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
         <h3 class="text-lg leading-6 font-medium text-gray-900">
@@ -57,6 +25,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 {% for placement in placements %}
+                <!-- This section will be populated once the backend logic is complete -->
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">{{ placement.StudentFirstName }} {{ placement.StudentLastName }}</div>
