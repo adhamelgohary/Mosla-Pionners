@@ -54,28 +54,39 @@ def get_application_stats(conn):
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # New users pending approval
-        cursor.execute("SELECT COUNT(*) as count FROM Users WHERE AccountStatus = 'PendingApproval'")
-        stats['pending_users'] = cursor.fetchone()['count']
-        
-        # New staff applications
-        cursor.execute("SELECT COUNT(*) as count FROM StaffApplications WHERE Status = 'Pending'")
-        stats['pending_staff'] = cursor.fetchone()['count']
-        
-        # Total active job offers
+        # --- Existing Stats ---
         cursor.execute("SELECT COUNT(*) as count FROM JobOffers WHERE Status = 'Open'")
         stats['active_jobs'] = cursor.fetchone()['count']
 
-        # Logins in the last 24 hours
         cursor.execute("SELECT COUNT(*) as count FROM LoginHistory WHERE Status = 'Success' AND AttemptedAt >= NOW() - INTERVAL 1 DAY")
         stats['logins_24h'] = cursor.fetchone()['count']
+
+        # --- NEW WIDGET STATS ---
+        
+        # Pending Staff Applications
+        cursor.execute("SELECT COUNT(*) as count FROM StaffApplications WHERE Status = 'Pending'")
+        stats['pending_staff_applications'] = cursor.fetchone()['count']
+        
+        # Pending Client Registrations
+        cursor.execute("SELECT COUNT(*) as count FROM ClientRegistrations WHERE Status = 'Pending'")
+        stats['pending_client_registrations'] = cursor.fetchone()['count']
+
+        # Unassigned Companies
+        cursor.execute("SELECT COUNT(*) as count FROM Companies WHERE ManagedByStaffID IS NULL")
+        stats['unassigned_companies'] = cursor.fetchone()['count']
+
+        # New Applications in last 24 hours
+        cursor.execute("SELECT COUNT(*) as count FROM JobApplications WHERE ApplicationDate >= NOW() - INTERVAL 1 DAY")
+        stats['new_applications_24h'] = cursor.fetchone()['count']
         
         return stats
     except Exception as e:
-        current_app.logger.error(f"Failed to get application stats: {e}")
+        current_app.logger.error(f"Failed to get application stats: {e}", exc_info=True)
+        # Return default values for all stats to prevent crashes
         return {
-            'pending_users': 'N/A', 'pending_staff': 'N/A',
-            'active_jobs': 'N/A', 'logins_24h': 'N/A'
+            'active_jobs': 'N/A', 'logins_24h': 'N/A', 
+            'pending_staff_applications': 'N/A', 'pending_client_registrations': 'N/A', 
+            'unassigned_companies': 'N/A', 'new_applications_24h': 'N/A'
         }
 
 # --- Main Admin Routes ---

@@ -1,4 +1,6 @@
-{% extends "admin/base.html" %} <!-- Or your main admin layout template -->
+--- START OF FILE login_history.html ---
+
+{% extends "base.html" %} <!-- UPDATED: Simplified path for consistency -->
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -43,7 +45,8 @@
                             <th>Status</th>
                             <th>IP Address</th>
                             <th>Timestamp</th>
-                            <th style="min-width: 250px;">User Agent</th>
+                            <!-- UPDATED: Replaced inline style with a Tailwind utility class -->
+                            <th class="min-w-[250px]">User Agent</th>
                         </tr>
                     </thead>
                     <tbody>
