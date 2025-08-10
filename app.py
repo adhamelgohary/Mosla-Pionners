@@ -239,6 +239,11 @@ def inject_role_constants():
         TEAM_ASSIGNMENT_ROLES=TEAM_ASSIGNMENT_ROLES,
         UNIT_AND_ORG_MANAGEMENT_ROLES=UNIT_AND_ORG_MANAGEMENT_ROLES
     )
+@app.context_processor
+def inject_current_time():
+    """Injects the 'now' function into the template context."""
+    # Using datetime.now() makes it available as a callable function in Jinja
+    return {'now': datetime.now}
 
 # --- Global Error Handlers ---
 @app.errorhandler(400)
