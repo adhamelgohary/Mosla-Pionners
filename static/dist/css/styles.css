@@ -2264,6 +2264,10 @@ html[data-theme="dark"] {
   right: 0px;
 }
 
+.top-0 {
+  top: 0px;
+}
+
 .top-24 {
   top: 6rem;
 }
@@ -2282,6 +2286,10 @@ html[data-theme="dark"] {
 
 .z-10 {
   z-index: 10;
+}
+
+.z-20 {
+  z-index: 20;
 }
 
 .z-50 {
@@ -2555,10 +2563,6 @@ html[data-theme="dark"] {
   height: 0.5rem;
 }
 
-.h-2\.5 {
-  height: 0.625rem;
-}
-
 .h-20 {
   height: 5rem;
 }
@@ -2581,6 +2585,10 @@ html[data-theme="dark"] {
 
 .h-4 {
   height: 1rem;
+}
+
+.h-40 {
+  height: 10rem;
 }
 
 .h-5 {
@@ -3707,11 +3715,6 @@ html[data-theme="dark"] {
 .bg-warning-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
-}
-
-.bg-warning-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(245 158 11 / var(--tw-bg-opacity, 1));
 }
 
 .bg-white {
@@ -5852,10 +5855,6 @@ body {
     max-width: 56rem;
   }
 
-  .sm\:flex-1 {
-    flex: 1 1 0%;
-  }
-
   .sm\:flex-auto {
     flex: 1 1 auto;
   }
@@ -5906,10 +5905,6 @@ body {
 
   .sm\:justify-end {
     justify-content: flex-end;
-  }
-
-  .sm\:justify-center {
-    justify-content: center;
   }
 
   .sm\:justify-between {

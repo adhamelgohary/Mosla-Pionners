@@ -1,91 +1,74 @@
-{% extends "admin/base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
-<div>
-    <header class="pb-4 mb-4 border-b border-border">
-        <h1 class="text-2xl font-bold tracking-tight text-heading">Admin Dashboard</h1>
+<div class="space-y-10">
+    <!-- Header -->
+    <header>
+        <h1 class="text-3xl font-bold tracking-tight text-heading">Dashboard</h1>
+        <p class="mt-1 text-md text-text-muted">A quick overview of your application's status.</p>
     </header>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Cards use Tailwind color utilities directly, as they are for status colors -->
-        <div class="rounded-lg bg-blue-600 p-5 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-3xl font-bold">{{ data.app_stats.pending_client_registrations }}</div>
-                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Clients</div>
-                </div>
-                <i class="fas fa-user-plus fa-3x opacity-50"></i>
+    <!-- Section: Key Statistics -->
+    <div>
+        <h2 class="text-lg font-medium text-heading">Key Statistics</h2>
+        <div class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-lg bg-blue-600 p-5 text-white shadow-lg">
+                <i class="fas fa-user-plus fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_client_registrations }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Pending Clients</p>
             </div>
-        </div>
-        <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
-                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Staff Apps</div>
-                </div>
-                <i class="fas fa-user-tie fa-3x opacity-50"></i>
+            <div class="rounded-lg bg-amber-500 p-5 text-white shadow-lg">
+                <i class="fas fa-user-tie fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.pending_staff_applications }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Staff Apps</p>
             </div>
-        </div>
-        <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
-             <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
-                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</div>
-                </div>
-                <i class="fas fa-briefcase fa-3x opacity-50"></i>
+            <div class="rounded-lg bg-green-600 p-5 text-white shadow-lg">
+                <i class="fas fa-briefcase fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.active_jobs }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Active Jobs</p>
             </div>
-        </div>
-        <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
-             <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
-                    <div class="text-sm font-medium uppercase tracking-wider opacity-75">Logins (24h)</div>
-                </div>
-                <i class="fas fa-sign-in-alt fa-3x opacity-50"></i>
+            <div class="rounded-lg bg-slate-700 p-5 text-white shadow-lg">
+                <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
+                <div class="mt-3 text-3xl font-bold">{{ data.app_stats.logins_24h }}</div>
+                <p class="text-sm font-medium uppercase tracking-wider opacity-75">Logins (24h)</p>
             </div>
         </div>
     </div>
-    
-    <!-- System Health Section -->
-    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <!-- System Performance -->
-        <div class="card">
-            <div class="card-header"><h5 class="text-lg font-semibold text-heading"><i class="fas fa-tachometer-alt mr-2 text-text-muted"></i>System Performance</h5></div>
-            <div class="card-body space-y-4">
-                <div>
-                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>CPU Usage</span><span>{{ data.performance.cpu_percent }}%</span></div>
-                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-primary h-2.5 rounded-full" style="width: {{ data.performance.cpu_percent }}%"></div></div>
-                </div>
-                <div>
-                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span>{{ data.performance.memory_used_gb }} / {{ data.performance.memory_total_gb }} GB</span></div>
-                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-success-500 h-2.5 rounded-full" style="width: {{ data.performance.memory_percent }}%"></div></div>
-                </div>
-                <div>
-                    <div class="flex justify-between text-sm font-medium text-text-muted"><span>Disk Usage</span><span>{{ data.performance.disk_used_gb }} / {{ data.performance.disk_total_gb }} GB</span></div>
-                    <div class="w-full bg-background rounded-full h-2.5 mt-1"><div class="bg-warning-500 h-2.5 rounded-full" style="width: {{ data.performance.disk_percent }}%"></div></div>
+
+    <!-- Section: System Health -->
+    <div>
+        <h2 class="text-lg font-medium text-heading">System Health</h2>
+        <div class="mt-2 grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <!-- System Performance Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading"><i class="fas fa-tachometer-alt mr-2 text-text-muted"></i>System Performance</h3></div>
+                <div class="card-body space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>CPU Usage</span><span>{{ data.performance.cpu_percent }}%</span></div>
+                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-primary h-2 rounded-full" style="width: {{ data.performance.cpu_percent }}%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm font-medium text-text-muted"><span>Memory Usage</span><span>{{ data.performance.memory_used_gb }} / {{ data.performance.memory_total_gb }} GB</span></div>
+                        <div class="w-full bg-background rounded-full h-2 mt-1"><div class="bg-success-500 h-2 rounded-full" style="width: {{ data.performance.memory_percent }}%"></div></div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Recent Logs -->
-        <div class="card">
-            <div class="card-header flex justify-between items-center">
-                <h5 class="text-lg font-semibold text-heading"><i class="fas fa-exclamation-triangle mr-2 text-danger"></i>Recent Application Logs</h5>
-                <a href="{{ url_for('admin_bp.view_full_log') }}" target="_blank" class="btn-secondary">View Full Log</a>
-            </div>
-            <div class="card-body">
-                <div class="h-64 overflow-y-auto rounded-md bg-gray-900 p-3">
-                    {% if data.recent_errors %}
-                        <pre class="text-xs text-gray-200"><code>{% for error in data.recent_errors %}{{ error }}{% endfor %}</code></pre>
-                    {% else %}
-                        <div class="flex items-center justify-center h-full text-center text-gray-400">
-                            <div>
-                                <i class="fas fa-check-circle text-3xl text-success-500"></i>
-                                <p class="mt-2 font-medium">No recent errors found.</p>
+            <!-- Recent Logs Card -->
+            <div class="card">
+                <div class="card-header flex justify-between items-center">
+                    <h3 class="font-semibold text-heading"><i class="fas fa-exclamation-triangle mr-2 text-danger"></i>Application Logs</h3>
+                    <a href="{{ url_for('admin_bp.view_full_log') }}" target="_blank" class="btn-secondary">View Full Log</a>
+                </div>
+                <div class="card-body">
+                    <div class="h-40 overflow-y-auto rounded-md bg-gray-900 p-3">
+                        {% if data.recent_errors %}
+                            <pre class="text-xs text-gray-200"><code>{% for error in data.recent_errors %}{{ error }}{% endfor %}</code></pre>
+                        {% else %}
+                            <div class="flex items-center justify-center h-full text-center text-gray-400">
+                                <p><i class="fas fa-check-circle mr-2 text-success-500"></i>No recent errors found.</p>
                             </div>
-                        </div>
-                    {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

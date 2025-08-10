@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- The `data-theme` attribute can be toggled between "light" and "dark" -->
+<!-- The `data-theme` can be toggled to 'dark' for your dark mode styles -->
 <html lang="en" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
@@ -7,16 +7,16 @@
     <title>{{ title or 'Admin Panel' }} - Moslla</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dist/styles.css') }}">
     
-    <!-- Alpine.js for simple, declarative JS interactivity -->
+    <!-- Alpine.js for simple interactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="h-full font-sans bg-background text-text">
 
 <div x-data="{ mobileMenuOpen: false, profileMenuOpen: false }" class="min-h-full">
     <!-- Navbar -->
-    <nav class="bg-card border-b border-border shadow-sm">
+    <nav class="bg-card border-b border-border shadow-sm sticky top-0 z-20">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center">
@@ -24,23 +24,24 @@
                         <i class="fas fa-crown text-primary text-xl"></i>
                         <span class="font-bold text-lg text-heading">Moslla Admin</span>
                     </a>
+                    <!-- Desktop Navigation Links -->
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="{{ url_for('admin_bp.admin_dashboard') }}" class="rounded-md px-3 py-2 text-sm font-medium {% if 'admin_dashboard' in request.endpoint %}text-primary font-semibold{% else %}text-text-muted hover:text-primary{% endif %}">Dashboard</a>
+                            <!-- THE ADDED LOGIN HISTORY LINK -->
+                            <a href="{{ url_for('admin_bp.login_history') }}" class="rounded-md px-3 py-2 text-sm font-medium {% if 'login_history' in request.endpoint %}text-primary font-semibold{% else %}text-text-muted hover:text-primary{% endif %}">Login History</a>
+                        </div>
+                    </div>
                 </div>
                 <div class="hidden md:block">
                     <div class="ml-4 flex items-center md:ml-6">
-                        <a href="{{ url_for('public_routes_bp.home_page') }}" target="_blank" class="text-text-muted hover:text-primary" title="View Main Site">
-                            <span class="sr-only">View Main Site</span>
-                            <i class="fas fa-globe fa-fw text-lg"></i>
-                        </a>
-
-                        <!-- Profile dropdown -->
-                        <div class="relative ml-4" @click.outside="profileMenuOpen = false">
+                        <!-- Profile Dropdown -->
+                        <div class="relative ml-3" @click.outside="profileMenuOpen = false">
                             <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                                 <span class="sr-only">Open user menu</span>
                                 <i class="fas fa-user-circle fa-fw text-2xl text-text-muted"></i>
                             </button>
                             <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                <div class="px-4 py-2 text-sm text-text-muted border-b border-border">Signed in as <strong class="text-heading truncate block">{{ current_user.email }}</strong></div>
-                                <a href="#" class="block px-4 py-2 text-sm text-text hover:bg-background">Your Profile</a>
                                 <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text hover:bg-background">Sign out</a>
                             </div>
                         </div>
@@ -48,7 +49,7 @@
                 </div>
                 <!-- Mobile menu button -->
                 <div class="-mr-2 flex md:hidden">
-                    <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md p-2 text-text-muted hover:bg-background hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary">
+                    <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md p-2 text-text-muted hover:bg-background hover:text-primary">
                         <span class="sr-only">Open main menu</span>
                         <i class="fas fa-bars fa-fw text-xl"></i>
                     </button>
@@ -57,48 +58,28 @@
         </div>
 
         <!-- Mobile menu -->
-        <div x-show="mobileMenuOpen" class="md:hidden">
-            <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
+        <div x-show="mobileMenuOpen" class="md:hidden border-t border-border">
+            <div class="space-y-1 px-2 pb-3 pt-2">
                 <a href="{{ url_for('admin_bp.admin_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Dashboard</a>
+                <!-- THE ADDED LOGIN HISTORY LINK (FOR MOBILE) -->
                 <a href="{{ url_for('admin_bp.login_history') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Login History</a>
             </div>
             <div class="border-t border-border pb-3 pt-4">
                 <div class="flex items-center px-5">
-                    <div class="flex-shrink-0"><i class="fas fa-user-circle fa-fw text-3xl text-text-muted"></i></div>
-                    <div class="ml-3">
-                        <div class="text-base font-medium text-heading">{{ current_user.first_name }} {{ current_user.last_name }}</div>
-                        <div class="text-sm font-medium text-text-muted">{{ current_user.email }}</div>
+                    <div class="ml-auto">
+                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Sign out</a>
                     </div>
-                </div>
-                <div class="mt-3 space-y-1 px-2">
-                    <a href="#" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Your Profile</a>
-                    <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Sign out</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Page Content -->
-    <main class="flex-grow">
-        <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                <div class="space-y-3 mb-4">
-                    {% for category, message in messages %}
-                        {% set alert_type = 'success' if category == 'success' else 'danger' if category == 'danger' else 'primary' %}
-                        <div class="rounded-md border p-4 shadow-sm bg-alert-{{ alert_type }}-bg border-alert-{{ alert_type }}-border">
-                            <p class="text-sm font-medium text-alert-{{ alert_type }}-text">{{ message }}</p>
-                        </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            {% endwith %}
-            
+    <main class="py-10">
+        <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
             {% block content %}{% endblock %}
         </div>
     </main>
 </div>
-
 </body>
 </html>
