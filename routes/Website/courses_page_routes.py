@@ -123,7 +123,8 @@ def apply_for_package_form(sub_package_id):
 @login_required
 def submit_package_application(sub_package_id):
     """
-    Handles the submission of the sub-package application form.
+    Handles the submission of the sub-package application form, creating an
+    'Applied' record for instructor review.
     """
     if not hasattr(current_user, 'role_type') or current_user.role_type != 'Candidate':
         flash("Only candidates can submit applications.", "danger")
@@ -140,18 +141,27 @@ def submit_package_application(sub_package_id):
     try:
         cursor = conn.cursor()
 
-        # Check if the candidate has already applied for this specific sub-package
-        cursor.execute("SELECT EnrollmentID FROM CourseEnrollments WHERE SubPackageID = %s AND CandidateID = %s", (sub_package_id, candidate_id))
+        # Check if the candidate has an active application (Applied or Enrolled)
+        # This prevents them from applying to multiple courses at once.
+        cursor.execute("""
+            SELECT EnrollmentID FROM CourseEnrollments 
+            WHERE CandidateID = %s AND Status IN ('Applied', 'Enrolled', 'InProgress')
+        """, (candidate_id,))
         if cursor.fetchone():
-            flash("You have already applied for this package.", "info")
-            return redirect(url_for('.view_packages'))
+            flash("You already have an active course application or enrollment. Please wait for it to be processed before applying for another.", "info")
+            return redirect(url_for('candidate_bp.dashboard'))
             
-        # Insert the enrollment record with SubPackageID, leaving CourseID as NULL
-        sql = "INSERT INTO CourseEnrollments (SubPackageID, CandidateID, Status, Notes) VALUES (%s, %s, 'Applied', %s)"
+        # Insert the enrollment record with OriginalSubPackageID, leaving SubPackageID as NULL
+        # This creates the application for the instructor to review.
+        sql = """
+            INSERT INTO CourseEnrollments 
+            (OriginalSubPackageID, CandidateID, Status, Notes, SubPackageID) 
+            VALUES (%s, %s, 'Applied', %s, NULL)
+        """
         cursor.execute(sql, (sub_package_id, candidate_id, notes))
         conn.commit()
         
-        flash("Your application has been submitted successfully! We will review it and get back to you.", "success")
+        flash("Your application has been submitted successfully! An instructor will contact you shortly regarding a placement test.", "success")
         return redirect(url_for('candidate_bp.dashboard'))
 
     except mysql.connector.Error as err:

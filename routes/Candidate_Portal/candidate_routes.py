@@ -36,44 +36,34 @@ def dashboard():
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Fetch full candidate profile (existing code)
+        # Fetch profile, CVs, and Job Applications (existing code is fine)
         cursor.execute("SELECT c.*, u.FirstName, u.LastName, u.Email, u.PhoneNumber, u.ProfilePictureURL FROM Candidates c JOIN Users u ON c.UserID = u.UserID WHERE c.CandidateID = %s", (candidate_id,))
         candidate_profile = cursor.fetchone()
-        
-        # Fetch CVs (existing code)
         cursor.execute("SELECT CVID, CVFileUrl, OriginalFileName, CVTitle, UploadedAt, IsPrimary, FileSizeKB FROM CandidateCVs WHERE CandidateID = %s ORDER BY IsPrimary DESC, UploadedAt DESC", (candidate_id,))
         cv_list = cursor.fetchall()
-
-        # Fetch job applications (existing code)
-        cursor.execute("""
-            SELECT 
-                ja.ApplicationID, ja.Status, 
-                jo.Title, 
-                comp.CompanyName,
-                i.ScheduledDateTime
-            FROM JobApplications ja
-            JOIN JobOffers jo ON ja.OfferID = jo.OfferID
-            JOIN Companies comp ON jo.CompanyID = comp.CompanyID
-            LEFT JOIN Interviews i ON ja.ApplicationID = i.ApplicationID
-            WHERE ja.CandidateID = %s 
-            ORDER BY ja.ApplicationDate DESC
-        """, (candidate_id,))
+        cursor.execute("SELECT ja.ApplicationID, ja.Status, jo.Title, comp.CompanyName, i.ScheduledDateTime FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID JOIN Companies comp ON jo.CompanyID = comp.CompanyID LEFT JOIN Interviews i ON ja.ApplicationID = i.ApplicationID WHERE ja.CandidateID = %s ORDER BY ja.ApplicationDate DESC", (candidate_id,))
         applied_jobs = cursor.fetchall()
         
-        # --- NEW QUERY: Fetch Course Enrollments ---
+        # --- UPDATED QUERY for Course Enrollments ---
+        # This query now handles both initial applications and final placements gracefully.
         cursor.execute("""
             SELECT 
                 ce.Status, ce.EnrollmentDate,
-                sp.Name AS SubPackageName,
-                mp.Name AS MainPackageName
+                -- Show the final placed package if it exists, otherwise show the original applied package
+                COALESCE(final_sp.Name, original_sp.Name) AS SubPackageName,
+                COALESCE(final_mp.Name, original_mp.Name) AS MainPackageName
             FROM CourseEnrollments ce
-            JOIN SubPackages sp ON ce.SubPackageID = sp.SubPackageID
-            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            -- Join for the package they originally applied to
+            LEFT JOIN SubPackages original_sp ON ce.OriginalSubPackageID = original_sp.SubPackageID
+            LEFT JOIN MainPackages original_mp ON original_sp.MainPackageID = original_mp.PackageID
+            -- Join for the package they were finally placed in (can be NULL)
+            LEFT JOIN SubPackages final_sp ON ce.SubPackageID = final_sp.SubPackageID
+            LEFT JOIN MainPackages final_mp ON final_sp.MainPackageID = final_mp.PackageID
             WHERE ce.CandidateID = %s
             ORDER BY ce.EnrollmentDate DESC
         """, (candidate_id,))
         enrolled_courses = cursor.fetchall()
-        # --- END OF NEW QUERY ---
+        # --- END OF UPDATED QUERY ---
 
     except Exception as e:
         flash("An error occurred while loading your profile.", "danger")
