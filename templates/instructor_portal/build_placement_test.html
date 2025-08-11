@@ -5,22 +5,49 @@
 
 {% block portal_content %}
 <div x-data="testBuilder()">
+    <!-- Header -->
+    <div class="mb-6 pb-4 border-b">
+        <h2 class="text-xl font-semibold text-gray-800">Test Content</h2>
+        <p class="text-sm text-gray-500">Add, edit, or remove questions for this internal test.</p>
+    </div>
+
     <!-- List of Existing Questions -->
     <div class="space-y-4">
         {% for q in questions %}
-        <div class="bg-white p-4 rounded-lg shadow border">
-            <h4 class="font-semibold">{{ loop.index }}. {{ q.QuestionText }}</h4>
-            <ul class="mt-2 space-y-1 text-sm list-disc list-inside">
-                {% for opt in q.options %}
-                <li class="{{ 'text-green-600 font-bold' if opt.IsCorrect else 'text-gray-700' }}">
-                    {{ opt.OptionText }} {% if opt.IsCorrect %}(Correct Answer){% endif %}
-                </li>
-                {% endfor %}
-            </ul>
-            <!-- Placeholder for future add option form -->
+        <div class="bg-white p-4 rounded-lg shadow-sm border">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="flex items-center gap-x-3">
+                        <span class="font-bold text-gray-800">{{ loop.index }}.</span>
+                        <p class="font-semibold text-gray-800">{{ q.QuestionText }}</p>
+                    </div>
+                    {% if q.QuestionType == 'MultipleChoice' %}
+                        <ul class="mt-2 space-y-1 text-sm list-disc list-inside ml-6">
+                            {% for opt in q.options %}
+                            <li class="{{ 'text-green-600 font-bold' if opt.IsCorrect else 'text-gray-700' }}">
+                                {{ opt.OptionText }} {% if opt.IsCorrect %}<i class="bi bi-check-circle-fill text-xs"></i>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% elif q.QuestionType == 'WrittenAnswer' and q.ModelAnswer %}
+                        <div class="mt-3 text-sm p-3 bg-gray-50 border rounded-md ml-6">
+                           <p class="font-semibold text-gray-600">Model Answer:</p>
+                           <p class="text-gray-700 whitespace-pre-wrap">{{ q.ModelAnswer }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">{{ q.QuestionType.replace('MultipleChoice', 'MCQ').replace('WrittenAnswer', 'Written') }}</span>
+                    <!-- Placeholder for future Edit/Delete buttons -->
+                </div>
+            </div>
         </div>
         {% else %}
-        <p class="text-center text-gray-500 py-4">This test has no questions yet. Add one below.</p>
+        <div class="text-center text-gray-500 py-8 px-4 bg-white rounded-lg shadow-sm border">
+            <i class="bi bi-journal-x text-4xl text-gray-400"></i>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">This test is empty.</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by adding a new question below.</p>
+        </div>
         {% endfor %}
     </div>
 
@@ -29,30 +56,47 @@
         <div class="bg-white p-6 rounded-lg shadow-md border">
             <h3 class="text-lg font-medium">Add New Question</h3>
             
+            <!-- Question Type Selector -->
+            <div class="mt-4">
+                <label for="question_type" class="form-label">Question Type</label>
+                <select x-model="newQuestion.type" id="question_type" class="form-select">
+                    <option value="MultipleChoice">Multiple Choice</option>
+                    <option value="WrittenAnswer">Written Answer</option>
+                </select>
+            </div>
+            
             <!-- Question Text Input -->
             <div class="mt-4">
                 <label for="new_question_text" class="form-label">Question</label>
-                <textarea x-model="newQuestion.text" id="new_question_text" rows="3" class="form-textarea" placeholder="e.g., What is the past tense of 'go'?"></textarea>
+                <textarea x-model="newQuestion.text" id="new_question_text" rows="3" class="form-textarea" placeholder="Enter the question text..."></textarea>
             </div>
 
-            <!-- Options Input -->
-            <div class="mt-4">
-                <label class="form-label">Options</label>
+            <!-- DYNAMIC SECTION: Multiple Choice Fields -->
+            <div x-show="newQuestion.type === 'MultipleChoice'" x-collapse class="mt-4">
+                <label class="form-label">Options (select the correct answer)</label>
                 <template x-for="(option, index) in newQuestion.options" :key="index">
                     <div class="flex items-center gap-2 mt-2">
-                        <input type="radio" :name="'correct_answer'" :value="index" @change="setCorrect(index)" class="form-radio">
+                        <input type="radio" :name="'correct_answer'" :value="index" @change="setCorrect(index)" class="form-radio h-5 w-5 text-indigo-600">
                         <input type="text" x-model="option.text" class="form-input flex-grow" placeholder="Enter option text">
-                        <button @click.prevent="removeOption(index)" class="text-red-500 hover:text-red-700" title="Remove option">&times;</button>
+                        <button @click.prevent="removeOption(index)" class="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100" title="Remove option">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </template>
                 <button @click.prevent="addOption()" class="btn-secondary !text-xs !py-1 mt-2">
                     <i class="bi bi-plus-lg"></i> Add Option
                 </button>
             </div>
+
+            <!-- DYNAMIC SECTION: Written Answer Field -->
+            <div x-show="newQuestion.type === 'WrittenAnswer'" x-collapse class="mt-4">
+                <label for="model_answer" class="form-label">Model Answer</label>
+                <textarea x-model="newQuestion.modelAnswer" id="model_answer" rows="4" class="form-textarea" placeholder="Provide an ideal answer for your reference during grading. This is not shown to the student."></textarea>
+            </div>
             
             <div class="mt-6 flex justify-end">
                 <button @click="saveQuestion()" class="btn-primary" :disabled="isSaving">
-                    <span x-show="!isSaving">Save Question</span>
+                    <span x-show="!isSaving"><i class="bi bi-plus-circle-fill mr-1"></i> Add Question to Test</span>
                     <span x-show="isSaving">Saving...</span>
                 </button>
             </div>
@@ -65,17 +109,23 @@ function testBuilder() {
     return {
         newQuestion: {
             text: '',
+            type: 'MultipleChoice',
             options: [
                 { text: '', isCorrect: false },
                 { text: '', isCorrect: false }
-            ]
+            ],
+            modelAnswer: ''
         },
         isSaving: false,
         addOption() {
             this.newQuestion.options.push({ text: '', isCorrect: false });
         },
         removeOption(index) {
-            this.newQuestion.options.splice(index, 1);
+            if (this.newQuestion.options.length > 2) {
+                this.newQuestion.options.splice(index, 1);
+            } else {
+                alert('A multiple choice question must have at least two options.');
+            }
         },
         setCorrect(selectedIndex) {
             this.newQuestion.options.forEach((option, index) => {
@@ -87,15 +137,21 @@ function testBuilder() {
                 alert('Question text cannot be empty.');
                 return;
             }
-            if (this.newQuestion.options.filter(o => o.isCorrect).length === 0) {
-                alert('Please select one correct answer.');
-                return;
-            }
             this.isSaving = true;
 
-            // Step 1: Save the question text
             const questionFormData = new FormData();
             questionFormData.append('question_text', this.newQuestion.text);
+            questionFormData.append('question_type', this.newQuestion.type);
+            
+            if (this.newQuestion.type === 'MultipleChoice') {
+                if (this.newQuestion.options.filter(o => o.isCorrect).length === 0) {
+                    alert('Please select one correct answer for multiple choice questions.');
+                    this.isSaving = false;
+                    return;
+                }
+            } else if (this.newQuestion.type === 'WrittenAnswer') {
+                questionFormData.append('model_answer', this.newQuestion.modelAnswer);
+            }
 
             const questionResponse = await fetch(`{{ url_for('.add_test_question', test_id=test.TestID) }}`, {
                 method: 'POST',
@@ -110,28 +166,20 @@ function testBuilder() {
             const questionResult = await questionResponse.json();
             const newQuestionId = questionResult.question_id;
 
-            // Step 2: Save all the options for that new question
-            // --- THIS IS THE CORRECTED PART ---
-            const addOptionUrlTemplate = '{{ url_for(".add_question_option", question_id=0) }}';
-            
-            for (const option of this.newQuestion.options) {
-                 if (option.text.trim()) {
-                    const optionFormData = new FormData();
-                    optionFormData.append('option_text', option.text);
-                    optionFormData.append('is_correct', option.isCorrect);
-                    
-                    // Build the correct URL dynamically in JavaScript
-                    const finalUrl = addOptionUrlTemplate.replace('0', newQuestionId);
-
-                    await fetch(finalUrl, {
-                        method: 'POST',
-                        body: optionFormData
-                    });
-                 }
+            if (this.newQuestion.type === 'MultipleChoice') {
+                const addOptionUrlTemplate = '{{ url_for(".add_question_option", question_id=0) }}';
+                for (const option of this.newQuestion.options) {
+                     if (option.text.trim()) {
+                        const optionFormData = new FormData();
+                        optionFormData.append('option_text', option.text);
+                        optionFormData.append('is_correct', option.isCorrect);
+                        
+                        const finalUrl = addOptionUrlTemplate.replace('0', newQuestionId);
+                        await fetch(finalUrl, { method: 'POST', body: optionFormData });
+                     }
+                }
             }
-            // --- END OF CORRECTION ---
-
-            // Step 3: Reload the page
+            
             alert('Question saved successfully!');
             window.location.reload();
         }

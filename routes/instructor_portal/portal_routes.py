@@ -892,21 +892,24 @@ def build_placement_test(test_id):
 @instructor_portal_bp.route('/placement-tests/build/<int:test_id>/add-question', methods=['POST'])
 @instructor_required
 def add_test_question(test_id):
-    """Adds a new question to an internal test via AJAX."""
-    # (Auth checks would be here in a real app)
+    """Adds a new question (MultipleChoice or WrittenAnswer) to an internal test."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
         question_text = request.form.get('question_text')
+        question_type = request.form.get('question_type', 'MultipleChoice') # Default to MC
+        model_answer = request.form.get('model_answer') # This will be None for MC questions
+
         if not question_text:
             return jsonify({'status': 'error', 'message': 'Question text cannot be empty.'}), 400
         
         cursor.execute(
-            "INSERT INTO PlacementTestQuestions (TestID, QuestionText, QuestionType) VALUES (%s, %s, %s)",
-            (test_id, question_text, 'MultipleChoice')
+            """INSERT INTO PlacementTestQuestions 
+               (TestID, QuestionText, QuestionType, ModelAnswer) 
+               VALUES (%s, %s, %s, %s)""",
+            (test_id, question_text, question_type, model_answer)
         )
         conn.commit()
-        # Return the new question's ID so we can add options to it
         return jsonify({'status': 'success', 'question_id': cursor.lastrowid})
     except Exception as e:
         if conn: conn.rollback()
