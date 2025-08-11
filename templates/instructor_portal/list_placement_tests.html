@@ -1,0 +1,11 @@
+<!-- templates/instructor_portal/list_placement_tests.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+{% block portal_title %}{{ title }}{% endblock %}
+{% block portal_content %}
+<div class="flex justify-end mb-4">
+    <a href="{{ url_for('.add_placement_test') }}" class="btn-primary"><i class="bi bi-plus-circle-fill mr-1"></i> Create New Test</a>
+</div>
+<div class="bg-white shadow overflow-hidden sm:rounded-md">
+    <!-- Table for tests -->
+</div>
+{% endblock %}

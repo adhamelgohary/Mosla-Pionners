@@ -522,3 +522,237 @@ def my_placements():
     return render_template('instructor_portal/my_placements.html', 
                            title="My Placements & Commissions",
                            placements=placements)
+    
+@instructor_portal_bp.route('/placement-requests')
+@instructor_required
+def placement_requests():
+    """Lists all candidates who have applied but are not yet placed in a group."""
+    conn = get_db_connection()
+    applications = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Fetch all enrollments with 'Applied' status
+        cursor.execute("""
+        SELECT 
+            ce.EnrollmentID, ce.EnrollmentDate,
+            u.FirstName, u.LastName, u.Email,
+            sp.Name AS AppliedSubPackageName,
+            apt.TestID, pt.Title AS AssignedTestTitle
+        FROM CourseEnrollments ce
+        JOIN Candidates c ON ce.CandidateID = c.CandidateID
+        JOIN Users u ON c.UserID = u.UserID
+        LEFT JOIN SubPackages sp ON ce.OriginalSubPackageID = sp.SubPackageID
+        LEFT JOIN AssignedPlacementTests apt ON ce.EnrollmentID = apt.EnrollmentID
+        LEFT JOIN PlacementTests pt ON apt.TestID = pt.TestID
+        WHERE ce.Status = 'Applied'
+        ORDER BY ce.EnrollmentDate ASC
+    """)
+        applications = cursor.fetchall()
+    except Exception as e:
+        flash("An error occurred while fetching placement requests.", "danger")
+        current_app.logger.error(f"Error fetching placement requests: {e}")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('instructor_portal/placement_requests.html',
+                           title="Student Placement Requests",
+                           applications=applications)
+
+
+@instructor_portal_bp.route('/place-student/<int:enrollment_id>', methods=['GET', 'POST'])
+@instructor_required
+def place_student(enrollment_id):
+    """Page for an instructor to place a student into a group after assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        instructor_staff_id = current_user.specific_role_id
+
+        # Fetch the application details
+        cursor.execute("""
+            SELECT ce.EnrollmentID, u.FirstName, u.LastName, sp.Name as AppliedSubPackageName
+            FROM CourseEnrollments ce
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            LEFT JOIN SubPackages sp ON ce.OriginalSubPackageID = sp.SubPackageID
+            WHERE ce.EnrollmentID = %s AND ce.Status = 'Applied'
+        """, (enrollment_id,))
+        application = cursor.fetchone()
+
+        if not application:
+            flash("This application is not available for placement or has already been processed.", "warning")
+            return redirect(url_for('.placement_requests'))
+            
+        # Fetch all groups managed by this instructor to populate the dropdown
+        cursor.execute("""
+            SELECT cg.GroupID, cg.GroupName, sp.Name as SubPackageName, mp.Name as MainPackageName
+            FROM CourseGroups cg
+            JOIN CourseGroupInstructors cgi ON cg.GroupID = cgi.GroupID
+            JOIN SubPackages sp ON cg.SubPackageID = sp.SubPackageID
+            JOIN MainPackages mp ON sp.MainPackageID = mp.PackageID
+            WHERE cgi.InstructorStaffID = %s AND cg.Status IN ('Planning', 'Active')
+        """, (instructor_staff_id,))
+        available_groups = cursor.fetchall()
+
+        if request.method == 'POST':
+            form = request.form
+            group_id = form.get('group_id')
+            test_score = form.get('test_score')
+
+            if not group_id:
+                flash("You must select a group to place the student in.", "danger")
+                return render_template('instructor_portal/place_student.html',
+                                       title="Place Student",
+                                       application=application,
+                                       available_groups=available_groups)
+            
+            # --- THE CORE PLACEMENT LOGIC ---
+            # 1. Get the SubPackageID from the selected group
+            cursor.execute("SELECT SubPackageID FROM CourseGroups WHERE GroupID = %s", (group_id,))
+            group_data = cursor.fetchone()
+            final_subpackage_id = group_data['SubPackageID']
+
+            # 2. Update the CourseEnrollments record
+            cursor.execute("""
+                UPDATE CourseEnrollments 
+                SET 
+                    Status = 'Enrolled', 
+                    SubPackageID = %s,
+                    PlacementTestScore = %s,
+                    AssignedByInstructorStaffID = %s,
+                    UpdatedAt = NOW()
+                WHERE EnrollmentID = %s
+            """, (final_subpackage_id, test_score, instructor_staff_id, enrollment_id))
+
+            # 3. Add the student to the group's roster
+            cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id))
+
+            # 4. Generate their attendance records for all sessions in that group
+            cursor.execute("SELECT SessionID FROM GroupSessions WHERE GroupID = %s", (group_id,))
+            sessions = cursor.fetchall()
+            if sessions:
+                attendance_data = [(s['SessionID'], enrollment_id) for s in sessions]
+                sql_insert_attendance = "INSERT INTO SessionAttendance (SessionID, EnrollmentID) VALUES (%s, %s)"
+                cursor.executemany(sql_insert_attendance, attendance_data)
+
+            conn.commit()
+            flash(f"{application['FirstName']} {application['LastName']} has been successfully placed.", "success")
+            return redirect(url_for('.placement_requests'))
+
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"An error occurred during placement: {e}", "danger")
+        current_app.logger.error(f"Error placing student (EnrollmentID {enrollment_id}): {e}", exc_info=True)
+        return redirect(url_for('.placement_requests'))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return render_template('instructor_portal/place_student.html',
+                           title=f"Place Student: {application['FirstName']} {application['LastName']}",
+                           application=application,
+                           available_groups=available_groups)
+    
+@instructor_portal_bp.route('/placement-tests')
+@instructor_required
+def list_placement_tests():
+    """Lists all placement tests created by the instructor."""
+    conn = get_db_connection()
+    tests = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT TestID, Title, TestType, ExternalURL, IsActive 
+            FROM PlacementTests 
+            WHERE CreatedByInstructorStaffID = %s
+            ORDER BY CreatedAt DESC
+        """, (current_user.specific_role_id,))
+        tests = cursor.fetchall()
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return render_template('instructor_portal/list_placement_tests.html', 
+                           title="Manage Placement Tests", tests=tests)
+
+
+@instructor_portal_bp.route('/placement-tests/add', methods=['GET', 'POST'])
+@instructor_required
+def add_placement_test():
+    """Add a new external or internal placement test."""
+    if request.method == 'POST':
+        form = request.form
+        test_type = form.get('test_type')
+        title = form.get('title')
+        external_url = form.get('external_url')
+
+        if not title or not test_type:
+            flash("Title and Test Type are required.", "danger")
+            return render_template('instructor_portal/add_edit_placement_test.html', title="Add Placement Test", form_data=form)
+        
+        if test_type == 'External' and not external_url:
+            flash("External URL is required for an external test.", "danger")
+            return render_template('instructor_portal/add_edit_placement_test.html', title="Add Placement Test", form_data=form)
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO PlacementTests (Title, Description, TestType, ExternalURL, CreatedByInstructorStaffID)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (title, form.get('description'), test_type, external_url if test_type == 'External' else None, current_user.specific_role_id))
+            conn.commit()
+            flash("Placement test created successfully.", "success")
+            return redirect(url_for('.list_placement_tests'))
+        except Exception as e:
+            if conn and conn.is_connected(): conn.rollback()
+            flash(f"Database error: {e}", "danger")
+        finally:
+            if conn and conn.is_connected(): conn.close()
+    
+    return render_template('instructor_portal/add_edit_placement_test.html', title="Add Placement Test", form_data={})
+
+# Note: An edit_placement_test route would follow the same pattern.
+
+@instructor_portal_bp.route('/placement-requests/<int:enrollment_id>/assign-test', methods=['GET', 'POST'])
+@instructor_required
+def assign_placement_test(enrollment_id):
+    """Assign an existing placement test to a student's application."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        instructor_staff_id = current_user.specific_role_id
+
+        if request.method == 'POST':
+            test_id = request.form.get('test_id')
+            if not test_id:
+                flash("You must select a test to assign.", "danger")
+                return redirect(url_for('.assign_placement_test', enrollment_id=enrollment_id))
+            
+            # Use INSERT ... ON DUPLICATE KEY UPDATE to handle re-assignment
+            cursor.execute("""
+                INSERT INTO AssignedPlacementTests (EnrollmentID, TestID, AssignedByInstructorStaffID)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE TestID = VALUES(TestID), AssignedByInstructorStaffID = VALUES(AssignedByInstructorStaffID), AssignedAt = NOW()
+            """, (enrollment_id, test_id, instructor_staff_id))
+            conn.commit()
+            
+            # Here you would typically trigger an email to the student with the test link.
+            # For now, we just flash a message.
+            flash("Test assigned to student successfully.", "success")
+            return redirect(url_for('.placement_requests'))
+            
+        # GET Request
+        # Fetch available tests
+        cursor.execute("SELECT TestID, Title FROM PlacementTests WHERE CreatedByInstructorStaffID = %s AND IsActive = 1", (instructor_staff_id,))
+        available_tests = cursor.fetchall()
+        
+        # Fetch student info
+        cursor.execute("SELECT u.FirstName, u.LastName FROM CourseEnrollments ce JOIN Candidates c ON ce.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ce.EnrollmentID = %s", (enrollment_id,))
+        student = cursor.fetchone()
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('instructor_portal/assign_test.html', 
+                           title=f"Assign Test to {student['FirstName']}", 
+                           enrollment_id=enrollment_id, 
+                           student=student,
+                           available_tests=available_tests)

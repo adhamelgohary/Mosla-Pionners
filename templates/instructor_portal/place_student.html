@@ -1,0 +1,42 @@
+<!-- templates/instructor_portal/place_student.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}{{ title }}{% endblock %}
+
+{% block portal_content %}
+<div class="bg-white shadow rounded-lg max-w-2xl mx-auto">
+    <form method="POST" class="p-6 sm:p-8 space-y-6">
+        <div class="border-b border-gray-200 pb-5">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Place Student into Group</h3>
+            <p class="mt-2 max-w-4xl text-sm text-gray-500">
+                Student <strong class="text-indigo-600">{{ application.FirstName }} {{ application.LastName }}</strong> originally applied for the '{{ application.AppliedSubPackageName }}' package.
+            </p>
+        </div>
+
+        <div>
+            <label for="test_score" class="form-label">Placement Test Score / Result</label>
+            <input type="text" name="test_score" id="test_score" class="form-input" placeholder="e.g., B1+, 75/100, etc.">
+        </div>
+        
+        <div>
+            <label for="group_id" class="form-label">Assign to Group*</label>
+            <select name="group_id" id="group_id" class="form-select" required>
+                <option value="">-- Select a suitable group --</option>
+                {% for group in available_groups %}
+                    <option value="{{ group.GroupID }}">
+                        {{ group.GroupName }} ({{ group.MainPackageName }} - {{ group.SubPackageName }})
+                    </option>
+                {% endfor %}
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Based on the test result, choose the group that best matches the student's level. This will finalize their course enrollment.</p>
+        </div>
+        
+        <div class="pt-5 border-t flex justify-end gap-x-3">
+            <a href="{{ url_for('.placement_requests') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                Confirm Placement & Enroll Student
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

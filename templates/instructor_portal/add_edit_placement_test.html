@@ -1,0 +1,27 @@
+<!-- templates/instructor_portal/add_edit_placement_test.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+{% block portal_title %}{{ title }}{% endblock %}
+{% block portal_content %}
+<div class="bg-white shadow rounded-lg max-w-2xl mx-auto" x-data="{ testType: '{{ form_data.TestType or 'External' }}' }">
+    <form method="POST" class="p-6 sm:p-8 space-y-6">
+        <div>
+            <label for="title" class="form-label">Test Title*</label>
+            <input type="text" name="title" id="title" class="form-input" required value="{{ form_data.Title or '' }}">
+        </div>
+        <div>
+            <label class="form-label">Test Type*</label>
+            <select name="test_type" x-model="testType" class="form-select">
+                <option value="External">External Link (e.g., Google Form)</option>
+                <option value="Internal" disabled>Internal (Coming Soon)</option>
+            </select>
+        </div>
+        <div x-show="testType === 'External'">
+            <label for="external_url" class="form-label">External Test URL*</label>
+            <input type="url" name="external_url" id="external_url" class="form-input" placeholder="https://forms.gle/..." value="{{ form_data.ExternalURL or '' }}">
+        </div>
+        <div class="pt-5 border-t flex justify-end">
+            <button type="submit" class="btn-primary">Save Test</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

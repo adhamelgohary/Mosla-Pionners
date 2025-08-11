@@ -1,0 +1,69 @@
+<!-- templates/instructor_portal/placement_requests.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}{{ title }}{% endblock %}
+
+{% block portal_content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Pending Student Applications</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+          Review new applications, assign a placement test, and then place successful candidates into an appropriate group.
+        </p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied For</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application Date</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Test</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for app in applications %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ app.FirstName }} {{ app.LastName }}</div>
+                        <div class="text-sm text-gray-500">{{ app.Email }}</div>
+                        <div class="text-sm text-gray-500">{{ app.PhoneNumber or 'No phone' }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">{{ app.AppliedMainPackageName or 'N/A' }}</div>
+                        <div class="text-sm text-gray-500">{{ app.AppliedSubPackageName or 'N/A' }}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ app.EnrollmentDate.strftime('%b %d, %Y') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        {% if app.AssignedTestTitle %}
+                            <span class="font-medium text-green-800 bg-green-100 px-2 py-1 rounded-md text-xs">{{ app.AssignedTestTitle }}</span>
+                        {% else %}
+                            <span class="font-medium text-yellow-800 bg-yellow-100 px-2 py-1 rounded-md text-xs">Not Assigned</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <a href="{{ url_for('.assign_placement_test', enrollment_id=app.EnrollmentID) }}" class="btn-secondary !text-xs !py-1" title="Assign a placement test to this student">
+                           <i class="bi bi-send-fill mr-1"></i> {% if app.TestID %}Re-Assign Test{% else %}Assign Test{% endif %}
+                        </a>
+                        <a href="{{ url_for('.place_student', enrollment_id=app.EnrollmentID) }}" class="btn-primary !text-xs !py-1" title="Enter test score and place student in a group">
+                           <i class="bi bi-person-check-fill mr-1"></i> Place Student
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center p-6 text-gray-500">
+                        <i class="bi bi-check2-circle text-3xl text-green-400"></i>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">All Caught Up!</h3>
+                        <p class="mt-1 text-sm text-gray-500">There are no pending placement requests at this time.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
