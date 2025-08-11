@@ -1,0 +1,134 @@
+<!-- templates/instructor_portal/build_placement_test.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}{{ title }}{% endblock %}
+
+{% block portal_content %}
+<div x-data="testBuilder()">
+    <!-- List of Existing Questions -->
+    <div class="space-y-4">
+        {% for q in questions %}
+        <div class="bg-white p-4 rounded-lg shadow border">
+            <h4 class="font-semibold">{{ loop.index }}. {{ q.QuestionText }}</h4>
+            <ul class="mt-2 space-y-1 text-sm list-disc list-inside">
+                {% for opt in q.options %}
+                <li class="{{ 'text-green-600 font-bold' if opt.IsCorrect else 'text-gray-700' }}">
+                    {{ opt.OptionText }} {% if opt.IsCorrect %}(Correct Answer){% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            <!-- Placeholder for future add option form -->
+        </div>
+        {% else %}
+        <p class="text-center text-gray-500 py-4">This test has no questions yet. Add one below.</p>
+        {% endfor %}
+    </div>
+
+    <!-- "Add New Question" Form -->
+    <div class="mt-8 pt-6 border-t">
+        <div class="bg-white p-6 rounded-lg shadow-md border">
+            <h3 class="text-lg font-medium">Add New Question</h3>
+            
+            <!-- Question Text Input -->
+            <div class="mt-4">
+                <label for="new_question_text" class="form-label">Question</label>
+                <textarea x-model="newQuestion.text" id="new_question_text" rows="3" class="form-textarea" placeholder="e.g., What is the past tense of 'go'?"></textarea>
+            </div>
+
+            <!-- Options Input -->
+            <div class="mt-4">
+                <label class="form-label">Options</label>
+                <template x-for="(option, index) in newQuestion.options" :key="index">
+                    <div class="flex items-center gap-2 mt-2">
+                        <input type="radio" :name="'correct_answer'" :value="index" @change="setCorrect(index)" class="form-radio">
+                        <input type="text" x-model="option.text" class="form-input flex-grow" placeholder="Enter option text">
+                        <button @click.prevent="removeOption(index)" class="text-red-500 hover:text-red-700" title="Remove option">&times;</button>
+                    </div>
+                </template>
+                <button @click.prevent="addOption()" class="btn-secondary !text-xs !py-1 mt-2">
+                    <i class="bi bi-plus-lg"></i> Add Option
+                </button>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button @click="saveQuestion()" class="btn-primary" :disabled="isSaving">
+                    <span x-show="!isSaving">Save Question</span>
+                    <span x-show="isSaving">Saving...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testBuilder() {
+    return {
+        newQuestion: {
+            text: '',
+            options: [
+                { text: '', isCorrect: false },
+                { text: '', isCorrect: false }
+            ]
+        },
+        isSaving: false,
+        addOption() {
+            this.newQuestion.options.push({ text: '', isCorrect: false });
+        },
+        removeOption(index) {
+            this.newQuestion.options.splice(index, 1);
+        },
+        setCorrect(selectedIndex) {
+            this.newQuestion.options.forEach((option, index) => {
+                option.isCorrect = (index === selectedIndex);
+            });
+        },
+        async saveQuestion() {
+            if (!this.newQuestion.text.trim()) {
+                alert('Question text cannot be empty.');
+                return;
+            }
+            if (this.newQuestion.options.filter(o => o.isCorrect).length === 0) {
+                alert('Please select one correct answer.');
+                return;
+            }
+            this.isSaving = true;
+
+            // Step 1: Save the question text and get the new question ID
+            const questionFormData = new FormData();
+            questionFormData.append('question_text', this.newQuestion.text);
+
+            const questionResponse = await fetch(`{{ url_for('.add_test_question', test_id=test.TestID) }}`, {
+                method: 'POST',
+                body: questionFormData
+            });
+
+            if (!questionResponse.ok) {
+                alert('Error saving question.');
+                this.isSaving = false;
+                return;
+            }
+            const questionResult = await questionResponse.json();
+            const newQuestionId = questionResult.question_id;
+
+            // Step 2: Save all the options for that new question
+            for (const option of this.newQuestion.options) {
+                 if (option.text.trim()) {
+                    const optionFormData = new FormData();
+                    optionFormData.append('option_text', option.text);
+                    optionFormData.append('is_correct', option.isCorrect);
+                    
+                    await fetch(`{{ url_for('.add_question_option', question_id=newQuestionId) }}`, {
+                        method: 'POST',
+                        body: optionFormData
+                    });
+                 }
+            }
+
+            // Step 3: Reload the page to show the new question
+            alert('Question saved successfully!');
+            window.location.reload();
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,5 +1,5 @@
 # routes/instructor_portal/portal_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app , jsonify
 from flask_login import current_user
 from utils.decorators import instructor_required
 from db import get_db_connection
@@ -837,3 +837,102 @@ def delete_placement_test(test_id):
         if conn and conn.is_connected(): conn.close()
         
     return redirect(url_for('.list_placement_tests'))
+
+@instructor_portal_bp.route('/placement-tests/build/<int:test_id>')
+@instructor_required
+def build_placement_test(test_id):
+    """The main page for building/editing an internal placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Auth check and ensure it's an internal test
+        cursor.execute("""
+            SELECT * FROM PlacementTests 
+            WHERE TestID = %s AND CreatedByInstructorStaffID = %s AND TestType = 'Internal'
+        """, (test_id, current_user.specific_role_id))
+        test = cursor.fetchone()
+        if not test:
+            flash("Internal test not found or you are not authorized to edit it.", "danger")
+            return redirect(url_for('.list_placement_tests'))
+
+        # Fetch all questions and their options for this test
+        cursor.execute("SELECT * FROM PlacementTestQuestions WHERE TestID = %s ORDER BY DisplayOrder", (test_id,))
+        questions = cursor.fetchall()
+
+        if questions:
+            question_ids = [q['QuestionID'] for q in questions]
+            # Use a format string for the IN clause placeholder
+            format_strings = ','.join(['%s'] * len(question_ids))
+            cursor.execute(f"""
+                SELECT * FROM PlacementTestQuestionOptions 
+                WHERE QuestionID IN ({format_strings})
+            """, tuple(question_ids))
+            options = cursor.fetchall()
+            
+            # Map options to their questions
+            options_map = {}
+            for opt in options:
+                qid = opt['QuestionID']
+                if qid not in options_map:
+                    options_map[qid] = []
+                options_map[qid].append(opt)
+            
+            for q in questions:
+                q['options'] = options_map.get(q['QuestionID'], [])
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('instructor_portal/build_placement_test.html',
+                           title=f"Build Test: {test['Title']}",
+                           test=test,
+                           questions=questions)
+
+
+@instructor_portal_bp.route('/placement-tests/build/<int:test_id>/add-question', methods=['POST'])
+@instructor_required
+def add_test_question(test_id):
+    """Adds a new question to an internal test via AJAX."""
+    # (Auth checks would be here in a real app)
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        question_text = request.form.get('question_text')
+        if not question_text:
+            return jsonify({'status': 'error', 'message': 'Question text cannot be empty.'}), 400
+        
+        cursor.execute(
+            "INSERT INTO PlacementTestQuestions (TestID, QuestionText, QuestionType) VALUES (%s, %s, %s)",
+            (test_id, question_text, 'MultipleChoice')
+        )
+        conn.commit()
+        # Return the new question's ID so we can add options to it
+        return jsonify({'status': 'success', 'question_id': cursor.lastrowid})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+
+@instructor_portal_bp.route('/placement-tests/question/<int:question_id>/add-option', methods=['POST'])
+@instructor_required
+def add_question_option(question_id):
+    """Adds a new option to a question via AJAX."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        option_text = request.form.get('option_text')
+        is_correct = 1 if request.form.get('is_correct') == 'true' else 0
+        
+        cursor.execute(
+            "INSERT INTO PlacementTestQuestionOptions (QuestionID, OptionText, IsCorrect) VALUES (%s, %s, %s)",
+            (question_id, option_text, is_correct)
+        )
+        conn.commit()
+        return jsonify({'status': 'success', 'option_id': cursor.lastrowid})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
