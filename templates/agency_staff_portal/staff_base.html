@@ -71,7 +71,8 @@
                                      <div x-show="packagesMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5" style="display:none;">
                                         <div class="py-1">
                                             <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Packages Dashboard</a>
-                                            <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Enrollment Requests</a>
+                                            <!-- UPDATED LINK -->
+                                            <a href="{{ url_for('package_mgmt_bp.application_pipeline') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Application Pipeline</a>
                                             <a href="{{ url_for('package_mgmt_bp.list_all_packages') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage Packages</a>
                                         </div>
                                         <div class="py-1 border-t border-gray-100">
@@ -147,7 +148,6 @@
                         <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
                         <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Review Applications</a>
                         
-                        <!-- Mobile link for Clients -->
                         <a href="{{ url_for('client_mgmt_bp.list_companies') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Clients</a>
                         
                         <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Jobs</a>

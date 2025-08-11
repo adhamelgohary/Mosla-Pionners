@@ -578,3 +578,47 @@ def update_package_status():
         if conn and conn.is_connected(): conn.close()
             
     return redirect(url_for('.list_all_packages'))
+
+@package_mgmt_bp.route('/application-pipeline')
+@login_required_with_role(PACKAGE_MANAGEMENT_ROLES)
+def application_pipeline():
+    """
+    Provides a comprehensive view for managers to oversee the entire student
+    application and placement pipeline, from initial application to final placement.
+    """
+    applications = []
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # This comprehensive query gets all 'Applied' applications and shows
+        # which instructor is assigned to them via the placement test assignment.
+        sql = """
+            SELECT 
+                ce.EnrollmentID, ce.EnrollmentDate,
+                u.FirstName AS CandidateFirstName, u.LastName AS CandidateLastName,
+                u.Email AS CandidateEmail,
+                original_sp.Name AS AppliedSubPackageName,
+                apt.Status AS TestStatus,
+                instructor_user.FirstName AS InstructorFirstName,
+                instructor_user.LastName AS InstructorLastName
+            FROM CourseEnrollments ce
+            JOIN Candidates cand ON ce.CandidateID = cand.CandidateID
+            JOIN Users u ON cand.UserID = u.UserID
+            LEFT JOIN SubPackages original_sp ON ce.OriginalSubPackageID = original_sp.SubPackageID
+            LEFT JOIN AssignedPlacementTests apt ON ce.EnrollmentID = apt.EnrollmentID
+            LEFT JOIN Staff instructor_staff ON apt.AssignedByInstructorStaffID = instructor_staff.StaffID
+            LEFT JOIN Users instructor_user ON instructor_staff.UserID = instructor_user.UserID
+            WHERE ce.Status = 'Applied'
+            ORDER BY ce.EnrollmentDate ASC
+        """
+        cursor.execute(sql)
+        applications = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error fetching application pipeline: {e}", exc_info=True)
+        flash("Could not load the application pipeline.", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+            
+    return render_template('agency_staff_portal/courses/application_pipeline.html', 
+                           title='Student Application Pipeline', 
+                           applications=applications)

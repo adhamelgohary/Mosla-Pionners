@@ -10,8 +10,8 @@
 <div class="space-y-6">
     <!-- Quick Action Buttons -->
     <div class="flex flex-wrap items-center gap-3">
-        <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="btn-primary">
-            <i class="bi bi-hourglass-split mr-2"></i> View Pending ({{ dashboard_data.pending_applications }})
+        <a href="{{ url_for('package_mgmt_bp.application_pipeline') }}" class="btn-primary">
+            <i class="bi bi-filter-circle-fill mr-2"></i> View Application Pipeline ({{ dashboard_data.pending_applications }})
         </a>
         <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="btn-secondary">
             <i class="bi bi-check2-circle mr-2"></i> View Approved
