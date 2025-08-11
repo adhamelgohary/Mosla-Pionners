@@ -716,17 +716,52 @@ def add_placement_test():
 def assign_placement_test(enrollment_id):
     """Assign an existing placement test to a student's application."""
     conn = get_db_connection()
+    # Initialize variables outside the try block to ensure they always exist
+    available_tests = []
+    student = None
+    
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
 
+        # --- Fetch data needed for both GET and POST (for validation and display) ---
+        
+        # 1. Fetch student info
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName 
+            FROM CourseEnrollments ce 
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID 
+            JOIN Users u ON c.UserID = u.UserID 
+            WHERE ce.EnrollmentID = %s
+        """, (enrollment_id,))
+        student = cursor.fetchone()
+
+        # If student not found, we can't proceed.
+        if not student:
+            flash("Could not find the specified student application.", "danger")
+            return redirect(url_for('.placement_requests'))
+
+        # 2. Fetch available tests created by this instructor
+        cursor.execute("""
+            SELECT TestID, Title 
+            FROM PlacementTests 
+            WHERE CreatedByInstructorStaffID = %s AND IsActive = 1
+        """, (instructor_staff_id,))
+        available_tests = cursor.fetchall()
+
+        # --- Handle form submission ---
         if request.method == 'POST':
             test_id = request.form.get('test_id')
             if not test_id:
                 flash("You must select a test to assign.", "danger")
-                return redirect(url_for('.assign_placement_test', enrollment_id=enrollment_id))
+                # We can re-render the template because student and available_tests are already fetched
+                return render_template('instructor_portal/assign_test.html', 
+                                       title=f"Assign Test to {student['FirstName']}", 
+                                       enrollment_id=enrollment_id, 
+                                       student=student,
+                                       available_tests=available_tests)
             
-            # Use INSERT ... ON DUPLICATE KEY UPDATE to handle re-assignment
+            # Use INSERT ... ON DUPLICATE KEY UPDATE to handle re-assignment smoothly
             cursor.execute("""
                 INSERT INTO AssignedPlacementTests (EnrollmentID, TestID, AssignedByInstructorStaffID)
                 VALUES (%s, %s, %s)
@@ -734,23 +769,19 @@ def assign_placement_test(enrollment_id):
             """, (enrollment_id, test_id, instructor_staff_id))
             conn.commit()
             
-            # Here you would typically trigger an email to the student with the test link.
-            # For now, we just flash a message.
             flash("Test assigned to student successfully.", "success")
             return redirect(url_for('.placement_requests'))
             
-        # GET Request
-        # Fetch available tests
-        cursor.execute("SELECT TestID, Title FROM PlacementTests WHERE CreatedByInstructorStaffID = %s AND IsActive = 1", (instructor_staff_id,))
-        available_tests = cursor.fetchall()
-        
-        # Fetch student info
-        cursor.execute("SELECT u.FirstName, u.LastName FROM CourseEnrollments ce JOIN Candidates c ON ce.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ce.EnrollmentID = %s", (enrollment_id,))
-        student = cursor.fetchone()
-
+    except Exception as e:
+        # Catch any other unexpected errors
+        current_app.logger.error(f"Error in assign_placement_test for EnrollmentID {enrollment_id}: {e}", exc_info=True)
+        flash("An unexpected server error occurred. Please try again.", "danger")
+        return redirect(url_for('.placement_requests'))
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected():
+            conn.close()
         
+    # This part now only runs for GET requests
     return render_template('instructor_portal/assign_test.html', 
                            title=f"Assign Test to {student['FirstName']}", 
                            enrollment_id=enrollment_id, 

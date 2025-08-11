@@ -1,0 +1,55 @@
+<!-- templates/instructor_portal/assign_test.html -->
+{% extends 'instructor_portal/instructor_base.html' %}
+
+{% block portal_title %}{{ title }}{% endblock %}
+
+{% block portal_content %}
+<div class="bg-white shadow rounded-lg max-w-2xl mx-auto">
+    <form method="POST" action="{{ url_for('.assign_placement_test', enrollment_id=enrollment_id) }}" class="p-6 sm:p-8 space-y-6">
+        
+        <!-- Form Header -->
+        <div class="border-b border-gray-200 pb-5">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Assign Placement Test</h3>
+            <p class="mt-2 max-w-4xl text-sm text-gray-500">
+                You are assigning a test for student: <strong class="text-indigo-600">{{ student.FirstName }} {{ student.LastName }}</strong>.
+            </p>
+        </div>
+
+        <!-- Test Selection Dropdown -->
+        <div>
+            <label for="test_id" class="form-label">Available Placement Tests*</label>
+            
+            {% if available_tests %}
+                <select name="test_id" id="test_id" class="form-select" required>
+                    <option value="">-- Select a test to assign --</option>
+                    {% for test in available_tests %}
+                        <option value="{{ test.TestID }}">{{ test.Title }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Only your active, created tests are shown here. After assigning, you would typically notify the student.</p>
+            {% else %}
+                <div class="mt-2 p-4 text-center bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700">
+                    <p class="font-medium">No Available Tests Found</p>
+                    <p class="text-sm">You have not created any active placement tests yet.</p>
+                    <a href="{{ url_for('.add_placement_test') }}" class="mt-2 inline-block text-sm text-indigo-600 hover:underline">Create a new test now</a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="pt-5 border-t border-gray-200 flex justify-end gap-x-3">
+            <a href="{{ url_for('.placement_requests') }}" class="btn-secondary">Cancel</a>
+            
+            {% if available_tests %}
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-send-fill mr-1"></i> Assign Test to Student
+                </button>
+            {% else %}
+                <button type="submit" class="btn-primary" disabled>
+                    Assign Test to Student
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
