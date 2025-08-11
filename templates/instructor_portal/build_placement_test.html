@@ -93,7 +93,7 @@ function testBuilder() {
             }
             this.isSaving = true;
 
-            // Step 1: Save the question text and get the new question ID
+            // Step 1: Save the question text
             const questionFormData = new FormData();
             questionFormData.append('question_text', this.newQuestion.text);
 
@@ -111,20 +111,27 @@ function testBuilder() {
             const newQuestionId = questionResult.question_id;
 
             // Step 2: Save all the options for that new question
+            // --- THIS IS THE CORRECTED PART ---
+            const addOptionUrlTemplate = '{{ url_for(".add_question_option", question_id=0) }}';
+            
             for (const option of this.newQuestion.options) {
                  if (option.text.trim()) {
                     const optionFormData = new FormData();
                     optionFormData.append('option_text', option.text);
                     optionFormData.append('is_correct', option.isCorrect);
                     
-                    await fetch(`{{ url_for('.add_question_option', question_id=newQuestionId) }}`, {
+                    // Build the correct URL dynamically in JavaScript
+                    const finalUrl = addOptionUrlTemplate.replace('0', newQuestionId);
+
+                    await fetch(finalUrl, {
                         method: 'POST',
                         body: optionFormData
                     });
                  }
             }
+            // --- END OF CORRECTION ---
 
-            // Step 3: Reload the page to show the new question
+            // Step 3: Reload the page
             alert('Question saved successfully!');
             window.location.reload();
         }
