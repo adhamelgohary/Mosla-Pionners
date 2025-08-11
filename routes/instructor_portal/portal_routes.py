@@ -939,3 +939,74 @@ def add_question_option(question_id):
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()
+        
+@instructor_portal_bp.route('/placement-tests/question/<int:question_id>/update', methods=['POST'])
+@instructor_required
+def update_test_question(question_id):
+    """Updates the text and model answer of an existing question."""
+    # NOTE: A full implementation would also check that the question_id
+    # belongs to a test owned by the current_user.
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        question_text = request.form.get('question_text')
+        model_answer = request.form.get('model_answer') # Will be None for MCQ
+        
+        cursor.execute(
+            "UPDATE PlacementTestQuestions SET QuestionText = %s, ModelAnswer = %s WHERE QuestionID = %s",
+            (question_text, model_answer, question_id)
+        )
+        conn.commit()
+        return jsonify({'status': 'success', 'message': 'Question updated.'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@instructor_portal_bp.route('/placement-tests/option/<int:option_id>/update', methods=['POST'])
+@instructor_required
+def update_question_option(option_id):
+    """Updates the text and correctness of an existing option."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        option_text = request.form.get('option_text')
+        is_correct = 1 if request.form.get('is_correct') == 'true' else 0
+        
+        # If this option is being marked as correct, we must first ensure
+        # no other option for this question is marked as correct.
+        if is_correct:
+            cursor.execute("SELECT QuestionID FROM PlacementTestQuestionOptions WHERE OptionID = %s", (option_id,))
+            question_id = cursor.fetchone()[0]
+            cursor.execute("UPDATE PlacementTestQuestionOptions SET IsCorrect = 0 WHERE QuestionID = %s", (question_id,))
+        
+        cursor.execute(
+            "UPDATE PlacementTestQuestionOptions SET OptionText = %s, IsCorrect = %s WHERE OptionID = %s",
+            (option_text, is_correct, option_id)
+        )
+        conn.commit()
+        return jsonify({'status': 'success', 'message': 'Option updated.'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
+
+@instructor_portal_bp.route('/placement-tests/question/<int:question_id>/delete', methods=['POST'])
+@instructor_required
+def delete_test_question(question_id):
+    """Deletes a question and its associated options."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # The ON DELETE CASCADE constraint will automatically delete the options.
+        cursor.execute("DELETE FROM PlacementTestQuestions WHERE QuestionID = %s", (question_id,))
+        conn.commit()
+        flash("Question deleted successfully.", "success")
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn: conn.close()
