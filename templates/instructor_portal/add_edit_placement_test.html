@@ -1,13 +1,30 @@
-<!-- templates/instructor_portal/add_edit_placement_test.html -->
+<!-- templates/instructor_portal/add_edit_placement_test.html (UPDATED) -->
 {% extends 'instructor_portal/instructor_base.html' %}
+
+{% set is_edit = (test_id is defined and test_id) %}
+
 {% block portal_title %}{{ title }}{% endblock %}
+
 {% block portal_content %}
 <div class="bg-white shadow rounded-lg max-w-2xl mx-auto" x-data="{ testType: '{{ form_data.TestType or 'External' }}' }">
-    <form method="POST" class="p-6 sm:p-8 space-y-6">
+    <form method="POST" action="{{ url_for('.edit_placement_test', test_id=test_id) if is_edit else url_for('.add_placement_test') }}" class="p-6 sm:p-8 space-y-6">
+        <div class="border-b border-gray-200 pb-5">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ "Edit Placement Test" if is_edit else "Create New Placement Test" }}</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Create a new test to assign to applicants. For now, only external links are supported.
+            </p>
+        </div>
+        
         <div>
             <label for="title" class="form-label">Test Title*</label>
             <input type="text" name="title" id="title" class="form-input" required value="{{ form_data.Title or '' }}">
         </div>
+
+        <div>
+            <label for="description" class="form-label">Description</label>
+            <textarea name="description" id="description" rows="3" class="form-textarea" placeholder="e.g., A general English test covering grammar and vocabulary for B1-B2 levels.">{{ form_data.Description or '' }}</textarea>
+        </div>
+        
         <div>
             <label class="form-label">Test Type*</label>
             <select name="test_type" x-model="testType" class="form-select">
@@ -15,12 +32,29 @@
                 <option value="Internal" disabled>Internal (Coming Soon)</option>
             </select>
         </div>
-        <div x-show="testType === 'External'">
+
+        <div x-show="testType === 'External'" x-collapse>
             <label for="external_url" class="form-label">External Test URL*</label>
             <input type="url" name="external_url" id="external_url" class="form-input" placeholder="https://forms.gle/..." value="{{ form_data.ExternalURL or '' }}">
         </div>
-        <div class="pt-5 border-t flex justify-end">
-            <button type="submit" class="btn-primary">Save Test</button>
+
+        {% if is_edit %}
+        <div class="relative flex items-start">
+            <div class="flex h-6 items-center">
+                <input id="is_active" name="is_active" type="checkbox" class="form-checkbox" {% if form_data.IsActive %}checked{% endif %}>
+            </div>
+            <div class="ml-3 text-sm leading-6">
+                <label for="is_active" class="font-medium text-gray-900">Active</label>
+                <p class="text-gray-500">Inactive tests will not appear in the assignment dropdown.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="pt-5 border-t flex justify-end gap-x-3">
+            <a href="{{ url_for('.list_placement_tests') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">
+                {{ "Save Changes" if is_edit else "Create Test" }}
+            </button>
         </div>
     </form>
 </div>

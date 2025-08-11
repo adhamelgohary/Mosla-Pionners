@@ -756,3 +756,84 @@ def assign_placement_test(enrollment_id):
                            enrollment_id=enrollment_id, 
                            student=student,
                            available_tests=available_tests)
+    
+@instructor_portal_bp.route('/placement-tests/edit/<int:test_id>', methods=['GET', 'POST'])
+@instructor_required
+def edit_placement_test(test_id):
+    """Edit an existing placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        instructor_staff_id = current_user.specific_role_id
+
+        # Authorization Check: Make sure the test belongs to the logged-in instructor
+        cursor.execute("SELECT * FROM PlacementTests WHERE TestID = %s AND CreatedByInstructorStaffID = %s", (test_id, instructor_staff_id))
+        test = cursor.fetchone()
+        if not test:
+            flash("Placement test not found or you do not have permission to edit it.", "danger")
+            return redirect(url_for('.list_placement_tests'))
+
+        if request.method == 'POST':
+            form = request.form
+            test_type = form.get('test_type')
+            title = form.get('title')
+            external_url = form.get('external_url')
+            is_active = 1 if form.get('is_active') else 0
+
+            if not title or not test_type:
+                flash("Title and Test Type are required.", "danger")
+                return render_template('instructor_portal/add_edit_placement_test.html', title="Edit Placement Test", form_data=form, test_id=test_id)
+            
+            if test_type == 'External' and not external_url:
+                flash("External URL is required for an external test.", "danger")
+                return render_template('instructor_portal/add_edit_placement_test.html', title="Edit Placement Test", form_data=form, test_id=test_id)
+
+            cursor.execute("""
+                UPDATE PlacementTests SET
+                Title = %s, Description = %s, TestType = %s, ExternalURL = %s, IsActive = %s, UpdatedAt = NOW()
+                WHERE TestID = %s
+            """, (title, form.get('description'), test_type, external_url if test_type == 'External' else None, is_active, test_id))
+            conn.commit()
+            flash("Placement test updated successfully.", "success")
+            return redirect(url_for('.list_placement_tests'))
+
+        # GET request: Populate form with existing data
+        return render_template('instructor_portal/add_edit_placement_test.html', title="Edit Placement Test", form_data=test, test_id=test_id)
+    
+    except Exception as e:
+        if conn and conn.is_connected(): conn.rollback()
+        flash(f"Database error: {e}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    
+    return redirect(url_for('.list_placement_tests'))
+
+
+@instructor_portal_bp.route('/placement-tests/delete/<int:test_id>', methods=['POST'])
+@instructor_required
+def delete_placement_test(test_id):
+    """Delete a placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        instructor_staff_id = current_user.specific_role_id
+
+        # Authorization Check
+        cursor.execute("SELECT TestID FROM PlacementTests WHERE TestID = %s AND CreatedByInstructorStaffID = %s", (test_id, instructor_staff_id))
+        if not cursor.fetchone():
+            flash("Placement test not found or you do not have permission to delete it.", "danger")
+            return redirect(url_for('.list_placement_tests'))
+
+        # The ON DELETE CASCADE constraint will handle removing related records in AssignedPlacementTests
+        cursor.execute("DELETE FROM PlacementTests WHERE TestID = %s", (test_id,))
+        conn.commit()
+        flash("Placement test deleted successfully.", "success")
+
+    except mysql.connector.Error as err:
+        if conn and conn.is_connected(): conn.rollback()
+        # This will catch if a test is linked somewhere without ON DELETE CASCADE
+        flash(f"Could not delete test. It may be in use. Error: {err.msg}", "danger")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return redirect(url_for('.list_placement_tests'))
