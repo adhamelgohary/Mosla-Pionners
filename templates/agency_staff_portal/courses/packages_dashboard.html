@@ -45,57 +45,61 @@
 
             <!-- Two Smaller Cards in a Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Ongoing Students Card -->
-                <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="block p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transform transition hover:-translate-y-1">
+                <!-- Total Enrolled Students Card (NEW) -->
+                <div class="p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ongoing Students</p>
-                        <i class="bi bi-person-workspace text-xl text-blue-400"></i>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Enrolled Students</p>
+                        <i class="bi bi-person-video3 text-xl text-blue-400"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ dashboard_data.total_enrolled_students }}</p>
+                </div>
+
+                <!-- Ongoing Students Card -->
+                <div class="p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Students In Progress</p>
+                        <i class="bi bi-person-workspace text-xl text-teal-400"></i>
                     </div>
                     <p class="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ dashboard_data.ongoing_students }}</p>
-                </a>
-
-                <!-- Graduated Students Card -->
-                <a href="{{ url_for('package_mgmt_bp.manage_approved_enrollments') }}" class="block p-6 bg-white dark:bg-slate-800/50 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 hover:border-green-400 dark:hover:border-green-500 transform transition hover:-translate-y-1">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Graduated Students</p>
-                        <i class="bi bi-mortarboard-fill text-xl text-green-400"></i>
-                    </div>
-                    <p class="text-3xl font-bold text-gray-800 dark:text-gray-100 mt-2">{{ dashboard_data.graduated_students }}</p>
-                </a>
+                </div>
             </div>
         </div>
 
         <!-- Sidebar Column -->
         <div class="lg:col-span-1 space-y-6">
             <!-- Pending Applications Card -->
-            <a href="{{ url_for('package_mgmt_bp.manage_enrollment_requests') }}" class="block p-6 bg-amber-50 dark:bg-amber-900/40 rounded-xl shadow-md border border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-500 transform transition hover:-translate-y-1">
+            <a href="{{ url_for('package_mgmt_bp.application_pipeline') }}" class="block p-6 bg-amber-50 dark:bg-amber-900/40 rounded-xl shadow-md border border-amber-200 dark:border-amber-800 hover:border-amber-400 dark:hover:border-amber-500 transform transition hover:-translate-y-1">
                 <div class="flex items-center justify-between">
                     <p class="text-sm font-medium text-amber-700 dark:text-amber-300">Pending Applications</p>
                     <i class="bi bi-clock-history text-xl text-amber-500"></i>
                 </div>
                 <p class="text-4xl font-bold text-amber-800 dark:text-amber-200 mt-2">{{ dashboard_data.pending_applications }}</p>
-                <p class="text-xs text-amber-600 dark:text-amber-400">Action Required</p>
+                <p class="text-xs text-amber-600 dark:text-amber-400">Awaiting instructor placement</p>
             </a>
             
-            <!-- Other Stats in a single card -->
-            <div class="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 space-y-4">
+            <!-- NEW: Operations Overview Card -->
+            <div class="bg-white dark:bg-slate-800/50 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700 space-y-4 divide-y dark:divide-slate-700">
                 <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Course Groups</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.total_groups }}</p>
+                    </div>
+                    <i class="bi bi-people-fill text-2xl text-gray-400"></i>
+                </div>
+                <div class="flex items-center justify-between pt-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Instructors</p>
+                        <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.total_instructors }}</p>
+                    </div>
+                    <i class="bi bi-person-video3 text-2xl text-gray-400"></i>
+                </div>
+                <div class="flex items-center justify-between pt-4">
                     <div>
                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Packages</p>
                         <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.active_packages }}</p>
                     </div>
                     <i class="bi bi-box-seam text-2xl text-gray-400"></i>
                 </div>
-                <hr class="dark:border-slate-700">
-                <a href="{{ url_for('package_mgmt_bp.manage_rejected_enrollments') }}" class="block">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rejected / Cancelled</p>
-                            <p class="text-2xl font-bold text-gray-800 dark:text-gray-100">{{ dashboard_data.rejected_applications }}</p>
-                        </div>
-                        <i class="bi bi-x-circle text-2xl text-red-400"></i>
-                    </div>
-                </a>
             </div>
         </div>
 

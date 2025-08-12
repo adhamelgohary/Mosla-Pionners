@@ -352,16 +352,20 @@ def packages_dashboard():
     dashboard_data = {
         'total_sales_revenue': decimal.Decimal('0.00'),
         'ongoing_students': 0, 'graduated_students': 0, 'active_packages': 0,
-        'pending_applications': 0, 'default_currency': 'EGP', 'rejected_applications': 0
+        'pending_applications': 0, 'default_currency': 'EGP', 'rejected_applications': 0,
+        # --- NEW: Add keys for the new KPIs ---
+        'total_groups': 0,
+        'total_instructors': 0,
+        'total_enrolled_students': 0
     }
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # KPI 1: Active Sub-Packages
-        cursor.execute("SELECT COUNT(*) as package_count FROM SubPackages WHERE IsActive = 1")
+        
+        # --- Existing KPIs (no changes) ---
+        cursor.execute("SELECT COUNT(*) as package_count FROM SubPackages WHERE Status = 'Active'") # Using Status now
         dashboard_data['active_packages'] = cursor.fetchone()['package_count']
         
-        # KPI 2: Total Sales Revenue
         cursor.execute("""
             SELECT SUM(sp.Price) as total_revenue
             FROM CourseEnrollments ce
@@ -372,20 +376,32 @@ def packages_dashboard():
         if sales and sales['total_revenue']:
             dashboard_data['total_sales_revenue'] = sales['total_revenue']
         
-        # Other KPIs
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'InProgress'")
         dashboard_data['ongoing_students'] = cursor.fetchone()['count']
         
         cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status = 'Completed'")
         dashboard_data['graduated_students'] = cursor.fetchone()['count']
         
-        # PENDING now includes 'Applied' and 'PendingPayment'
-        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status IN ('Applied', 'PendingPayment')")
+        # Pending now only means 'Applied', as 'PendingPayment' is less common in the new flow
+        cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Applied'")
         dashboard_data['pending_applications'] = cursor.fetchone()['count']
 
-        # NEW KPI for Rejected
         cursor.execute("SELECT COUNT(*) as count FROM CourseEnrollments WHERE Status = 'Cancelled'")
         dashboard_data['rejected_applications'] = cursor.fetchone()['count']
+        
+        # --- NEW QUERIES for new KPIs ---
+        # KPI: Total number of active course groups
+        cursor.execute("SELECT COUNT(*) as count FROM CourseGroups WHERE Status = 'Active'")
+        dashboard_data['total_groups'] = cursor.fetchone()['count']
+
+        # KPI: Total number of active instructors
+        cursor.execute("SELECT COUNT(*) as count FROM Staff WHERE Role = 'Instructor' AND UserID IN (SELECT UserID FROM Users WHERE AccountStatus = 'Active')")
+        dashboard_data['total_instructors'] = cursor.fetchone()['count']
+
+        # KPI: Total number of unique students who are currently enrolled or in progress
+        cursor.execute("SELECT COUNT(DISTINCT CandidateID) as count FROM CourseEnrollments WHERE Status IN ('Enrolled', 'InProgress')")
+        dashboard_data['total_enrolled_students'] = cursor.fetchone()['count']
+        # --- END OF NEW QUERIES ---
         
     except Exception as e:
         current_app.logger.error(f"Error fetching package dashboard data: {e}", exc_info=True)
