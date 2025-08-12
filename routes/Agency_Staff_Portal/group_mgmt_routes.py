@@ -652,3 +652,76 @@ def admin_update_attendance(group_id):
     finally:
         if conn and conn.is_connected(): conn.close()
     return redirect(url_for('.admin_attendance', group_id=group_id))
+
+# In group_mgmt_routes.py
+
+# --- NEW: Placement Test Management for Admins ---
+
+@group_mgmt_bp.route('/placement-tests')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def list_all_placement_tests():
+    """Admin view to see all placement tests from all instructors."""
+    conn = get_db_connection()
+    tests = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Query joins to Staff and Users to show who created the test
+        cursor.execute("""
+            SELECT 
+                pt.TestID, pt.Title, pt.TestType, pt.IsActive,
+                u.FirstName, u.LastName
+            FROM PlacementTests pt
+            JOIN Staff s ON pt.CreatedByInstructorStaffID = s.StaffID
+            JOIN Users u ON s.UserID = u.UserID
+            ORDER BY pt.CreatedAt DESC
+        """)
+        tests = cursor.fetchall()
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return render_template('agency_staff_portal/courses/groups/list_placement_tests_admin.html', 
+                           title="Manage All Placement Tests", tests=tests)
+
+
+@group_mgmt_bp.route('/placement-pipeline/<int:enrollment_id>/assign-test', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def assign_test_admin(enrollment_id):
+    """Admin page to assign any test to any applicant."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+
+        if request.method == 'POST':
+            test_id = request.form.get('test_id')
+            instructor_id = request.form.get('instructor_id') # Who to assign this task to
+            if not test_id or not instructor_id:
+                flash("You must select both a test and an instructor.", "danger")
+                return redirect(url_for('.assign_test_admin', enrollment_id=enrollment_id))
+            
+            cursor.execute("""
+                INSERT INTO AssignedPlacementTests (EnrollmentID, TestID, AssignedByInstructorStaffID)
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE TestID = VALUES(TestID), AssignedByInstructorStaffID = VALUES(AssignedByInstructorStaffID)
+            """, (enrollment_id, test_id, instructor_id))
+            conn.commit()
+            flash("Test assigned successfully.", "success")
+            return redirect(url_for('.placement_pipeline'))
+            
+        # GET Request Data
+        cursor.execute("SELECT u.FirstName, u.LastName FROM CourseEnrollments ce JOIN Candidates c ON ce.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ce.EnrollmentID = %s", (enrollment_id,))
+        student = cursor.fetchone()
+        
+        # Admins can see ALL active tests and ALL active instructors
+        cursor.execute("SELECT TestID, Title FROM PlacementTests WHERE IsActive = 1")
+        all_tests = cursor.fetchall()
+        cursor.execute("SELECT s.StaffID, CONCAT(u.FirstName, ' ', u.LastName) AS FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.Role = 'Instructor' AND u.AccountStatus = 'Active'")
+        all_instructors = cursor.fetchall()
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('agency_staff_portal/courses/groups/assign_test_admin.html', 
+                           title=f"Assign Test to {student['FirstName']}", 
+                           enrollment_id=enrollment_id, 
+                           student=student,
+                           all_tests=all_tests,
+                           all_instructors=all_instructors)

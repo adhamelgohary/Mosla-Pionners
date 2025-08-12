@@ -1,0 +1,31 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}<i class="bi bi-send-fill"></i> {{ title }}{% endblock %}
+{% block staff_content %}
+<div class="bg-white shadow rounded-lg max-w-2xl mx-auto">
+    <form method="POST" class="p-8 space-y-6">
+        <div class="border-b pb-5">
+            <h3 class="text-lg font-medium">Assign Test and Instructor</h3>
+            <p class="text-sm text-gray-500 mt-1">Assign a test to <strong class="text-primary-600">{{ student.FirstName }}</strong> and select which instructor will be responsible for their placement.</p>
+        </div>
+        <div>
+            <label for="test_id" class="form-label">Placement Test*</label>
+            <select name="test_id" id="test_id" class="form-select" required>
+                <option value="">-- Select a test --</option>
+                {% for test in all_tests %}<option value="{{ test.TestID }}">{{ test.Title }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="instructor_id" class="form-label">Assign to Instructor*</label>
+            <select name="instructor_id" id="instructor_id" class="form-select" required>
+                <option value="">-- Select an instructor --</option>
+                {% for inst in all_instructors %}<option value="{{ inst.StaffID }}">{{ inst.FullName }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="pt-5 border-t flex justify-end gap-x-3">
+            <a href="{{ url_for('.placement_pipeline') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">Confirm Assignment</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
