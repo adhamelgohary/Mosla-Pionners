@@ -1,0 +1,30 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}<i class="bi bi-person-check-fill"></i> {{ title }}{% endblock %}
+{% block staff_content %}
+<div class="bg-white shadow rounded-lg max-w-2xl mx-auto">
+    <form method="POST" class="p-8 space-y-6">
+        <div class="border-b pb-5">
+            <h3 class="text-lg font-medium">Place Student into Group</h3>
+            <p class="text-sm text-gray-500 mt-1">Select the final group for <strong class="text-primary-600">{{ application.FirstName }} {{ application.LastName }}</strong>.</p>
+        </div>
+        <div>
+            <label for="test_score" class="form-label">Placement Test Score / Result</label>
+            <input type="text" name="test_score" id="test_score" class="form-input" placeholder="e.g., B2, 85/100">
+        </div>
+        <div>
+            <label for="group_id" class="form-label">Assign to Group*</label>
+            <select name="group_id" id="group_id" class="form-select" required>
+                <option value="">-- Select any active group --</option>
+                {% for group in available_groups %}
+                    <option value="{{ group.GroupID }}">{{ group.GroupName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="pt-5 border-t flex justify-end gap-x-3">
+            <a href="{{ url_for('.placement_pipeline') }}" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary">Confirm Placement</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

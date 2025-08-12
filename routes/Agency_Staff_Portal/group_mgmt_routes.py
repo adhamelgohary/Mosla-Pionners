@@ -469,3 +469,105 @@ def sync_sessions_utility():
     
     return render_template('agency_staff_portal/courses/groups/sync_sessions_utility.html',
                            title="Sync Group Sessions")
+
+@group_mgmt_bp.route('/placement-pipeline')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def placement_pipeline():
+    """Shows all pending student applications for admin review and placement."""
+    conn = get_db_connection()
+    applications = []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # This query is similar to the manager's pipeline but provides links for action
+        cursor.execute("""
+            SELECT 
+                ce.EnrollmentID, ce.EnrollmentDate,
+                u.FirstName, u.LastName, u.Email,
+                sp.Name AS AppliedSubPackageName,
+                instructor_user.FirstName AS InstructorFirstName
+            FROM CourseEnrollments ce
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID
+            JOIN Users u ON c.UserID = u.UserID
+            LEFT JOIN SubPackages sp ON ce.OriginalSubPackageID = sp.SubPackageID
+            LEFT JOIN Staff instructor_staff ON ce.AssignedByInstructorStaffID = instructor_staff.StaffID
+            LEFT JOIN Users instructor_user ON instructor_staff.UserID = instructor_user.UserID
+            WHERE ce.Status = 'Applied'
+            ORDER BY ce.EnrollmentDate ASC
+        """)
+        applications = cursor.fetchall()
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return render_template('agency_staff_portal/courses/groups/placement_pipeline.html',
+                           title="Student Placement Pipeline",
+                           applications=applications)
+
+
+@group_mgmt_bp.route('/place-student/<int:enrollment_id>', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def place_student_admin(enrollment_id):
+    """Admin/Manager page to place a student into any group."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch application details
+        cursor.execute("SELECT ce.EnrollmentID, u.FirstName, u.LastName FROM CourseEnrollments ce JOIN Candidates c ON ce.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID WHERE ce.EnrollmentID = %s", (enrollment_id,))
+        application = cursor.fetchone()
+        if not application:
+            flash("Application not found.", "danger")
+            return redirect(url_for('.placement_pipeline'))
+
+        # Admins can see ALL active groups
+        cursor.execute("SELECT GroupID, GroupName FROM CourseGroups WHERE Status IN ('Planning', 'Active')")
+        available_groups = cursor.fetchall()
+
+        if request.method == 'POST':
+            group_id = request.form.get('group_id')
+            test_score = request.form.get('test_score')
+            if not group_id:
+                flash("A group must be selected.", "danger")
+                # Need to refetch data for the template
+                return render_template('agency_staff_portal/courses/groups/place_student_admin.html', title="Place Student", application=application, available_groups=available_groups)
+
+            # Get SubPackageID and any instructor from the selected group
+            cursor.execute("SELECT SubPackageID FROM CourseGroups WHERE GroupID = %s", (group_id,))
+            group_data = cursor.fetchone()
+            
+            # Find an instructor for the group to assign credit
+            cursor.execute("SELECT InstructorStaffID FROM CourseGroupInstructors WHERE GroupID = %s LIMIT 1", (group_id,))
+            instructor = cursor.fetchone()
+            assigned_instructor_id = instructor['InstructorStaffID'] if instructor else None
+
+            # --- Perform Placement ---
+            # 1. Update Enrollment
+            cursor.execute("""
+                UPDATE CourseEnrollments SET Status = 'Enrolled', SubPackageID = %s, PlacementTestScore = %s, AssignedByInstructorStaffID = %s, UpdatedAt = NOW()
+                WHERE EnrollmentID = %s
+            """, (group_data['SubPackageID'], test_score, assigned_instructor_id, enrollment_id))
+
+            # 2. Add to Roster
+            cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id))
+            
+            # 3. Generate Attendance
+            cursor.execute("SELECT SessionID FROM GroupSessions WHERE GroupID = %s", (group_id,))
+            sessions = cursor.fetchall()
+            if sessions:
+                attendance_data = [(s['SessionID'], enrollment_id) for s in sessions]
+                cursor.executemany("INSERT INTO SessionAttendance (SessionID, EnrollmentID) VALUES (%s, %s)", attendance_data)
+
+            conn.commit()
+            flash(f"Student {application['FirstName']} placed successfully.", "success")
+            return redirect(url_for('.placement_pipeline'))
+
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"An error occurred: {e}", "danger")
+        return redirect(url_for('.placement_pipeline'))
+    finally:
+        if conn: conn.close()
+
+    return render_template('agency_staff_portal/courses/groups/place_student_admin.html',
+                           title=f"Place Student: {application['FirstName']}",
+                           application=application,
+                           available_groups=available_groups)
