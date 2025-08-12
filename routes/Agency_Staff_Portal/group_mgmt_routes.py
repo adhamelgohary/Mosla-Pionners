@@ -373,68 +373,61 @@ def edit_group(group_id):
     finally:
         if conn and conn.is_connected(): conn.close()
 
-@group_mgmt_bp.route('/manage/<int:group_id>', methods=['GET', 'POST'])
+@group_mgmt_bp.route('/group/<int:group_id>/roster', methods=['GET', 'POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
-def manage_group_members(group_id):
+def admin_manage_roster(group_id):
+    """Admin page to manage a group's roster, including adding/removing students and updating their details."""
     conn = get_db_connection()
-    group_details = {}
-    assigned_members = []
-    available_candidates = []
-    
     try:
         cursor = conn.cursor(dictionary=True)
-        
-        cursor.execute("SELECT cg.*, sp.Name as SubPackageName FROM CourseGroups cg JOIN SubPackages sp ON cg.SubPackageID = sp.SubPackageID WHERE cg.GroupID = %s", (group_id,))
-        group_details = cursor.fetchone()
-        
-        if not group_details:
+        cursor.execute("SELECT cg.GroupName, sp.SubPackageID FROM CourseGroups cg JOIN SubPackages sp ON cg.SubPackageID = sp.SubPackageID WHERE cg.GroupID = %s", (group_id,))
+        group_info = cursor.fetchone()
+        if not group_info:
             flash("Group not found.", "danger")
             return redirect(url_for('.list_groups'))
 
+        if request.method == 'POST':
+            # This handles adding a new student
+            enrollment_id_to_add = request.form.get('enrollment_id')
+            if enrollment_id_to_add:
+                cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id_to_add))
+                cursor.execute("SELECT SessionID FROM GroupSessions WHERE GroupID = %s", (group_id,))
+                sessions = cursor.fetchall()
+                if sessions:
+                    attendance_data = [(s['SessionID'], enrollment_id_to_add) for s in sessions]
+                    cursor.executemany("INSERT INTO SessionAttendance (SessionID, EnrollmentID) VALUES (%s, %s)", attendance_data)
+                conn.commit()
+                flash("Student added to group.", "success")
+                return redirect(url_for('.admin_manage_roster', group_id=group_id))
+
+        # Fetch assigned members with full details
         cursor.execute("""
-            SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID
+            SELECT u.FirstName, u.LastName, u.Email, u.PhoneNumber, ce.EnrollmentID, 
+                   cgm.PerformanceNotes, cgm.PlacementStatus, cgm.CompanyRecommendation
             FROM CourseGroupMembers cgm
             JOIN CourseEnrollments ce ON cgm.EnrollmentID = ce.EnrollmentID
             JOIN Candidates c ON ce.CandidateID = c.CandidateID
             JOIN Users u ON c.UserID = u.UserID
-            WHERE cgm.GroupID = %s
+            WHERE cgm.GroupID = %s ORDER BY u.LastName, u.FirstName
         """, (group_id,))
         assigned_members = cursor.fetchall()
-        
-        cursor.execute("""
-            SELECT u.FirstName, u.LastName, u.Email, ce.EnrollmentID
-            FROM CourseEnrollments ce
-            JOIN Candidates c ON ce.CandidateID = c.CandidateID
-            JOIN Users u ON c.UserID = u.UserID
-            WHERE ce.SubPackageID = %s
-            AND ce.Status IN ('Enrolled', 'InProgress')
-            AND ce.EnrollmentID NOT IN (SELECT EnrollmentID FROM CourseGroupMembers)
-        """, (group_details['SubPackageID'],))
-        available_candidates = cursor.fetchall()
-        
-        if request.method == 'POST':
-            enrollment_id_to_add = request.form.get('enrollment_id')
-            if enrollment_id_to_add:
-                cursor.execute(
-                    "INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)",
-                    (group_id, enrollment_id_to_add)
-                )
-                conn.commit()
-                flash("Member added to the group.", "success")
-                return redirect(url_for('.manage_group_members', group_id=group_id))
 
-    except Exception as e:
-        if conn and conn.is_connected(): conn.rollback()
-        flash(f"An error occurred: {e}", "danger")
-        current_app.logger.error(f"Error managing group {group_id}: {e}", exc_info=True)
+        # Fetch available candidates for the dropdown
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName, ce.EnrollmentID FROM CourseEnrollments ce
+            JOIN Candidates c ON ce.CandidateID = c.CandidateID JOIN Users u ON c.UserID = u.UserID
+            WHERE ce.SubPackageID = %s AND ce.Status IN ('Enrolled', 'InProgress') 
+            AND ce.EnrollmentID NOT IN (SELECT EnrollmentID FROM CourseGroupMembers)
+            ORDER BY u.LastName, u.FirstName
+        """, (group_info['SubPackageID'],))
+        available_candidates = cursor.fetchall()
     finally:
-        if conn and conn.is_connected(): conn.close()
-    
-    return render_template('agency_staff_portal/courses/groups/manage_group.html',
-                           title=f"Manage Group: {group_details.get('GroupName', '')}",
-                           group=group_details,
-                           members=assigned_members,
-                           available_candidates=available_candidates)
+        if conn: conn.close()
+
+    return render_template('agency_staff_portal/courses/groups/admin_manage_roster.html',
+                           title=f"Manage Roster: {group_info['GroupName']}",
+                           group_id=group_id, group_name=group_info['GroupName'],
+                           members=assigned_members, available_candidates=available_candidates)
 
 @group_mgmt_bp.route('/manage/<int:group_id>/remove/<int:enrollment_id>', methods=['POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
@@ -571,3 +564,91 @@ def place_student_admin(enrollment_id):
                            title=f"Place Student: {application['FirstName']}",
                            application=application,
                            available_groups=available_groups)
+    
+
+@group_mgmt_bp.route('/group/<int:group_id>/dashboard')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def admin_group_dashboard(group_id):
+    """The main dashboard for an admin to manage a specific group."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT GroupName FROM CourseGroups WHERE GroupID = %s", (group_id,))
+        group = cursor.fetchone()
+        if not group:
+            flash("Group not found.", "danger")
+            return redirect(url_for('.list_groups'))
+        
+        # Fetch assessments for this group to display on the dashboard
+        cursor.execute("SELECT * FROM GroupAssessments WHERE GroupID = %s ORDER BY DueDate DESC", (group_id,))
+        assessments = cursor.fetchall()
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('agency_staff_portal/courses/groups/admin_group_dashboard.html',
+                           title=f"Manage Group: {group['GroupName']}",
+                           group=group,
+                           group_id=group_id,
+                           assessments=assessments)
+
+
+@group_mgmt_bp.route('/group/<int:group_id>/attendance', methods=['GET'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def admin_attendance(group_id):
+    """Displays the attendance grid for a group for an admin."""
+    # This logic is nearly identical to the instructor's version, but without the ownership check.
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT GroupName FROM CourseGroups WHERE GroupID = %s", (group_id,))
+        group = cursor.fetchone()
+        if not group:
+            flash("Group not found.", "danger")
+            return redirect(url_for('.list_groups'))
+        
+        cursor.execute("SELECT SessionID, SessionNumber, SessionTitle FROM GroupSessions WHERE GroupID = %s ORDER BY SessionNumber", (group_id,))
+        sessions = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName, cgm.EnrollmentID, sa.SessionID, sa.Status, sa.AttendanceNotes, sa.PerformanceNotes
+            FROM CourseGroupMembers cgm
+            JOIN CourseEnrollments ce ON cgm.EnrollmentID = ce.EnrollmentID
+            JOIN Users u ON ce.CandidateID = (SELECT UserID FROM Candidates WHERE CandidateID = u.UserID)
+            LEFT JOIN SessionAttendance sa ON cgm.EnrollmentID = sa.EnrollmentID AND sa.SessionID IN (SELECT SessionID FROM GroupSessions WHERE GroupID = %s)
+            WHERE cgm.GroupID = %s ORDER BY u.LastName, u.FirstName
+        """, (group_id, group_id))
+        attendance_raw = cursor.fetchall()
+        
+        students_attendance = {}
+        for row in attendance_raw:
+            enrollment_id = row['EnrollmentID']
+            if enrollment_id not in students_attendance:
+                students_attendance[enrollment_id] = {'FirstName': row['FirstName'], 'LastName': row['LastName'], 'attendance': {}}
+            if row['SessionID']:
+                students_attendance[enrollment_id]['attendance'][row['SessionID']] = {'Status': row['Status'], 'AttendanceNotes': row['AttendanceNotes'], 'PerformanceNotes': row['PerformanceNotes']}
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return render_template('agency_staff_portal/courses/groups/admin_attendance.html',
+                           title=f"Attendance: {group['GroupName']}", group_id=group_id, group_name=group['GroupName'], sessions=sessions, students_attendance=students_attendance)
+
+@group_mgmt_bp.route('/group/<int:group_id>/attendance/update', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def admin_update_attendance(group_id):
+    """Handles admin submission for updating attendance."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        for key, value in request.form.items():
+            if key.startswith('status_'):
+                _, session_id, enrollment_id = key.split('_')
+                new_status = value
+                attendance_notes = request.form.get(f'attendance_notes_{session_id}_{enrollment_id}', '')
+                performance_notes = request.form.get(f'performance_notes_{session_id}_{enrollment_id}', '')
+                cursor.execute("UPDATE SessionAttendance SET Status = %s, AttendanceNotes = %s, PerformanceNotes = %s WHERE SessionID = %s AND EnrollmentID = %s", (new_status, attendance_notes, performance_notes, session_id, enrollment_id))
+        conn.commit()
+        flash("Attendance updated successfully!", "success")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+    return redirect(url_for('.admin_attendance', group_id=group_id))

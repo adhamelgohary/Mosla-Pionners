@@ -1,0 +1,77 @@
+{% extends 'agency_staff_portal/staff_base.html' %}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}<i class="bi bi-person-lines-fill"></i> {{ title }}{% endblock %}
+{% block staff_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="lg:col-span-1">
+        <div class="bg-white shadow rounded-lg p-6 sticky top-6">
+            <h3 class="text-lg font-medium">Add Student to Roster</h3>
+            <form action="{{ url_for('.admin_manage_roster', group_id=group_id) }}" method="POST" class="mt-4">
+                <label for="enrollment_id" class="form-label">Available Students for this Package</label>
+                {% if available_candidates %}
+                    <select name="enrollment_id" id="enrollment_id" class="form-select">
+                        <option value="">-- Select a student --</option>
+                        {% for c in available_candidates %}
+                            <option value="{{ c.EnrollmentID }}">{{ c.LastName }}, {{ c.FirstName }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-primary mt-4 w-full">Add to Roster</button>
+                {% else %}
+                    <div class="mt-2 p-3 text-center bg-gray-50 rounded-md">
+                        <p class="text-sm text-gray-500">No available students to add.</p>
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    <div class="lg:col-span-2">
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b"><h3 class="text-lg font-medium">Current Roster ({{ members|length }})</h3></div>
+            <ul class="divide-y">
+                {% for member in members %}
+                <li class="p-6" x-data="{ open: false }">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">{{ member.LastName }}, {{ member.FirstName }}</p>
+                            <span class="text-sm text-gray-500">{{ member.Email }} | {{ member.PhoneNumber or 'No Phone' }}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button @click="open = !open" class="btn-secondary !text-xs !py-1">Manage Details</button>
+                            <!-- You would need a remove_group_member route in group_mgmt_routes for this button to work -->
+                            <form action="{{ url_for('.remove_group_member', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                <button type="submit" class="btn-danger !text-xs !py-1" title="Remove from Roster"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- ============================================================ -->
+                    <!-- CORRECTED & ENHANCED: Full management form for each student -->
+                    <!-- ============================================================ -->
+                    <div x-show="open" x-collapse class="mt-6 border-t pt-4">
+                        <form action="{{ url_for('instructor_portal_bp.update_student_details', group_id=group_id, enrollment_id=member.EnrollmentID) }}" method="POST" class="space-y-4">
+                            <div>
+                                <label for="placement_status_{{ member.EnrollmentID }}" class="form-label">Placement Status</label>
+                                <select name="placement_status" id="placement_status_{{ member.EnrollmentID }}" class="form-select">
+                                    <option value="NotStarted" {% if member.PlacementStatus == 'NotStarted' %}selected{% endif %}>Not Started</option>
+                                    <option value="Interviewing" {% if member.PlacementStatus == 'Interviewing' %}selected{% endif %}>Interviewing</option>
+                                    <option value="Hired" {% if member.PlacementStatus == 'Hired' %}selected{% endif %}>Hired</option>
+                                    <option value="NotHired" {% if member.PlacementStatus == 'NotHired' %}selected{% endif %}>Not Hired</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="recommendation_{{ member.EnrollmentID }}" class="form-label">Company Recommendations</label>
+                                <textarea name="recommendation" id="recommendation_{{ member.EnrollmentID }}" rows="3" class="form-textarea">{{ member.CompanyRecommendation or '' }}</textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="btn-primary">Save Student Details</button>
+                            </div>
+                        </form>
+                    </div>
+                </li>
+                {% else %}
+                <li class="p-6 text-center text-gray-500">No students have been added to this roster.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

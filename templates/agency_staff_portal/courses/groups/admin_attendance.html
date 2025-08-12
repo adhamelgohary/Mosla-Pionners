@@ -1,0 +1,53 @@
+<!-- templates/agency_staff_portal/courses/groups/admin_attendance.html -->
+{% extends 'agency_staff_portal/staff_base.html' %}
+{% block staff_title %}{{ title }}{% endblock %}
+{% block staff_page_title %}<i class="bi bi-check2-square"></i> {{ title }}{% endblock %}
+{% block staff_content %}
+<form action="{{ url_for('.admin_update_attendance', group_id=group_id) }}" method="POST">
+    <div class="flex justify-between items-center mb-4">
+        <a href="{{ url_for('.admin_group_dashboard', group_id=group_id) }}" class="btn-secondary"><i class="bi bi-arrow-left"></i> Back to Group Dashboard</a>
+        <button type="submit" class="btn-primary"><i class="bi bi-save-fill mr-1"></i> Save Changes</button>
+    </div>
+    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
+        <table class="min-w-full divide-y">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase sticky left-0 bg-gray-50 z-10">Student</th>
+                    {% for session in sessions %}
+                    <th class="px-6 py-3 text-center text-xs font-medium uppercase">{{ session.SessionTitle }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y">
+                {% for enrollment_id, student in students_attendance.items() %}
+                <tr x-data="{ notesOpen: null }">
+                    <td class="px-6 py-4 align-top sticky left-0 bg-white z-10 font-medium">{{ student.LastName }}, {{ student.FirstName }}</td>
+                    {% for session in sessions %}
+                    <td class="px-6 py-4 align-top text-center">
+                        {% set current = student.attendance.get(session.SessionID, {}) %}
+                        <select name="status_{{ session.SessionID }}_{{ enrollment_id }}" class="form-select !text-xs !py-1 w-full">
+                            <option value="Pending" {% if current.Status == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option value="Present" {% if current.Status == 'Present' %}selected{% endif %}>Present</option>
+                            <option value="Absent" {% if current.Status == 'Absent' %}selected{% endif %}>Absent</option>
+                            <option value="Excused" {% if current.Status == 'Excused' %}selected{% endif %}>Excused</option>
+                        </select>
+                        <button type="button" @click="notesOpen = (notesOpen === {{ session.SessionID }} ? null : {{ session.SessionID }})" class="mt-1 text-xs text-gray-500 hover:text-primary-600">Notes</button>
+                        <div x-show="notesOpen === {{ session.SessionID }}" class="mt-2 text-left p-2 border rounded-md bg-gray-50">
+                             <div>
+                                <label class="text-xs font-medium">Attendance Note</label>
+                                <input type="text" name="attendance_notes_{{ session.SessionID }}_{{ enrollment_id }}" value="{{ current.AttendanceNotes or '' }}" class="form-input !text-xs !py-1" placeholder="e.g., Arrived late">
+                             </div>
+                             <div class="mt-2">
+                                <label class="text-xs font-medium">Performance Note</label>
+                                <textarea name="performance_notes_{{ session.SessionID }}_{{ enrollment_id }}" rows="2" class="form-textarea !text-xs !py-1">{{ current.PerformanceNotes or '' }}</textarea>
+                             </div>
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</form>
+{% endblock %}
