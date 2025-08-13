@@ -754,3 +754,66 @@ def assign_test_admin(enrollment_id):
                            student=student,
                            all_tests=all_tests,
                            all_instructors=all_instructors)
+    
+@group_mgmt_bp.route('/tests/<string:test_type>/<int:test_id>')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def view_test_results(test_type, test_id):
+    """Admin view to see results for a specific test or assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        test_info = None
+        submissions = []
+
+        if test_type == 'placement':
+            # Get Placement Test details
+            cursor.execute("SELECT Title, Description FROM PlacementTests WHERE TestID = %s", (test_id,))
+            test_info = cursor.fetchone()
+            
+            # Get submissions for this Placement Test
+            cursor.execute("""
+                SELECT 
+                    u.FirstName, u.LastName, apt.Status, apt.CompletedAt,
+                    ce.PlacementTestScore
+                FROM AssignedPlacementTests apt
+                JOIN CourseEnrollments ce ON apt.EnrollmentID = ce.EnrollmentID
+                JOIN Candidates c ON ce.CandidateID = c.CandidateID
+                JOIN Users u ON c.UserID = u.UserID
+                WHERE apt.TestID = %s
+            """, (test_id,))
+            submissions = cursor.fetchall()
+            
+        elif test_type == 'assessment':
+            # Get Group Assessment details
+            cursor.execute("""
+                SELECT ga.Title, ga.Description, cg.GroupName
+                FROM GroupAssessments ga
+                JOIN CourseGroups cg ON ga.GroupID = cg.GroupID
+                WHERE ga.AssessmentID = %s
+            """, (test_id,))
+            test_info = cursor.fetchone()
+
+            # Get submissions for this Group Assessment
+            cursor.execute("""
+                SELECT 
+                    u.FirstName, u.LastName, cs.Status, cs.Score, cs.GradedAt
+                FROM CandidateSubmissions cs
+                JOIN CourseEnrollments ce ON cs.EnrollmentID = ce.EnrollmentID
+                JOIN Candidates c ON ce.CandidateID = c.CandidateID
+                JOIN Users u ON c.UserID = u.UserID
+                WHERE cs.AssessmentID = %s
+            """, (test_id,))
+            submissions = cursor.fetchall()
+
+        if not test_info:
+            flash("Test or assessment not found.", "danger")
+            return redirect(url_for('.list_all_tests'))
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return render_template('agency_staff_portal/courses/groups/view_test_results.html',
+                           title=f"Results for: {test_info['Title']}",
+                           test_info=test_info,
+                           submissions=submissions,
+                           test_type=test_type)
