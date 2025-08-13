@@ -1,5 +1,5 @@
 # routes/Agency_Staff_Portal/group_mgmt_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_login import current_user
 from utils.decorators import login_required_with_role
 from db import get_db_connection
@@ -673,6 +673,7 @@ def list_all_tests():
                 pt.TestID AS id,
                 pt.Title AS title,
                 'Placement Test' AS type,
+                pt.TestType AS internal_or_external_type, -- This identifies Internal vs External tests
                 pt.CreatedAt AS created_at,
                 CONCAT(u.FirstName, ' ', u.LastName) AS author,
                 NULL AS group_name  -- Placeholder for consistent columns
@@ -687,6 +688,7 @@ def list_all_tests():
                 ga.AssessmentID AS id,
                 ga.Title AS title,
                 ga.AssessmentType AS type,
+                NULL AS internal_or_external_type, -- Assessments don't have this subtype
                 ga.CreatedAt AS created_at,
                 CONCAT(u.FirstName, ' ', u.LastName) AS author,
                 cg.GroupName AS group_name
@@ -940,3 +942,106 @@ def build_placement_test_admin(test_id):
                            title=f"Build Test: {test['Title']}",
                            test=test,
                            questions=questions)
+
+# --- NEW: API Routes for Building Tests ---
+
+@group_mgmt_bp.route('/placement-tests/api/add_question/<int:test_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_test_question(test_id):
+    """API endpoint to add a new question to a placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        form = request.form
+        cursor.execute("SELECT COUNT(*) as count FROM PlacementTestQuestions WHERE TestID = %s", (test_id,))
+        display_order = cursor.fetchone()['count'] + 1
+        
+        sql = """INSERT INTO PlacementTestQuestions 
+                 (TestID, QuestionType, QuestionText, ModelAnswer, DisplayOrder) 
+                 VALUES (%s, %s, %s, %s, %s)"""
+        params = (test_id, form.get('question_type'), form.get('question_text'), form.get('model_answer'), display_order)
+        cursor.execute(sql, params)
+        new_question_id = cursor.lastrowid
+        conn.commit()
+        return jsonify({'status': 'success', 'question_id': new_question_id})
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"API Error adding question to test {test_id}: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/placement-tests/api/add_option/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_question_option(question_id):
+    """API endpoint to add an option to a multiple-choice question."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        is_correct = 1 if form.get('is_correct') == 'true' else 0
+        sql = "INSERT INTO PlacementTestQuestionOptions (QuestionID, OptionText, IsCorrect) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (question_id, form.get('option_text'), is_correct))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        current_app.logger.error(f"API Error adding option to question {question_id}: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/placement-tests/api/update_question/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def update_test_question(question_id):
+    """API endpoint to update a question's text or model answer."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        sql = "UPDATE PlacementTestQuestions SET QuestionText = %s, ModelAnswer = %s WHERE QuestionID = %s"
+        cursor.execute(sql, (form.get('question_text'), form.get('model_answer'), question_id))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/placement-tests/api/update_option/<int:option_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def update_question_option(option_id):
+    """API endpoint to update a question option."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        is_correct = 1 if form.get('is_correct') == 'true' else 0
+        sql = "UPDATE PlacementTestQuestionOptions SET OptionText = %s, IsCorrect = %s WHERE OptionID = %s"
+        cursor.execute(sql, (form.get('option_text'), is_correct, option_id))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/placement-tests/api/delete_question/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_test_question(question_id):
+    """API endpoint to delete a question and its associated options."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # The database should be set up with ON DELETE CASCADE for options, but this is safer.
+        cursor.execute("DELETE FROM PlacementTestQuestionOptions WHERE QuestionID = %s", (question_id,))
+        cursor.execute("DELETE FROM PlacementTestQuestions WHERE QuestionID = %s", (question_id,))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
