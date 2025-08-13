@@ -817,3 +817,86 @@ def view_test_results(test_type, test_id):
                            test_info=test_info,
                            submissions=submissions,
                            test_type=test_type)
+    
+@group_mgmt_bp.route('/placement-tests/add', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_placement_test_admin():
+    """Admin route to create a new placement test, assigning it to themselves."""
+    if request.method == 'POST':
+        form = request.form
+        test_type = form.get('test_type')
+        title = form.get('title')
+        if not title or not test_type:
+            flash("Title and Test Type are required.", "danger")
+            return render_template('agency_staff_portal/courses/groups/add_edit_placement_test_admin.html', title="Create Placement Test", form_data=form)
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            # Admins create tests under their own Staff ID
+            cursor.execute(
+                "INSERT INTO PlacementTests (Title, Description, TestType, ExternalURL, CreatedByInstructorStaffID) VALUES (%s, %s, %s, %s, %s)",
+                (title, form.get('description'), test_type, form.get('external_url'), current_user.specific_role_id)
+            )
+            conn.commit()
+            flash("Placement test created successfully.", "success")
+            return redirect(url_for('.list_all_tests'))
+        except Exception as e:
+            if conn: conn.rollback()
+            flash(f"Database error: {e}", "danger")
+        finally:
+            if conn: conn.close()
+    
+    return render_template('agency_staff_portal/courses/groups/add_edit_placement_test_admin.html', title="Create New Placement Test", form_data={})
+
+
+@group_mgmt_bp.route('/placement-tests/edit/<int:test_id>', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def edit_placement_test_admin(test_id):
+    """Admin route to edit any placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Admins can edit any test, so no CreatedBy check is needed.
+        cursor.execute("SELECT * FROM PlacementTests WHERE TestID = %s", (test_id,))
+        test = cursor.fetchone()
+        if not test:
+            flash("Placement test not found.", "danger")
+            return redirect(url_for('.list_all_tests'))
+
+        if request.method == 'POST':
+            form = request.form
+            is_active = 1 if form.get('is_active') else 0
+            cursor.execute("""
+                UPDATE PlacementTests SET Title = %s, Description = %s, TestType = %s, ExternalURL = %s, IsActive = %s
+                WHERE TestID = %s
+            """, (form.get('title'), form.get('description'), form.get('test_type'), form.get('external_url'), is_active, test_id))
+            conn.commit()
+            flash("Placement test updated.", "success")
+            return redirect(url_for('.list_all_tests'))
+
+        return render_template('agency_staff_portal/courses/groups/add_edit_placement_test_admin.html', title="Edit Placement Test", form_data=test, test_id=test_id)
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"Database error: {e}", "danger")
+    finally:
+        if conn: conn.close()
+    return redirect(url_for('.list_all_tests'))
+
+
+@group_mgmt_bp.route('/placement-tests/delete/<int:test_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_placement_test_admin(test_id):
+    """Admin route to delete any placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM PlacementTests WHERE TestID = %s", (test_id,))
+        conn.commit()
+        flash("Placement test deleted successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"Could not delete test. It may be in use. Error: {e}", "danger")
+    finally:
+        if conn: conn.close()
+    return redirect(url_for('.list_all_tests'))
