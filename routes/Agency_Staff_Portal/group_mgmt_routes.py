@@ -943,8 +943,6 @@ def build_placement_test_admin(test_id):
                            test=test,
                            questions=questions)
 
-# --- NEW: API Routes for Building Tests ---
-
 @group_mgmt_bp.route('/placement-tests/api/add_question/<int:test_id>', methods=['POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
 def add_test_question(test_id):
@@ -1046,27 +1044,6 @@ def delete_test_question(question_id):
     finally:
         if conn and conn.is_connected(): conn.close()
 
-
-@group_mgmt_bp.route('/placement-tests/api/delete_question/<int:question_id>', methods=['POST'])
-@login_required_with_role(GROUP_MANAGEMENT_ROLES)
-def delete_test_question(question_id):
-    """API endpoint to delete a placement test question and its associated options."""
-    # ... (this existing function remains unchanged)
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM PlacementTestQuestionOptions WHERE QuestionID = %s", (question_id,))
-        cursor.execute("DELETE FROM PlacementTestQuestions WHERE QuestionID = %s", (question_id,))
-        conn.commit()
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        if conn: conn.rollback()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-    finally:
-        if conn and conn.is_connected(): conn.close()
-
-
-# --- NEW: Group Assessment Management (for Quizzes, Exams, etc.) ---
 
 @group_mgmt_bp.route('/group/<int:group_id>/assessments/add', methods=['GET', 'POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
