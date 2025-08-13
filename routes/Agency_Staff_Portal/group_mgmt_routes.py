@@ -653,34 +653,63 @@ def admin_update_attendance(group_id):
         if conn and conn.is_connected(): conn.close()
     return redirect(url_for('.admin_attendance', group_id=group_id))
 
-# In group_mgmt_routes.py
 
-# --- NEW: Placement Test Management for Admins ---
-
-@group_mgmt_bp.route('/placement-tests')
+@group_mgmt_bp.route('/tests-and-assessments')
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
-def list_all_placement_tests():
-    """Admin view to see all placement tests from all instructors."""
+def list_all_tests():
+    """
+    Admin view to see a unified list of all Placement Tests and Group Assessments
+    from across the entire system.
+    """
     conn = get_db_connection()
-    tests = []
+    all_tests = []
     try:
         cursor = conn.cursor(dictionary=True)
-        # Query joins to Staff and Users to show who created the test
-        cursor.execute("""
+        # This powerful UNION ALL query combines results from two different tables
+        # into a single, cohesive list.
+        sql_query = """
+            -- Part 1: Select all Placement Tests
             SELECT 
-                pt.TestID, pt.Title, pt.TestType, pt.IsActive,
-                u.FirstName, u.LastName
+                pt.TestID AS id,
+                pt.Title AS title,
+                'Placement Test' AS type,
+                pt.CreatedAt AS created_at,
+                CONCAT(u.FirstName, ' ', u.LastName) AS author,
+                NULL AS group_name  -- Placeholder for consistent columns
             FROM PlacementTests pt
             JOIN Staff s ON pt.CreatedByInstructorStaffID = s.StaffID
             JOIN Users u ON s.UserID = u.UserID
-            ORDER BY pt.CreatedAt DESC
-        """)
-        tests = cursor.fetchall()
+
+            UNION ALL
+
+            -- Part 2: Select all Group Assessments
+            SELECT 
+                ga.AssessmentID AS id,
+                ga.Title AS title,
+                ga.AssessmentType AS type,
+                ga.CreatedAt AS created_at,
+                CONCAT(u.FirstName, ' ', u.LastName) AS author,
+                cg.GroupName AS group_name
+            FROM GroupAssessments ga
+            JOIN Staff s ON ga.CreatedByInstructorStaffID = s.StaffID
+            JOIN Users u ON s.UserID = u.UserID
+            JOIN CourseGroups cg ON ga.GroupID = cg.GroupID
+            
+            -- Order the final combined list by the creation date
+            ORDER BY created_at DESC;
+        """
+        cursor.execute(sql_query)
+        all_tests = cursor.fetchall()
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching all tests and assessments: {e}", exc_info=True)
+        flash("Could not load the list of tests and assessments.", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
-    return render_template('agency_staff_portal/courses/groups/list_placement_tests_admin.html', 
-                           title="Manage All Placement Tests", tests=tests)
-
+        
+    return render_template('agency_staff_portal/courses/groups/list_all_tests.html', 
+                           title="Tests & Assessments Center", 
+                           all_tests=all_tests)
 
 @group_mgmt_bp.route('/placement-pipeline/<int:enrollment_id>/assign-test', methods=['GET', 'POST'])
 @login_required_with_role(GROUP_MANAGEMENT_ROLES)
