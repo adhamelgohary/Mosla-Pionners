@@ -1045,3 +1045,243 @@ def delete_test_question(question_id):
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn and conn.is_connected(): conn.close()
+
+
+@group_mgmt_bp.route('/placement-tests/api/delete_question/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_test_question(question_id):
+    """API endpoint to delete a placement test question and its associated options."""
+    # ... (this existing function remains unchanged)
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM PlacementTestQuestionOptions WHERE QuestionID = %s", (question_id,))
+        cursor.execute("DELETE FROM PlacementTestQuestions WHERE QuestionID = %s", (question_id,))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+
+# --- NEW: Group Assessment Management (for Quizzes, Exams, etc.) ---
+
+@group_mgmt_bp.route('/group/<int:group_id>/assessments/add', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_group_assessment_admin(group_id):
+    """Admin route to create a new assessment for a specific group."""
+    if request.method == 'POST':
+        form = request.form
+        if not form.get('title') or not form.get('assessment_type'):
+            flash("Title and Assessment Type are required.", "danger")
+            return render_template('agency_staff_portal/courses/groups/add_edit_group_assessment_admin.html', title="Create Assessment", form_data=form, group_id=group_id)
+        
+        conn = get_db_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO GroupAssessments (GroupID, Title, Description, AssessmentType, DueDate, CreatedByInstructorStaffID) VALUES (%s, %s, %s, %s, %s, %s)",
+                (group_id, form.get('title'), form.get('description'), form.get('assessment_type'), form.get('due_date') or None, current_user.specific_role_id)
+            )
+            conn.commit()
+            flash("Assessment created successfully.", "success")
+            return redirect(url_for('.admin_group_dashboard', group_id=group_id))
+        except Exception as e:
+            if conn: conn.rollback()
+            flash(f"Database error: {e}", "danger")
+        finally:
+            if conn: conn.close()
+            
+    return render_template('agency_staff_portal/courses/groups/add_edit_group_assessment_admin.html', title="Create New Assessment", form_data={}, group_id=group_id)
+
+@group_mgmt_bp.route('/assessments/edit/<int:assessment_id>', methods=['GET', 'POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def edit_group_assessment_admin(assessment_id):
+    """Admin route to edit an existing group assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM GroupAssessments WHERE AssessmentID = %s", (assessment_id,))
+        assessment = cursor.fetchone()
+        if not assessment:
+            flash("Assessment not found.", "danger")
+            return redirect(url_for('.list_all_tests'))
+
+        if request.method == 'POST':
+            form = request.form
+            cursor.execute("""
+                UPDATE GroupAssessments SET Title = %s, Description = %s, AssessmentType = %s, DueDate = %s
+                WHERE AssessmentID = %s
+            """, (form.get('title'), form.get('description'), form.get('assessment_type'), form.get('due_date') or None, assessment_id))
+            conn.commit()
+            flash("Assessment updated successfully.", "success")
+            return redirect(url_for('.admin_group_dashboard', group_id=assessment['GroupID']))
+
+        return render_template('agency_staff_portal/courses/groups/add_edit_group_assessment_admin.html', title="Edit Assessment", form_data=assessment, assessment_id=assessment_id, group_id=assessment['GroupID'])
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"Database error: {e}", "danger")
+        return redirect(url_for('.list_all_tests'))
+    finally:
+        if conn: conn.close()
+        
+@group_mgmt_bp.route('/assessments/delete/<int:assessment_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_group_assessment_admin(assessment_id):
+    """Admin route to delete a group assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT GroupID FROM GroupAssessments WHERE AssessmentID = %s", (assessment_id,))
+        assessment = cursor.fetchone()
+        group_id = assessment['GroupID'] if assessment else None
+        
+        cursor.execute("DELETE FROM GroupAssessments WHERE AssessmentID = %s", (assessment_id,))
+        conn.commit()
+        flash("Assessment deleted successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f"Could not delete assessment. It may have submissions. Error: {e}", "danger")
+    finally:
+        if conn: conn.close()
+        
+    if group_id:
+        return redirect(url_for('.admin_group_dashboard', group_id=group_id))
+    return redirect(url_for('.list_all_tests'))
+
+@group_mgmt_bp.route('/assessments/build/<int:assessment_id>')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def build_group_assessment_admin(assessment_id):
+    """Admin page for building/editing questions for a group assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM GroupAssessments WHERE AssessmentID = %s", (assessment_id,))
+        assessment = cursor.fetchone()
+        if not assessment:
+            flash("Assessment not found.", "danger")
+            return redirect(url_for('.list_all_tests'))
+
+        # Fetch questions and options from the new tables
+        cursor.execute("SELECT * FROM GroupAssessmentQuestions WHERE AssessmentID = %s ORDER BY DisplayOrder", (assessment_id,))
+        questions = cursor.fetchall()
+        
+        if questions:
+            question_ids = [q['QuestionID'] for q in questions]
+            format_strings = ','.join(['%s'] * len(question_ids))
+            cursor.execute(f"SELECT * FROM GroupAssessmentQuestionOptions WHERE QuestionID IN ({format_strings})", tuple(question_ids))
+            options = cursor.fetchall()
+            options_map = {qid: [] for qid in question_ids}
+            for opt in options:
+                options_map[opt['QuestionID']].append(opt)
+            for q in questions:
+                q['options'] = options_map.get(q['QuestionID'], [])
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('agency_staff_portal/courses/groups/build_group_assessment_admin.html',
+                           title=f"Build Assessment: {assessment['Title']}",
+                           assessment=assessment,
+                           questions=questions)
+
+# --- NEW: API Routes for Building Group Assessments ---
+
+@group_mgmt_bp.route('/assessments/api/add_question/<int:assessment_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_assessment_question(assessment_id):
+    """API: Add a new question to a group assessment."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        form = request.form
+        cursor.execute("SELECT COUNT(*) as count FROM GroupAssessmentQuestions WHERE AssessmentID = %s", (assessment_id,))
+        display_order = cursor.fetchone()['count'] + 1
+        
+        sql = """INSERT INTO GroupAssessmentQuestions 
+                 (AssessmentID, QuestionType, QuestionText, ModelAnswer, DisplayOrder) 
+                 VALUES (%s, %s, %s, %s, %s)"""
+        params = (assessment_id, form.get('question_type'), form.get('question_text'), form.get('model_answer'), display_order)
+        cursor.execute(sql, params)
+        new_question_id = cursor.lastrowid
+        conn.commit()
+        return jsonify({'status': 'success', 'question_id': new_question_id})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/assessments/api/add_option/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def add_assessment_option(question_id):
+    """API: Add an option to an assessment's multiple-choice question."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        is_correct = 1 if form.get('is_correct') == 'true' else 0
+        sql = "INSERT INTO GroupAssessmentQuestionOptions (QuestionID, OptionText, IsCorrect) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (question_id, form.get('option_text'), is_correct))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/assessments/api/update_question/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def update_assessment_question(question_id):
+    """API: Update an assessment question's text or model answer."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        sql = "UPDATE GroupAssessmentQuestions SET QuestionText = %s, ModelAnswer = %s WHERE QuestionID = %s"
+        cursor.execute(sql, (form.get('question_text'), form.get('model_answer'), question_id))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/assessments/api/update_option/<int:option_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def update_assessment_option(option_id):
+    """API: Update an assessment question option."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        form = request.form
+        is_correct = 1 if form.get('is_correct') == 'true' else 0
+        sql = "UPDATE GroupAssessmentQuestionOptions SET OptionText = %s, IsCorrect = %s WHERE OptionID = %s"
+        cursor.execute(sql, (form.get('option_text'), is_correct, option_id))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+@group_mgmt_bp.route('/assessments/api/delete_question/<int:question_id>', methods=['POST'])
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def delete_assessment_question(question_id):
+    """API: Delete an assessment question."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # ON DELETE CASCADE in the DB schema will handle deleting the options.
+        cursor.execute("DELETE FROM GroupAssessmentQuestions WHERE QuestionID = %s", (question_id,))
+        conn.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        if conn and conn.is_connected(): conn.close()

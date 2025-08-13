@@ -1,0 +1,55 @@
+<!-- templates/agency_staff_portal/courses/groups/add_edit_group_assessment_admin.html -->
+{% extends 'agency_staff_portal/staff_base.html' %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+    <i class="bi bi-pencil-square"></i> {{ title }}
+{% endblock %}
+
+{% block staff_content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white dark:bg-slate-800 shadow-md rounded-lg p-6 border dark:border-slate-700">
+        <form method="POST">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Title -->
+                <div class="md:col-span-2">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" id="title" name="title" value="{{ form_data.Title or '' }}" class="form-input" required>
+                </div>
+                
+                <!-- Assessment Type -->
+                <div>
+                    <label for="assessment_type" class="form-label">Assessment Type</label>
+                    <select id="assessment_type" name="assessment_type" class="form-select" required>
+                        <option value="Quiz" {% if form_data.AssessmentType == 'Quiz' %}selected{% endif %}>Quiz</option>
+                        <option value="Exam" {% if form_data.AssessmentType == 'Exam' %}selected{% endif %}>Exam</option>
+                        <option value="Homework" {% if form_data.AssessmentType == 'Homework' %}selected{% endif %}>Homework</option>
+                        <option value="Assignment" {% if form_data.AssessmentType == 'Assignment' %}selected{% endif %}>Assignment</option>
+                        <option value="Project" {% if form_data.AssessmentType == 'Project' %}selected{% endif %}>Project</option>
+                    </select>
+                </div>
+
+                <!-- Due Date -->
+                <div>
+                    <label for="due_date" class="form-label">Due Date (Optional)</label>
+                    <input type="datetime-local" id="due_date" name="due_date" value="{{ form_data.DueDate.strftime('%Y-%m-%dT%H:%M') if form_data.DueDate else '' }}" class="form-input">
+                </div>
+                
+                <!-- Description -->
+                <div class="md:col-span-2">
+                    <label for="description" class="form-label">Description / Instructions</label>
+                    <textarea id="description" name="description" rows="5" class="form-textarea">{{ form_data.Description or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t dark:border-slate-600 flex justify-end gap-x-3">
+                <a href="{{ url_for('.admin_group_dashboard', group_id=group_id) }}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-save mr-1"></i> Save Assessment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
