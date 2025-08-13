@@ -900,3 +900,43 @@ def delete_placement_test_admin(test_id):
     finally:
         if conn: conn.close()
     return redirect(url_for('.list_all_tests'))
+
+@group_mgmt_bp.route('/placement-tests/build/<int:test_id>')
+@login_required_with_role(GROUP_MANAGEMENT_ROLES)
+def build_placement_test_admin(test_id):
+    """Admin page for building/editing an internal placement test."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Admin check: just ensure it's an internal test
+        cursor.execute("SELECT * FROM PlacementTests WHERE TestID = %s AND TestType = 'Internal'", (test_id,))
+        test = cursor.fetchone()
+        if not test:
+            flash("Internal test not found.", "danger")
+            return redirect(url_for('.list_all_tests'))
+
+        # Fetch all questions and their options for this test
+        cursor.execute("SELECT * FROM PlacementTestQuestions WHERE TestID = %s ORDER BY DisplayOrder", (test_id,))
+        questions = cursor.fetchall()
+
+        if questions:
+            question_ids = [q['QuestionID'] for q in questions]
+            format_strings = ','.join(['%s'] * len(question_ids))
+            cursor.execute(f"SELECT * FROM PlacementTestQuestionOptions WHERE QuestionID IN ({format_strings})", tuple(question_ids))
+            options = cursor.fetchall()
+            
+            options_map = {qid: [] for qid in question_ids}
+            for opt in options:
+                options_map[opt['QuestionID']].append(opt)
+            
+            for q in questions:
+                q['options'] = options_map.get(q['QuestionID'], [])
+
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    # We can reuse the instructor's build template, as the logic is client-side
+    return render_template('agency_staff_portal/courses/groups/build_placement_test_admin.html',
+                           title=f"Build Test: {test['Title']}",
+                           test=test,
+                           questions=questions)

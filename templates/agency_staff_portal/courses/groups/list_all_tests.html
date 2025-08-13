@@ -1,4 +1,4 @@
-<!-- templates/agency_staff_portal/courses/groups/list_all_tests.html (UPDATED) -->
+<!-- templates/agency_staff_portal/courses/groups/list_all_tests.html (UPDATED & CORRECTED) -->
 {% extends 'agency_staff_portal/staff_base.html' %}
 {% block staff_title %}{{ title }}{% endblock %}
 {% block staff_page_title %}<i class="bi bi-file-earmark-check-fill"></i> {{ title }}{% endblock %}
@@ -10,7 +10,6 @@
             <p class="mt-1 text-sm text-gray-500">Oversee all Placement Tests and in-course Assessments.</p>
         </div>
         <div>
-            <!-- Link to the new admin test creation page -->
             <a href="{{ url_for('.add_placement_test_admin') }}" class="btn-primary"><i class="bi bi-plus-circle mr-1"></i> New Placement Test</a>
         </div>
     </div>
@@ -45,12 +44,23 @@
                             <button @click="open = !open" class="btn-secondary !text-xs !py-1">Manage <i class="bi bi-chevron-down"></i></button>
                             <div x-show="open" x-collapse
                                  class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                                <div class="py-1">
+                                <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                     {% set test_type = 'placement' if test.type == 'Placement Test' else 'assessment' %}
                                     <a href="{{ url_for('.view_test_results', test_type=test_type, test_id=test.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Results</a>
-                                    <!-- These links would require admin-specific edit/delete routes -->
-                                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Test</a>
-                                    <a href="#" class="block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">Delete</a>
+                                    
+                                    <!-- Only allow building/editing for Placement Tests in this flow -->
+                                    {% if test_type == 'placement' %}
+                                        <!-- NEW: Build Link for Internal tests -->
+                                        {% if test.type == 'Internal' %}
+                                            <a href="{{ url_for('.build_placement_test_admin', test_id=test.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Build Questions</a>
+                                        {% endif %}
+                                        <!-- CORRECTED: Edit link -->
+                                        <a href="{{ url_for('.edit_placement_test_admin', test_id=test.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Details</a>
+                                        <!-- CORRECTED: Delete form -->
+                                        <form action="{{ url_for('.delete_placement_test_admin', test_id=test.id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                                            <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-red-700 hover:bg-gray-100">Delete</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
