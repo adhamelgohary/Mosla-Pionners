@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block staff_content %}
-<div x-data="{ isLoaded: false }" x-init="setTimeout(() => { isLoaded = true }, 100)" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div x-data="{ isLoaded: false }" x-init="setTimeout(() => { isLoaded = true }, 50)" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <!-- Main Content Column -->
     <div class="lg:col-span-2 space-y-8">
@@ -16,24 +16,57 @@
             <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-gray-100">Key Performance Indicators</h3>
             <dl class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
                 
-                {% macro kpi_card(title, value, icon, color='blue') %}
-                <div class="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800 p-5 shadow-md border border-gray-200 dark:border-slate-700">
-                    <dt>
-                        <div class="absolute rounded-lg bg-{{ color }}-500 p-3 shadow">
-                            <i class="bi {{ icon }} text-white h-6 w-6"></i>
+                <!-- Card 1: Total Candidates -->
+                <div class="bg-white dark:bg-slate-800 overflow-hidden rounded-xl p-5 shadow-md border border-gray-200 dark:border-slate-700">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-100 dark:bg-blue-900/50 rounded-lg p-3">
+                            <i class="bi bi-people-fill text-3xl text-blue-600 dark:text-blue-400"></i>
                         </div>
-                        <p class="ml-16 truncate text-sm font-medium text-gray-500 dark:text-gray-400">{{ title }}</p>
-                    </dt>
-                    <dd class="ml-16 flex items-baseline">
-                        <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ value }}</p>
-                    </dd>
+                        <div class="ml-5 w-0 flex-1">
+                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Candidates</dt>
+                            <dd class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ dashboard_stats.total_candidates_system }}</dd>
+                        </div>
+                    </div>
                 </div>
-                {% endmacro %}
-                
-                {{ kpi_card('Total Candidates', dashboard_stats.total_candidates_system, 'bi-people-fill', 'blue') }}
-                {{ kpi_card('Total Companies', dashboard_stats.total_companies, 'bi-building-fill', 'green') }}
-                {{ kpi_card('Open Job Offers', dashboard_stats.open_job_offers, 'bi-briefcase-fill', 'sky') }}
-                {{ kpi_card('Active Staff', dashboard_stats.active_staff_count, 'bi-person-badge-fill', 'rose') }}
+
+                <!-- Card 2: Total Companies -->
+                <div class="bg-white dark:bg-slate-800 overflow-hidden rounded-xl p-5 shadow-md border border-gray-200 dark:border-slate-700">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-green-100 dark:bg-green-900/50 rounded-lg p-3">
+                            <i class="bi bi-building-fill text-3xl text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Companies</dt>
+                            <dd class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ dashboard_stats.total_companies }}</dd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Open Job Offers -->
+                <div class="bg-white dark:bg-slate-800 overflow-hidden rounded-xl p-5 shadow-md border border-gray-200 dark:border-slate-700">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-sky-100 dark:bg-sky-900/50 rounded-lg p-3">
+                            <i class="bi bi-briefcase-fill text-3xl text-sky-600 dark:text-sky-400"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Open Job Offers</dt>
+                            <dd class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ dashboard_stats.open_job_offers }}</dd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Active Staff -->
+                <div class="bg-white dark:bg-slate-800 overflow-hidden rounded-xl p-5 shadow-md border border-gray-200 dark:border-slate-700">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-rose-100 dark:bg-rose-900/50 rounded-lg p-3">
+                            <i class="bi bi-person-badge-fill text-3xl text-rose-600 dark:text-rose-400"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Staff</dt>
+                            <dd class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ dashboard_stats.active_staff_count }}</dd>
+                        </div>
+                    </div>
+                </div>
             </dl>
         </div>
 
@@ -43,17 +76,17 @@
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Latest Announcements</h3>
                 <div class="mt-4 border-t border-gray-200 dark:border-slate-700 pt-4">
                     {% if manual_announcements %}
-                        <ul class="space-y-5">
+                        <ul class="space-y-2">
                             {% for item in manual_announcements %}
-                            <li class="relative">
+                            <li class="relative p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div class="flex items-start space-x-4">
                                     <div class="relative pt-1.5">
-                                        <div class="h-3 w-3 rounded-full {{ {'Urgent': 'bg-red-500 ring-red-200', 'High': 'bg-amber-500 ring-amber-200', 'Normal': 'bg-blue-500 ring-blue-200'}[item.Priority] }} ring-4"></div>
+                                        <div class="h-3 w-3 rounded-full {{ {'Urgent': 'bg-red-500 ring-red-300 dark:ring-red-500/30', 'High': 'bg-amber-500 ring-amber-300 dark:ring-amber-500/30', 'Normal': 'bg-blue-500 ring-blue-300 dark:ring-blue-500/30'}[item.Priority] }} ring-4"></div>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ item.Title }}</p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.Content }}</p>
-                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">By {{ item.PosterFirstName or 'System' }} on {{ item.CreatedAt.strftime('%b %d') }}</p>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ item.Title }}</p>
+                                        <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ item.Content }}</p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">By {{ item.PosterFirstName or 'System' }} on {{ item.CreatedAt.strftime('%b %d') }}</p>
                                     </div>
                                 </div>
                             </li>
@@ -70,30 +103,28 @@
     <!-- Sidebar Column -->
     <div class="lg:col-span-1 space-y-8">
          <div x-show="isLoaded" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
-              class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
-            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Welcome back, {{ current_user.first_name }}!</h2>
-            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Here are your quick actions.</p>
+              class="relative text-white overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold">Welcome back, {{ current_user.first_name }}!</h2>
+            <p class="text-primary-100 text-sm mt-1">Here are your quick actions.</p>
             <div class="mt-6 flex flex-col space-y-3">
-                <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="btn-primary w-full"><i class="bi bi-person-plus-fill mr-2"></i> Add New Staff</a>
-                <!-- CORRECTED LINK for Add Announcement -->
-                <a href="{{ url_for('announcement_bp.add_announcement') }}" class="btn-secondary w-full"><i class="bi bi-megaphone-fill mr-2"></i> Add Announcement</a>
+                <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="w-full text-center bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"><i class="bi bi-person-plus-fill mr-2"></i> Add New Staff</a>
+                <a href="{{ url_for('announcement_bp.add_announcement') }}" class="w-full text-center bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"><i class="bi bi-megaphone-fill mr-2"></i> Add Announcement</a>
             </div>
         </div>
         
         <div id="contact-messages-panel" x-show="isLoaded" x-transition:enter="transition ease-out duration-300 delay-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
-             class="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-lg rounded-xl p-6">
+             class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Recent Inquiries</h3>
-                <!-- CORRECTED LINK for View All Inquiries -->
-                <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">View All</a>
+                <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">View All</a>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-2">
                 {% if contact_messages %}
                     {% for message in contact_messages %}
-                    <a href="{{ url_for('inquiry_mgmt_bp.view_inquiry', message_id=message.MessageID) }}" class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        <div class="flex items-start space-x-4">
-                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                                <i class="bi bi-envelope-paper-heart-fill text-blue-500 dark:text-blue-400"></i>
+                    <a href="{{ url_for('inquiry_mgmt_bp.view_inquiry', message_id=message.MessageID) }}" class="block p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-start space-x-3">
+                             <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center">
+                                <i class="bi bi-chat-left-text-fill text-xl text-gray-500 dark:text-gray-300"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title="{{ message.Subject }}">{{ message.Subject }}</p>
@@ -101,7 +132,7 @@
                                     From: <span class="font-medium">{{ message.Name }}</span>
                                 </p>
                                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                    {{ message.SubmittedAt.strftime('%b %d, %Y at %I:%M %p') }}
+                                    {{ message.SubmittedAt.strftime('%b %d, %I:%M %p') }}
                                 </p>
                             </div>
                         </div>
