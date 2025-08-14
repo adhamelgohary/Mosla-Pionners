@@ -45,6 +45,72 @@ def check_email_exists_in_db(email, conn):
     return exists
 
 
+# --- Staff Dashboard ---
+@staff_perf_bp.route('/dashboard')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def staff_dashboard():
+    """Displays a dashboard with key staff statistics and quick links."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # --- Fetch all stats in a few queries ---
+    
+    # Stat Card Data
+    cursor.execute("""
+        SELECT
+            (SELECT COUNT(*) FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE u.AccountStatus = 'Active') as total_active_staff,
+            (SELECT COUNT(*) FROM StaffApplications WHERE Status = 'Pending') as pending_applications,
+            (SELECT COUNT(*) FROM SourcingTeams WHERE IsActive = 1) as sourcing_teams,
+            (SELECT COUNT(*) FROM AccountManagerTeams) as am_teams;
+    """)
+    stats = cursor.fetchone()
+
+    # Staff by Role
+    cursor.execute("""
+        SELECT Role, COUNT(s.StaffID) as count
+        FROM Staff s
+        JOIN Users u ON s.UserID = u.UserID
+        WHERE u.AccountStatus = 'Active'
+        GROUP BY s.Role
+        ORDER BY count DESC;
+    """)
+    staff_by_role = cursor.fetchall()
+
+    # Top 5 Monthly Performers
+    cursor.execute("""
+        SELECT u.FirstName, u.LastName, s.Role, SUM(spl.PointsAmount) as Points
+        FROM StaffPointsLog spl
+        JOIN Staff s ON spl.AwardedToStaffID = s.StaffID
+        JOIN Users u ON s.UserID = u.UserID
+        WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
+        GROUP BY u.UserID, u.FirstName, u.LastName, s.Role
+        HAVING SUM(spl.PointsAmount) > 0
+        ORDER BY Points DESC LIMIT 5;
+    """)
+    top_performers = cursor.fetchall()
+    
+    # Recently Joined Staff
+    cursor.execute("""
+        SELECT u.FirstName, u.LastName, sa.DesiredRole as Role, sa.ReviewedAt
+        FROM StaffApplications sa
+        JOIN Users u ON sa.UserID = u.UserID
+        WHERE sa.Status = 'Approved'
+        ORDER BY sa.ReviewedAt DESC
+        LIMIT 5;
+    """)
+    recent_hires = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('agency_staff_portal/staff/staff_dashboard.html',
+                           title="Staff Dashboard",
+                           stats=stats,
+                           staff_by_role=staff_by_role,
+                           top_performers=top_performers,
+                           recent_hires=recent_hires)
+
+
 # --- [NEW] Application Review Flow ---
 
 @staff_perf_bp.route('/review-applications')

@@ -1,43 +1,194 @@
+{# templates/agency_staff_portal/staff/staff_dashboard.html #}
 {% extends "agency_staff_portal/staff_base.html" %}
 
-{% block staff_title %}{{ title }}{% endblock %}
-
+{% block staff_title %}Staff Dashboard{% endblock %}
 {% block staff_page_title %}
-    <i class="bi bi-people-fill"></i> {{ title }}
+<i class="bi bi-people-fill text-primary-600"></i>
+<span>Staff Dashboard</span>
 {% endblock %}
 
 {% block staff_content %}
 <div class="space-y-8">
-    <div class="flex justify-between items-center">
-        <div>
-            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Team Composition</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">An overview of all active staff roles in the agency.</p>
-        </div>
-        <a href="{{ url_for('employee_mgmt_bp.list_all_staff') }}" class="btn-secondary">
-             View All Staff Details <i class="bi bi-arrow-right-short ml-1"></i>
-        </a>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Main KPI Card -->
-        <div class="md:col-span-2 lg:col-span-2 bg-primary-500 text-white p-6 rounded-xl shadow-lg">
-            <p class="font-medium">Total Active Staff</p>
-            <p class="text-5xl font-bold mt-2">{{ kpis.get('total_staff', '0') }}</p>
-        </div>
-
-        <!-- Role Breakdown Cards -->
-        {% for role, count in kpis.get('role_breakdown', {}).items() %}
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-slate-700">
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ role | replace('_', ' ') | title }}s</p>
-            <p class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ count }}</p>
-        </div>
-        {% endfor %}
-
-        <!-- New Staff Card -->
-        <div class="bg-green-50 dark:bg-green-900/50 p-6 rounded-xl border border-green-200 dark:border-green-800">
-            <p class="text-sm font-medium text-green-700 dark:text-green-300">New Staff (Last 30 Days)</p>
-            <p class="mt-1 text-3xl font-semibold tracking-tight text-green-800 dark:text-green-200">+{{ kpis.get('new_staff_30_days', '0') }}</p>
+    
+    <!-- Quick Actions -->
+    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div class="flex flex-wrap items-center justify-start gap-3">
+            <h3 class="text-lg font-semibold text-gray-700 mr-4">Quick Actions:</h3>
+            <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <i class="bi bi-person-lines-fill -ml-1 mr-2"></i> Manage All Staff
+            </a>
+            <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <i class="bi bi-person-check-fill -ml-1 mr-2"></i> Review Applications
+                {% if stats.pending_applications > 0 %}
+                <span class="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ stats.pending_applications }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <i class="bi bi-person-plus-fill -ml-1 mr-2"></i> Add New Staff
+            </a>
         </div>
     </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Total Active Staff -->
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-workspace text-3xl text-white bg-green-500 rounded-md p-3"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Active Staff</dt>
+                            <dd class="text-3xl font-bold text-gray-900">{{ stats.total_active_staff }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Pending Applications -->
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-vcard text-3xl text-white bg-yellow-500 rounded-md p-3"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending Applications</dt>
+                            <dd class="text-3xl font-bold text-gray-900">{{ stats.pending_applications }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Sourcing Teams -->
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-diagram-3-fill text-3xl text-white bg-blue-500 rounded-md p-3"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Sourcing Teams</dt>
+                            <dd class="text-3xl font-bold text-gray-900">{{ stats.sourcing_teams }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Account Manager Teams -->
+        <div class="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-rolodex text-3xl text-white bg-indigo-500 rounded-md p-3"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">AM Teams</dt>
+                            <dd class="text-3xl font-bold text-gray-900">{{ stats.am_teams }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column (Span 2) -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Staff by Role -->
+            <div class="bg-white shadow rounded-lg border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Active Staff by Role</h3>
+                </div>
+                <div class="p-4">
+                    <ul role="list" class="divide-y divide-gray-200">
+                        {% for role in staff_by_role %}
+                        <li class="py-3 flex justify-between items-center">
+                            <span class="font-medium text-gray-800">{{ role.Role }}</span>
+                            <span class="text-lg font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">{{ role.count }}</span>
+                        </li>
+                        {% else %}
+                        <li>No active staff found.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recently Joined Staff -->
+            <div class="bg-white shadow rounded-lg border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Recently Joined Staff</h3>
+                </div>
+                <div class="p-4">
+                    <ul role="list" class="divide-y divide-gray-200">
+                        {% for staff in recent_hires %}
+                        <li class="py-3 flex justify-between items-center">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ staff.FirstName }} {{ staff.LastName }}</p>
+                                <p class="text-sm text-gray-500">{{ staff.Role }}</p>
+                            </div>
+                            <span class="text-sm text-gray-500">Joined on {{ staff.ReviewedAt.strftime('%b %d, %Y') }}</span>
+                        </li>
+                        {% else %}
+                        <li>No recent hires found.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column (Span 1) -->
+        <div class="space-y-8">
+            <!-- Top Monthly Performers -->
+            <div class="bg-white shadow rounded-lg border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Top Performers (This Month)</h3>
+                </div>
+                <div class="p-4">
+                    <ul role="list" class="divide-y divide-gray-200">
+                        {% for performer in top_performers %}
+                        <li class="py-3 flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-gray-800">{{ performer.FirstName }} {{ performer.LastName }}</p>
+                                <p class="text-sm text-gray-500">{{ performer.Role }}</p>
+                            </div>
+                            <span class="font-semibold text-green-600">{{ performer.Points|int }} Pts</span>
+                        </li>
+                        {% else %}
+                        <li>No performance data for this month yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Other Links -->
+            <div class="bg-white shadow rounded-lg border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Explore</h3>
+                </div>
+                <div class="p-4">
+                    <div class="flex flex-col space-y-3">
+                        <a href="{{ url_for('staff_perf_bp.my_team') }}" class="w-full text-center inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            My Team View
+                        </a>
+                        <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="w-full text-center inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Team Structure Chart
+                        </a>
+                        <a href="{{ url_for('staff_perf_bp.performance_leaderboard') }}" class="w-full text-center inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Performance Leaderboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
 {% endblock %}

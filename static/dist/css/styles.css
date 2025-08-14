@@ -2443,6 +2443,10 @@ html[data-theme="dark"] {
   margin-left: 1rem;
 }
 
+.ml-5 {
+  margin-left: 1.25rem;
+}
+
 .ml-6 {
   margin-left: 1.5rem;
 }
@@ -2645,6 +2649,10 @@ html[data-theme="dark"] {
 
 .min-h-screen {
   min-height: 100vh;
+}
+
+.w-0 {
+  width: 0px;
 }
 
 .w-10 {
@@ -2915,6 +2923,10 @@ html[data-theme="dark"] {
 
 .items-baseline {
   align-items: baseline;
+}
+
+.justify-start {
+  justify-content: flex-start;
 }
 
 .justify-end {
@@ -3343,11 +3355,6 @@ html[data-theme="dark"] {
   border-color: rgb(17 24 39 / 0.1);
 }
 
-.border-green-200 {
-  --tw-border-opacity: 1;
-  border-color: rgb(187 247 208 / var(--tw-border-opacity, 1));
-}
-
 .border-green-300 {
   --tw-border-opacity: 1;
   border-color: rgb(134 239 172 / var(--tw-border-opacity, 1));
@@ -3589,6 +3596,11 @@ html[data-theme="dark"] {
   background-color: rgb(224 231 255 / var(--tw-bg-opacity, 1));
 }
 
+.bg-indigo-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(99 102 241 / var(--tw-bg-opacity, 1));
+}
+
 .bg-indigo-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(79 70 229 / var(--tw-bg-opacity, 1));
@@ -3747,6 +3759,11 @@ html[data-theme="dark"] {
 .bg-yellow-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 252 232 / var(--tw-bg-opacity, 1));
+}
+
+.bg-yellow-500 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(234 179 8 / var(--tw-bg-opacity, 1));
 }
 
 .bg-yellow-500\/5 {
@@ -6373,11 +6390,6 @@ body {
   border-color: rgb(55 65 81 / var(--tw-border-opacity, 1));
 }
 
-.dark\:border-green-800:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-border-opacity: 1;
-  border-color: rgb(22 101 52 / var(--tw-border-opacity, 1));
-}
-
 .dark\:border-sky-500\/60:where([data-theme="dark"], [data-theme="dark"] *) {
   border-color: rgb(14 165 233 / 0.6);
 }
@@ -6572,11 +6584,6 @@ body {
 .dark\:text-gray-500:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-text-opacity: 1;
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
-}
-
-.dark\:text-green-200:where([data-theme="dark"], [data-theme="dark"] *) {
-  --tw-text-opacity: 1;
-  color: rgb(187 247 208 / var(--tw-text-opacity, 1));
 }
 
 .dark\:text-green-300:where([data-theme="dark"], [data-theme="dark"] *) {

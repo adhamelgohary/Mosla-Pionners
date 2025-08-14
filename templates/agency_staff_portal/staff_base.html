@@ -35,17 +35,8 @@
                                 {% if current_user.role_type != 'SalesManager' %}
                                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Dashboard</a>
                                     
-                                    <!-- Staff Dropdown -->
-                                    <div class="relative" x-on:click.away="managementMenuOpen = false">
-                                        <button @click="managementMenuOpen = !managementMenuOpen" type="button" class="inline-flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-md {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_perf_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}" aria-expanded="false">
-                                            <span>Staff</span><i class="bi bi-chevron-down -mr-1 h-5 w-5 text-gray-400"></i>
-                                        </button>
-                                        <div x-show="managementMenuOpen" x-transition class="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5" style="display:none;"><div class="py-1">
-                                            <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Manage All Staff</a>
-                                            <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Review Applications</a>
-                                            <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100">Team Structure</a>
-                                        </div></div>
-                                    </div>
+                                    <!-- Staff Link -->
+                                    <a href="{{ url_for('staff_perf_bp.staff_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('staff_perf_bp') else 'text-gray-500 hover:bg-gray-100 hover:text-gray-900' }}">Staff</a>
                                     
                                     <!-- Clients Dropdown -->
                                     <div class="relative" x-on:click.away="clientsMenuOpen = false">
@@ -131,8 +122,7 @@
                 <div class="space-y-1 px-2 pb-3 pt-2">
                     {% if current_user.role_type != 'SalesManager' %}
                         <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium {{ 'bg-primary-50 text-primary-600' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-gray-600 hover:bg-gray-100' }}">Dashboard</a>
-                        <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Staff</a>
-                        <a href="{{ url_for('staff_perf_bp.review_staff_applications') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Review Applications</a>
+                        <a href="{{ url_for('staff_perf_bp.staff_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Staff</a>
                         <a href="{{ url_for('client_mgmt_bp.list_companies') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Manage Clients</a>
                         <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-100">Jobs</a>
                     {% endif %}
