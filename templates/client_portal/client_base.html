@@ -1,44 +1,97 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-100">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <title>{% block title %}Client Portal{% endblock %} - Mosla Pioneers</title>
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="h-full">
+<!-- This body uses the default theme (NO .portal-scope class) -->
+<body class="h-full font-sans bg-background text-text">
     <div class="min-h-full">
-        <nav class="bg-slate-800">
+        <nav class="bg-card border-b border-border" x-data="{ mobileMenuOpen: false, profileMenuOpen: false }">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <h1 class="text-xl font-bold text-white">Client Portal</h1>
+                             <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="text-heading font-bold text-lg flex items-center gap-2">
+                                <i class="bi bi-buildings-fill text-primary"></i>
+                                <span>Client Portal</span>
+                            </a>
                         </div>
                         <div class="hidden md:block">
-                            <div class="ml-10 flex items-baseline space-x-4">
-                                <!-- UPDATED LINKS -->
-                                <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint == 'client_dashboard_bp.dashboard' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Dashboard</a>
-                                <a href="{{ url_for('client_offers_bp.pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint == 'client_offers_bp.pipeline' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Candidate Pipeline</a>
-                                <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint == 'client_offers_bp.submit_offer' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">Submit Offer</a>
-                                <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-slate-900 text-white' if request.endpoint == 'client_offers_bp.my_submissions' else 'text-gray-300 hover:bg-slate-700 hover:text-white' }}">My Submissions</a>
+                            <div class="ml-10 flex items-baseline space-x-1">
+                                <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_dashboard_bp.dashboard' else 'text-text-muted hover:bg-background hover:text-primary' }}">Dashboard</a>
+                                <a href="{{ url_for('client_offers_bp.pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.pipeline' else 'text-text-muted hover:bg-background hover:text-primary' }}">Candidate Pipeline</a>
+                                <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.submit_offer' else 'text-text-muted hover:bg-background hover:text-primary' }}">Submit Offer</a>
+                                <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.my_submissions' else 'text-text-muted hover:bg-background hover:text-primary' }}">My Submissions</a>
                             </div>
                         </div>
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
-                            <span class="text-sm text-gray-400 mr-4">Welcome, {{ session.get('client_company_name', 'Client') }}!</span>
-                            <a href="{{ url_for('login_bp.logout') }}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-slate-700 hover:text-white">Logout</a>
+                            <!-- Profile Dropdown -->
+                             <div class="relative ml-3" @click.outside="profileMenuOpen = false">
+                                <div>
+                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card">
+                                        <span class="sr-only">Open user menu</span>
+                                        <div class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                                            {{ (session.get('client_company_name', 'C'))[0] }}
+                                        </div>
+                                    </button>
+                                </div>
+                                <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-border focus:outline-none" style="display: none;">
+                                    <div class="px-4 py-2 border-b border-border">
+                                        <p class="text-sm font-medium text-heading truncate">{{ session.get('client_company_name', 'Client') }}</p>
+                                        <p class="text-xs text-text-muted truncate">{{ current_user.email }}</p>
+                                    </div>
+                                    <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background">Logout</a>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                     <div class="-mr-2 flex md:hidden">
+                        <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                            <span class="sr-only">Open main menu</span>
+                            <i class="bi text-xl" :class="{ 'bi-x-lg': mobileMenuOpen, 'bi-list': !mobileMenuOpen }"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
+                <div class="space-y-1 px-2 pb-3 pt-2">
+                    <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Dashboard</a>
+                    <a href="{{ url_for('client_offers_bp.pipeline') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Candidate Pipeline</a>
+                    <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Submit Offer</a>
+                    <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">My Submissions</a>
+                </div>
+                <div class="border-t border-border pt-4 pb-3">
+                    <div class="flex items-center px-5">
+                        <div class="flex-shrink-0">
+                             <div class="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                                {{ (session.get('client_company_name', 'C'))[0] }}
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-base font-medium text-heading">{{ session.get('client_company_name', 'Client') }}</div>
+                            <div class="text-sm font-medium text-text-muted">{{ current_user.email }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1 px-2">
+                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-heading">Logout</a>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <header class="bg-white shadow-sm">
+        <header class="bg-card shadow-sm">
             <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                <h1 class="text-lg font-semibold leading-6 text-gray-900">{% block page_title %}{{ title }}{% endblock %}</h1>
+                <h1 class="text-xl font-bold tracking-tight text-heading">{% block page_title %}{{ title }}{% endblock %}</h1>
             </div>
         </header>
 
@@ -48,8 +101,15 @@
                     {% if messages %}
                         <div class="space-y-4 mb-6">
                         {% for category, message in messages %}
-                            {% set color_classes = {'success': 'bg-green-50 border-green-400 text-green-700', 'danger': 'bg-red-50 border-red-400 text-red-700'} %}
-                            <div class="border-l-4 p-4 rounded-r-md {{ color_classes.get(category, 'bg-gray-50 border-gray-400 text-gray-700') }}"><p>{{ message }}</p></div>
+                            {% set category_map = {
+                                'success': 'bg-success/10 border-success text-success-700',
+                                'danger': 'bg-danger/10 border-danger text-danger-700',
+                                'warning': 'bg-warning/10 border-warning text-warning-700',
+                                'info': 'bg-primary/10 border-primary text-primary-700'
+                            } %}
+                            <div class="border-l-4 p-4 rounded-r-md {{ category_map.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}">
+                                <p>{{ message }}</p>
+                            </div>
                         {% endfor %}
                         </div>
                     {% endif %}
