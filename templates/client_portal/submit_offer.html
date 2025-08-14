@@ -85,9 +85,14 @@
                     <label class="form-label">Benefits</label>
                     <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4">
                         {% set benefits_options = ['Social Insurance', 'Medical Insurance', 'Transportation (Door to Door)', 'Transportation Allowance', 'Other'] %}
+                        
+                        <!-- FIX: Safely get the list of selected benefits -->
+                        {% set selected_benefits = form_data.getlist('benefits') if hasattr(form_data, 'getlist') else [] %}
+                        
                         {% for benefit in benefits_options %}
                         <div class="flex items-center">
-                            <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
+                            <!-- FIX: Check against the safe list -->
+                            <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in selected_benefits %}checked{% endif %}>
                             <label for="benefit_{{ loop.index }}" class="ml-2 block text-sm text-text">{{ benefit }}</label>
                         </div>
                         {% endfor %}
