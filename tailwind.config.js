@@ -14,7 +14,7 @@ module.exports = {
   ],
   
   theme: {
-    // === CHANGE 1: Toning down the fluid typography scale ===
+    // === Original fluid typography scale ===
     fluidType: {
       settings: {
         fontSizeMin: 1.0,    // Base size remains 16px on mobile
@@ -111,7 +111,7 @@ module.exports = {
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
 
-    // --- CUSTOM IN-LINE PLUGIN (WITH NEW COMPACT STYLES) ---
+    // --- CUSTOM IN-LINE PLUGIN ---
     plugin(function({ addBase, addComponents, addVariant }) {
       // 1. ADD BASE STYLES AND CSS VARIABLES
       addBase({
@@ -143,7 +143,7 @@ module.exports = {
           '--card-shadow': '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
         },
 
-        // ##### NEW PORTAL THEME (LIGHT) #####
+        // ##### ADDED: PORTAL THEME (LIGHT) #####
         // When .portal-scope is present, these variables will override the :root defaults.
         '.portal-scope': {
             '--primary-color-rgb': '79 70 229',  // Indigo 600
@@ -156,23 +156,10 @@ module.exports = {
             '--heading-color': '#0f172a',      // Slate 900
             '--border-color': '#e2e8f0',       // Slate 200
             '--input-border-color': '#cbd5e1', // Slate 300
-        },
-        // ##### NEW PORTAL THEME (DARK) #####
-        // When both data-theme="dark" and .portal-scope are present, this is used.
-        '[data-theme="dark"].portal-scope': {
-            '--primary-color-rgb': '129 140 248', // Indigo 400
-            '--primary-color-darker': '#a5b4fc',  // Indigo 300
-            '--background-color': '#0f172a',    // Slate 900
-            '--card-bg': '#1e293b',             // Slate 800
-            '--text-color': '#cbd5e1',         // Slate 300
-            '--text-muted': '#94a3b8',         // Slate 400
-            '--heading-color': '#f1f5f9',      // Slate 100
-            '--border-color': '#334155',       // Slate 700
-            '--input-border-color': '#475569', // Slate 600
         }
       });
 
-      // 2. ADD CUSTOM COMPONENT CLASSES (MORE COMPACT)
+      // 2. ADD CUSTOM COMPONENT CLASSES (Original compact styles)
       addComponents({
         '.form-label': {
           '@apply block text-xs font-medium leading-6 text-text': {}, // smaller label text

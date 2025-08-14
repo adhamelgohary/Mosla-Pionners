@@ -1,94 +1,115 @@
 {% extends "client_portal/client_base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <div class="rounded-2xl p-6 sm:p-8 bg-card border border-border shadow-sm">
-        <form action="{{ url_for('client_offers_bp.submit_offer') }}" method="POST" class="space-y-8">
-            
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Core Job Details</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Provide the essential information for the job opening.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
-                        <label for="title" class="form-label">Job Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="title" class="form-input" value="{{ form_data.get('title', '') }}" required>
-                    </div>
-                    <div>
-                        <label for="location" class="form-label">Location (e.g., "New Cairo")</label>
-                        <input type="text" name="location" id="location" class="form-input" value="{{ form_data.get('location', '') }}">
-                    </div>
-                    <div>
-                        <label for="closing_date" class="form-label">Closing Date <span class="text-danger">*</span></label>
-                        <input type="date" name="closing_date" id="closing_date" class="form-input" value="{{ form_data.get('closing_date', '') }}" required>
-                    </div>
+<div class="max-w-4xl mx-auto bg-card p-8 rounded-lg shadow">
+    <form method="POST" class="space-y-8">
+        <!-- Basic Information -->
+        <fieldset>
+            <legend class="text-lg font-semibold text-heading border-b border-border pb-2 mb-4">Basic Information</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="title" class="form-label">Job Title <span class="text-danger">*</span></label>
+                    <input type="text" id="title" name="title" class="form-input" required value="{{ form_data.get('title', '') }}">
+                </div>
+                <div>
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" id="location" name="location" class="form-input" value="{{ form_data.get('location', '') }}">
+                </div>
+                <div>
+                    <label for="closing_date" class="form-label">Closing Date <span class="text-danger">*</span></label>
+                    <input type="date" id="closing_date" name="closing_date" class="form-input" required value="{{ form_data.get('closing_date', '') }}">
+                </div>
+                 <div>
+                    <label for="candidates_needed" class="form-label">Number of Candidates Needed</label>
+                    <input type="number" id="candidates_needed" name="candidates_needed" class="form-input" value="{{ form_data.get('candidates_needed', '') }}" min="1">
                 </div>
             </div>
+        </fieldset>
 
-            <div class="border-t border-border"></div>
-
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Candidate Requirements</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Specify the qualifications needed for the ideal candidate.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                    <div>
-                        <label for="english_level_requirement" class="form-label">Required English Level</label>
-                        <select name="english_level_requirement" id="english_level_requirement" class="form-select">
-                            <option value="">Select level...</option>
-                            {% for level in ['B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'] %}
-                            <option value="{{ level }}" {% if form_data.get('english_level_requirement') == level %}selected{% endif %}>{{ level }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label for="nationality_requirement" class="form-label">Nationality</label>
-                         <select name="nationality_requirement" id="nationality_requirement" class="form-select">
-                            <option value="Egyptians Only" {% if form_data.get('nationality_requirement', 'Egyptians Only') == 'Egyptians Only' %}selected{% endif %}>Egyptians Only</option>
-                            <option value="Foreigners & Egyptians" {% if form_data.get('nationality_requirement') == 'Foreigners & Egyptians' %}selected{% endif %}>Foreigners & Egyptians</option>
-                        </select>
-                    </div>
+        <!-- Candidate Requirements -->
+        <fieldset>
+            <legend class="text-lg font-semibold text-heading border-b border-border pb-2 mb-4">Candidate Requirements</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label for="max_age" class="form-label">Maximum Age</label>
+                    <input type="number" id="max_age" name="max_age" class="form-input" value="{{ form_data.get('max_age', '') }}" min="18">
+                </div>
+                <div>
+                    <label for="nationality_requirement" class="form-label">Nationality</label>
+                    <select id="nationality_requirement" name="nationality_requirement" class="form-select">
+                        <option value="Any" {% if form_data.get('nationality_requirement') == 'Any' %}selected{% endif %}>Any</option>
+                        <option value="Local" {% if form_data.get('nationality_requirement') == 'Local' %}selected{% endif %}>Local</option>
+                        <option value="Expat" {% if form_data.get('nationality_requirement') == 'Expat' %}selected{% endif %}>Expat</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="graduation_status_requirement" class="form-label">Graduation Status</label>
+                    <select id="graduation_status_requirement" name="graduation_status_requirement" class="form-select">
+                        <option value="Any" {% if form_data.get('graduation_status_requirement') == 'Any' %}selected{% endif %}>Any</option>
+                        <option value="Graduate" {% if form_data.get('graduation_status_requirement') == 'Graduate' %}selected{% endif %}>Graduate</option>
+                        <option value="Undergraduate" {% if form_data.get('graduation_status_requirement') == 'Undergraduate' %}selected{% endif %}>Undergraduate</option>
+                        <option value="High School" {% if form_data.get('graduation_status_requirement') == 'High School' %}selected{% endif %}>High School</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="english_level_requirement" class="form-label">Required English Level</label>
+                    <select id="english_level_requirement" name="english_level_requirement" class="form-select">
+                        <option value="Any" {% if form_data.get('english_level_requirement') == 'Any' %}selected{% endif %}>Any</option>
+                        <option value="A1" {% if form_data.get('english_level_requirement') == 'A1' %}selected{% endif %}>A1</option>
+                        <option value="B1" {% if form_data.get('english_level_requirement') == 'B1' %}selected{% endif %}>B1</option>
+                        <option value="B2" {% if form_data.get('english_level_requirement') == 'B2' %}selected{% endif %}>B2</option>
+                        <option value="C1" {% if form_data.get('english_level_requirement') == 'C1' %}selected{% endif %}>C1</option>
+                        <option value="C2" {% if form_data.get('english_level_requirement') == 'C2' %}selected{% endif %}>C2</option>
+                    </select>
                 </div>
             </div>
-            
-            <div class="border-t border-border"></div>
+        </fieldset>
 
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Offer Package</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Detail the salary and benefits for this position.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                     <div>
-                        <label for="net_salary" class="form-label">Net Salary (EGP)</label>
-                        <input type="number" name="net_salary" id="net_salary" class="form-input" placeholder="e.g., 12000" value="{{ form_data.get('net_salary', '') }}">
-                    </div>
-                    <div>
-                        <label class="form-label">Benefits Included</label>
-                        <div class="mt-2 space-y-3">
-                            {% for benefit in ['Transportation (Door to Door)', 'Transportation (Nearest Point)', 'Medical Insurance', 'Social Insurance', 'Paid Training'] %}
-                            <div class="relative flex gap-x-3">
-                                <div class="flex h-6 items-center">
-                                    <input id="benefit-{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
-                                </div>
-                                <div class="text-sm leading-6">
-                                    <label for="benefit-{{ loop.index }}" class="font-medium text-text">{{ benefit }}</label>
-                                </div>
-                            </div>
-                            {% endfor %}
+        <!-- Work Details -->
+        <fieldset>
+            <legend class="text-lg font-semibold text-heading border-b border-border pb-2 mb-4">Work Details & Compensation</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="work_location_type" class="form-label">Work Location</label>
+                    <select id="work_location_type" name="work_location_type" class="form-select">
+                        <option value="On-site" {% if form_data.get('work_location_type') == 'On-site' %}selected{% endif %}>On-site</option>
+                        <option value="Hybrid" {% if form_data.get('work_location_type') == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                        <option value="Remote" {% if form_data.get('work_location_type') == 'Remote' %}selected{% endif %}>Remote</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="net_salary" class="form-label">Net Salary (Optional)</label>
+                    <input type="number" step="0.01" id="net_salary" name="net_salary" class="form-input" value="{{ form_data.get('net_salary', '') }}">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="form-label">Benefits</label>
+                    <div class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {% set benefits_options = ['Social Insurance', 'Medical Insurance', 'Transportation (Door to Door)', 'Transportation Allowance', 'Other'] %}
+                        {% for benefit in benefits_options %}
+                        <div class="flex items-center">
+                            <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
+                            <label for="benefit_{{ loop.index }}" class="ml-2 block text-sm text-text">{{ benefit }}</label>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
+        </fieldset>
 
-
-            <!-- Submission Button -->
-            <div class="flex justify-end pt-6 mt-6 border-t border-border">
-                <button type="submit" class="btn-primary">
-                    <i class="bi bi-send-fill mr-2"></i>
-                    Submit for Review
-                </button>
+        <!-- Notes -->
+        <fieldset>
+            <legend class="text-lg font-semibold text-heading border-b border-border pb-2 mb-4">Additional Notes</legend>
+            <div>
+                <label for="client_notes" class="form-label">Notes for our recruitment team (optional)</label>
+                <textarea id="client_notes" name="client_notes" rows="4" class="form-textarea">{{ form_data.get('client_notes', '') }}</textarea>
             </div>
-        </form>
-    </div>
+        </fieldset>
+
+        <div class="pt-5 border-t border-border">
+            <div class="flex justify-end">
+                <button type="submit" class="btn-primary">Submit for Review</button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}
