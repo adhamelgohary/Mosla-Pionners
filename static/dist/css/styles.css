@@ -782,19 +782,6 @@ select {
   --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2);
 }
 
-.portal-scope {
-  --primary-color-rgb: 79 70 229;
-  --primary-color-darker: #4338ca;
-  --secondary-color-rgb: 219 39 119;
-  --background-color: #f1f5f9;
-  --card-bg: #ffffff;
-  --text-color: #334155;
-  --text-muted: #64748b;
-  --heading-color: #0f172a;
-  --border-color: #e2e8f0;
-  --input-border-color: #cbd5e1;
-}
-
 /* Light Mode (Default) */
 
 :root {

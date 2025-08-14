@@ -14,7 +14,7 @@ module.exports = {
   ],
   
   theme: {
-    // === Original fluid typography scale ===
+    // === CHANGE 1: Toning down the fluid typography scale ===
     fluidType: {
       settings: {
         fontSizeMin: 1.0,    // Base size remains 16px on mobile
@@ -111,55 +111,29 @@ module.exports = {
     require('tailwindcss-animate'),
     require('@headlessui/tailwindcss')({ prefix: 'ui' }),
 
-    // --- CUSTOM IN-LINE PLUGIN ---
+    // --- CUSTOM IN-LINE PLUGIN (WITH NEW COMPACT STYLES) ---
     plugin(function({ addBase, addComponents, addVariant }) {
       // 1. ADD BASE STYLES AND CSS VARIABLES
       addBase({
-        // DEFAULT THEME (for public site)
         ':root': {
+          // Setting the root font size smaller to scale down all `rem` units globally
           'font-size': '14px', 
-          '--primary-color-rgb': '59 130 246', // Blue
-          '--primary-color-darker': '#1d4ed8', 
-          '--secondary-color-rgb': '16 185 129', // Emerald
-          '--danger-color': '#ef4444', 
-          '--background-color': '#f9fafb', // Gray 50
-          '--card-bg': '#ffffff', 
-          '--input-bg-color': '#ffffff',
-          '--text-color': '#374151', // Gray 700
-          '--text-muted': '#6b7280', // Gray 500
-          '--heading-color': '#111827', // Gray 900
-          '--border-color': '#e5e7eb', // Gray 200
-          '--input-border-color': '#d1d5db', // Gray 300
+          '--primary-color-rgb': '59 130 246', '--primary-color-darker': '#1d4ed8', '--secondary-color-rgb': '16 185 129',
+          '--danger-color': '#ef4444', '--background-color': '#f9fafb', '--card-bg': '#ffffff', '--input-bg-color': '#ffffff',
+          '--text-color': '#374151', '--text-muted': '#6b7280', '--heading-color': '#111827',
+          '--border-color': '#e5e7eb', '--input-border-color': '#d1d5db',
           '--card-shadow': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
         },
-        // DEFAULT DARK THEME (for public site)
         '[data-theme="dark"]': {
-          '--primary-color-rgb': '96 165 250', '--primary-color-darker': '#60a5fa', 
-          '--secondary-color-rgb': '52 211 153', '--danger-color': '#f87171', 
-          '--background-color': '#111827', '--card-bg': '#1f2937', 
-          '--input-bg-color': '#374151', '--text-color': '#d1d5db', 
-          '--text-muted': '#9ca3af', '--heading-color': '#f9fafb',
+          '--primary-color-rgb': '96 165 250', '--primary-color-darker': '#60a5fa', '--secondary-color-rgb': '52 211 153',
+          '--danger-color': '#f87171', '--background-color': '#111827', '--card-bg': '#1f2937', '--input-bg-color': '#374151',
+          '--text-color': '#d1d5db', '--text-muted': '#9ca3af', '--heading-color': '#f9fafb',
           '--border-color': '#374151', '--input-border-color': '#4b5563',
           '--card-shadow': '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
-        },
-
-        // ##### ADDED: PORTAL THEME (LIGHT) #####
-        // When .portal-scope is present, these variables will override the :root defaults.
-        '.portal-scope': {
-            '--primary-color-rgb': '79 70 229',  // Indigo 600
-            '--primary-color-darker': '#4338ca', // Indigo 700
-            '--secondary-color-rgb': '219 39 119', // Pink 600
-            '--background-color': '#f1f5f9',    // Slate 100
-            '--card-bg': '#ffffff',
-            '--text-color': '#334155',         // Slate 700
-            '--text-muted': '#64748b',         // Slate 500
-            '--heading-color': '#0f172a',      // Slate 900
-            '--border-color': '#e2e8f0',       // Slate 200
-            '--input-border-color': '#cbd5e1', // Slate 300
         }
       });
 
-      // 2. ADD CUSTOM COMPONENT CLASSES (Original compact styles)
+      // 2. ADD CUSTOM COMPONENT CLASSES (MORE COMPACT)
       addComponents({
         '.form-label': {
           '@apply block text-xs font-medium leading-6 text-text': {}, // smaller label text
