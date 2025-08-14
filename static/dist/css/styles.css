@@ -3826,12 +3826,6 @@ html[data-theme="dark"] {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
-.from-indigo-500 {
-  --tw-gradient-from: #6366f1 var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(99 102 241 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
 .from-purple-400 {
   --tw-gradient-from: #c084fc var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(192 132 252 / 0) var(--tw-gradient-to-position);
@@ -3887,10 +3881,6 @@ html[data-theme="dark"] {
 
 .to-amber-900 {
   --tw-gradient-to: #78350f var(--tw-gradient-to-position);
-}
-
-.to-blue-600 {
-  --tw-gradient-to: #2563eb var(--tw-gradient-to-position);
 }
 
 .to-cyan-300 {
@@ -4510,9 +4500,9 @@ html[data-theme="dark"] {
   color: var(--heading-color);
 }
 
-.text-indigo-100 {
+.text-indigo-200 {
   --tw-text-opacity: 1;
-  color: rgb(224 231 255 / var(--tw-text-opacity, 1));
+  color: rgb(199 210 254 / var(--tw-text-opacity, 1));
 }
 
 .text-indigo-500 {
@@ -6498,6 +6488,11 @@ body {
 .dark\:bg-indigo-500:where([data-theme="dark"], [data-theme="dark"] *) {
   --tw-bg-opacity: 1;
   background-color: rgb(99 102 241 / var(--tw-bg-opacity, 1));
+}
+
+.dark\:bg-indigo-700:where([data-theme="dark"], [data-theme="dark"] *) {
+  --tw-bg-opacity: 1;
+  background-color: rgb(67 56 202 / var(--tw-bg-opacity, 1));
 }
 
 .dark\:bg-indigo-900\/50:where([data-theme="dark"], [data-theme="dark"] *) {

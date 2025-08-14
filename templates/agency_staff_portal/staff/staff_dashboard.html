@@ -90,19 +90,39 @@
         <!-- Left Column (Span 3) - Chart -->
         <div class="lg:col-span-3 bg-white shadow-sm rounded-xl border border-gray-200 p-6">
             <h3 class="text-lg leading-6 font-semibold text-gray-900 mb-4">Active Staff by Role</h3>
-            <div class="h-96">
-                {% if staff_by_role %}
+            <div class="relative h-96">
                 <canvas id="staffByRoleChart"></canvas>
-                {% else %}
-                <div class="flex items-center justify-center h-full text-gray-500">
-                    <p>No staff data to display.</p>
+                <div id="noChartData" class="absolute inset-0 items-center justify-center hidden">
+                    <div class="text-center text-gray-500">
+                        <i class="bi bi-bar-chart-line text-4xl"></i>
+                        <p class="mt-2 font-medium">No Staff Data to Display</p>
+                        <p class="text-sm">The chart will appear here once there is active staff.</p>
+                    </div>
                 </div>
-                {% endif %}
             </div>
         </div>
 
         <!-- Right Column (Span 2) - Lists -->
         <div class="lg:col-span-2 space-y-8">
+
+            <!-- ##### QUICK ACTIONS & LINKS CARD (RESTORED) ##### -->
+            <div class="bg-white shadow-sm rounded-xl border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-900">Quick Actions & Links</h3>
+                </div>
+                <div class="p-4 space-y-3">
+                    <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="w-full flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="bi bi-person-plus-fill -ml-1 mr-2"></i> Add New Staff
+                    </a>
+                    <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="bi bi-person-lines-fill -ml-1 mr-2"></i> Manage All Staff
+                    </a>
+                    <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="bi bi-diagram-3 -ml-1 mr-2"></i> View Team Structure
+                    </a>
+                </div>
+            </div>
+
             <!-- Top Monthly Performers -->
             <div class="bg-white shadow-sm rounded-xl border border-gray-200">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -164,77 +184,88 @@
 {% block staff_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Safely parse data from Jinja. It will become a valid JavaScript array.
     const roleData = {{ staff_by_role|tojson|safe }};
+
+    const chartCanvas = document.getElementById('staffByRoleChart');
+    const noDataMessage = document.getElementById('noChartData');
     
     if (roleData && roleData.length > 0) {
+        // We have data, so show the canvas and hide the message
+        chartCanvas.style.display = 'block';
+        noDataMessage.style.display = 'none';
+
         const roleLabels = roleData.map(item => item.Role);
         const roleCounts = roleData.map(item => item.count);
 
-        const ctx = document.getElementById('staffByRoleChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: roleLabels,
-                datasets: [{
-                    label: 'Number of Staff',
-                    data: roleCounts,
-                    backgroundColor: [
-                        'rgba(79, 70, 229, 0.7)',  // Indigo
-                        'rgba(59, 130, 246, 0.7)',  // Blue
-                        'rgba(16, 185, 129, 0.7)',  // Green
-                        'rgba(245, 158, 11, 0.7)', // Amber
-                        'rgba(239, 68, 68, 0.7)',   // Red
-                        'rgba(139, 92, 246, 0.7)',  // Violet
-                        'rgba(236, 72, 153, 0.7)'  // Pink
-                    ],
-                    borderColor: [
-                        'rgb(79, 70, 229)',
-                        'rgb(59, 130, 246)',
-                        'rgb(16, 185, 129)',
-                        'rgb(245, 158, 11)',
-                        'rgb(239, 68, 68)',
-                        'rgb(139, 92, 246)',
-                        'rgb(236, 72, 153)'
-                    ],
-                    borderWidth: 1,
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                indexAxis: 'y', // Makes it a horizontal bar chart
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        grid: {
-                            display: true,
-                            drawBorder: false,
+        try {
+            const ctx = chartCanvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: roleLabels,
+                    datasets: [{
+                        label: 'Number of Staff',
+                        data: roleCounts,
+                        backgroundColor: [
+                            'rgba(79, 70, 229, 0.7)',  // Indigo
+                            'rgba(59, 130, 246, 0.7)',  // Blue
+                            'rgba(16, 185, 129, 0.7)',  // Green
+                            'rgba(245, 158, 11, 0.7)', // Amber
+                            'rgba(239, 68, 68, 0.7)',   // Red
+                            'rgba(139, 92, 246, 0.7)',  // Violet
+                            'rgba(236, 72, 153, 0.7)'  // Pink
+                        ],
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Makes it a horizontal bar chart
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                precision: 0 // Ensure axis has whole numbers
+                            }
                         },
-                        ticks: {
-                            precision: 0 // Ensure axis has whole numbers
+                        y: {
+                           grid: {
+                                display: false,
+                           } 
                         }
                     },
-                    y: {
-                       grid: {
-                            display: false,
-                       } 
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false // The chart is self-explanatory
+                    plugins: {
+                        legend: {
+                            display: false // The chart is self-explanatory
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 6,
+                        }
                     },
-                    tooltip: {
-                        backgroundColor: '#111827',
-                        titleFont: { size: 14, weight: 'bold' },
-                        bodyFont: { size: 12 },
-                        padding: 12,
-                        cornerRadius: 6,
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        } catch (error) {
+            // If chart creation fails, log the error and show the no-data message.
+            console.error('Error creating chart:', error);
+            chartCanvas.style.display = 'none';
+            noDataMessage.style.display = 'flex'; // Use flex to center the content
+        }
+    } else {
+        // No data, so hide the canvas and show the message
+        chartCanvas.style.display = 'none';
+        noDataMessage.style.display = 'flex'; // Use flex to center the content
     }
 });
 </script>
