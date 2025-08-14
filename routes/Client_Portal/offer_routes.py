@@ -53,6 +53,8 @@ def client_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# routes/Client_Portal/offer_routes.py
+
 @client_offers_bp.route('/submit-offer', methods=['GET', 'POST'])
 @client_login_required
 def submit_offer():
@@ -64,18 +66,17 @@ def submit_offer():
         form = request.form
         if not form.get('title') or not form.get('closing_date'):
             flash("Job Title and Closing Date are required.", "danger")
-            # On validation error, pass back the form data and the selected checkbox lists
+            # Pass ALL selected items back to the template on error
             return render_template('client_portal/submit_offer.html', 
                                    title="Submit New Job Offer", 
                                    company_name=session.get('client_company_name'), 
                                    form_data=form,
                                    selected_shifts=form.getlist('available_shifts'),
-                                   selected_benefits=form.getlist('benefits'))
+                                   selected_benefits=form.getlist('benefits'),
+                                   selected_languages=form.getlist('required_languages'))
         
-        # Consolidate benefits into 'BenefitsIncluded' SET column.
         benefits_list = request.form.getlist('benefits')
         
-        # Map form data to the new schema.
         form_data_for_db = {
             'CompanyID': company_id, 
             'SubmittedByUserID': current_user.id, 
@@ -125,24 +126,26 @@ def submit_offer():
         except mysql.connector.Error as err:
             flash(f"An error occurred while submitting your offer: {err}", "danger")
             current_app.logger.error(f"Client offer submission error for company {company_id}: {err}")
-            # On database error, also pass back the form data and the selected checkbox lists
+            # Also pass selected items back here on DB error
             return render_template('client_portal/submit_offer.html', 
                                    title="Submit New Job Offer", 
                                    company_name=session.get('client_company_name'), 
                                    form_data=form,
                                    selected_shifts=form.getlist('available_shifts'),
-                                   selected_benefits=form.getlist('benefits'))
+                                   selected_benefits=form.getlist('benefits'),
+                                   selected_languages=form.getlist('required_languages'))
         finally:
             cursor.close()
             conn.close()
 
-    # On initial GET request, pass empty data and empty lists for checkboxes
+    # On initial GET request, pass empty data and empty lists for all checkboxes
     return render_template('client_portal/submit_offer.html', 
                            title="Submit New Job Offer", 
                            company_name=session.get('client_company_name'), 
                            form_data={},
                            selected_shifts=[],
-                           selected_benefits=[])
+                           selected_benefits=[],
+                           selected_languages=[])
 
 @client_offers_bp.route('/my-submissions')
 @client_login_required
