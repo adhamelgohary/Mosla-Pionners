@@ -1,15 +1,15 @@
-<!-- START OF FILE submit_offer.html -->
 {% extends "client_portal/client_base.html" %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <div class="rounded-3xl p-6 sm:p-8 bg-card/50 backdrop-blur-md ring-1 ring-border/50 shadow-xl">
+    <div class="rounded-2xl p-6 sm:p-8 bg-card border border-border shadow-sm">
         <form action="{{ url_for('client_offers_bp.submit_offer') }}" method="POST" class="space-y-8">
             
-            <!-- Section 1: Core Job Details -->
+            <!-- Section -->
             <div>
-                <h3 class="text-lg font-semibold text-heading border-b border-border/50 pb-3 mb-6">Core Job Details</h3>
-                <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+                <h3 class="text-base font-semibold leading-7 text-heading">Core Job Details</h3>
+                <p class="mt-1 text-sm leading-6 text-text-muted">Provide the essential information for the job opening.</p>
+                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label for="title" class="form-label">Job Title <span class="text-danger">*</span></label>
                         <input type="text" name="title" id="title" class="form-input" value="{{ form_data.get('title', '') }}" required>
@@ -25,10 +25,13 @@
                 </div>
             </div>
 
-            <!-- Section 2: Requirements -->
+            <div class="border-t border-border"></div>
+
+            <!-- Section -->
             <div>
-                <h3 class="text-lg font-semibold text-heading border-b border-border/50 pb-3 mb-6">Candidate Requirements</h3>
-                <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+                <h3 class="text-base font-semibold leading-7 text-heading">Candidate Requirements</h3>
+                <p class="mt-1 text-sm leading-6 text-text-muted">Specify the qualifications needed for the ideal candidate.</p>
+                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
                     <div>
                         <label for="english_level_requirement" class="form-label">Required English Level</label>
                         <select name="english_level_requirement" id="english_level_requirement" class="form-select">
@@ -47,22 +50,29 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="border-t border-border"></div>
 
-            <!-- Section 3: Offer Package -->
+            <!-- Section -->
             <div>
-                <h3 class="text-lg font-semibold text-heading border-b border-border/50 pb-3 mb-6">Offer Package</h3>
-                <div class="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
+                <h3 class="text-base font-semibold leading-7 text-heading">Offer Package</h3>
+                <p class="mt-1 text-sm leading-6 text-text-muted">Detail the salary and benefits for this position.</p>
+                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
                      <div>
                         <label for="net_salary" class="form-label">Net Salary (EGP)</label>
                         <input type="number" name="net_salary" id="net_salary" class="form-input" placeholder="e.g., 12000" value="{{ form_data.get('net_salary', '') }}">
                     </div>
                     <div>
                         <label class="form-label">Benefits Included</label>
-                        <div class="mt-2 space-y-2">
+                        <div class="mt-2 space-y-3">
                             {% for benefit in ['Transportation (Door to Door)', 'Transportation (Nearest Point)', 'Medical Insurance', 'Social Insurance', 'Paid Training'] %}
-                            <div class="flex items-center gap-x-3">
-                                <input id="benefit-{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
-                                <label for="benefit-{{ loop.index }}" class="block text-sm font-medium leading-6 text-text">{{ benefit }}</label>
+                            <div class="relative flex gap-x-3">
+                                <div class="flex h-6 items-center">
+                                    <input id="benefit-{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
+                                </div>
+                                <div class="text-sm leading-6">
+                                    <label for="benefit-{{ loop.index }}" class="font-medium text-text">{{ benefit }}</label>
+                                </div>
                             </div>
                             {% endfor %}
                         </div>
@@ -72,8 +82,8 @@
 
 
             <!-- Submission Button -->
-            <div class="flex justify-end pt-8 border-t border-border/50">
-                <button type="submit" class="btn-primary py-2 px-5 text-sm font-bold">
+            <div class="flex justify-end pt-6 mt-6 border-t border-border">
+                <button type="submit" class="btn-primary">
                     <i class="bi bi-send-fill mr-2"></i>
                     Submit for Review
                 </button>
@@ -82,4 +92,3 @@
     </div>
 </div>
 {% endblock %}
-<!-- END OF FILE submit_offer.html -->
