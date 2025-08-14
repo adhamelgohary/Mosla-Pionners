@@ -1,125 +1,124 @@
-{# templates/client_portal/submission_details.html (New File) #}
-
+<!-- templates/client_portal/submission_details.html -->
 {% extends "client_portal/client_base.html" %}
 
+{% block title %}Submission Details{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
 {% block content %}
-<div class="bg-white shadow-sm border rounded-lg">
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
     <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
         <div>
-            <h3 class="text-lg leading-6 font-medium text-gray-900">{{ submission.Title }}</h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">Full details of your job submission.</p>
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Job Offer Submission Details
+            </h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                A complete overview of the submitted offer.
+            </p>
         </div>
-        <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="text-sm font-medium text-primary-600 hover:text-primary-500">
-            ← Back to Submissions
-        </a>
+        <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="text-sm font-medium text-slate-600 hover:text-slate-800">&larr; Back to Submissions</a>
     </div>
     <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
         <dl class="sm:divide-y sm:divide-gray-200">
             <!-- Basic Information -->
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Submission Status</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {% set status_classes = {
-                        'Pending': 'bg-yellow-100 text-yellow-800', 'UnderReview': 'bg-blue-100 text-blue-800',
-                        'Approved': 'bg-green-100 text-green-800', 'Rejected': 'bg-red-100 text-red-800',
-                        'NeedsClarification': 'bg-purple-100 text-purple-800'
-                    } %}
-                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(submission.ReviewStatus, 'bg-gray-100 text-gray-800') }}">
-                        {{ submission.ReviewStatus }}
-                    </span>
-                    {% if submission.ReviewStatus == 'NeedsClarification' and submission.ReviewerComments %}
-                        <p class="text-xs text-gray-500 mt-2 italic"><strong>Reviewer Note:</strong> {{ submission.ReviewerComments }}</p>
-                    {% endif %}
-                </dd>
+                <dt class="text-sm font-medium text-gray-500">Job Title</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.Title or 'N/A' }}</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Job Location</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.Location or 'Not Specified' }}</dd>
+                <dt class="text-sm font-medium text-gray-500">Review Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.ReviewStatus or 'N/A' }}</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Hiring Deadline</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.ClosingDate | datetime(format='%B %d, %Y') }}</dd>
+                <dt class="text-sm font-medium text-gray-500">Location</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.Location or 'N/A' }}</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Max Age</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.MaxAge or 'Not Specified' }}</dd>
-            </div>
-            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Contract Provided</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{% if submission.HasContract %}Yes{% else %}No{% endif %}</dd>
+                <dt class="text-sm font-medium text-gray-500">Closing Date</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.ClosingDate.strftime('%Y-%m-%d') if submission.ClosingDate else 'N/A' }}</dd>
             </div>
 
             <!-- Candidate Requirements -->
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Required Language & Level</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.RequiredLanguage | capitalize }} ({{ submission.EnglishLevelRequirement | upper }})</dd>
+                <dt class="text-sm font-medium text-gray-500">Max Age</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.MaxAge or 'Not specified' }}</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Graduation Status</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.GraduationStatusRequirement | capitalize or 'Not Specified' }}</dd>
+                <dt class="text-sm font-medium text-gray-500">Required English Level</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.RequiredLevel or 'N/A' }}</dd>
+            </div>
+             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Required Languages</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.RequiredLanguages or 'None specified' }} ({{ submission.LanguagesType or 'N/A' }})</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">Nationality Requirement</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.NationalityRequirement | capitalize or 'Not Specified' }}</dd>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.Nationality or 'Any' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Graduation Status</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.GraduationStatusRequirement or 'N/A' }}</dd>
             </div>
 
-            <!-- Hiring Details -->
+            <!-- Job & Hiring Details -->
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt class="text-sm font-medium text-gray-500">Candidates Needed</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.CandidatesNeeded }} ({{ submission.HiringCadence | capitalize }})</dd>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.CandidatesNeeded or 'N/A' }}</dd>
+            </div>
+             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Hiring Cadence / Plan</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.HiringCadence or 'N/A' }} / {{ submission.HiringPlan or 'N/A' }}</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Hiring Plan</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.HiringPlan | capitalize or 'Not Specified' }}</dd>
+                <dt class="text-sm font-medium text-gray-500">Work Location</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.WorkLocationType or 'N/A' }}</dd>
             </div>
-            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Work Location Type</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.WorkLocationType | capitalize or 'Not Specified' }}</dd>
-            </div>
-            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Shifts</dt>
+             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Shift Type & Available Shifts</dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <span class="font-semibold">{{ submission.ShiftType | capitalize }} Shifts</span>
-                    <div class="flex flex-wrap gap-2 mt-2">
+                    {{ submission.ShiftType or 'N/A' }}
+                    {% if submission.AvailableShifts_list %}
+                        <ul class="list-disc list-inside">
                         {% for shift in submission.AvailableShifts_list %}
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">{{ shift | capitalize }}</span>
-                        {% else %}
-                            <span>No specific shifts listed.</span>
+                            <li>{{ shift }}</li>
                         {% endfor %}
-                    </div>
+                        </ul>
+                    {% endif %}
                 </dd>
             </div>
 
             <!-- Compensation & Benefits -->
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Salary & Payment</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {{ submission.NetSalary or 'Not Specified' }} (Payment Term: {{ submission.PaymentTerm or 'N/A' }})
-                </dd>
+                <dt class="text-sm font-medium text-gray-500">Net Salary & Payment Term</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.NetSalary or 'N/A' }} ({{ submission.PaymentTerm or 'N/A' }})</dd>
             </div>
             <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Benefits</dt>
+                <dt class="text-sm font-medium text-gray-500">Contract</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ 'Yes' if submission.HasContract else 'No' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Benefits Included</dt>
                 <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <div class="flex flex-wrap gap-2">
+                    {% if submission.Benefits_list %}
+                        <ul class="list-disc list-inside space-y-1">
                         {% for benefit in submission.Benefits_list %}
-                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">{{ benefit.replace('_', ' ') | title }}</span>
-                        {% else %}
-                            <span>No benefits listed.</span>
+                            <li>{{ benefit }}</li>
                         {% endfor %}
-                    </div>
-                </dd>
-            </div>
-            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Transportation</dt>
-                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {% if submission.IsTransportationProvided %}
-                        Yes ({{ submission.TransportationType | replace('d2d', 'Door to Door') | replace('pickup', 'To Nearest Pickup Point') }})
+                        </ul>
                     {% else %}
-                        No
+                        None specified
                     {% endif %}
                 </dd>
             </div>
 
+            <!-- Additional Information -->
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Interview Type</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.InterviewType or 'N/A' }}</dd>
+            </div>
+            <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Client Notes</dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">{{ submission.ClientNotes or 'No notes provided.' }}</dd>
+            </div>
         </dl>
     </div>
 </div>

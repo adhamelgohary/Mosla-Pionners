@@ -1,76 +1,76 @@
-<!-- START OF FILE dashboard.html -->
+<!-- templates/client_portal/dashboard.html -->
 {% extends "client_portal/client_base.html" %}
 
+{% block title %}Client Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    
-    <!-- iOS-style Stat Card -->
-    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
-                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
-        <div class="flex items-start justify-between">
-            <div>
-                <p class="text-sm font-medium text-text-muted">Total Submissions</p>
-                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
-                    {{ company.TotalSubmissions|default(0) }}
-                </span>
-            </div>
-            <div class="rounded-xl bg-primary/10 p-3 text-primary">
-                <i class="bi bi-file-earmark-text-fill text-2xl"></i>
-            </div>
+<div class="space-y-8">
+    {% if company %}
+    <!-- Welcome Header -->
+    <div class="flex items-center space-x-4">
+        {% if company.CompanyLogoURL %}
+            <img class="h-16 w-16 rounded-full object-contain bg-gray-200 p-1" src="{{ company.CompanyLogoURL }}" alt="{{ company.CompanyName }} Logo">
+        {% endif %}
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Welcome, {{ company.CompanyName }}!</h2>
+            <p class="text-md text-gray-500">Here's a summary of your activity.</p>
         </div>
     </div>
 
-    <!-- iOS-style Stat Card -->
-    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
-                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
-        <div class="flex items-start justify-between">
-            <div>
-                <p class="text-sm font-medium text-text-muted">Pending Review</p>
-                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
-                    {{ company.PendingSubmissions|default(0) }}
-                </span>
+    <!-- Stats Grid -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-gray-900">At a Glance</h3>
+        <dl class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">Live Job Offers</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ company.LiveOffers or 0 }}</dd>
             </div>
-            <div class="rounded-xl bg-amber-500/10 p-3 text-amber-500">
-                <i class="bi bi-hourglass-split text-2xl"></i>
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">Pending Submissions</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ company.PendingSubmissions or 0 }}</dd>
             </div>
-        </div>
+            <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
+                <dt class="truncate text-sm font-medium text-gray-500">Total Submissions</dt>
+                <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ company.TotalSubmissions or 0 }}</dd>
+            </div>
+        </dl>
     </div>
 
-    <!-- iOS-style Stat Card -->
-    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
-                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
-        <div class="flex items-start justify-between">
-            <div>
-                <p class="text-sm font-medium text-text-muted">Live Offers</p>
-                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
-                    {{ company.LiveOffers|default(0) }}
-                </span>
-            </div>
-            <div class="rounded-xl bg-emerald-500/10 p-3 text-emerald-500">
-                <i class="bi bi-broadcast-pin text-2xl"></i>
-            </div>
+    <!-- Quick Actions -->
+    <div>
+        <h3 class="text-base font-semibold leading-6 text-gray-900">Quick Actions</h3>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm hover:border-slate-400 focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2">
+                <div class="flex-shrink-0">
+                    <i class="bi bi-file-earmark-plus-fill text-2xl text-slate-600"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="focus:outline-none">
+                        <span class="absolute inset-0" aria-hidden="true"></span>
+                        <p class="text-sm font-medium text-gray-900">Submit a New Job Offer</p>
+                        <p class="truncate text-sm text-gray-500">Create and submit a new job vacancy for our team to review.</p>
+                    </span>
+                </div>
+            </a>
+            <a href="{{ url_for('client_offers_bp.pipeline') }}" class="flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm hover:border-slate-400 focus-within:ring-2 focus-within:ring-slate-500 focus-within:ring-offset-2">
+                <div class="flex-shrink-0">
+                    <i class="bi bi-people-fill text-2xl text-slate-600"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <span class="focus:outline-none">
+                        <span class="absolute inset-0" aria-hidden="true"></span>
+                        <p class="text-sm font-medium text-gray-900">View Candidate Pipeline</p>
+                        <p class="truncate text-sm text-gray-500">Track shortlisted candidates for your open positions.</p>
+                    </span>
+                </div>
+            </a>
         </div>
     </div>
-
-    <!-- Welcome Card -->
-    <div class="sm:col-span-2 lg:col-span-3 rounded-3xl p-6 bg-card/50 backdrop-blur-md ring-1 ring-border/50">
-        <div class="flex flex-col md:flex-row items-center gap-6">
-            {% if company.CompanyLogoURL %}
-            <img src="{{ company.CompanyLogoURL }}" alt="{{ company.CompanyName }} Logo" class="h-24 w-24 object-contain rounded-2xl bg-white p-2">
-            {% else %}
-            <div class="flex-shrink-0 flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-5xl">
-                {{ (company.CompanyName|default('C'))[0] }}
-            </div>
-            {% endif %}
-            <div>
-                <h2 class="text-fluid-xl font-bold text-heading">Welcome back, {{ company.CompanyName }}</h2>
-                <p class="mt-2 text-text-muted">
-                    This is your central hub for managing job offers and tracking your candidate pipeline. You can submit a new offer or review your existing submissions using the navigation above.
-                </p>
-            </div>
-        </div>
+    {% else %}
+    <div class="text-center py-10">
+        <p class="text-gray-500">Could not load your dashboard data. Please try again later.</p>
     </div>
-
+    {% endif %}
 </div>
 {% endblock %}
-<!-- END OF FILE dashboard.html -->

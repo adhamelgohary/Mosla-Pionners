@@ -1,94 +1,187 @@
+<!-- templates/client_portal/submit_offer.html -->
 {% extends "client_portal/client_base.html" %}
 
+{% block title %}Submit New Job Offer{% endblock %}
+{% block page_title %}Submit New Job Offer for {{ company_name }}{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <div class="rounded-2xl p-6 sm:p-8 bg-card border border-border shadow-sm">
-        <form action="{{ url_for('client_offers_bp.submit_offer') }}" method="POST" class="space-y-8">
-            
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Core Job Details</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Provide the essential information for the job opening.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
-                        <label for="title" class="form-label">Job Title <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="title" class="form-input" value="{{ form_data.get('title', '') }}" required>
-                    </div>
-                    <div>
-                        <label for="location" class="form-label">Location (e.g., "New Cairo")</label>
-                        <input type="text" name="location" id="location" class="form-input" value="{{ form_data.get('location', '') }}">
-                    </div>
-                    <div>
-                        <label for="closing_date" class="form-label">Closing Date <span class="text-danger">*</span></label>
-                        <input type="date" name="closing_date" id="closing_date" class="form-input" value="{{ form_data.get('closing_date', '') }}" required>
-                    </div>
-                </div>
-            </div>
+<form method="POST" class="space-y-8 divide-y divide-gray-200 bg-white p-6 sm:p-8 shadow rounded-lg">
+  <div class="space-y-8 divide-y divide-gray-200">
+    <div>
+      <div>
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Basic Information</h3>
+        <p class="mt-1 text-sm text-gray-500">Provide the fundamental details for the job offer.</p>
+      </div>
+      <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+        <div class="sm:col-span-4">
+          <label for="title" class="block text-sm font-medium text-gray-700">Job Title *</label>
+          <div class="mt-1">
+            <input type="text" name="title" id="title" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('title', '') }}">
+          </div>
+        </div>
 
-            <div class="border-t border-border"></div>
+        <div class="sm:col-span-2">
+          <label for="closing_date" class="block text-sm font-medium text-gray-700">Closing Date *</label>
+          <div class="mt-1">
+            <input type="date" name="closing_date" id="closing_date" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('closing_date', '') }}">
+          </div>
+        </div>
 
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Candidate Requirements</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Specify the qualifications needed for the ideal candidate.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                    <div>
-                        <label for="english_level_requirement" class="form-label">Required English Level</label>
-                        <select name="english_level_requirement" id="english_level_requirement" class="form-select">
-                            <option value="">Select level...</option>
-                            {% for level in ['B1', 'B1+', 'B2', 'B2+', 'C1', 'C2'] %}
-                            <option value="{{ level }}" {% if form_data.get('english_level_requirement') == level %}selected{% endif %}>{{ level }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label for="nationality_requirement" class="form-label">Nationality</label>
-                         <select name="nationality_requirement" id="nationality_requirement" class="form-select">
-                            <option value="Egyptians Only" {% if form_data.get('nationality_requirement', 'Egyptians Only') == 'Egyptians Only' %}selected{% endif %}>Egyptians Only</option>
-                            <option value="Foreigners & Egyptians" {% if form_data.get('nationality_requirement') == 'Foreigners & Egyptians' %}selected{% endif %}>Foreigners & Egyptians</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="border-t border-border"></div>
-
-            <!-- Section -->
-            <div>
-                <h3 class="text-base font-semibold leading-7 text-heading">Offer Package</h3>
-                <p class="mt-1 text-sm leading-6 text-text-muted">Detail the salary and benefits for this position.</p>
-                <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                     <div>
-                        <label for="net_salary" class="form-label">Net Salary (EGP)</label>
-                        <input type="number" name="net_salary" id="net_salary" class="form-input" placeholder="e.g., 12000" value="{{ form_data.get('net_salary', '') }}">
-                    </div>
-                    <div>
-                        <label class="form-label">Benefits Included</label>
-                        <div class="mt-2 space-y-3">
-                            {% for benefit in ['Transportation (Door to Door)', 'Transportation (Nearest Point)', 'Medical Insurance', 'Social Insurance', 'Paid Training'] %}
-                            <div class="relative flex gap-x-3">
-                                <div class="flex h-6 items-center">
-                                    <input id="benefit-{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" class="form-checkbox" {% if benefit in form_data.getlist('benefits') %}checked{% endif %}>
-                                </div>
-                                <div class="text-sm leading-6">
-                                    <label for="benefit-{{ loop.index }}" class="font-medium text-text">{{ benefit }}</label>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Submission Button -->
-            <div class="flex justify-end pt-6 mt-6 border-t border-border">
-                <button type="submit" class="btn-primary">
-                    <i class="bi bi-send-fill mr-2"></i>
-                    Submit for Review
-                </button>
-            </div>
-        </form>
+        <div class="sm:col-span-6">
+          <label for="location" class="block text-sm font-medium text-gray-700">Location (e.g., City, Country)</label>
+          <div class="mt-1">
+            <input type="text" name="location" id="location" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('location', '') }}">
+          </div>
+        </div>
+      </div>
     </div>
-</div>
+
+    <div class="pt-8">
+      <div>
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Candidate Requirements</h3>
+        <p class="mt-1 text-sm text-gray-500">Specify the required qualifications for candidates.</p>
+      </div>
+      <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+        <div class="sm:col-span-2">
+          <label for="english_level_requirement" class="block text-sm font-medium text-gray-700">English Level</label>
+          <select id="english_level_requirement" name="english_level_requirement" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-slate-500 focus:outline-none focus:ring-slate-500 sm:text-sm">
+              <option {% if form_data.get('english_level_requirement') == 'A1' %}selected{% endif %}>A1</option>
+              <option {% if form_data.get('english_level_requirement') == 'A2' %}selected{% endif %}>A2</option>
+              <option {% if form_data.get('english_level_requirement') == 'B1' %}selected{% endif %}>B1</option>
+              <option {% if form_data.get('english_level_requirement') == 'B2' %}selected{% endif %}>B2</option>
+              <option {% if form_data.get('english_level_requirement') == 'C1' %}selected{% endif %}>C1</option>
+              <option {% if form_data.get('english_level_requirement') == 'C2' %}selected{% endif %}>C2</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="max_age" class="block text-sm font-medium text-gray-700">Maximum Age</label>
+          <input type="number" name="max_age" id="max_age" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('max_age', '') }}">
+        </div>
+        <div class="sm:col-span-2">
+            <label for="nationality_requirement" class="block text-sm font-medium text-gray-700">Nationality</label>
+            <input type="text" name="nationality_requirement" id="nationality_requirement" placeholder="e.g., Any, European" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('nationality_requirement', '') }}">
+        </div>
+        <div class="sm:col-span-3">
+            <label for="graduation_status_requirement" class="block text-sm font-medium text-gray-700">Graduation Status</label>
+            <select id="graduation_status_requirement" name="graduation_status_requirement" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-slate-500 focus:outline-none focus:ring-slate-500 sm:text-sm">
+                <option {% if form_data.get('graduation_status_requirement') == 'Any' %}selected{% endif %}>Any</option>
+                <option {% if form_data.get('graduation_status_requirement') == 'Graduate' %}selected{% endif %}>Graduate</option>
+                <option {% if form_data.get('graduation_status_requirement') == 'Undergraduate' %}selected{% endif %}>Undergraduate</option>
+            </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-8">
+        <div>
+            <h3 class="text-lg font-medium leading-6 text-gray-900">Job Details</h3>
+            <p class="mt-1 text-sm text-gray-500">Information about the role and work conditions.</p>
+        </div>
+        <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            <div class="sm:col-span-2">
+              <label for="candidates_needed" class="block text-sm font-medium text-gray-700">Candidates Needed</label>
+              <input type="number" name="candidates_needed" id="candidates_needed" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('candidates_needed', '') }}">
+            </div>
+            <div class="sm:col-span-2">
+                <label for="work_location_type" class="block text-sm font-medium text-gray-700">Work Location</label>
+                <select id="work_location_type" name="work_location_type" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-slate-500 focus:outline-none focus:ring-slate-500 sm:text-sm">
+                    <option {% if form_data.get('work_location_type') == 'On-site' %}selected{% endif %}>On-site</option>
+                    <option {% if form_data.get('work_location_type') == 'Hybrid' %}selected{% endif %}>Hybrid</option>
+                    <option {% if form_data.get('work_location_type') == 'Remote' %}selected{% endif %}>Remote</option>
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <label for="shift_type" class="block text-sm font-medium text-gray-700">Shift Type</label>
+                <select id="shift_type" name="shift_type" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-slate-500 focus:outline-none focus:ring-slate-500 sm:text-sm">
+                    <option {% if form_data.get('shift_type') == 'Fixed' %}selected{% endif %}>Fixed</option>
+                    <option {% if form_data.get('shift_type') == 'Rotational' %}selected{% endif %}>Rotational</option>
+                </select>
+            </div>
+            <div class="sm:col-span-6">
+              <label class="block text-sm font-medium text-gray-700">Available Shifts</label>
+              <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {% set shifts = ['Morning', 'Afternoon', 'Night', 'Overnight'] %}
+                  {% for shift in shifts %}
+                  <div class="relative flex items-start">
+                    <div class="flex h-5 items-center">
+                      <input id="shift_{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in form_data.getlist('available_shifts') %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
+                    </div>
+                    <div class="ml-3 text-sm">
+                      <label for="shift_{{ shift }}" class="font-medium text-gray-700">{{ shift }}</label>
+                    </div>
+                  </div>
+                  {% endfor %}
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pt-8">
+      <div>
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Compensation & Benefits</h3>
+        <p class="mt-1 text-sm text-gray-500">Details about salary and other benefits.</p>
+      </div>
+       <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+        <div class="sm:col-span-3">
+          <label for="net_salary" class="block text-sm font-medium text-gray-700">Net Salary (EGP)</label>
+          <input type="number" step="100" name="net_salary" id="net_salary" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm" value="{{ form_data.get('net_salary', '') }}">
+        </div>
+        <div class="sm:col-span-3">
+          <label for="payment_term" class="block text-sm font-medium text-gray-700">Payment Term</label>
+          <select id="payment_term" name="payment_term" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-slate-500 focus:outline-none focus:ring-slate-500 sm:text-sm">
+              <option {% if form_data.get('payment_term') == 'Monthly' %}selected{% endif %}>Monthly</option>
+              <option {% if form_data.get('payment_term') == 'Bi-Weekly' %}selected{% endif %}>Bi-Weekly</option>
+          </select>
+        </div>
+        <div class="sm:col-span-6">
+          <label class="block text-sm font-medium text-gray-700">Benefits Included</label>
+          <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {% set all_benefits = ['Medical Insurance', 'Social Insurance', 'Transportation (Door to Door)', 'Transportation (Meeting Points)', 'Gym Access', 'Free Meals'] %}
+              {% for benefit in all_benefits %}
+              <div class="relative flex items-start">
+                  <div class="flex h-5 items-center">
+                    <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" {% if benefit in form_data.getlist('benefits') %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
+                  </div>
+                  <div class="ml-3 text-sm">
+                    <label for="benefit_{{ loop.index }}" class="font-medium text-gray-700">{{ benefit }}</label>
+                  </div>
+              </div>
+              {% endfor %}
+          </div>
+        </div>
+        <div class="sm:col-span-6 pt-4">
+          <div class="relative flex items-start">
+            <div class="flex h-5 items-center">
+              <input id="has_contract" name="has_contract" type="checkbox" value="1" {% if form_data.get('has_contract') %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="has_contract" class="font-medium text-gray-700">Includes Contract</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="pt-8">
+      <div>
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Additional Information</h3>
+      </div>
+       <div class="mt-6">
+          <label for="client_notes" class="block text-sm font-medium text-gray-700">Notes for Recruiter</label>
+          <div class="mt-1">
+              <textarea id="client_notes" name="client_notes" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm">{{ form_data.get('client_notes', '') }}</textarea>
+          </div>
+          <p class="mt-2 text-sm text-gray-500">Provide any extra details, screening questions, or context our recruiters should know.</p>
+        </div>
+    </div>
+
+  </div>
+
+  <div class="pt-5">
+    <div class="flex justify-end">
+      <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">Cancel</a>
+      <button type="submit" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-slate-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">Submit for Review</button>
+    </div>
+  </div>
+</form>
 {% endblock %}

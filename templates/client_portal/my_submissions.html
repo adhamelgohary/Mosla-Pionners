@@ -1,47 +1,65 @@
-{# templates/client_portal/my_submissions.html (Updated) #}
-
+<!-- templates/client_portal/my_submissions.html -->
 {% extends "client_portal/client_base.html" %}
 
+{% block title %}My Job Offer Submissions{% endblock %}
+{% block page_title %}My Submissions{% endblock %}
+
 {% block content %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="min-w-full text-sm divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for sub in submissions %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                        <!-- UPDATED: Added link to the detail page -->
-                        <a href="{{ url_for('client_offers_bp.view_submission_details', submission_id=sub.SubmissionID) }}" class="text-primary-600 hover:text-primary-800 hover:underline">
-                            {{ sub.Title }}
-                        </a>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ sub.CompanyName }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ sub.SubmissionDate | datetime }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        {% set status_classes = {
-                            'Pending': 'bg-yellow-100 text-yellow-800', 'UnderReview': 'bg-blue-100 text-blue-800',
-                            'Approved': 'bg-green-100 text-green-800', 'Rejected': 'bg-red-100 text-red-800',
-                            'NeedsClarification': 'bg-purple-100 text-purple-800'
-                        } %}
-                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(sub.ReviewStatus, 'bg-gray-100 text-gray-800') }}">{{ sub.ReviewStatus }}</span>
-                        {% if sub.ReviewStatus == 'NeedsClarification' and sub.ReviewerComments %}
-                            <p class="text-xs text-gray-500 mt-1 italic">Note: {{ sub.ReviewerComments | truncate(50) }}</p>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4" class="text-center py-12 text-gray-500">You have not submitted any job offers yet.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="sm:flex sm:items-center">
+    <div class="sm:flex-auto">
+      <p class="mt-2 text-sm text-gray-700">A list of all the job offers you have submitted for review.</p>
     </div>
+    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+      <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="block rounded-md bg-slate-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">Submit New Offer</a>
+    </div>
+  </div>
+  <div class="mt-8 flow-root">
+    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+      <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+        {% if submissions %}
+        <table class="min-w-full divide-y divide-gray-300">
+          <thead>
+            <tr>
+              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Job Title</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Submission Date</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Review Status</th>
+              <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                <span class="sr-only">View</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for submission in submissions %}
+            <tr>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ submission.Title }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ submission.SubmissionDate.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {% if submission.ReviewStatus == 'Pending' %}
+                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Pending</span>
+                  {% elif submission.ReviewStatus == 'Approved' %}
+                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Approved</span>
+                  {% elif submission.ReviewStatus == 'Rejected' %}
+                    <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-800 ring-1 ring-inset ring-red-600/20">Rejected</span>
+                  {% else %}
+                    <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">{{ submission.ReviewStatus }}</span>
+                  {% endif %}
+              </td>
+              <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                <a href="{{ url_for('client_offers_bp.view_submission_details', submission_id=submission.SubmissionID) }}" class="text-slate-600 hover:text-slate-900">View Details<span class="sr-only">, {{ submission.Title }}</span></a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-10 border rounded-lg">
+            <h3 class="mt-2 text-sm font-semibold text-gray-900">No submissions yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by submitting a new job offer.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
