@@ -1,55 +1,45 @@
+{# templates/client_portal/my_submissions.html (Updated) #}
+
 {% extends "client_portal/client_base.html" %}
 
 {% block content %}
-<div class="bg-card shadow rounded-lg overflow-hidden">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
     <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-text-muted">
-            <thead class="text-xs text-text uppercase bg-background">
+        <table class="min-w-full text-sm divide-y divide-gray-200">
+            <thead class="bg-gray-50">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Job Title</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Submission Date</th>
-                    <th scope="col" class="px-6 py-3">Closing Date</th>
-                    <th scope="col" class="px-6 py-3">
-                        <span class="sr-only">Actions</span>
-                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
             </thead>
-            <tbody>
-                {% if submissions %}
-                    {% for submission in submissions %}
-                    <tr class="bg-card border-b border-border hover:bg-background">
-                        <th scope="row" class="px-6 py-4 font-medium text-heading whitespace-nowrap">
-                            {{ submission.Title }}
-                        </th>
-                        <td class="px-6 py-4">
-                            {% set status_styles = {
-                                'Pending': 'bg-yellow-100 text-yellow-800',
-                                'Approved': 'bg-green-100 text-green-800',
-                                'Rejected': 'bg-red-100 text-red-800'
-                            } %}
-                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ status_styles.get(submission.ReviewStatus, 'bg-gray-100 text-gray-800') }}">
-                                {{ submission.ReviewStatus }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ submission.SubmissionDate.strftime('%Y-%m-%d') if submission.SubmissionDate else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ submission.ClosingDate.strftime('%Y-%m-%d') if submission.ClosingDate else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <a href="{{ url_for('.view_submission_details', submission_id=submission.SubmissionID) }}" class="btn-secondary !py-1 !px-2">View Details</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for sub in submissions %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        <!-- UPDATED: Added link to the detail page -->
+                        <a href="{{ url_for('client_offers_bp.view_submission_details', submission_id=sub.SubmissionID) }}" class="text-primary-600 hover:text-primary-800 hover:underline">
+                            {{ sub.Title }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ sub.CompanyName }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ sub.SubmissionDate | datetime }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% set status_classes = {
+                            'Pending': 'bg-yellow-100 text-yellow-800', 'UnderReview': 'bg-blue-100 text-blue-800',
+                            'Approved': 'bg-green-100 text-green-800', 'Rejected': 'bg-red-100 text-red-800',
+                            'NeedsClarification': 'bg-purple-100 text-purple-800'
+                        } %}
+                        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {{ status_classes.get(sub.ReviewStatus, 'bg-gray-100 text-gray-800') }}">{{ sub.ReviewStatus }}</span>
+                        {% if sub.ReviewStatus == 'NeedsClarification' and sub.ReviewerComments %}
+                            <p class="text-xs text-gray-500 mt-1 italic">Note: {{ sub.ReviewerComments | truncate(50) }}</p>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% else %}
-                    <tr>
-                        <td colspan="5" class="px-6 py-10 text-center">
-                            You have not submitted any job offers yet. <a href="{{ url_for('.submit_offer') }}" class="text-primary font-medium hover:underline">Submit one now</a>.
-                        </td>
-                    </tr>
-                {% endif %}
+                <tr><td colspan="4" class="text-center py-12 text-gray-500">You have not submitted any job offers yet.</td></tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
