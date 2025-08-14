@@ -1,0 +1,170 @@
+{# templates/agency_staff_portal/clients/clients_dashboard.html #}
+{% extends "agency_staff_portal/staff_base.html" %}
+
+{% block staff_title %}{{ title }}{% endblock %}
+
+{% block staff_page_title %}
+<i class="bi bi-buildings-fill text-indigo-600"></i>
+<span>Client Dashboard</span>
+{% endblock %}
+
+{% block staff_content %}
+<div class="space-y-8">
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {% macro kpi_card(title, value, icon, color_class) %}
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 {{ color_class }} rounded-lg p-3">
+                        <i class="bi {{ icon }} text-3xl text-white"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">{{ title }}</dt>
+                            <dd class="text-3xl font-bold text-gray-900">{{ value }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endmacro %}
+        {{ kpi_card('Total Companies', kpi_stats.total_companies, 'bi-building', 'bg-blue-500') }}
+        {{ kpi_card('Active Clients', kpi_stats.active_companies, 'bi-building-check', 'bg-green-500') }}
+        {{ kpi_card('Open Jobs', kpi_stats.open_job_offers, 'bi-briefcase', 'bg-sky-500') }}
+        {{ kpi_card('Filled Jobs', kpi_stats.filled_job_offers, 'bi-award-fill', 'bg-emerald-500') }}
+        {{ kpi_card('Pending Registrations', kpi_stats.pending_registrations, 'bi-person-plus', 'bg-amber-500') }}
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Column -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Companies by Industry Chart -->
+            <div class="bg-white shadow-sm rounded-xl border border-gray-200 p-6">
+                <h3 class="text-lg leading-6 font-semibold text-gray-900 mb-4">Clients by Industry</h3>
+                <div class="relative h-80">
+                    <canvas id="industryChart"></canvas>
+                    <div id="noIndustryData" class="absolute inset-0 items-center justify-center hidden">
+                        <p class="text-center text-gray-500">No industry data available to display.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Partner Companies List -->
+            <div class="bg-white shadow-sm rounded-xl border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg leading-6 font-semibold text-gray-900">Top Partner Companies</h3>
+                    <p class="text-sm text-gray-500 mt-1">Ranked by number of successfully filled job offers.</p>
+                </div>
+                <ul role="list" class="divide-y divide-gray-200">
+                    {% for partner in top_partners %}
+                    <li class="p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <span class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                                {{ loop.index }}
+                            </span>
+                            <p class="font-medium text-gray-800">{{ partner.CompanyName }}</p>
+                        </div>
+                        <span class="font-bold text-green-600 text-lg">{{ partner.filled_jobs_count }} <span class="text-sm font-medium text-gray-500">Filled</span></span>
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-gray-500">No filled jobs recorded yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Sidebar Column -->
+        <div class="lg:col-span-1 space-y-8">
+            <!-- Quick Actions -->
+            <div class="bg-white shadow-sm rounded-xl border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-900">Quick Actions</h3>
+                </div>
+                <div class="p-4 space-y-3">
+                    <a href="{{ url_for('client_mgmt_bp.add_company') }}" class="w-full flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        <i class="bi bi-plus-circle-fill mr-2"></i> Add New Company
+                    </a>
+                    <a href="{{ url_for('client_mgmt_bp.review_client_registrations') }}" class="relative w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="bi bi-check-circle-fill mr-2"></i> Review Registrations
+                        {% if kpi_stats.pending_registrations > 0 %}
+                            <span class="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{{ kpi_stats.pending_registrations }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('client_mgmt_bp.list_companies') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="bi bi-card-list mr-2"></i> Manage All Companies
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recently Added Companies -->
+            <div class="bg-white shadow-sm rounded-xl border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-base font-semibold text-gray-900">Recently Added</h3>
+                </div>
+                <ul role="list" class="divide-y divide-gray-200">
+                    {% for company in recent_companies %}
+                    <li class="p-4 flex items-center justify-between">
+                        <p class="font-medium text-gray-800">{{ company.CompanyName }}</p>
+                        <span class="text-sm text-gray-500">{{ company.CreatedAt.strftime('%b %d, %Y') }}</span>
+                    </li>
+                    {% else %}
+                    <li class="p-6 text-center text-gray-500">No companies added recently.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block staff_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const industryData = {{ industry_data|tojson|safe }};
+    const chartCanvas = document.getElementById('industryChart');
+    const noDataMessage = document.getElementById('noIndustryData');
+
+    if (industryData && industryData.length > 0) {
+        chartCanvas.style.display = 'block';
+        noDataMessage.style.display = 'none';
+
+        const ctx = chartCanvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: industryData.map(d => d.Industry),
+                datasets: [{
+                    label: 'Companies',
+                    data: industryData.map(d => d.company_count),
+                    backgroundColor: [
+                        '#4f46e5', '#10b981', '#3b82f6', '#0ea5e9', '#f97316', '#ef4444', '#8b5cf6'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        chartCanvas.style.display = 'none';
+        noDataMessage.style.display = 'flex';
+    }
+});
+</script>
+{% endblock %}

@@ -12,6 +12,70 @@ client_mgmt_bp = Blueprint('client_mgmt_bp', __name__,
 
 @client_mgmt_bp.route('/')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def client_dashboard_redirect():
+    """Redirects the base URL to the new dashboard."""
+    return redirect(url_for('.clients_dashboard'))
+
+@client_mgmt_bp.route('/dashboard')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def clients_dashboard():
+    """Displays a dashboard with key client, company, and job offer statistics."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # --- KPI Stats ---
+    cursor.execute("""
+        SELECT
+            (SELECT COUNT(*) FROM Companies) as total_companies,
+            (SELECT COUNT(DISTINCT CompanyID) FROM JobOffers WHERE Status = 'Open') as active_companies,
+            (SELECT COUNT(*) FROM JobOffers WHERE Status = 'Open') as open_job_offers,
+            (SELECT COUNT(*) FROM JobOffers WHERE Status = 'Filled') as filled_job_offers,
+            (SELECT COUNT(*) FROM ClientRegistrations WHERE Status = 'Pending') as pending_registrations
+    """)
+    kpi_stats = cursor.fetchone()
+    
+    # --- Top 5 Partner Companies by Filled Jobs ---
+    cursor.execute("""
+        SELECT c.CompanyName, COUNT(jo.OfferID) as filled_jobs_count
+        FROM Companies c
+        JOIN JobOffers jo ON c.CompanyID = jo.CompanyID
+        WHERE jo.Status = 'Filled'
+        GROUP BY c.CompanyID, c.CompanyName
+        ORDER BY filled_jobs_count DESC
+        LIMIT 5
+    """)
+    top_partners = cursor.fetchall()
+
+    # --- Companies by Industry for Chart ---
+    cursor.execute("""
+        SELECT Industry, COUNT(CompanyID) as company_count
+        FROM Companies
+        WHERE Industry IS NOT NULL AND Industry != ''
+        GROUP BY Industry
+        ORDER BY company_count DESC
+    """)
+    industry_data = cursor.fetchall()
+
+    # --- Recently Added Companies ---
+    cursor.execute("""
+        SELECT CompanyName, CreatedAt
+        FROM Companies
+        ORDER BY CreatedAt DESC
+        LIMIT 5
+    """)
+    recent_companies = cursor.fetchall()
+    
+    conn.close()
+    
+    return render_template('agency_staff_portal/clients/clients_dashboard.html',
+                           title="Client Dashboard",
+                           kpi_stats=kpi_stats,
+                           top_partners=top_partners,
+                           industry_data=industry_data,
+                           recent_companies=recent_companies)
+
+@client_mgmt_bp.route('/manage')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def list_companies():
     """Displays a list of all companies and their primary contacts."""
     conn = get_db_connection()
