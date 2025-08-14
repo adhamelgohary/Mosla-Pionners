@@ -1,38 +1,76 @@
+<!-- START OF FILE dashboard.html -->
 {% extends "client_portal/client_base.html" %}
 
-{% block page_title %}Company Dashboard{% endblock %}
-
 {% block content %}
-<div class="flex justify-between items-center mb-6">
-    <div>
-        <h3 class="text-base font-semibold leading-7 text-gray-900">{{ company.CompanyName }}</h3>
-        <p class="mt-1 max-w-2xl text-sm leading-6 text-gray-500">Overview of your company's activity and submissions.</p>
-    </div>
-    <!-- UPDATED LINK -->
-    <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="inline-flex items-center gap-x-2 rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">
-        <i class="bi bi-plus-circle -ml-0.5 h-5 w-5"></i> Submit a New Job Offer
-    </a>
-</div>
-
-{% if company %}
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    <!-- Stat Card: Total Submissions -->
-    <div class="bg-white rounded-lg shadow-sm border p-6">
-        <dt class="text-sm font-medium text-gray-500">Total Submissions</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ company.TotalSubmissions }}</dd>
+    
+    <!-- iOS-style Stat Card -->
+    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
+                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-muted">Total Submissions</p>
+                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
+                    {{ company.TotalSubmissions|default(0) }}
+                </span>
+            </div>
+            <div class="rounded-xl bg-primary/10 p-3 text-primary">
+                <i class="bi bi-file-earmark-text-fill text-2xl"></i>
+            </div>
+        </div>
     </div>
-    <!-- Stat Card: Pending Review -->
-    <div class="bg-white rounded-lg shadow-sm border p-6">
-        <dt class="text-sm font-medium text-gray-500">Pending Review</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-yellow-600">{{ company.PendingSubmissions }}</dd>
+
+    <!-- iOS-style Stat Card -->
+    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
+                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-muted">Pending Review</p>
+                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
+                    {{ company.PendingSubmissions|default(0) }}
+                </span>
+            </div>
+            <div class="rounded-xl bg-amber-500/10 p-3 text-amber-500">
+                <i class="bi bi-hourglass-split text-2xl"></i>
+            </div>
+        </div>
     </div>
-    <!-- Stat Card: Live Offers -->
-    <div class="bg-white rounded-lg shadow-sm border p-6">
-        <dt class="text-sm font-medium text-gray-500">Live Offers</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-600">{{ company.LiveOffers }}</dd>
+
+    <!-- iOS-style Stat Card -->
+    <div class="relative overflow-hidden rounded-3xl p-6 transition-all duration-300
+                bg-card/50 backdrop-blur-md ring-1 ring-border/50 hover:ring-primary/50 hover:shadow-2xl">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-sm font-medium text-text-muted">Live Offers</p>
+                <span class="mt-2 block text-fluid-4xl font-bold tracking-tighter text-heading">
+                    {{ company.LiveOffers|default(0) }}
+                </span>
+            </div>
+            <div class="rounded-xl bg-emerald-500/10 p-3 text-emerald-500">
+                <i class="bi bi-broadcast-pin text-2xl"></i>
+            </div>
+        </div>
     </div>
+
+    <!-- Welcome Card -->
+    <div class="sm:col-span-2 lg:col-span-3 rounded-3xl p-6 bg-card/50 backdrop-blur-md ring-1 ring-border/50">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+            {% if company.CompanyLogoURL %}
+            <img src="{{ company.CompanyLogoURL }}" alt="{{ company.CompanyName }} Logo" class="h-24 w-24 object-contain rounded-2xl bg-white p-2">
+            {% else %}
+            <div class="flex-shrink-0 flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-5xl">
+                {{ (company.CompanyName|default('C'))[0] }}
+            </div>
+            {% endif %}
+            <div>
+                <h2 class="text-fluid-xl font-bold text-heading">Welcome back, {{ company.CompanyName }}</h2>
+                <p class="mt-2 text-text-muted">
+                    This is your central hub for managing job offers and tracking your candidate pipeline. You can submit a new offer or review your existing submissions using the navigation above.
+                </p>
+            </div>
+        </div>
+    </div>
+
 </div>
-{% else %}
-    <p class="text-center text-gray-500 py-8">Could not load company dashboard data.</p>
-{% endif %}
 {% endblock %}
+<!-- END OF FILE dashboard.html -->

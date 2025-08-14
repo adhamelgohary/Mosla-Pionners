@@ -63,6 +63,7 @@ def dashboard():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        # This query is still valid with the new schema.
         cursor.execute("""
             SELECT 
                 c.CompanyID, c.CompanyName, c.CompanyLogoURL,

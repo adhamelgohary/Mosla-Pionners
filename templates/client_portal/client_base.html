@@ -1,3 +1,4 @@
+<!-- START OF FILE client_base.html -->
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
@@ -5,77 +6,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='dist/css/styles.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <title>{% block title %}Client Portal{% endblock %} - Mosla Pioneers</title>
+    <title>{% block page_title %}{{ title | default('Client Portal') }}{% endblock %} - Mosla Pioneers</title>
     <!-- Alpine.js for interactivity -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Add a subtle animation for the background gradient */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animated-gradient {
+            background-size: 200% 200%;
+            animation: gradient-animation 15s ease infinite;
+        }
+    </style>
 </head>
-<!-- This body uses the default theme (NO .portal-scope class) -->
-<body class="h-full font-sans bg-background text-text">
-    <div class="min-h-full">
-        <nav class="bg-card border-b border-border" x-data="{ mobileMenuOpen: false, profileMenuOpen: false }">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="flex h-16 items-center justify-between">
+<!-- 
+  KEY CHANGES:
+  1. `.portal-scope` activates the portal-specific color theme from tailwind.config.js.
+  2. A subtle, animated gradient background gives the blur effect something to interact with.
+  3. `dark:bg-slate-900` provides a solid fallback for dark mode.
+-->
+<body class="h-full font-sans bg-background text-text portal-scope bg-gradient-to-br from-slate-100 via-indigo-50 to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-black animated-gradient">
+    <div class="relative min-h-full">
+
+        <!-- Floating Glass Navbar -->
+        <nav x-data="{ mobileMenuOpen: false, profileMenuOpen: false }" 
+             class="sticky top-4 z-40 mx-auto max-w-7xl rounded-3xl border border-border/50 bg-card/60 shadow-lg backdrop-blur-lg transition-all duration-300">
+            <div class="px-4 sm:px-6 lg:px-8">
+                <div class="flex h-20 items-center justify-between">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                             <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="text-heading font-bold text-lg flex items-center gap-2">
-                                <i class="bi bi-buildings-fill text-primary"></i>
-                                <span>Client Portal</span>
+                        <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="flex-shrink-0 flex items-center gap-3 text-heading font-bold text-lg">
+                            <i class="bi bi-buildings-fill text-2xl text-primary"></i>
+                            <span class="hidden sm:inline">Client Portal</span>
+                        </a>
+                        <!-- Desktop Menu -->
+                        <div class="hidden md:ml-10 md:flex md:items-baseline md:space-x-1">
+                            {% set nav_items = [
+                                ('client_dashboard_bp.dashboard', 'Dashboard'),
+                                ('client_offers_bp.pipeline', 'Pipeline'),
+                                ('client_offers_bp.submit_offer', 'Submit Offer'),
+                                ('client_offers_bp.my_submissions', 'My Submissions')
+                            ] %}
+                            {% for endpoint, name in nav_items %}
+                            <a href="{{ url_for(endpoint) }}" 
+                               class="rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200
+                                      {% if request.endpoint == endpoint %}
+                                        bg-primary/10 text-primary font-semibold
+                                      {% else %}
+                                        text-text-muted hover:bg-black/5 dark:hover:bg-white/5 hover:text-heading
+                                      {% endif %}">
+                                {{ name }}
                             </a>
+                            {% endfor %}
                         </div>
+                    </div>
+
+                    <!-- Profile & Mobile Menu Button -->
+                    <div class="flex items-center">
                         <div class="hidden md:block">
-                            <div class="ml-10 flex items-baseline space-x-1">
-                                <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_dashboard_bp.dashboard' else 'text-text-muted hover:bg-background hover:text-primary' }}">Dashboard</a>
-                                <a href="{{ url_for('client_offers_bp.pipeline') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.pipeline' else 'text-text-muted hover:bg-background hover:text-primary' }}">Candidate Pipeline</a>
-                                <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.submit_offer' else 'text-text-muted hover:bg-background hover:text-primary' }}">Submit Offer</a>
-                                <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint == 'client_offers_bp.my_submissions' else 'text-text-muted hover:bg-background hover:text-primary' }}">My Submissions</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="hidden md:block">
-                        <div class="ml-4 flex items-center md:ml-6">
-                            <!-- Profile Dropdown -->
                              <div class="relative ml-3" @click.outside="profileMenuOpen = false">
-                                <div>
-                                    <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex max-w-xs items-center rounded-full bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-card">
-                                        <span class="sr-only">Open user menu</span>
-                                        <div class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                                            {{ (session.get('client_company_name', 'C'))[0] }}
-                                        </div>
-                                    </button>
-                                </div>
-                                <div x-show="profileMenuOpen" x-transition class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-card py-1 shadow-lg ring-1 ring-border focus:outline-none" style="display: none;">
-                                    <div class="px-4 py-2 border-b border-border">
-                                        <p class="text-sm font-medium text-heading truncate">{{ session.get('client_company_name', 'Client') }}</p>
-                                        <p class="text-xs text-text-muted truncate">{{ current_user.email }}</p>
+                                <button @click="profileMenuOpen = !profileMenuOpen" type="button" class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-lg ring-2 ring-transparent hover:ring-primary/50 transition-all">
+                                    <span class="sr-only">Open user menu</span>
+                                    {{ (session.get('client_company_name', 'C'))[0] }}
+                                </button>
+                                <div x-show="profileMenuOpen" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" 
+                                     class="absolute right-0 mt-2 w-64 origin-top-right rounded-xl bg-card/80 backdrop-blur-xl border border-border/50 py-2 shadow-2xl focus:outline-none" style="display: none;">
+                                    <div class="px-4 py-3 border-b border-border/50">
+                                        <p class="text-base font-semibold text-heading truncate">{{ session.get('client_company_name', 'Client') }}</p>
+                                        <p class="text-sm text-text-muted truncate">{{ current_user.email }}</p>
                                     </div>
-                                    <a href="{{ url_for('login_bp.logout') }}" class="block px-4 py-2 text-sm text-text-muted hover:bg-background">Logout</a>
+                                    <div class="p-2">
+                                        <a href="{{ url_for('login_bp.logout') }}" class="flex items-center gap-3 w-full px-3 py-2 text-sm rounded-md text-text-muted hover:bg-danger/10 hover:text-danger font-medium transition-colors">
+                                            <i class="bi bi-box-arrow-right text-lg"></i>
+                                            <span>Logout</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                     <div class="-mr-2 flex md:hidden">
-                        <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-md bg-card p-2 text-text-muted hover:bg-background hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                            <span class="sr-only">Open main menu</span>
-                            <i class="bi text-xl" :class="{ 'bi-x-lg': mobileMenuOpen, 'bi-list': !mobileMenuOpen }"></i>
-                        </button>
+                        <div class="-mr-2 flex md:hidden">
+                            <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="inline-flex items-center justify-center rounded-xl p-2 text-text-muted hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary focus:outline-none">
+                                <span class="sr-only">Open main menu</span>
+                                <i class="bi text-2xl" :class="{ 'bi-x-lg': mobileMenuOpen, 'bi-list': !mobileMenuOpen }"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Mobile Menu -->
-            <div class="md:hidden" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
-                <div class="space-y-1 px-2 pb-3 pt-2">
-                    <a href="{{ url_for('client_dashboard_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Dashboard</a>
-                    <a href="{{ url_for('client_offers_bp.pipeline') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Candidate Pipeline</a>
-                    <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Submit Offer</a>
-                    <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">My Submissions</a>
+            <!-- Mobile Menu Panel -->
+            <div class="md:hidden border-t border-border/50" id="mobile-menu" x-show="mobileMenuOpen" x-collapse>
+                <div class="space-y-1 px-2 py-3">
+                    {% for endpoint, name in nav_items %}
+                    <a href="{{ url_for(endpoint) }}" 
+                       class="block rounded-lg px-3 py-2 text-base font-medium transition-colors duration-200
+                              {% if request.endpoint == endpoint %}
+                                bg-primary/10 text-primary font-semibold
+                              {% else %}
+                                text-text-muted hover:bg-black/5 dark:hover:bg-white/5 hover:text-heading
+                              {% endif %}">
+                        {{ name }}
+                    </a>
+                    {% endfor %}
                 </div>
-                <div class="border-t border-border pt-4 pb-3">
-                    <div class="flex items-center px-5">
-                        <div class="flex-shrink-0">
-                             <div class="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
-                                {{ (session.get('client_company_name', 'C'))[0] }}
-                            </div>
+                <div class="border-t border-border/50 pt-4 pb-3">
+                    <div class="flex items-center px-4">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xl">
+                            {{ (session.get('client_company_name', 'C'))[0] }}
                         </div>
                         <div class="ml-3">
                             <div class="text-base font-medium text-heading">{{ session.get('client_company_name', 'Client') }}</div>
@@ -83,32 +122,35 @@
                         </div>
                     </div>
                     <div class="mt-3 space-y-1 px-2">
-                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-heading">Logout</a>
+                        <a href="{{ url_for('login_bp.logout') }}" class="block rounded-lg px-3 py-2 text-base font-medium text-text-muted hover:bg-danger/10 hover:text-danger">Logout</a>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <header class="bg-card shadow-sm">
-            <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                <h1 class="text-xl font-bold tracking-tight text-heading">{% block page_title %}{{ title }}{% endblock %}</h1>
-            </div>
-        </header>
+        <!-- Main Content Area -->
+        <main class="pt-8 pb-16">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <!-- Page Title -->
+                <h1 class="text-fluid-2xl font-bold tracking-tight text-heading mb-8">
+                    {% block content_title %}{{ title | default('') }}{% endblock %}
+                </h1>
 
-        <main>
-            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
-                        <div class="space-y-4 mb-6">
+                        <div class="space-y-4 mb-8">
                         {% for category, message in messages %}
                             {% set category_map = {
-                                'success': 'bg-success/10 border-success text-success-700',
-                                'danger': 'bg-danger/10 border-danger text-danger-700',
-                                'warning': 'bg-warning/10 border-warning text-warning-700',
-                                'info': 'bg-primary/10 border-primary text-primary-700'
+                                'success': { 'icon': 'bi-check-circle-fill', 'colors': 'bg-success/20 text-success-700 dark:text-success-300 ring-success/30' },
+                                'danger': { 'icon': 'bi-x-octagon-fill', 'colors': 'bg-danger/20 text-danger-700 dark:text-danger-300 ring-danger/30' },
+                                'warning': { 'icon': 'bi-exclamation-triangle-fill', 'colors': 'bg-warning/20 text-warning-700 dark:text-warning-300 ring-warning/30' },
+                                'info': { 'icon': 'bi-info-circle-fill', 'colors': 'bg-primary/20 text-primary-700 dark:text-primary-300 ring-primary/30' }
                             } %}
-                            <div class="border-l-4 p-4 rounded-r-md {{ category_map.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}">
-                                <p>{{ message }}</p>
+                            {% set alert = category_map.get(category, category_map.info) %}
+                            <div class="flex items-center gap-4 p-4 rounded-2xl ring-1 ring-inset backdrop-blur-sm {{ alert.colors }}">
+                                <i class="bi {{ alert.icon }} text-2xl"></i>
+                                <p class="font-medium text-sm">{{ message }}</p>
                             </div>
                         {% endfor %}
                         </div>
@@ -121,3 +163,4 @@
     </div>
 </body>
 </html>
+<!-- END OF FILE client_base.html -->
