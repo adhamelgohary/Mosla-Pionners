@@ -104,8 +104,8 @@
                   {% for shift in shifts %}
                   <div class="relative flex items-start">
                     <div class="flex h-5 items-center">
-                      <!-- ▼▼▼ THIS LINE IS FIXED ▼▼▼ -->
-                      <input id="shift_{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in (form_data.getlist('available_shifts') if hasattr(form_data, 'getlist') else []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
+                      <!-- THE FIX IS HERE: Simple membership test against the `selected_shifts` list -->
+                      <input id="shift_{{ shift }}" name="available_shifts" type="checkbox" value="{{ shift }}" {% if shift in selected_shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
                     </div>
                     <div class="ml-3 text-sm">
                       <label for="shift_{{ shift }}" class="font-medium text-gray-700">{{ shift }}</label>
@@ -141,8 +141,8 @@
               {% for benefit in all_benefits %}
               <div class="relative flex items-start">
                   <div class="flex h-5 items-center">
-                    <!-- ▼▼▼ THIS LINE IS FIXED ▼▼▼ -->
-                    <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" {% if benefit in (form_data.getlist('benefits') if hasattr(form_data, 'getlist') else []) %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
+                    <!-- THE FIX IS HERE: Simple membership test against the `selected_benefits` list -->
+                    <input id="benefit_{{ loop.index }}" name="benefits" type="checkbox" value="{{ benefit }}" {% if benefit in selected_benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-slate-600 focus:ring-slate-500">
                   </div>
                   <div class="ml-3 text-sm">
                     <label for="benefit_{{ loop.index }}" class="font-medium text-gray-700">{{ benefit }}</label>
