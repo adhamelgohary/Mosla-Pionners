@@ -4,7 +4,8 @@
 {% block staff_title %}Staff Dashboard{% endblock %}
 
 {% block staff_page_title %}
-<i class="bi bi-speedometer2 text-primary-600"></i>
+{# Using a standard color to ensure the icon always appears correctly #}
+<i class="bi bi-speedometer2 text-indigo-600"></i>
 <span>Staff Dashboard</span>
 {% endblock %}
 
@@ -111,13 +112,14 @@
                     <h3 class="text-base font-semibold text-gray-900">Quick Actions & Links</h3>
                 </div>
                 <div class="p-4 space-y-3">
-                    <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="w-full flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    {# Using standard indigo color for the main call-to-action button #}
+                    <a href="{{ url_for('staff_perf_bp.add_staff') }}" class="w-full flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="bi bi-person-plus-fill -ml-1 mr-2"></i> Add New Staff
                     </a>
-                    <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="bi bi-person-lines-fill -ml-1 mr-2"></i> Manage All Staff
                     </a>
-                    <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <a href="{{ url_for('staff_perf_bp.global_team_overview') }}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <i class="bi bi-diagram-3 -ml-1 mr-2"></i> View Team Structure
                     </a>
                 </div>
@@ -127,13 +129,15 @@
             <div class="bg-white shadow-sm rounded-xl border border-gray-200">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                     <h3 class="text-base font-semibold text-gray-900">Top Performers (This Month)</h3>
-                    <a href="{{ url_for('staff_perf_bp.performance_leaderboard', period='monthly') }}" class="text-sm text-primary-600 hover:text-primary-800 font-medium">View All <i class="bi bi-arrow-right-short"></i></a>
+                    {# Using standard indigo for the link #}
+                    <a href="{{ url_for('staff_perf_bp.performance_leaderboard', period='monthly') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View All <i class="bi bi-arrow-right-short"></i></a>
                 </div>
                 <ul role="list" class="divide-y divide-gray-200">
                     {% for performer in top_performers %}
                     <li class="p-4 flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <span class="h-10 w-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-bold text-lg">
+                            {# Using standard indigo for the ranking number background #}
+                            <span class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
                                 {{ loop.index }}
                             </span>
                             <div>
@@ -153,7 +157,8 @@
             <div class="bg-white shadow-sm rounded-xl border border-gray-200">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                     <h3 class="text-base font-semibold text-gray-900">Recently Joined Staff</h3>
-                    <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-sm text-primary-600 hover:text-primary-800 font-medium">Manage Staff <i class="bi bi-arrow-right-short"></i></a>
+                    {# Using standard indigo for the link #}
+                    <a href="{{ url_for('staff_perf_bp.list_all_staff') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Manage Staff <i class="bi bi-arrow-right-short"></i></a>
                 </div>
                 <ul role="list" class="divide-y divide-gray-200">
                     {% for staff in recent_hires %}
