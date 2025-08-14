@@ -1,0 +1,63 @@
+<!-- templates/client_portal/my_offers.html -->
+{% extends "client_portal/client_base.html" %}
+
+{% block title %}My Job Offers{% endblock %}
+{% block page_title %}My Job Offers{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+  <div class="sm:flex sm:items-center">
+    <div class="sm:flex-auto">
+      <p class="mt-2 text-sm text-gray-700">A list of all your company's job offers that are being managed by our team.</p>
+    </div>
+    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+      <a href="{{ url_for('client_offers_bp.submit_offer') }}" class="block rounded-md bg-slate-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600">Submit New Offer</a>
+    </div>
+  </div>
+  <div class="mt-8 flow-root">
+    <div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+      <div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+        {% if offers %}
+        <table class="min-w-full divide-y divide-gray-300">
+          <thead>
+            <tr>
+              <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-0">Job Title</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Date Posted</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Closing Date</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Applications</th>
+              <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white">
+            {% for offer in offers %}
+            <tr>
+              <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">{{ offer.Title }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ offer.DatePosted.strftime('%Y-%m-%d') if offer.DatePosted else 'N/A' }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ offer.ClosingDate.strftime('%Y-%m-%d') if offer.ClosingDate else 'N/A' }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ offer.ApplicationCount }}</td>
+              <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  {% if offer.Status == 'Open' %}
+                    <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Open</span>
+                  {% elif offer.Status == 'On Hold' %}
+                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">On Hold</span>
+                  {% elif offer.Status == 'Closed' or offer.Status == 'Filled' %}
+                    <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">{{ offer.Status }}</span>
+                  {% else %}
+                    <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">{{ offer.Status }}</span>
+                  {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-10 border rounded-lg">
+            <h3 class="mt-2 text-sm font-semibold text-gray-900">No active job offers</h3>
+            <p class="mt-1 text-sm text-gray-500">Once your submissions are approved, they will appear here.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
