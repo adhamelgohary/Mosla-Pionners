@@ -24,7 +24,7 @@
                 <div class="flex h-16 items-center justify-between">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            {% if current_user.role_type != 'SalesManager' %}
+                            {% if current_user.role_type != 'SalesManager , SalesAssistant' %}
                                 <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="text-heading font-bold text-lg">Managerial Portal</a>
                             {% else %}
                                 <span class="text-heading font-bold text-lg">Managerial Portal</span>
@@ -32,14 +32,14 @@
                         </div>
                         <div class="hidden md:block">
                             <div class="ml-10 flex items-baseline space-x-1">
-                                {% if current_user.role_type != 'SalesManager' %}
+                                {% if current_user.role_type != 'SalesManager , SalesAssistant' %}
                                     <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('managerial_dashboard_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Dashboard</a>
                                     <a href="{{ url_for('staff_perf_bp.staff_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('staff_perf_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Staff</a>
                                     <a href="{{ url_for('client_mgmt_bp.clients_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('client_mgmt_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Clients</a>
                                     <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('job_offer_mgmt_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Jobs</a>
                                 {% endif %}
                                 <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('package_mgmt_bp') or request.endpoint.startswith('group_mgmt_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Groups & Courses</a>
-                                {% if current_user.role_type != 'SalesManager' %}
+                                {% if current_user.role_type != 'SalesManager , SalesAssistant' %}
                                     <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('inquiry_mgmt_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Inquiries</a>
                                     <a href="{{ url_for('announcement_bp.list_announcements') }}" class="px-3 py-2 rounded-md text-sm font-medium {{ 'bg-primary/10 text-primary font-semibold' if request.endpoint.startswith('announcement_bp') else 'text-text-muted hover:bg-background hover:text-primary' }}">Announcements</a>
                                     <div class="relative" x-on:click.away="reportsMenuOpen = false">
@@ -58,13 +58,13 @@
                     </div>
                     <div class="hidden md:block">
                         <div class="ml-4 flex items-center md:ml-6">
-                            {% if current_user.role_type != 'SalesManager' and unread_message_count > 0 %}
+                            {% if current_user.role_type != 'SalesManager , SalesAssistant' and unread_message_count > 0 %}
                             <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" title="{{ unread_message_count }} unread messages" class="relative mr-3 p-1 rounded-full text-text-muted hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                                 <span class="sr-only">View messages</span>
                                 <i class="bi bi-envelope-exclamation-fill h-6 w-6"></i>
                                 <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">{{ unread_message_count }}</span>
                             </a>
-                            {% elif current_user.role_type != 'SalesManager' %}
+                            {% elif current_user.role_type != 'SalesManager , SalesAssistant' %}
                             <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" title="No unread messages" class="relative mr-3 p-1 rounded-full text-text-muted hover:text-primary">
                                 <i class="bi bi-envelope-fill h-6 w-6"></i>
                             </a>
@@ -94,14 +94,14 @@
             </div>
             <div class="md:hidden" id="mobile-menu" x-show="open" x-collapse>
                 <div class="space-y-1 px-2 pb-3 pt-2">
-                    {% if current_user.role_type != 'SalesManager' %}
+                    {% if current_user.role_type != 'SalesManager , SalesAssistant' %}
                         <a href="{{ url_for('managerial_dashboard_bp.main_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Dashboard</a>
                         <a href="{{ url_for('staff_perf_bp.staff_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Staff</a>
                         <a href="{{ url_for('client_mgmt_bp.clients_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Clients</a>
                         <a href="{{ url_for('job_offer_mgmt_bp.dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Jobs</a>
                     {% endif %}
                     <a href="{{ url_for('package_mgmt_bp.packages_dashboard') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Groups & Courses</a>
-                    {% if current_user.role_type != 'SalesManager' %}
+                    {% if current_user.role_type != 'SalesManager , SalesAssistant' %}
                         <a href="{{ url_for('inquiry_mgmt_bp.list_inquiries') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Inquiries</a>
                         <a href="{{ url_for('announcement_bp.list_announcements') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Announcements</a>
                         <a href="{{ url_for('reporting_bp.reporting_hub') }}" class="block rounded-md px-3 py-2 text-base font-medium text-text-muted hover:bg-background hover:text-primary">Reports</a>
