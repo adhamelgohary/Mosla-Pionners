@@ -30,6 +30,10 @@ utils/__pycache__/directory_configs.cpython-313.pyc
 utils/__pycache__/MailConfig.cpython-313.pyc
 utils/__pycache__/template_helpers.cpython-313.pyc
 .env
+.env.local
+db_dev.py
+app_dev.py
+app-back.py
 venv/
 *.pyc
 *.pyo

@@ -1,7 +1,8 @@
 # routes/instructor_portal/portal_routes.py
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app , jsonify
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_login import current_user
 from utils.decorators import instructor_required
+from utils.logging_utils import log_audit
 from db import get_db_connection
 import uuid
 import mysql.connector
@@ -34,7 +35,7 @@ def dashboard():
             dashboard_data['student_count'] = data['student_count']
     except Exception as e:
         flash("Could not load dashboard data.", "warning")
-        current_app.logger.error(f"Instructor dashboard error: {e}")
+        current_app.logger.error(f"Instructor dashboard error: {e}", exc_info=True)
     finally:
         if conn and conn.is_connected(): conn.close()
     return render_template('instructor_portal/dashboard.html', 
@@ -53,6 +54,7 @@ def profile():
             new_code = f"INST-{str(uuid.uuid4())[:8].upper()}"
             cursor.execute("UPDATE Staff SET ReferralCode = %s WHERE StaffID = %s", (new_code, instructor_staff_id))
             conn.commit()
+            log_audit('GENERATE_REFERRAL_CODE', 'Staff', instructor_staff_id, f"Generated new code: {new_code}")
             flash(f"Referral code generated: {new_code}", "success")
             current_user.specific_role_details['ReferralCode'] = new_code
             return redirect(url_for('.profile'))
@@ -64,6 +66,7 @@ def profile():
         profile_data = cursor.fetchone()
     except Exception as e:
         flash("An error occurred while fetching your profile.", "danger")
+        current_app.logger.error(f"Profile page error for StaffID {instructor_staff_id}: {e}", exc_info=True)
         profile_data = {}
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -92,6 +95,7 @@ def my_groups():
         groups = cursor.fetchall()
     except Exception as e:
         flash("Could not load your assigned groups.", "danger")
+        current_app.logger.error(f"My Groups page error for StaffID {current_user.specific_role_id}: {e}", exc_info=True)
     finally:
         if conn and conn.is_connected(): conn.close()
     return render_template('instructor_portal/my_groups.html', title='My Groups', groups=groups)
@@ -100,6 +104,7 @@ def my_groups():
 @instructor_required
 def add_group():
     conn = get_db_connection()
+    sub_packages = []
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("""
@@ -112,12 +117,13 @@ def add_group():
         if request.method == 'POST':
             form = request.form
             sub_package_id = form.get('SubPackageID')
-            if not form.get('GroupName') or not sub_package_id:
+            group_name = form.get('GroupName')
+            if not group_name or not sub_package_id:
                 flash("Group Name and a Course Package are required.", "danger")
                 return render_template('instructor_portal/add_edit_group.html', title="Create New Group", sub_packages=sub_packages, form_data=form)
             
             sql_group = "INSERT INTO CourseGroups (GroupName, SubPackageID, StartDate, EndDate, Status, MaxCapacity, Notes) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            params_group = (form.get('GroupName'), sub_package_id, form.get('StartDate') or None, form.get('EndDate') or None, form.get('Status', 'Planning'), form.get('MaxCapacity', 0), form.get('Notes'))
+            params_group = (group_name, sub_package_id, form.get('StartDate') or None, form.get('EndDate') or None, form.get('Status', 'Planning'), form.get('MaxCapacity', 0), form.get('Notes'))
             cursor.execute(sql_group, params_group)
             new_group_id = cursor.lastrowid
             
@@ -136,10 +142,13 @@ def add_group():
                 cursor.executemany(sql_insert_sessions, session_data)
             
             conn.commit()
+            details = f"Created group '{group_name}' with {num_sessions} sessions."
+            log_audit('CREATE_GROUP', 'CourseGroup', new_group_id, details)
             flash("Course Group and its sessions created successfully!", "success")
             return redirect(url_for('.my_groups'))
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error in 'add_group' route: {e}", exc_info=True)
         flash(f"An error occurred: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -165,6 +174,8 @@ def edit_group(group_id):
             params = (form.get('GroupName'), form.get('SubPackageID'), form.get('StartDate') or None, form.get('EndDate') or None, form.get('Status'), form.get('MaxCapacity', 0), form.get('Notes'), group_id)
             cursor.execute(sql_update, params)
             conn.commit()
+            details = f"Updated details for group '{form.get('GroupName')}'."
+            log_audit('UPDATE_GROUP', 'CourseGroup', group_id, details)
             flash("Group details updated successfully.", "success")
             return redirect(url_for('.group_dashboard', group_id=group_id))
 
@@ -173,6 +184,7 @@ def edit_group(group_id):
         return render_template('instructor_portal/add_edit_group.html', title="Edit Group", form_data=form_data, group_id=group_id, sub_packages=sub_packages)
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error editing group {group_id}: {e}", exc_info=True)
         flash(f"An error occurred: {e}", "danger")
         return redirect(url_for('.my_groups'))
     finally:
@@ -190,9 +202,11 @@ def delete_group(group_id):
             return redirect(url_for('.my_groups'))
         cursor.execute("DELETE FROM CourseGroups WHERE GroupID = %s", (group_id,))
         conn.commit()
+        log_audit('DELETE_GROUP', 'CourseGroup', group_id, "Group and all associated data deleted.")
         flash("Group and all its associated data have been deleted.", "success")
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error deleting group {group_id}: {e}", exc_info=True)
         flash(f"An error occurred: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -202,6 +216,8 @@ def delete_group(group_id):
 @instructor_required
 def group_dashboard(group_id):
     conn = get_db_connection()
+    group = None
+    assessments = []
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT GroupName FROM CourseGroups cg JOIN CourseGroupInstructors cgi ON cg.GroupID = cgi.GroupID WHERE cg.GroupID = %s AND cgi.InstructorStaffID = %s", (group_id, current_user.specific_role_id))
@@ -214,6 +230,7 @@ def group_dashboard(group_id):
         assessments = cursor.fetchall()
     except Exception as e:
         flash("Could not load group details.", "danger")
+        current_app.logger.error(f"Error loading group dashboard for GroupID {group_id}: {e}", exc_info=True)
         return redirect(url_for('.my_groups'))
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -223,16 +240,11 @@ def group_dashboard(group_id):
 @instructor_portal_bp.route('/group/<int:group_id>/roster', methods=['GET', 'POST'])
 @instructor_required
 def manage_roster(group_id):
-    """
-    Allows an instructor to view, add, and remove students from a group they manage,
-    and also update their placement details.
-    """
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
 
-        # Authorization Check
         cursor.execute("""
             SELECT cg.GroupName, sp.SubPackageID
             FROM CourseGroups cg
@@ -246,7 +258,6 @@ def manage_roster(group_id):
             flash("You are not authorized to manage this group's roster.", "danger")
             return redirect(url_for('.my_groups'))
 
-        # Handle adding a new member via POST request
         if request.method == 'POST':
             enrollment_id_to_add = request.form.get('enrollment_id')
             if enrollment_id_to_add:
@@ -263,11 +274,11 @@ def manage_roster(group_id):
                         sql_insert_attendance = "INSERT INTO SessionAttendance (SessionID, EnrollmentID) VALUES (%s, %s)"
                         cursor.executemany(sql_insert_attendance, attendance_data)
                     conn.commit()
+                    details = f"Added student (EnrollmentID {enrollment_id_to_add}) to group '{group_info['GroupName']}'."
+                    log_audit('ADD_STUDENT_TO_GROUP', 'CourseGroup', group_id, details)
                     flash("Student added and attendance records created.", "success")
                 return redirect(url_for('.manage_roster', group_id=group_id))
 
-        # --- Data Fetching for GET request ---
-        # 1. Get currently assigned members with all details
         cursor.execute("""
             SELECT 
                 u.FirstName, u.LastName, u.Email, u.PhoneNumber, 
@@ -281,7 +292,6 @@ def manage_roster(group_id):
         """, (group_id,))
         assigned_members = cursor.fetchall()
 
-        # 2. Get available candidates for the "Add Student" dropdown
         cursor.execute("""
             SELECT u.FirstName, u.LastName, ce.EnrollmentID
             FROM CourseEnrollments ce
@@ -296,6 +306,7 @@ def manage_roster(group_id):
 
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error managing roster for GroupID {group_id}: {e}", exc_info=True)
         flash(f"An error occurred: {e}", "danger")
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
@@ -308,11 +319,9 @@ def manage_roster(group_id):
                            members=assigned_members,
                            available_candidates=available_candidates)
     
-
 @instructor_portal_bp.route('/group/<int:group_id>/roster/remove/<int:enrollment_id>', methods=['POST'])
 @instructor_required
 def remove_from_roster(group_id, enrollment_id):
-    """Handles removing a student from a group."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
@@ -324,11 +333,14 @@ def remove_from_roster(group_id, enrollment_id):
         cursor.execute("DELETE FROM CourseGroupMembers WHERE GroupID = %s AND EnrollmentID = %s", (group_id, enrollment_id))
         conn.commit()
         if cursor.rowcount > 0:
+            details = f"Removed student (EnrollmentID {enrollment_id}) from group."
+            log_audit('REMOVE_STUDENT_FROM_GROUP', 'CourseGroup', group_id, details)
             flash("Student removed from group successfully.", "success")
         else:
             flash("Student not found in this group.", "warning")
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error removing student {enrollment_id} from group {group_id}: {e}", exc_info=True)
         flash(f"An error occurred while removing the student: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -348,9 +360,12 @@ def update_student_details(group_id, enrollment_id):
         recommendation = request.form.get('recommendation')
         cursor.execute("UPDATE CourseGroupMembers SET PlacementStatus = %s, CompanyRecommendation = %s WHERE GroupID = %s AND EnrollmentID = %s", (placement_status, recommendation, group_id, enrollment_id))
         conn.commit()
+        details = f"Updated placement details for student (EnrollmentID {enrollment_id}) in group."
+        log_audit('UPDATE_STUDENT_PLACEMENT', 'CourseGroupMember', enrollment_id, details)
         flash("Student details updated successfully.", "success")
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error updating details for student {enrollment_id}: {e}", exc_info=True)
         flash(f"A database error occurred: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -370,8 +385,9 @@ def add_assessment(group_id):
 
         if request.method == 'POST':
             form = request.form
+            title = form['Title']
             sql_insert_assessment = "INSERT INTO GroupAssessments (GroupID, CreatedByInstructorStaffID, Title, Description, AssessmentType, DueDate, MaxPoints) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-            params = (group_id, current_user.specific_role_id, form['Title'], form['Description'], form['AssessmentType'], form.get('DueDate') or None, form.get('MaxPoints', 100))
+            params = (group_id, current_user.specific_role_id, title, form['Description'], form['AssessmentType'], form.get('DueDate') or None, form.get('MaxPoints', 100))
             cursor.execute(sql_insert_assessment, params)
             new_assessment_id = cursor.lastrowid
 
@@ -384,10 +400,13 @@ def add_assessment(group_id):
                 cursor.executemany(sql_insert_submissions, submission_data)
 
             conn.commit()
+            details = f"Created new assessment '{title}' for group {group_id}."
+            log_audit('CREATE_ASSESSMENT', 'GroupAssessment', new_assessment_id, details)
             flash("Assessment created successfully. You can now enter grades.", "success")
             return redirect(url_for('.grade_assessment', assessment_id=new_assessment_id))
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error creating assessment for group {group_id}: {e}", exc_info=True)
         flash(f"Error creating assessment: {e}", "danger")
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
@@ -398,6 +417,8 @@ def add_assessment(group_id):
 @instructor_required
 def grade_assessment(assessment_id):
     conn = get_db_connection()
+    assessment = None
+    submissions = []
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT ga.*, cg.GroupName FROM GroupAssessments ga JOIN CourseGroups cg ON ga.GroupID = cg.GroupID JOIN CourseGroupInstructors cgi ON cg.GroupID = cgi.GroupID WHERE ga.AssessmentID = %s AND cgi.InstructorStaffID = %s", (assessment_id, current_user.specific_role_id))
@@ -415,6 +436,7 @@ def grade_assessment(assessment_id):
                     sql_update = "UPDATE CandidateSubmissions SET Score = %s, InstructorFeedback = %s, Status = 'Graded', GradedAt = NOW() WHERE SubmissionID = %s"
                     cursor.execute(sql_update, (score, feedback, submission_id))
             conn.commit()
+            log_audit('GRADE_ASSESSMENT', 'GroupAssessment', assessment_id, "Grades updated for assessment.")
             flash("Grades saved successfully!", "success")
             return redirect(url_for('.grade_assessment', assessment_id=assessment_id))
 
@@ -422,6 +444,7 @@ def grade_assessment(assessment_id):
         submissions = cursor.fetchall()
     except Exception as e:
         if conn and conn.is_connected() and request.method == 'POST': conn.rollback()
+        current_app.logger.error(f"Error grading assessment {assessment_id}: {e}", exc_info=True)
         flash(f"An error occurred: {e}", "danger")
         return redirect(url_for('.my_groups'))
     finally:
@@ -470,6 +493,7 @@ def attendance(group_id):
                 }
     except Exception as e:
         flash(f"An error occurred while loading attendance data: {e}", "danger")
+        current_app.logger.error(f"Error loading attendance for GroupID {group_id}: {e}", exc_info=True)
         return redirect(url_for('.group_dashboard', group_id=group_id))
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -495,9 +519,11 @@ def update_attendance(group_id):
                 cursor.execute("UPDATE SessionAttendance SET Status = %s, AttendanceNotes = %s, PerformanceNotes = %s WHERE SessionID = %s AND EnrollmentID = %s", (new_status, attendance_notes, performance_notes, session_id, enrollment_id))
         
         conn.commit()
+        log_audit('UPDATE_ATTENDANCE', 'CourseGroup', group_id, f"Attendance updated for group {group_id}.")
         flash("Attendance updated successfully!", "success")
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error updating attendance for group {group_id}: {e}", exc_info=True)
         flash(f"A database error occurred: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -507,10 +533,15 @@ def update_attendance(group_id):
 @instructor_portal_bp.route('/utility/sync-sessions', methods=['GET', 'POST'])
 @instructor_required
 def sync_sessions_utility():
-    from utils.group_utils import sync_sessions_for_groups # Local import
+    from utils.group_utils import sync_sessions_for_groups
     if request.method == 'POST':
-        message, category = sync_sessions_for_groups()
-        flash(message, category)
+        try:
+            message, category = sync_sessions_for_groups()
+            log_audit('SYNC_SESSIONS', 'System', None, f"Session sync utility run. Result: {message}")
+            flash(message, category)
+        except Exception as e:
+            current_app.logger.error(f"Error running sync_sessions_for_groups utility: {e}", exc_info=True)
+            flash("A critical error occurred during the session sync.", "danger")
         return redirect(url_for('.my_groups'))
     return render_template('instructor_portal/sync_sessions_utility.html', title="Sync Group Sessions")
 
@@ -518,7 +549,6 @@ def sync_sessions_utility():
 @instructor_required
 def my_placements():
     placements = []
-    # Logic to query `InstructorPlacements` table will go here
     return render_template('instructor_portal/my_placements.html', 
                            title="My Placements & Commissions",
                            placements=placements)
@@ -531,7 +561,6 @@ def placement_requests():
     applications = []
     try:
         cursor = conn.cursor(dictionary=True)
-        # Fetch all enrollments with 'Applied' status
         cursor.execute("""
         SELECT 
             ce.EnrollmentID, ce.EnrollmentDate,
@@ -550,7 +579,7 @@ def placement_requests():
         applications = cursor.fetchall()
     except Exception as e:
         flash("An error occurred while fetching placement requests.", "danger")
-        current_app.logger.error(f"Error fetching placement requests: {e}")
+        current_app.logger.error(f"Error fetching placement requests: {e}", exc_info=True)
     finally:
         if conn and conn.is_connected(): conn.close()
         
@@ -564,11 +593,12 @@ def placement_requests():
 def place_student(enrollment_id):
     """Page for an instructor to place a student into a group after assessment."""
     conn = get_db_connection()
+    application = None
+    available_groups = []
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
 
-        # Fetch the application details
         cursor.execute("""
             SELECT ce.EnrollmentID, u.FirstName, u.LastName, sp.Name as AppliedSubPackageName
             FROM CourseEnrollments ce
@@ -583,7 +613,6 @@ def place_student(enrollment_id):
             flash("This application is not available for placement or has already been processed.", "warning")
             return redirect(url_for('.placement_requests'))
             
-        # Fetch all groups managed by this instructor to populate the dropdown
         cursor.execute("""
             SELECT cg.GroupID, cg.GroupName, sp.Name as SubPackageName, mp.Name as MainPackageName
             FROM CourseGroups cg
@@ -606,28 +635,18 @@ def place_student(enrollment_id):
                                        application=application,
                                        available_groups=available_groups)
             
-            # --- THE CORE PLACEMENT LOGIC ---
-            # 1. Get the SubPackageID from the selected group
             cursor.execute("SELECT SubPackageID FROM CourseGroups WHERE GroupID = %s", (group_id,))
             group_data = cursor.fetchone()
             final_subpackage_id = group_data['SubPackageID']
 
-            # 2. Update the CourseEnrollments record
             cursor.execute("""
-                UPDATE CourseEnrollments 
-                SET 
-                    Status = 'Enrolled', 
-                    SubPackageID = %s,
-                    PlacementTestScore = %s,
-                    AssignedByInstructorStaffID = %s,
-                    UpdatedAt = NOW()
+                UPDATE CourseEnrollments SET Status = 'Enrolled', SubPackageID = %s,
+                PlacementTestScore = %s, AssignedByInstructorStaffID = %s, UpdatedAt = NOW()
                 WHERE EnrollmentID = %s
             """, (final_subpackage_id, test_score, instructor_staff_id, enrollment_id))
 
-            # 3. Add the student to the group's roster
             cursor.execute("INSERT INTO CourseGroupMembers (GroupID, EnrollmentID) VALUES (%s, %s)", (group_id, enrollment_id))
 
-            # 4. Generate their attendance records for all sessions in that group
             cursor.execute("SELECT SessionID FROM GroupSessions WHERE GroupID = %s", (group_id,))
             sessions = cursor.fetchall()
             if sessions:
@@ -636,6 +655,8 @@ def place_student(enrollment_id):
                 cursor.executemany(sql_insert_attendance, attendance_data)
 
             conn.commit()
+            details = f"Placed student (EnrollmentID {enrollment_id}) into group (GroupID {group_id})."
+            log_audit('PLACE_STUDENT', 'CourseEnrollment', enrollment_id, details)
             flash(f"{application['FirstName']} {application['LastName']} has been successfully placed.", "success")
             return redirect(url_for('.placement_requests'))
 
@@ -648,7 +669,7 @@ def place_student(enrollment_id):
         if conn and conn.is_connected(): conn.close()
 
     return render_template('instructor_portal/place_student.html',
-                           title=f"Place Student: {application['FirstName']} {application['LastName']}",
+                           title=f"Place Student: {application.get('FirstName')} {application.get('LastName')}",
                            application=application,
                            available_groups=available_groups)
     
@@ -667,6 +688,9 @@ def list_placement_tests():
             ORDER BY CreatedAt DESC
         """, (current_user.specific_role_id,))
         tests = cursor.fetchall()
+    except Exception as e:
+        current_app.logger.error(f"Error listing placement tests: {e}", exc_info=True)
+        flash("Could not retrieve placement tests.", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
     return render_template('instructor_portal/list_placement_tests.html', 
@@ -698,35 +722,31 @@ def add_placement_test():
                 INSERT INTO PlacementTests (Title, Description, TestType, ExternalURL, CreatedByInstructorStaffID)
                 VALUES (%s, %s, %s, %s, %s)
             """, (title, form.get('description'), test_type, external_url if test_type == 'External' else None, current_user.specific_role_id))
+            new_test_id = cursor.lastrowid
             conn.commit()
+            log_audit('CREATE_PLACEMENT_TEST', 'PlacementTest', new_test_id, f"Created new test: '{title}'")
             flash("Placement test created successfully.", "success")
             return redirect(url_for('.list_placement_tests'))
         except Exception as e:
             if conn and conn.is_connected(): conn.rollback()
+            current_app.logger.error(f"Error adding placement test: {e}", exc_info=True)
             flash(f"Database error: {e}", "danger")
         finally:
             if conn and conn.is_connected(): conn.close()
     
     return render_template('instructor_portal/add_edit_placement_test.html', title="Add Placement Test", form_data={})
 
-# Note: An edit_placement_test route would follow the same pattern.
-
 @instructor_portal_bp.route('/placement-requests/<int:enrollment_id>/assign-test', methods=['GET', 'POST'])
 @instructor_required
 def assign_placement_test(enrollment_id):
     """Assign an existing placement test to a student's application."""
     conn = get_db_connection()
-    # Initialize variables outside the try block to ensure they always exist
     available_tests = []
     student = None
-    
     try:
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
-
-        # --- Fetch data needed for both GET and POST (for validation and display) ---
         
-        # 1. Fetch student info
         cursor.execute("""
             SELECT u.FirstName, u.LastName 
             FROM CourseEnrollments ce 
@@ -736,25 +756,17 @@ def assign_placement_test(enrollment_id):
         """, (enrollment_id,))
         student = cursor.fetchone()
 
-        # If student not found, we can't proceed.
         if not student:
             flash("Could not find the specified student application.", "danger")
             return redirect(url_for('.placement_requests'))
 
-        # 2. Fetch available tests created by this instructor
-        cursor.execute("""
-            SELECT TestID, Title 
-            FROM PlacementTests 
-            WHERE CreatedByInstructorStaffID = %s AND IsActive = 1
-        """, (instructor_staff_id,))
+        cursor.execute("SELECT TestID, Title FROM PlacementTests WHERE CreatedByInstructorStaffID = %s AND IsActive = 1", (instructor_staff_id,))
         available_tests = cursor.fetchall()
 
-        # --- Handle form submission ---
         if request.method == 'POST':
             test_id = request.form.get('test_id')
             if not test_id:
                 flash("You must select a test to assign.", "danger")
-                # We can re-render the template because student and available_tests are already fetched
                 return render_template('instructor_portal/assign_test.html', 
                                        title=f"Assign Test to {student['FirstName']}", 
                                        enrollment_id=enrollment_id, 
@@ -768,22 +780,20 @@ def assign_placement_test(enrollment_id):
                 ON DUPLICATE KEY UPDATE TestID = VALUES(TestID), AssignedByInstructorStaffID = VALUES(AssignedByInstructorStaffID), AssignedAt = NOW()
             """, (enrollment_id, test_id, instructor_staff_id))
             conn.commit()
-            
+            details = f"Assigned test (TestID {test_id}) to student application (EnrollmentID {enrollment_id})."
+            log_audit('ASSIGN_PLACEMENT_TEST', 'CourseEnrollment', enrollment_id, details)
             flash("Test assigned to student successfully.", "success")
             return redirect(url_for('.placement_requests'))
             
     except Exception as e:
-        # Catch any other unexpected errors
         current_app.logger.error(f"Error in assign_placement_test for EnrollmentID {enrollment_id}: {e}", exc_info=True)
         flash("An unexpected server error occurred. Please try again.", "danger")
         return redirect(url_for('.placement_requests'))
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if conn and conn.is_connected(): conn.close()
         
-    # This part now only runs for GET requests
     return render_template('instructor_portal/assign_test.html', 
-                           title=f"Assign Test to {student['FirstName']}", 
+                           title=f"Assign Test to {student.get('FirstName')}", 
                            enrollment_id=enrollment_id, 
                            student=student,
                            available_tests=available_tests)
@@ -797,7 +807,6 @@ def edit_placement_test(test_id):
         cursor = conn.cursor(dictionary=True)
         instructor_staff_id = current_user.specific_role_id
 
-        # Authorization Check: Make sure the test belongs to the logged-in instructor
         cursor.execute("SELECT * FROM PlacementTests WHERE TestID = %s AND CreatedByInstructorStaffID = %s", (test_id, instructor_staff_id))
         test = cursor.fetchone()
         if not test:
@@ -825,14 +834,15 @@ def edit_placement_test(test_id):
                 WHERE TestID = %s
             """, (title, form.get('description'), test_type, external_url if test_type == 'External' else None, is_active, test_id))
             conn.commit()
+            log_audit('UPDATE_PLACEMENT_TEST', 'PlacementTest', test_id, f"Updated test '{title}'.")
             flash("Placement test updated successfully.", "success")
             return redirect(url_for('.list_placement_tests'))
 
-        # GET request: Populate form with existing data
         return render_template('instructor_portal/add_edit_placement_test.html', title="Edit Placement Test", form_data=test, test_id=test_id)
     
     except Exception as e:
         if conn and conn.is_connected(): conn.rollback()
+        current_app.logger.error(f"Error editing placement test {test_id}: {e}", exc_info=True)
         flash(f"Database error: {e}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -849,20 +859,19 @@ def delete_placement_test(test_id):
         cursor = conn.cursor()
         instructor_staff_id = current_user.specific_role_id
 
-        # Authorization Check
         cursor.execute("SELECT TestID FROM PlacementTests WHERE TestID = %s AND CreatedByInstructorStaffID = %s", (test_id, instructor_staff_id))
         if not cursor.fetchone():
             flash("Placement test not found or you do not have permission to delete it.", "danger")
             return redirect(url_for('.list_placement_tests'))
 
-        # The ON DELETE CASCADE constraint will handle removing related records in AssignedPlacementTests
         cursor.execute("DELETE FROM PlacementTests WHERE TestID = %s", (test_id,))
         conn.commit()
+        log_audit('DELETE_PLACEMENT_TEST', 'PlacementTest', test_id, "Placement test deleted.")
         flash("Placement test deleted successfully.", "success")
 
     except mysql.connector.Error as err:
         if conn and conn.is_connected(): conn.rollback()
-        # This will catch if a test is linked somewhere without ON DELETE CASCADE
+        current_app.logger.error(f"Error deleting placement test {test_id}: {err}", exc_info=True)
         flash(f"Could not delete test. It may be in use. Error: {err.msg}", "danger")
     finally:
         if conn and conn.is_connected(): conn.close()
@@ -876,7 +885,6 @@ def build_placement_test(test_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # Auth check and ensure it's an internal test
         cursor.execute("""
             SELECT * FROM PlacementTests 
             WHERE TestID = %s AND CreatedByInstructorStaffID = %s AND TestType = 'Internal'
@@ -886,68 +894,63 @@ def build_placement_test(test_id):
             flash("Internal test not found or you are not authorized to edit it.", "danger")
             return redirect(url_for('.list_placement_tests'))
 
-        # Fetch all questions and their options for this test
         cursor.execute("SELECT * FROM PlacementTestQuestions WHERE TestID = %s ORDER BY DisplayOrder", (test_id,))
         questions = cursor.fetchall()
 
         if questions:
             question_ids = [q['QuestionID'] for q in questions]
-            # Use a format string for the IN clause placeholder
             format_strings = ','.join(['%s'] * len(question_ids))
-            cursor.execute(f"""
-                SELECT * FROM PlacementTestQuestionOptions 
-                WHERE QuestionID IN ({format_strings})
-            """, tuple(question_ids))
+            cursor.execute(f"SELECT * FROM PlacementTestQuestionOptions WHERE QuestionID IN ({format_strings})", tuple(question_ids))
             options = cursor.fetchall()
             
-            # Map options to their questions
             options_map = {}
             for opt in options:
                 qid = opt['QuestionID']
-                if qid not in options_map:
-                    options_map[qid] = []
+                if qid not in options_map: options_map[qid] = []
                 options_map[qid].append(opt)
             
             for q in questions:
                 q['options'] = options_map.get(q['QuestionID'], [])
-
+        
+        return render_template('instructor_portal/build_placement_test.html',
+                               title=f"Build Test: {test['Title']}",
+                               test=test,
+                               questions=questions)
+    except Exception as e:
+        current_app.logger.error(f"Error building placement test page for TestID {test_id}: {e}", exc_info=True)
+        flash("An error occurred while loading the test builder.", "danger")
+        return redirect(url_for('.list_placement_tests'))
     finally:
         if conn and conn.is_connected(): conn.close()
-        
-    return render_template('instructor_portal/build_placement_test.html',
-                           title=f"Build Test: {test['Title']}",
-                           test=test,
-                           questions=questions)
-
 
 @instructor_portal_bp.route('/placement-tests/build/<int:test_id>/add-question', methods=['POST'])
 @instructor_required
 def add_test_question(test_id):
-    """Adds a new question (MultipleChoice or WrittenAnswer) to an internal test."""
+    """Adds a new question to an internal test via AJAX."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
         question_text = request.form.get('question_text')
-        question_type = request.form.get('question_type', 'MultipleChoice') # Default to MC
-        model_answer = request.form.get('model_answer') # This will be None for MC questions
+        question_type = request.form.get('question_type', 'MultipleChoice')
+        model_answer = request.form.get('model_answer')
 
         if not question_text:
             return jsonify({'status': 'error', 'message': 'Question text cannot be empty.'}), 400
         
         cursor.execute(
-            """INSERT INTO PlacementTestQuestions 
-               (TestID, QuestionText, QuestionType, ModelAnswer) 
-               VALUES (%s, %s, %s, %s)""",
+            "INSERT INTO PlacementTestQuestions (TestID, QuestionText, QuestionType, ModelAnswer) VALUES (%s, %s, %s, %s)",
             (test_id, question_text, question_type, model_answer)
         )
+        new_question_id = cursor.lastrowid
         conn.commit()
-        return jsonify({'status': 'success', 'question_id': cursor.lastrowid})
+        log_audit('ADD_TEST_QUESTION', 'PlacementTest', test_id, f"Added question (ID {new_question_id}) to test.")
+        return jsonify({'status': 'success', 'question_id': new_question_id})
     except Exception as e:
         if conn: conn.rollback()
+        current_app.logger.error(f"AJAX Error adding question to test {test_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()
-
 
 @instructor_portal_bp.route('/placement-tests/question/<int:question_id>/add-option', methods=['POST'])
 @instructor_required
@@ -963,10 +966,13 @@ def add_question_option(question_id):
             "INSERT INTO PlacementTestQuestionOptions (QuestionID, OptionText, IsCorrect) VALUES (%s, %s, %s)",
             (question_id, option_text, is_correct)
         )
+        new_option_id = cursor.lastrowid
         conn.commit()
-        return jsonify({'status': 'success', 'option_id': cursor.lastrowid})
+        log_audit('ADD_QUESTION_OPTION', 'PlacementTestQuestion', question_id, f"Added option (ID {new_option_id}).")
+        return jsonify({'status': 'success', 'option_id': new_option_id})
     except Exception as e:
         if conn: conn.rollback()
+        current_app.logger.error(f"AJAX Error adding option to question {question_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()
@@ -975,22 +981,22 @@ def add_question_option(question_id):
 @instructor_required
 def update_test_question(question_id):
     """Updates the text and model answer of an existing question."""
-    # NOTE: A full implementation would also check that the question_id
-    # belongs to a test owned by the current_user.
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
         question_text = request.form.get('question_text')
-        model_answer = request.form.get('model_answer') # Will be None for MCQ
+        model_answer = request.form.get('model_answer')
         
         cursor.execute(
             "UPDATE PlacementTestQuestions SET QuestionText = %s, ModelAnswer = %s WHERE QuestionID = %s",
             (question_text, model_answer, question_id)
         )
         conn.commit()
+        log_audit('UPDATE_TEST_QUESTION', 'PlacementTestQuestion', question_id, "Updated question text/model answer.")
         return jsonify({'status': 'success', 'message': 'Question updated.'})
     except Exception as e:
         if conn: conn.rollback()
+        current_app.logger.error(f"AJAX Error updating question {question_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()
@@ -1005,8 +1011,6 @@ def update_question_option(option_id):
         option_text = request.form.get('option_text')
         is_correct = 1 if request.form.get('is_correct') == 'true' else 0
         
-        # If this option is being marked as correct, we must first ensure
-        # no other option for this question is marked as correct.
         if is_correct:
             cursor.execute("SELECT QuestionID FROM PlacementTestQuestionOptions WHERE OptionID = %s", (option_id,))
             question_id = cursor.fetchone()[0]
@@ -1017,9 +1021,11 @@ def update_question_option(option_id):
             (option_text, is_correct, option_id)
         )
         conn.commit()
+        log_audit('UPDATE_QUESTION_OPTION', 'PlacementTestQuestionOption', option_id, "Updated option text/correctness.")
         return jsonify({'status': 'success', 'message': 'Option updated.'})
     except Exception as e:
         if conn: conn.rollback()
+        current_app.logger.error(f"AJAX Error updating option {option_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()
@@ -1031,13 +1037,13 @@ def delete_test_question(question_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
-        # The ON DELETE CASCADE constraint will automatically delete the options.
         cursor.execute("DELETE FROM PlacementTestQuestions WHERE QuestionID = %s", (question_id,))
         conn.commit()
-        flash("Question deleted successfully.", "success")
+        log_audit('DELETE_TEST_QUESTION', 'PlacementTestQuestion', question_id, "Question deleted from test.")
         return jsonify({'status': 'success'})
     except Exception as e:
         if conn: conn.rollback()
+        current_app.logger.error(f"AJAX Error deleting question {question_id}: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
     finally:
         if conn: conn.close()

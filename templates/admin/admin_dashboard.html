@@ -11,7 +11,7 @@
         <p class="mt-1 text-md text-text-muted">Live overview of your application and server status.</p>
     </header>
 
-    <!-- Section: Key Application Metrics -->
+    <!-- Section: Key Application Metrics (Unchanged) -->
     <div>
         <h2 class="text-lg font-medium text-heading">Application Metrics</h2>
         <div class="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -38,7 +38,7 @@
         </div>
     </div>
 
-    <!-- Section: System Health & Activity -->
+    <!-- Section: System Health & Activity (Unchanged) -->
     <div>
         <h2 class="text-lg font-medium text-heading">System Health & Activity</h2>
         <div class="mt-2 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -59,7 +59,6 @@
                         <span class="text-text-muted">Uptime:</span>
                         <strong class="text-heading" x-text="systemStats.global.uptime_str">...</strong>
                     </div>
-                    <!-- NEW: Real-time Bandwidth Speed -->
                     <div class="pt-3 text-sm">
                         <div class="flex justify-between">
                             <span class="text-text-muted flex items-center"><i class="fas fa-arrow-up text-red-400 mr-2"></i>Upload</span>
@@ -115,8 +114,55 @@
             </div>
         </div>
     </div>
+    
+    <!-- NEW SECTION: Recent Application Errors from DB -->
+    <div>
+        <h2 class="text-lg font-medium text-heading">Recent Application Errors</h2>
+        <div class="mt-2 card">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-border">
+                        <thead class="bg-background">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Timestamp</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Route</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Error Message</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-card divide-y divide-border">
+                            {% for error in data.recent_errors %}
+                            <tr class="hover:bg-background">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-heading">
+                                    <a href="{{ url_for('admin_bp.error_log_viewer', error_id=error.ErrorID) }}" class="text-primary hover:underline">{{ error.ErrorID }}</a>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">{{ error.Timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text">
+                                    <span class="font-mono bg-zinc-100 text-zinc-700 px-2 py-1 rounded-md">{{ error.RequestMethod }}</span>
+                                    <span class="font-mono">{{ error.Route }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-danger-700 truncate max-w-sm">{{ error.ErrorMessage }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-text-muted">
+                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>No recent errors recorded.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-right">
+                <a href="{{ url_for('admin_bp.error_log_viewer') }}" class="btn-secondary">View Full Error Log &rarr;</a>
+            </div>
+        </div>
+    </div>
+
 </div>
 
+<!-- The AlpineJS script remains unchanged -->
 <script>
 function dashboardMonitor() {
     return {
@@ -126,24 +172,22 @@ function dashboardMonitor() {
             bandwidth: { month: '...', total_gb: '...', error: null }
         },
         appStats: { new_users_24h: '...', recent_failed_logins: [] },
-        // State for real-time speed calculation
         last_net_sent: 0, last_net_recv: 0, last_fetch_time: 0,
         net_upload_speed_mbps: 0, net_download_speed_mbps: 0,
 
         init() {
             this.fetchData();
-            setInterval(() => this.fetchData(), 3000); // Refresh every 3 seconds
+            setInterval(() => this.fetchData(), 3000);
         },
         async fetchData() {
             try {
-                // Fetch both APIs concurrently
                 const [sysResponse, appResponse] = await Promise.all([
                     fetch('/admin/system-stats'),
                     fetch('/admin/app-activity-stats')
                 ]);
                 if (sysResponse.ok) {
                     const data = await sysResponse.json();
-                    this.calculateNetworkSpeed(data.global); // Calculate speed before updating state
+                    this.calculateNetworkSpeed(data.global);
                     this.systemStats = data;
                 }
                 if (appResponse.ok) this.appStats = await appResponse.json();
@@ -152,7 +196,6 @@ function dashboardMonitor() {
         calculateNetworkSpeed(globalStats) {
             const now = Date.now();
             if (this.last_fetch_time === 0) {
-                // First run, just set initial values
                 this.last_net_sent = globalStats.net_bytes_sent_raw;
                 this.last_net_recv = globalStats.net_bytes_recv_raw;
                 this.last_fetch_time = now;
@@ -160,16 +203,14 @@ function dashboardMonitor() {
             }
 
             const time_diff_sec = (now - this.last_fetch_time) / 1000;
-            if (time_diff_sec < 1) return; // Avoid division by zero or tiny intervals
+            if (time_diff_sec < 1) return;
 
             const sent_diff = globalStats.net_bytes_sent_raw - this.last_net_sent;
             const recv_diff = globalStats.net_bytes_recv_raw - this.last_net_recv;
 
-            // Speed in Megabits per second (Bytes * 8 / time / 1,000,000)
             this.net_upload_speed_mbps = (sent_diff * 8) / time_diff_sec / 1000000;
             this.net_download_speed_mbps = (recv_diff * 8) / time_diff_sec / 1000000;
 
-            // Update values for the next calculation
             this.last_net_sent = globalStats.net_bytes_sent_raw;
             this.last_net_recv = globalStats.net_bytes_recv_raw;
             this.last_fetch_time = now;
