@@ -89,7 +89,8 @@ def submit_offer():
     # DYNAMICALLY FETCH ALL OPTIONS FROM DB SCHEMA FOR THE FORM
     try:
         conn = get_db_connection()
-        cursor = conn.cursor() # A raw tuple-based cursor is fine for the helper
+        db_name = conn.database  # Get the database name from the connection object
+        cursor = conn.cursor() 
         table = 'ClientSubmittedJobOffers'
         form_options = {
             'benefits_included': get_column_options(cursor, db_name, table, 'BenefitsIncluded'),
