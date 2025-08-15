@@ -10,7 +10,6 @@
         <p class="mt-1 text-sm font-normal text-gray-500">For Company: {{ company_name }}</p>
     </div>
     <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
         My Submissions
     </a>
 </div>
@@ -103,12 +102,8 @@
                     <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {% for status in options.graduation_statuses %}
                         <div class="relative flex items-start">
-                            <div class="flex h-5 items-center">
-                                <input id="grad_{{ status }}" name="graduation_status_requirement" type="checkbox" value="{{ status }}" {% if status in selected_grad_statuses %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="grad_{{ status }}" class="font-medium text-gray-700">{{ status|capitalize }}</label>
-                            </div>
+                            <div class="flex h-5 items-center"><input id="grad_{{ status }}" name="graduation_status_requirement" type="checkbox" value="{{ status }}" {% if status in selected_grad_statuses %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></div>
+                            <div class="ml-3 text-sm"><label for="grad_{{ status }}" class="font-medium text-gray-700">{{ status|replace('-', ' ')|title }}</label></div>
                         </div>
                         {% endfor %}
                     </div>
@@ -116,14 +111,10 @@
                 <div class="sm:col-span-6">
                     <label class="block text-sm font-medium text-gray-700">Required Languages</label>
                     <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                        {% for lang in options.languages %}
+                        {% for lang in options.required_languages %}
                         <div class="relative flex items-start">
-                            <div class="flex h-5 items-center">
-                                <input id="lang_{{ lang }}" type="checkbox" name="required_languages" value="{{ lang }}" {% if lang in selected_languages %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="lang_{{ lang }}" class="font-medium text-gray-700">{{ lang }}</label>
-                            </div>
+                            <div class="flex h-5 items-center"><input id="lang_{{ lang }}" type="checkbox" name="required_languages" value="{{ lang }}" {% if lang in selected_languages %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></div>
+                            <div class="ml-3 text-sm"><label for="lang_{{ lang }}" class="font-medium text-gray-700">{{ lang }}</label></div>
                         </div>
                         {% endfor %}
                     </div>
@@ -133,7 +124,7 @@
 
         <!-- Section 3: Logistics and Benefits -->
         <div class="pt-8">
-             <div>
+            <div>
                 <h3 class="text-lg font-medium leading-6 text-gray-900">Logistics & Benefits</h3>
                 <p class="mt-1 text-sm text-gray-500">Details about shifts, location, and compensation packages.</p>
             </div>
@@ -155,14 +146,10 @@
                 <div class="sm:col-span-6">
                     <label class="block text-sm font-medium text-gray-700">Available Shifts</label>
                     <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {% for shift in options.shifts %}
+                        {% for shift in options.available_shifts %}
                         <div class="relative flex items-start">
-                            <div class="flex h-5 items-center">
-                                <input id="shift_{{ shift }}" type="checkbox" name="available_shifts" value="{{ shift }}" {% if shift in selected_shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="shift_{{ shift }}" class="font-medium text-gray-700">{{ shift|capitalize }}</label>
-                            </div>
+                            <div class="flex h-5 items-center"><input id="shift_{{ shift }}" type="checkbox" name="available_shifts" value="{{ shift }}" {% if shift in selected_shifts %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></div>
+                            <div class="ml-3 text-sm"><label for="shift_{{ shift }}" class="font-medium text-gray-700">{{ shift|capitalize }}</label></div>
                         </div>
                         {% endfor %}
                     </div>
@@ -170,14 +157,10 @@
                 <div class="sm:col-span-6">
                     <label class="block text-sm font-medium text-gray-700">Benefits Included</label>
                     <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {% for benefit in options.benefits %}
+                        {% for benefit in options.benefits_included %}
                         <div class="relative flex items-start">
-                            <div class="flex h-5 items-center">
-                                <input id="benefit_{{ loop.index }}" name="benefits_included" type="checkbox" value="{{ benefit }}" {% if benefit in selected_benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="benefit_{{ loop.index }}" class="font-medium text-gray-700">{{ benefit }}</label>
-                            </div>
+                            <div class="flex h-5 items-center"><input id="benefit_{{ loop.index }}" name="benefits_included" type="checkbox" value="{{ benefit }}" {% if benefit in selected_benefits %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></div>
+                            <div class="ml-3 text-sm"><label for="benefit_{{ loop.index }}" class="font-medium text-gray-700">{{ benefit }}</label></div>
                         </div>
                         {% endfor %}
                     </div>
@@ -192,12 +175,8 @@
                 </div>
                 <div class="sm:col-span-3 self-end">
                     <div class="relative flex items-start">
-                        <div class="flex h-5 items-center">
-                            <input id="has_contract" name="has_contract" type="checkbox" value="1" {% if form_data.get('has_contract') %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        </div>
-                        <div class="ml-3 text-sm">
-                            <label for="has_contract" class="font-medium text-gray-700">Includes a Contract</label>
-                        </div>
+                        <div class="flex h-5 items-center"><input id="has_contract" name="has_contract" type="checkbox" value="1" {% if form_data.get('has_contract') %}checked{% endif %} class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"></div>
+                        <div class="ml-3 text-sm"><label for="has_contract" class="font-medium text-gray-700">Includes a Contract</label></div>
                     </div>
                 </div>
             </div>
@@ -210,7 +189,7 @@
                 <p class="mt-1 text-sm text-gray-500">Information about the volume and timeline for hiring.</p>
             </div>
             <div class="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                 <div class="sm:col-span-2">
+                <div class="sm:col-span-2">
                     <label for="candidates_needed" class="block text-sm font-medium text-gray-700">Candidates Needed</label>
                     <input type="number" name="candidates_needed" id="candidates_needed" value="{{ form_data.get('candidates_needed', '1') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                 </div>
@@ -239,7 +218,7 @@
 
     <div class="pt-5">
         <div class="flex justify-end">
-            <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Cancel</a>
+            <a href="{{ url_for('client_offers_bp.my_submissions') }}" class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</a>
             <button type="submit" class="ml-3 inline-flex justify-center rounded-md border border-transparent bg-slate-800 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:ring-offset-2">Submit Offer for Review</button>
         </div>
     </div>

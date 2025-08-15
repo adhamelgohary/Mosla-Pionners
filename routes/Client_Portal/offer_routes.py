@@ -23,18 +23,15 @@ def get_column_options(cursor, db_name, table_name, column_name):
         query = """
             SELECT COLUMN_TYPE 
             FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s 
-              AND TABLE_NAME = %s 
-              AND COLUMN_NAME = %s
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s
         """
         cursor.execute(query, (db_name, table_name, column_name))
         result = cursor.fetchone()
         
-        if result:
-            # The result is a string like "enum('Value1','Value2')" or "set('A','B','C')"
-            # We use regex to find all strings enclosed in single quotes.
-            # This is safer than simple splitting if values contain commas.
-            options = re.findall(r"'(.*?)'", result[0])
+        if result and result[0]:
+            # Handle potential bytearray response from some connectors
+            type_string = result[0].decode('utf-8') if isinstance(result[0], bytearray) else result[0]
+            options = re.findall(r"'(.*?)'", type_string)
             return options
         return []
     except Exception as e:
@@ -82,37 +79,36 @@ def client_login_required(f):
 @client_offers_bp.route('/submit-offer', methods=['GET', 'POST'])
 @client_login_required
 def submit_offer():
-    conn = None
     form_options = {}
     db_name = current_app.config.get('MYSQL_DB')
+    conn = None
     
-    # DYNAMICALLY FETCH OPTIONS FROM DB SCHEMA
+    # DYNAMICALLY FETCH ALL OPTIONS FROM DB SCHEMA FOR THE FORM
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         table = 'ClientSubmittedJobOffers'
         form_options = {
-            'benefits': get_column_options(cursor, db_name, table, 'BenefitsIncluded'),
+            'benefits_included': get_column_options(cursor, db_name, table, 'BenefitsIncluded'),
             'interview_types': get_column_options(cursor, db_name, table, 'InterviewType'),
             'nationalities': get_column_options(cursor, db_name, table, 'Nationality'),
             'genders': get_column_options(cursor, db_name, table, 'Gender'),
             'military_statuses': get_column_options(cursor, db_name, table, 'MilitaryStatus'),
             'graduation_statuses': get_column_options(cursor, db_name, table, 'GraduationStatusRequirement'),
-            'shifts': get_column_options(cursor, db_name, table, 'AvailableShifts'),
-            'languages': get_column_options(cursor, db_name, table, 'RequiredLanguages'),
+            'available_shifts': get_column_options(cursor, db_name, table, 'AvailableShifts'),
+            'required_languages': get_column_options(cursor, db_name, table, 'RequiredLanguages'),
             'payment_terms': get_column_options(cursor, db_name, table, 'PaymentTerm'),
             'required_levels': get_column_options(cursor, db_name, table, 'RequiredLevel')
         }
     except Exception as e:
         flash("Could not load form options from the database.", "danger")
         current_app.logger.error(f"Error fetching form options: {e}")
-        # Provide empty lists to prevent template errors
-        form_options = {key: [] for key in ['benefits', 'interview_types', 'nationalities', 'genders', 'military_statuses', 'graduation_statuses', 'shifts', 'languages', 'payment_terms', 'required_levels']}
+        # Initialize with empty lists to prevent template errors
+        form_options = {key: [] for key in ['benefits_included', 'interview_types', 'nationalities', 'genders', 'military_statuses', 'graduation_statuses', 'available_shifts', 'required_languages', 'payment_terms', 'required_levels']}
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
-
 
     if request.method == 'POST':
         company_id = session.get('client_company_id')
@@ -123,48 +119,38 @@ def submit_offer():
         if not form.get('title') or not form.get('closing_date'):
             flash("Job Title and Closing Date are required.", "danger")
             return render_template('client_portal/submit_offer.html', 
-                                   title="Submit New Job Offer", 
-                                   company_name=session.get('client_company_name'), 
-                                   form_data=form,
-                                   options=form_options,
+                                   title="Submit New Job Offer", company_name=session.get('client_company_name'), 
+                                   form_data=form, options=form_options,
                                    selected_benefits=form.getlist('benefits_included'),
                                    selected_shifts=form.getlist('available_shifts'),
                                    selected_languages=form.getlist('required_languages'),
                                    selected_grad_statuses=form.getlist('graduation_status_requirement'))
         
         submitted_offer_data = {
-            'CompanyID': company_id, 
-            'SubmittedByUserID': current_user.id, 
-            'Title': form.get('title'),
-            'Location': form.get('location'), 
-            'MaxAge': form.get('max_age') or None, 
-            'ClosingDate': form.get('closing_date'),
+            'CompanyID': company_id, 'SubmittedByUserID': current_user.id, 
+            'Title': form.get('title'), 'Location': form.get('location'), 
+            'MaxAge': form.get('max_age') or None, 'ClosingDate': form.get('closing_date'),
             'HasContract': 1 if form.get('has_contract') else 0, 
             'LanguagesType': form.get('languages_type'),
             'RequiredLanguages': ",".join(form.getlist('required_languages')) or None,
             'RequiredLevel': form.get('required_level'),
             'CandidatesNeeded': form.get('candidates_needed', 1),
-            'HiringCadence': form.get('hiring_cadence'), 
-            'WorkLocationType': form.get('work_location_type'),
-            'HiringPlan': form.get('hiring_plan'), 
-            'ShiftType': form.get('shift_type'),
+            'HiringCadence': form.get('hiring_cadence'), 'WorkLocationType': form.get('work_location_type'),
+            'HiringPlan': form.get('hiring_plan'), 'ShiftType': form.get('shift_type'),
             'AvailableShifts': ",".join(form.getlist('available_shifts')) or None, 
             'NetSalary': form.get('net_salary') or None,
             'PaymentTerm': form.get('payment_term'), 
             'GraduationStatusRequirement': ",".join(form.getlist('graduation_status_requirement')) or None,
-            'Nationality': form.get('nationality'),
-            'InterviewType': form.get('interview_type'),
-            'Gender': form.get('gender'),
-            'MilitaryStatus': form.get('military_status'),
+            'Nationality': form.get('nationality'), 'InterviewType': form.get('interview_type'),
+            'Gender': form.get('gender'), 'MilitaryStatus': form.get('military_status'),
             'ClientNotes': form.get('client_notes'),
             'BenefitsIncluded': ",".join(form.getlist('benefits_included')) or None
         }
-
+        
         conn_insert = None
         try:
             conn_insert = get_db_connection()
             cursor_insert = conn_insert.cursor()
-            
             sql = """
                 INSERT INTO ClientSubmittedJobOffers (
                     CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract, 
@@ -181,19 +167,15 @@ def submit_offer():
             """
             cursor_insert.execute(sql, submitted_offer_data)
             conn_insert.commit()
-            
             flash("Your job offer has been submitted successfully for review.", "success")
             return redirect(url_for('.my_submissions'))
         except mysql.connector.Error as err:
-            if conn_insert:
-                conn_insert.rollback() 
+            if conn_insert: conn_insert.rollback()
             flash(f"An error occurred while submitting your offer: {err}", "danger")
             current_app.logger.error(f"Client offer submission error for company {company_id}: {err}")
             return render_template('client_portal/submit_offer.html', 
-                                   title="Submit New Job Offer", 
-                                   company_name=session.get('client_company_name'), 
-                                   form_data=form,
-                                   options=form_options,
+                                   title="Submit New Job Offer", company_name=session.get('client_company_name'), 
+                                   form_data=form, options=form_options,
                                    selected_benefits=form.getlist('benefits_included'),
                                    selected_shifts=form.getlist('available_shifts'),
                                    selected_languages=form.getlist('required_languages'),
