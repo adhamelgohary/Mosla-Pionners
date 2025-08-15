@@ -1,0 +1,120 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div>
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{{ url_for('admin_bp.error_log_viewer') }}" class="text-primary hover:underline text-sm mb-2 inline-block">&larr; Back to Error Log</a>
+        <h1 class="text-3xl font-bold tracking-tight text-heading">Error Log Details</h1>
+        <p class="mt-1 text-md text-text-muted">Full error details for Log ID #{{ log.ErrorID }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Error Information -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Error Summary Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">Error Summary</h3></div>
+                <div class="card-body">
+                    <dl class="divide-y divide-border">
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Error Message</dt>
+                            <dd class="mt-1 text-sm text-danger-700 sm:col-span-2 sm:mt-0">{{ log.ErrorMessage }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Timestamp</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ log.Timestamp.strftime('%Y-%m-%d %H:%M:%S') }} ({{ log.Timestamp | humanize_date }})</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Route</dt>
+                            <dd class="mt-1 text-sm text-text font-mono sm:col-span-2 sm:mt-0">{{ log.Route }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Request Method</dt>
+                            <dd class="mt-1 text-sm text-text font-mono sm:col-span-2 sm:mt-0">{{ log.RequestMethod }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Request Data Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">Request Data</h3></div>
+                <div class="card-body">
+                    <pre class="bg-background p-4 rounded-md text-sm text-text overflow-x-auto">{{ log.RequestData | tojson(indent=2) }}</pre>
+                </div>
+            </div>
+            
+            <!-- Traceback Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading text-danger">Full Traceback</h3></div>
+                <div class="card-body">
+                    <pre class="bg-background p-4 rounded-md text-sm text-danger-700 overflow-x-auto">{{ log.Traceback }}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: User Information -->
+        <div class="lg:col-span-1">
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">User Details</h3></div>
+                <div class="card-body">
+                    {% if user %}
+                    <dl class="divide-y divide-border">
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">User ID</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.UserID }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Full Name</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.FirstName }} {{ user.LastName }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Email</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.Email }}</dd>
+                        </div>
+                         <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Role Type</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0"><span class="badge-primary">{{ user.RoleType }}</span></dd>
+                        </div>
+                         <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Status</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">
+                                {% if user.Status == 'Active' %}
+                                    <span class="badge-success">{{ user.Status }}</span>
+                                {% else %}
+                                    <span class="badge-danger">{{ user.Status }}</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% if user.StaffRole %}
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Staff Role</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.StaffRole }} (ID: {{ user.StaffID }})</dd>
+                        </div>
+                        {% endif %}
+                        {% if user.CandidateID %}
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Candidate ID</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.CandidateID }}</dd>
+                        </div>
+                        {% endif %}
+                         {% if user.ClientID %}
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Client ID</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.ClientID }}</dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+                    {% else %}
+                        <p class="text-text-muted text-sm text-center py-4">
+                            No user was logged in when this error occurred.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

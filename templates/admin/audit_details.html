@@ -1,0 +1,112 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div>
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{{ url_for('admin_bp.audit_log_viewer') }}" class="text-primary hover:underline text-sm mb-2 inline-block">&larr; Back to Audit Log</a>
+        <h1 class="text-3xl font-bold tracking-tight text-heading">Audit Log Details</h1>
+        <p class="mt-1 text-md text-text-muted">Full details for Log ID #{{ log.AuditLogID }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Action & Target Info -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Action Details Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">Action Details</h3></div>
+                <div class="card-body">
+                    <dl class="divide-y divide-border">
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Action</dt>
+                            <dd class="mt-1 text-sm text-heading font-semibold font-mono sm:col-span-2 sm:mt-0">{{ log.Action }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Timestamp</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ log.Timestamp.strftime('%Y-%m-%d %H:%M:%S') }} ({{ log.Timestamp | humanize_date }})</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">IP Address</dt>
+                            <dd class="mt-1 text-sm text-text font-mono sm:col-span-2 sm:mt-0">{{ log.IPAddress or 'N/A' }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Description</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ log.Details }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Target Entity Card -->
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">Target Entity Details</h3></div>
+                <div class="card-body">
+                    {% if log.TargetEntityType and log.TargetEntityID %}
+                    <dl class="divide-y divide-border">
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Entity Type</dt>
+                            <dd class="mt-1 text-sm text-text font-mono sm:col-span-2 sm:mt-0">{{ log.TargetEntityType }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Entity ID</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ log.TargetEntityID }}</dd>
+                        </div>
+                        <!-- Dynamically show more details if they were fetched -->
+                        {% for key, value in target.items() %}
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">{{ key | replace('_', ' ') | title }}</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <p class="text-text-muted text-sm text-center py-4">
+                        This action did not have a specific target entity (e.g., a system-wide action).
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: User Information -->
+        <div class="lg:col-span-1">
+            <div class="card">
+                <div class="card-header"><h3 class="font-semibold text-heading">User Who Performed Action</h3></div>
+                <div class="card-body">
+                    {% if user %}
+                    <dl class="divide-y divide-border">
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">User ID</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.UserID }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Full Name</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.FirstName }} {{ user.LastName }}</dd>
+                        </div>
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Email</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.Email }}</dd>
+                        </div>
+                         <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Role Type</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0"><span class="badge-primary">{{ user.RoleType }}</span></dd>
+                        </div>
+                        {% if user.StaffRole %}
+                        <div class="py-3 sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-text-muted">Staff Role</dt>
+                            <dd class="mt-1 text-sm text-text sm:col-span-2 sm:mt-0">{{ user.StaffRole }} (ID: {{ user.StaffID }})</dd>
+                        </div>
+                        {% endif %}
+                    </dl>
+                    {% else %}
+                        <p class="text-text-muted text-sm text-center py-4">
+                            This action was performed by the system or an unauthenticated user.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

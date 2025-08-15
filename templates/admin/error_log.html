@@ -1,116 +1,66 @@
 {% extends "admin/base.html" %}
 
 {% block content %}
-<div x-data="{ showErrorModal: false, errorDetails: null }">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="text-xl font-bold text-heading"><i class="fas fa-bug mr-2 text-text-muted"></i>Application Error Log</h3>
-        </div>
-        <div class="card-body">
-            <!-- Filter Form -->
-            <form method="GET" action="{{ url_for('admin_bp.error_log_viewer') }}" class="mb-6 p-4 bg-background rounded-lg border border-border">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                    <div class="md:col-span-8">
-                        <label for="route" class="form-label">Search by Route</label>
-                        <input type="text" id="route" name="route" class="form-input" value="{{ search_route or '' }}" placeholder="/instructor/group/123/edit">
-                    </div>
-                    <div class="md:col-span-2">
-                        <button type="submit" class="btn-primary w-full">Search</button>
-                    </div>
-                    <div class="md:col-span-2">
-                        <a href="{{ url_for('admin_bp.error_log_viewer') }}" class="btn-secondary w-full">Clear</a>
-                    </div>
-                </div>
-            </form>
-
-            <!-- Table -->
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-border">
-                    <thead class="bg-background">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Timestamp</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Route</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Error Message</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">User ID</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-card divide-y divide-border">
-                        {% for log in logs %}
-                        <tr class="hover:bg-background cursor-pointer" @click="fetchErrorDetails({{ log.ErrorID }})">
-                            <td class="px-6 py-4 text-sm font-medium text-heading">{{ log.ErrorID }}</td>
-                            <td class="px-6 py-4 text-sm text-text-muted">{{ log.Timestamp | humanize_date }}</td>
-                            <td class="px-6 py-4 text-sm text-text font-mono">{{ log.Route }}</td>
-                            <td class="px-6 py-4 text-sm text-danger-700 truncate max-w-md">{{ log.ErrorMessage }}</td>
-                            <td class="px-6 py-4 text-sm text-text">{{ log.UserID or 'N/A' }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center py-10 text-text-muted">No errors found.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination (same as login_history) -->
-        </div>
+<div class="card">
+    <div class="card-header">
+        <h3 class="text-xl font-bold text-heading"><i class="fas fa-bug mr-2 text-text-muted"></i>Application Error Log</h3>
     </div>
-
-    <!-- Modal for Error Details -->
-    <div x-show="showErrorModal" class="fixed inset-0 z-30 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div x-show="showErrorModal" @click.away="showErrorModal = false" x-transition class="fixed inset-0 bg-black/50"></div>
-            <div x-show="showErrorModal" x-transition class="relative bg-card rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-                <div class="flex items-center justify-between p-4 border-b border-border">
-                    <h3 class="text-lg font-bold text-heading">Error Details: ID <span x-text="errorDetails?.ErrorID"></span></h3>
-                    <button @click="showErrorModal = false" class="text-text-muted hover:text-heading">&times;</button>
+    <div class="card-body">
+        <!-- Filter Form (Unchanged) -->
+        <form method="GET" action="{{ url_for('admin_bp.error_log_viewer') }}" class="mb-6 p-4 bg-background rounded-lg border border-border">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div class="md:col-span-8">
+                    <label for="route" class="form-label">Search by Route</label>
+                    <input type="text" id="route" name="route" class="form-input" value="{{ search_route or '' }}" placeholder="/instructor/group/123/edit">
                 </div>
-                <div class="p-6 overflow-y-auto">
-                    <template x-if="errorDetails">
-                        <div class="space-y-4">
-                            <div><strong class="font-semibold text-text-muted">Message:</strong> <span class="text-danger-700" x-text="errorDetails.ErrorMessage"></span></div>
-                            <div><strong class="font-semibold text-text-muted">Route:</strong> <span class="font-mono" x-text="errorDetails.Route"></span></div>
-                            <div><strong class="font-semibold text-text-muted">Method:</strong> <span x-text="errorDetails.RequestMethod"></span></div>
-                            <div><strong class="font-semibold text-text-muted">Timestamp:</strong> <span x-text="new Date(errorDetails.Timestamp).toLocaleString()"></span></div>
-                            
-                            <div>
-                                <strong class="font-semibold text-text-muted block mb-1">Request Data:</strong>
-                                <pre class="bg-background p-3 rounded-md text-sm text-text overflow-x-auto" x-text="JSON.stringify(errorDetails.RequestData, null, 2)"></pre>
-                            </div>
-                            <div>
-                                <strong class="font-semibold text-text-muted block mb-1">Traceback:</strong>
-                                <pre class="bg-background p-3 rounded-md text-sm text-danger-700 overflow-x-auto" x-text="errorDetails.Traceback"></pre>
-                            </div>
-                        </div>
-                    </template>
-                    <template x-if="!errorDetails">
-                        <p>Loading...</p>
-                    </template>
+                <div class="md:col-span-2">
+                    <button type="submit" class="btn-primary w-full">Search</button>
+                </div>
+                <div class="md-col-span-2">
+                    <a href="{{ url_for('admin_bp.error_log_viewer') }}" class="btn-secondary w-full">Clear</a>
                 </div>
             </div>
+        </form>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-border">
+                <thead class="bg-background">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Timestamp</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Route</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Error Message</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">User ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-card divide-y divide-border">
+                    {% for log in logs %}
+                    <tr class="hover:bg-background">
+                        <td class="px-6 py-4 text-sm font-medium text-heading">{{ log.ErrorID }}</td>
+                        <td class="px-6 py-4 text-sm text-text-muted whitespace-nowrap">{{ log.Timestamp | humanize_date }}</td>
+                        <td class="px-6 py-4 text-sm text-text font-mono truncate max-w-xs">{{ log.Route }}</td>
+                        <td class="px-6 py-4 text-sm text-danger-700 truncate max-w-sm">{{ log.ErrorMessage }}</td>
+                        <td class="px-6 py-4 text-sm text-text">{{ log.UserID or 'N/A' }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            <a href="{{ url_for('admin_bp.log_details', error_id=log.ErrorID) }}" class="btn-secondary btn-sm">View Details</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center py-10 text-text-muted">No errors found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        
+        <!-- Pagination (Unchanged) -->
+        {% if total_pages > 1 %}
+        <nav class="mt-6 flex items-center justify-center">
+             <!-- Pagination controls here -->
+        </nav>
+        {% endif %}
     </div>
 </div>
-
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('errorLogViewer', () => ({
-            showErrorModal: false,
-            errorDetails: null,
-            async fetchErrorDetails(errorId) {
-                this.showErrorModal = true;
-                this.errorDetails = null; // Clear previous
-                try {
-                    const response = await fetch(`/admin/error-log/${errorId}`);
-                    if (response.ok) {
-                        this.errorDetails = await response.json();
-                    } else {
-                        this.errorDetails = { ErrorMessage: 'Failed to load details.' };
-                    }
-                } catch (e) {
-                    this.errorDetails = { ErrorMessage: 'Network error.' };
-                }
-            }
-        }));
-    });
-</script>
+<!-- NOTE: All AlpineJS and the modal have been removed -->
 {% endblock %}

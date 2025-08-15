@@ -300,28 +300,137 @@ def audit_log_viewer():
                            search_action=search_action,
                            search_user=search_user)
                            
-@admin_bp.route('/error-log/<int:error_id>')
+                           
+@admin_bp.route('/log-details/<int:error_id>')
 @login_required
 @admin_required
-def view_error_details(error_id):
-    """Fetches full details for a single error log entry."""
+def log_details(error_id):
+    """
+    Displays a detailed view of a single error log, including
+    full traceback and information about the user who caused it.
+    """
     conn = get_db_connection()
-    if not conn: return jsonify({'error': 'Database connection failed'}), 500
+    if not conn:
+        abort(500, "Database connection failed.")
+    
+    error_log = None
+    user_details = None
+    
     try:
         cursor = conn.cursor(dictionary=True)
+        
+        # 1. Fetch the full error log entry
         cursor.execute("SELECT * FROM ErrorLog WHERE ErrorID = %s", (error_id,))
         error_log = cursor.fetchone()
-        if error_log:
-            # Safely parse JSON data
-            try:
-                error_log['RequestData'] = json.loads(error_log['RequestData'])
-            except (json.JSONDecodeError, TypeError):
-                pass # Keep as string if not valid JSON
-            return jsonify(error_log)
-        else:
-            return jsonify({'error': 'Log not found'}), 404
+
+        if not error_log:
+            abort(404, "Error log not found.")
+
+        # Safely parse the RequestData JSON string into a Python object
+        try:
+            error_log['RequestData'] = json.loads(error_log['RequestData'])
+        except (json.JSONDecodeError, TypeError):
+            # If it's not valid JSON or is None, keep it as is
+            pass 
+
+        # 2. If a UserID is associated, fetch that user's full details
+        if error_log.get('UserID'):
+            user_id = error_log['UserID']
+            # This query joins Users with all possible role tables to get a complete profile
+            cursor.execute("""
+                SELECT 
+                    u.*, 
+                    s.Role as StaffRole, s.StaffID,
+                    c.CandidateID,
+                    cl.ClientID
+                FROM Users u
+                LEFT JOIN Staff s ON u.UserID = s.UserID
+                LEFT JOIN Candidates c ON u.UserID = c.UserID
+                LEFT JOIN Clients cl ON u.UserID = cl.UserID
+                WHERE u.UserID = %s
+            """, (user_id,))
+            user_details = cursor.fetchone()
+
     except Exception as e:
-        current_app.logger.error(f"Error fetching error details for ErrorID {error_id}: {e}", exc_info=True)
-        return jsonify({'error': 'An internal error occurred'}), 500
+        current_app.logger.error(f"Error fetching log details for ErrorID {error_id}: {e}", exc_info=True)
+        abort(500, "An error occurred while fetching log details.")
     finally:
-        if conn and conn.is_connected(): conn.close()
+        if conn and conn.is_connected():
+            conn.close()
+
+    return render_template('admin/log_details.html',
+                           title=f"Error Log #{error_log['ErrorID']}",
+                           log=error_log,
+                           user=user_details)
+
+@admin_bp.route('/audit-details/<int:log_id>')
+@login_required
+@admin_required
+def audit_details(log_id):
+    """
+    Displays a detailed view of a single audit log entry, including
+    details of the user who performed the action and the target entity.
+    """
+    conn = get_db_connection()
+    if not conn:
+        abort(500, "Database connection failed.")
+    
+    audit_log = None
+    user_details = None
+    target_details = {} # Store details about the affected entity
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # 1. Fetch the full audit log entry
+        cursor.execute("SELECT * FROM AuditLog WHERE AuditLogID = %s", (log_id,))
+        audit_log = cursor.fetchone()
+
+        if not audit_log:
+            abort(404, "Audit log not found.")
+
+        # 2. If a UserID is associated, fetch that user's full details
+        if audit_log.get('UserID'):
+            user_id = audit_log['UserID']
+            cursor.execute("""
+                SELECT u.*, s.Role as StaffRole, s.StaffID
+                FROM Users u
+                LEFT JOIN Staff s ON u.UserID = s.UserID
+                WHERE u.UserID = %s
+            """, (user_id,))
+            user_details = cursor.fetchone()
+
+        # 3. Fetch details about the target entity based on its type
+        entity_type = audit_log.get('TargetEntityType')
+        entity_id = audit_log.get('TargetEntityID')
+
+        if entity_type and entity_id:
+            if entity_type == 'CourseGroup':
+                cursor.execute("SELECT GroupName, Status FROM CourseGroups WHERE GroupID = %s", (entity_id,))
+                target_details = cursor.fetchone()
+            elif entity_type == 'PlacementTest':
+                cursor.execute("SELECT Title, TestType FROM PlacementTests WHERE TestID = %s", (entity_id,))
+                target_details = cursor.fetchone()
+            elif entity_type == 'CourseEnrollment':
+                 cursor.execute("""
+                    SELECT CONCAT(u.FirstName, ' ', u.LastName) as CandidateName, ce.Status
+                    FROM CourseEnrollments ce
+                    JOIN Candidates c ON ce.CandidateID = c.CandidateID
+                    JOIN Users u ON c.UserID = u.UserID
+                    WHERE ce.EnrollmentID = %s
+                 """, (entity_id,))
+                 target_details = cursor.fetchone()
+            # ... add more entity types here as your audit logging expands ...
+
+    except Exception as e:
+        current_app.logger.error(f"Error fetching audit details for AuditLogID {log_id}: {e}", exc_info=True)
+        abort(500, "An error occurred while fetching audit details.")
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+
+    return render_template('admin/audit_details.html',
+                           title=f"Audit Log #{audit_log['AuditLogID']}",
+                           log=audit_log,
+                           user=user_details,
+                           target=target_details)

@@ -2300,10 +2300,6 @@ html[data-theme="dark"] {
   z-index: 20;
 }
 
-.z-30 {
-  z-index: 30;
-}
-
 .z-50 {
   z-index: 50;
 }
@@ -2405,10 +2401,6 @@ html[data-theme="dark"] {
 
 .-mr-3 {
   margin-right: -0.75rem;
-}
-
-.mb-1 {
-  margin-bottom: 0.25rem;
 }
 
 .mb-2 {
@@ -2657,10 +2649,6 @@ html[data-theme="dark"] {
 
 .max-h-96 {
   max-height: 24rem;
-}
-
-.max-h-\[90vh\] {
-  max-height: 90vh;
 }
 
 .min-h-full {
@@ -3499,10 +3487,6 @@ html[data-theme="dark"] {
 .bg-black {
   --tw-bg-opacity: 1;
   background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
-}
-
-.bg-black\/50 {
-  background-color: rgb(0 0 0 / 0.5);
 }
 
 .bg-black\/60 {
