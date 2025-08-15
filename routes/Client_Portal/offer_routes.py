@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from db import get_db_connection
 import mysql.connector
-import re # Import the regular expression module for parsing
+import re # Import the regular expression module
 
 # Define a specific blueprint for offers
 client_offers_bp = Blueprint('client_offers_bp', __name__,
@@ -13,12 +13,16 @@ client_offers_bp = Blueprint('client_offers_bp', __name__,
                              url_prefix='/client')
 
 
-# --- Helper Function to Query ENUM/SET Options ---
+# --- Helper Function to Query ENUM/SET Options (with Fixes) ---
 def get_column_options(cursor, db_name, table_name, column_name):
     """
     Queries the information_schema to get the possible values for an ENUM or SET column.
     Returns a list of strings.
     """
+    # FIX: Add a check to ensure db_name is configured. This is a common point of failure.
+    if not db_name:
+        current_app.logger.error(f"FATAL: MYSQL_DB configuration is not set. Cannot get options for {table_name}.{column_name}.")
+        return []
     try:
         query = """
             SELECT COLUMN_TYPE 
@@ -29,16 +33,18 @@ def get_column_options(cursor, db_name, table_name, column_name):
         result = cursor.fetchone()
         
         if result and result[0]:
-            # Handle potential bytearray response from some connectors
+            # FIX: Handle potential bytearray response from some database connectors, which was causing the regex to fail silently.
             type_string = result[0].decode('utf-8') if isinstance(result[0], bytearray) else result[0]
             options = re.findall(r"'(.*?)'", type_string)
             return options
+        
+        current_app.logger.warning(f"No options found in schema for {table_name}.{column_name}. The column might not exist or is not an ENUM/SET.")
         return []
     except Exception as e:
-        current_app.logger.error(f"Failed to get options for {table_name}.{column_name}: {e}")
+        current_app.logger.error(f"DATABASE ERROR fetching options for {table_name}.{column_name}: {e}")
         return []
 
-# --- Decorator for SINGLE Company Authorization (No changes needed here) ---
+# --- Decorator (No changes needed) ---
 def client_login_required(f):
     @wraps(f)
     @login_required
@@ -56,11 +62,9 @@ def client_login_required(f):
                     LIMIT 1
                 """, (current_user.id,))
                 company_contact_info = cursor.fetchone()
-                
                 if not company_contact_info:
                     flash("You are not authorized to access the client portal.", "danger")
                     return redirect(url_for('login_bp.login'))
-                
                 session['client_company_id'] = company_contact_info['CompanyID']
                 session['client_company_name'] = company_contact_info['CompanyName']
                 session['user_id'] = current_user.id
@@ -72,7 +76,6 @@ def client_login_required(f):
                 if conn and conn.is_connected():
                     cursor.close()
                     conn.close()
-
         return f(*args, **kwargs)
     return decorated_function
 
@@ -86,7 +89,7 @@ def submit_offer():
     # DYNAMICALLY FETCH ALL OPTIONS FROM DB SCHEMA FOR THE FORM
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor() # A raw tuple-based cursor is fine for the helper
         table = 'ClientSubmittedJobOffers'
         form_options = {
             'benefits_included': get_column_options(cursor, db_name, table, 'BenefitsIncluded'),
@@ -102,7 +105,7 @@ def submit_offer():
         }
     except Exception as e:
         flash("Could not load form options from the database.", "danger")
-        current_app.logger.error(f"Error fetching form options: {e}")
+        current_app.logger.error(f"Error establishing connection to fetch form options: {e}")
         # Initialize with empty lists to prevent template errors
         form_options = {key: [] for key in ['benefits_included', 'interview_types', 'nationalities', 'genders', 'military_statuses', 'graduation_statuses', 'available_shifts', 'required_languages', 'payment_terms', 'required_levels']}
     finally:
@@ -193,7 +196,6 @@ def submit_offer():
                            options=form_options,
                            selected_benefits=[], selected_shifts=[], selected_languages=[], selected_grad_statuses=[])
 
-# --- Routes for Client Offers ---
 @client_offers_bp.route('/my-submissions')
 @client_login_required
 def my_submissions():
