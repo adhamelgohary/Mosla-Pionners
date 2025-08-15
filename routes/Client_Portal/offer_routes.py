@@ -5,6 +5,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from db import get_db_connection
 import mysql.connector
+import re # Import the regular expression module for parsing
 
 # Define a specific blueprint for offers
 client_offers_bp = Blueprint('client_offers_bp', __name__,
@@ -12,18 +13,44 @@ client_offers_bp = Blueprint('client_offers_bp', __name__,
                              url_prefix='/client')
 
 
-# --- Decorator for SINGLE Company Authorization (Duplicated here) ---
+# --- Helper Function to Query ENUM/SET Options ---
+def get_column_options(cursor, db_name, table_name, column_name):
+    """
+    Queries the information_schema to get the possible values for an ENUM or SET column.
+    Returns a list of strings.
+    """
+    try:
+        query = """
+            SELECT COLUMN_TYPE 
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s 
+              AND TABLE_NAME = %s 
+              AND COLUMN_NAME = %s
+        """
+        cursor.execute(query, (db_name, table_name, column_name))
+        result = cursor.fetchone()
+        
+        if result:
+            # The result is a string like "enum('Value1','Value2')" or "set('A','B','C')"
+            # We use regex to find all strings enclosed in single quotes.
+            # This is safer than simple splitting if values contain commas.
+            options = re.findall(r"'(.*?)'", result[0])
+            return options
+        return []
+    except Exception as e:
+        current_app.logger.error(f"Failed to get options for {table_name}.{column_name}: {e}")
+        return []
+
+# --- Decorator for SINGLE Company Authorization (No changes needed here) ---
 def client_login_required(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # Force re-check if user changes or session data is missing
         if 'client_company_id' not in session or session.get('user_id') != current_user.id:
             conn = None
             try:
                 conn = get_db_connection()
                 cursor = conn.cursor(dictionary=True)
-                # Find the FIRST company this user is a contact for
                 cursor.execute("""
                     SELECT c.CompanyID, c.CompanyName 
                     FROM CompanyContacts cc
@@ -37,7 +64,6 @@ def client_login_required(f):
                     flash("You are not authorized to access the client portal.", "danger")
                     return redirect(url_for('login_bp.login'))
                 
-                # Store the single company's ID and Name in the session
                 session['client_company_id'] = company_contact_info['CompanyID']
                 session['client_company_name'] = company_contact_info['CompanyName']
                 session['user_id'] = current_user.id
@@ -56,19 +82,37 @@ def client_login_required(f):
 @client_offers_bp.route('/submit-offer', methods=['GET', 'POST'])
 @client_login_required
 def submit_offer():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    conn = None
+    form_options = {}
+    db_name = current_app.config.get('MYSQL_DB')
     
-    # Fetch lookup data for the form on both GET and POST
+    # DYNAMICALLY FETCH OPTIONS FROM DB SCHEMA
     try:
-        cursor.execute("SELECT BenefitID, BenefitName FROM Benefits ORDER BY BenefitName")
-        all_benefits = cursor.fetchall()
-        cursor.execute("SELECT InterviewTypeID, TypeName FROM InterviewTypes")
-        all_interview_types = cursor.fetchall()
-        # Add other lookups like Languages, Levels if needed for the form
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        table = 'ClientSubmittedJobOffers'
+        form_options = {
+            'benefits': get_column_options(cursor, db_name, table, 'BenefitsIncluded'),
+            'interview_types': get_column_options(cursor, db_name, table, 'InterviewType'),
+            'nationalities': get_column_options(cursor, db_name, table, 'Nationality'),
+            'genders': get_column_options(cursor, db_name, table, 'Gender'),
+            'military_statuses': get_column_options(cursor, db_name, table, 'MilitaryStatus'),
+            'graduation_statuses': get_column_options(cursor, db_name, table, 'GraduationStatusRequirement'),
+            'shifts': get_column_options(cursor, db_name, table, 'AvailableShifts'),
+            'languages': get_column_options(cursor, db_name, table, 'RequiredLanguages'),
+            'payment_terms': get_column_options(cursor, db_name, table, 'PaymentTerm'),
+            'required_levels': get_column_options(cursor, db_name, table, 'RequiredLevel')
+        }
+    except Exception as e:
+        flash("Could not load form options from the database.", "danger")
+        current_app.logger.error(f"Error fetching form options: {e}")
+        # Provide empty lists to prevent template errors
+        form_options = {key: [] for key in ['benefits', 'interview_types', 'nationalities', 'genders', 'military_statuses', 'graduation_statuses', 'shifts', 'languages', 'payment_terms', 'required_levels']}
     finally:
-        cursor.close()
-        conn.close()
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
+
 
     if request.method == 'POST':
         company_id = session.get('client_company_id')
@@ -82,13 +126,13 @@ def submit_offer():
                                    title="Submit New Job Offer", 
                                    company_name=session.get('client_company_name'), 
                                    form_data=form,
-                                   all_benefits=all_benefits, all_interview_types=all_interview_types,
+                                   options=form_options,
+                                   selected_benefits=form.getlist('benefits_included'),
                                    selected_shifts=form.getlist('available_shifts'),
-                                   selected_benefits=[int(i) for i in form.getlist('benefit_ids')],
-                                   selected_languages=form.getlist('required_languages'))
+                                   selected_languages=form.getlist('required_languages'),
+                                   selected_grad_statuses=form.getlist('graduation_status_requirement'))
         
-        # CHANGED: The main insert data no longer includes benefits or interview type text
-        main_offer_data = {
+        submitted_offer_data = {
             'CompanyID': company_id, 
             'SubmittedByUserID': current_user.id, 
             'Title': form.get('title'),
@@ -97,82 +141,77 @@ def submit_offer():
             'ClosingDate': form.get('closing_date'),
             'HasContract': 1 if form.get('has_contract') else 0, 
             'LanguagesType': form.get('languages_type'),
-            'RequiredLanguages': ",".join(request.form.getlist('required_languages')) or None, # Assuming this stays as a string for review
-            'RequiredLevel': form.get('english_level_requirement'), # Assuming this stays as a string for review
-            'CandidatesNeeded': form.get('candidates_needed'),
+            'RequiredLanguages': ",".join(form.getlist('required_languages')) or None,
+            'RequiredLevel': form.get('required_level'),
+            'CandidatesNeeded': form.get('candidates_needed', 1),
             'HiringCadence': form.get('hiring_cadence'), 
             'WorkLocationType': form.get('work_location_type'),
             'HiringPlan': form.get('hiring_plan'), 
             'ShiftType': form.get('shift_type'),
-            'AvailableShifts': ",".join(request.form.getlist('available_shifts')) or None, 
+            'AvailableShifts': ",".join(form.getlist('available_shifts')) or None, 
             'NetSalary': form.get('net_salary') or None,
             'PaymentTerm': form.get('payment_term'), 
-            'GraduationStatusRequirement': form.get('graduation_status_requirement'),
-            'Nationality': form.get('nationality_requirement'),
-            'InterviewTypeID': form.get('interview_type_id'), # CHANGED: Now an ID
-            'ClientNotes': form.get('client_notes')
+            'GraduationStatusRequirement': ",".join(form.getlist('graduation_status_requirement')) or None,
+            'Nationality': form.get('nationality'),
+            'InterviewType': form.get('interview_type'),
+            'Gender': form.get('gender'),
+            'MilitaryStatus': form.get('military_status'),
+            'ClientNotes': form.get('client_notes'),
+            'BenefitsIncluded': ",".join(form.getlist('benefits_included')) or None
         }
-        
-        selected_benefit_ids = request.form.getlist('benefit_ids')
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        conn_insert = None
         try:
-            # NEW: Start a transaction
-            conn.start_transaction()
-
-            # Step 1: Insert the main offer data
-            main_sql = """
+            conn_insert = get_db_connection()
+            cursor_insert = conn_insert.cursor()
+            
+            sql = """
                 INSERT INTO ClientSubmittedJobOffers (
-                    CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract, LanguagesType,
-                    RequiredLanguages, RequiredLevel, CandidatesNeeded, HiringCadence, WorkLocationType, HiringPlan,
-                    ShiftType, AvailableShifts, NetSalary, PaymentTerm, GraduationStatusRequirement, Nationality,
-                    InterviewTypeID, ClientNotes
+                    CompanyID, SubmittedByUserID, Title, Location, MaxAge, ClosingDate, HasContract, 
+                    LanguagesType, RequiredLanguages, RequiredLevel, CandidatesNeeded, HiringCadence, 
+                    WorkLocationType, HiringPlan, ShiftType, AvailableShifts, NetSalary, PaymentTerm, 
+                    GraduationStatusRequirement, BenefitsIncluded, InterviewType, Nationality, Gender, MilitaryStatus, ClientNotes
                 ) VALUES (
                     %(CompanyID)s, %(SubmittedByUserID)s, %(Title)s, %(Location)s, %(MaxAge)s, %(ClosingDate)s, %(HasContract)s,
                     %(LanguagesType)s, %(RequiredLanguages)s, %(RequiredLevel)s, %(CandidatesNeeded)s, %(HiringCadence)s,
                     %(WorkLocationType)s, %(HiringPlan)s, %(ShiftType)s, %(AvailableShifts)s, %(NetSalary)s, %(PaymentTerm)s,
-                    %(GraduationStatusRequirement)s, %(Nationality)s, %(InterviewTypeID)s, %(ClientNotes)s
+                    %(GraduationStatusRequirement)s, %(BenefitsIncluded)s, %(InterviewType)s, %(Nationality)s, %(Gender)s,
+                    %(MilitaryStatus)s, %(ClientNotes)s
                 )
             """
-            cursor.execute(main_sql, main_offer_data)
-            submission_id = cursor.lastrowid # Get the ID of the new submission
-
-            # Step 2: Insert the selected benefits into the junction table
-            if selected_benefit_ids:
-                benefits_sql = "INSERT INTO ClientSubmittedJobOfferBenefits (SubmissionID, BenefitID) VALUES (%s, %s)"
-                benefits_to_insert = [(submission_id, benefit_id) for benefit_id in selected_benefit_ids]
-                cursor.executemany(benefits_sql, benefits_to_insert)
-
-            # Step 3: Commit the transaction
-            conn.commit()
+            cursor_insert.execute(sql, submitted_offer_data)
+            conn_insert.commit()
             
             flash("Your job offer has been submitted successfully for review.", "success")
             return redirect(url_for('.my_submissions'))
         except mysql.connector.Error as err:
-            conn.rollback() # Rollback on error
+            if conn_insert:
+                conn_insert.rollback() 
             flash(f"An error occurred while submitting your offer: {err}", "danger")
             current_app.logger.error(f"Client offer submission error for company {company_id}: {err}")
             return render_template('client_portal/submit_offer.html', 
                                    title="Submit New Job Offer", 
                                    company_name=session.get('client_company_name'), 
                                    form_data=form,
-                                   all_benefits=all_benefits, all_interview_types=all_interview_types,
+                                   options=form_options,
+                                   selected_benefits=form.getlist('benefits_included'),
                                    selected_shifts=form.getlist('available_shifts'),
-                                   selected_benefits=[int(i) for i in form.getlist('benefit_ids')],
-                                   selected_languages=form.getlist('required_languages'))
+                                   selected_languages=form.getlist('required_languages'),
+                                   selected_grad_statuses=form.getlist('graduation_status_requirement'))
         finally:
-            cursor.close()
-            conn.close()
+            if conn_insert and conn_insert.is_connected():
+                cursor_insert.close()
+                conn_insert.close()
 
     # On initial GET request
     return render_template('client_portal/submit_offer.html', 
                            title="Submit New Job Offer", 
                            company_name=session.get('client_company_name'), 
                            form_data={},
-                           all_benefits=all_benefits, all_interview_types=all_interview_types,
-                           selected_shifts=[], selected_benefits=[], selected_languages=[])
+                           options=form_options,
+                           selected_benefits=[], selected_shifts=[], selected_languages=[], selected_grad_statuses=[])
 
+# --- Routes for Client Offers ---
 @client_offers_bp.route('/my-submissions')
 @client_login_required
 def my_submissions():
@@ -182,20 +221,13 @@ def my_submissions():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # CHANGED: Query now JOINs to get related data and uses GROUP_CONCAT for benefits
         query = """
             SELECT 
                 csjo.*, 
-                c.CompanyName,
-                it.TypeName as InterviewTypeName,
-                GROUP_CONCAT(b.BenefitName SEPARATOR ', ') as BenefitsList
+                c.CompanyName
             FROM ClientSubmittedJobOffers csjo 
             JOIN Companies c ON csjo.CompanyID = c.CompanyID
-            LEFT JOIN InterviewTypes it ON csjo.InterviewTypeID = it.InterviewTypeID
-            LEFT JOIN ClientSubmittedJobOfferBenefits csjob ON csjo.SubmissionID = csjob.SubmissionID
-            LEFT JOIN Benefits b ON csjob.BenefitID = b.BenefitID
             WHERE csjo.CompanyID = %s 
-            GROUP BY csjo.SubmissionID
             ORDER BY csjo.SubmissionDate DESC
         """
         cursor.execute(query, (company_id,))
@@ -218,7 +250,6 @@ def pipeline():
         cursor.execute("SELECT OfferID, Title, CandidatesNeeded FROM JobOffers WHERE CompanyID = %s AND Status = 'Open' ORDER BY Title", (company_id,))
         live_offers = cursor.fetchall()
         for offer in live_offers:
-            # MODIFIED: Removed `c.YearsOfExperience` as it no longer exists in the `Candidates` table.
             cursor.execute("""
                 SELECT 
                     ja.ApplicationID, ja.Status, u.FirstName, u.LastName, cv.CVFileUrl 
@@ -250,7 +281,6 @@ def update_application_status(application_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        # This authorization check is still valid.
         cursor.execute("SELECT jo.CompanyID FROM JobApplications ja JOIN JobOffers jo ON ja.OfferID = jo.OfferID WHERE ja.ApplicationID = %s", (application_id,))
         result = cursor.fetchone()
         if not result or result[0] != company_id:
@@ -260,7 +290,6 @@ def update_application_status(application_id):
         conn.close()
 
     new_status = None
-    # MODIFIED: Updated status values to match the new schema's ENUM definitions.
     if action == 'schedule_interview':
         new_status = 'Interview Scheduled'
     elif action == 'reject':
@@ -293,20 +322,13 @@ def view_submission_details(submission_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # CHANGED: Query updated to fetch related names and list of benefits
         query = """
             SELECT 
                 csjo.*, 
-                c.CompanyName,
-                it.TypeName as InterviewTypeName,
-                GROUP_CONCAT(b.BenefitName SEPARATOR ', ') as BenefitsList
+                c.CompanyName
             FROM ClientSubmittedJobOffers csjo
             JOIN Companies c ON csjo.CompanyID = c.CompanyID
-            LEFT JOIN InterviewTypes it ON csjo.InterviewTypeID = it.InterviewTypeID
-            LEFT JOIN ClientSubmittedJobOfferBenefits csjob ON csjo.SubmissionID = csjob.SubmissionID
-            LEFT JOIN Benefits b ON csjob.BenefitID = b.BenefitID
             WHERE csjo.SubmissionID = %s AND csjo.CompanyID = %s
-            GROUP BY csjo.SubmissionID
         """
         cursor.execute(query, (submission_id, company_id))
         submission = cursor.fetchone()
@@ -314,15 +336,13 @@ def view_submission_details(submission_id):
         if not submission:
             abort(404)
         
-        # REMOVED: The old Python logic for parsing strings is no longer needed
-        # The query's GROUP_CONCAT provides the 'BenefitsList' directly.
-        
-        # The logic for AvailableShifts can remain if it's still a string
-        shifts_data = submission.get('AvailableShifts')
-        if isinstance(shifts_data, str):
-            submission['AvailableShifts_list'] = [s.strip() for s in shifts_data.split(',')]
-        else:
-            submission['AvailableShifts_list'] = []
+        def split_set_field(data):
+            return [item.strip() for item in data.split(',')] if isinstance(data, str) else []
+
+        submission['Benefits_list'] = split_set_field(submission.get('BenefitsIncluded'))
+        submission['AvailableShifts_list'] = split_set_field(submission.get('AvailableShifts'))
+        submission['RequiredLanguages_list'] = split_set_field(submission.get('RequiredLanguages'))
+        submission['GraduationStatus_list'] = split_set_field(submission.get('GraduationStatusRequirement'))
 
     except Exception as e:
         current_app.logger.error(f"Error fetching submission details for ID {submission_id}: {e}")
@@ -340,21 +360,15 @@ def view_submission_details(submission_id):
 @client_offers_bp.route('/my-offers')
 @client_login_required
 def my_offers():
-    """ Displays all live, on-hold, or closed job offers for the client's company. """
     conn = None
     offers = []
     company_id = session.get('client_company_id')
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        # Query the JobOffers table for offers linked to this company
         cursor.execute("""
             SELECT 
-                OfferID, 
-                Title, 
-                Status, 
-                DatePosted, 
-                ClosingDate,
+                OfferID, Title, Status, DatePosted, ClosingDate,
                 (SELECT COUNT(*) FROM JobApplications WHERE OfferID = jo.OfferID) as ApplicationCount
             FROM JobOffers jo
             WHERE jo.CompanyID = %s

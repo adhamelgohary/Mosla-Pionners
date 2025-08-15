@@ -1,3 +1,4 @@
+<!-- templates/agency_staff_portal/job_offers/review_client_submissions.html -->
 {% extends "agency_staff_portal/staff_base.html" %}
 
 {% block staff_title %}{{ title }}{% endblock %}
@@ -16,26 +17,29 @@
             <h4 class="text-lg font-semibold text-gray-800">{{ sub.Title }} <span class="text-sm font-medium text-gray-500">({{ sub.ReviewStatus }})</span></h4>
             <p class="text-sm text-gray-600 mt-1">From: <span class="font-medium">{{ sub.CompanyName }}</span> (Submitted by: {{ sub.SubmitterFirstName }} {{ sub.SubmitterLastName }} on {{ sub.SubmissionDate | datetime }})</p>
         </div>
+        <!-- SCHEMA CHANGE: Displaying new fields from the updated schema -->
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
             <div><strong class="font-medium text-gray-500 w-36 inline-block">Candidates Needed:</strong> <span class="text-gray-800">{{ sub.CandidatesNeeded or 'N/A' }} ({{ sub.HiringCadence | title or 'N/A' }})</span></div>
             <div><strong class="font-medium text-gray-500 w-36 inline-block">Salary:</strong> <span class="text-gray-800">{{ sub.NetSalary | currency if sub.NetSalary else 'N/A' }}</span></div>
             <div><strong class="font-medium text-gray-500 w-36 inline-block">Payment Term:</strong> <span class="text-gray-800">{{ sub.PaymentTerm or 'N/A' }}</span></div>
 
-            <div><strong class="font-medium text-gray-500 w-36 inline-block">Language:</strong> <span class="text-gray-800">{{ sub.RequiredLanguage | title or 'N/A' }} ({{ sub.EnglishLevelRequirement | upper or 'N/A' }})</span></div>
-            <div><strong class="font-medium text-gray-500 w-36 inline-block">Graduation:</strong> <span class="text-gray-800">{{ sub.GraduationStatusRequirement | replace('_', ' ') | title or 'N/A' }}</span></div>
-            <div><strong class="font-medium text-gray-500 w-36 inline-block">Nationality:</strong> <span class="text-gray-800">{{ sub.NationalityRequirement | title or 'N/A' }}</span></div>
+            <div><strong class="font-medium text-gray-500 w-36 inline-block">Required Level:</strong> <span class="text-gray-800">{{ sub.RequiredLevel or 'N/A' }}</span></div>
+            <div><strong class="font-medium text-gray-500 w-36 inline-block">Gender:</strong> <span class="text-gray-800">{{ sub.Gender or 'N/A' }}</span></div>
+            <div><strong class="font-medium text-gray-500 w-36 inline-block">Military Status:</strong> <span class="text-gray-800">{{ sub.MilitaryStatus or 'N/A' }}</span></div>
             
             <div><strong class="font-medium text-gray-500 w-36 inline-block">Location:</strong> <span class="text-gray-800">{{ sub.Location or 'N/A' }} ({{ sub.WorkLocationType | replace('wfh', 'WFH') | replace('site', 'On-site') }})</span></div>
             <div><strong class="font-medium text-gray-500 w-36 inline-block">Shift Type:</strong> <span class="text-gray-800">{{ sub.ShiftType | title or 'N/A' }}</span></div>
-            <div><strong class="font-medium text-gray-500 w-36 inline-block">Transportation:</strong> <span class="text-gray-800">{% if sub.IsTransportationProvided %}Yes ({{ sub.TransportationType | replace('d2d', 'D2D') | title }}){% else %}No{% endif %}</span></div>
+            <div><strong class="font-medium text-gray-500 w-36 inline-block">Nationality:</strong> <span class="text-gray-800">{{ sub.Nationality or 'N/A' }}</span></div>
 
-            <div class="md:col-span-2 lg:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Available Shifts:</strong> <span class="text-gray-800">{% if sub.AvailableShifts_list %}{{ sub.AvailableShifts_list | join(', ') | title }}{% else %}Not specified{% endif %}</span></div>
-            <div class="md:col-span-2 lg:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Benefits:</strong> <span class="text-gray-800">{% if sub.Benefits_list %}{{ sub.Benefits_list | join(', ') | replace('_', ' ') | title }}{% else %}None specified{% endif %}</span></div>
+            <div class="md:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Required Languages:</strong> <span class="text-gray-800">{{ sub.RequiredLanguages or 'Not specified' }}</span></div>
+            <div class="md:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Graduation Status:</strong> <span class="text-gray-800">{{ sub.GraduationStatusRequirement or 'Not specified' }}</span></div>
+            <div class="md:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Available Shifts:</strong> <span class="text-gray-800">{{ sub.AvailableShifts or 'Not specified' }}</span></div>
+            <div class="md:col-span-3"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Benefits Included:</strong> <span class="text-gray-800">{{ sub.BenefitsIncluded or 'None specified' }}</span></div>
             
-            {% if sub.ClientNotes %}<div class="md:col-span-2 lg:col-span-3 pt-4 border-t border-gray-100"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Client Notes:</strong> <p class="inline-block text-gray-800 whitespace-pre-wrap">{{ sub.ClientNotes }}</p></div>{% endif %}
+            {% if sub.ClientNotes %}<div class="md:col-span-3 pt-4 border-t border-gray-100"><strong class="font-medium text-gray-500 w-36 inline-block align-top">Client Notes:</strong> <p class="inline-block text-gray-800 whitespace-pre-wrap">{{ sub.ClientNotes }}</p></div>{% endif %}
             
             {% if sub.ReviewStatus == 'NeedsClarification' and sub.ReviewerComments %}
-                <div class="md:col-span-2 lg:col-span-3 mt-4 p-4 rounded-md bg-blue-50 border border-blue-200">
+                <div class="md:col-span-3 mt-4 p-4 rounded-md bg-blue-50 border border-blue-200">
                     <strong class="font-medium text-blue-800">Your Previous Feedback ({{ sub.ReviewDate | date }}):</strong><br>
                     <p class="mt-1 text-blue-700 whitespace-pre-wrap">{{ sub.ReviewerComments }}</p>
                 </div>

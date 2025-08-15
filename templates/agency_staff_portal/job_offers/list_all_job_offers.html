@@ -1,4 +1,4 @@
-{# templates/agency_staff_portal/job_offers/list_all_job_offers.html #}
+<!-- templates/agency_staff_portal/job_offers/list_all_job_offers.html -->
 {% extends 'agency_staff_portal/staff_base.html' %}
 
 {% block staff_title %}{{ title }}{% endblock %}
@@ -12,15 +12,15 @@
 <div class="space-y-4" x-data="{ openCompanyId: null }">
     {% for company_id, company_data in offers_by_company.items() %}
     <div class="bg-card shadow rounded-lg border border-border">
-        <!-- Company Header (already responsive) -->
+        <!-- Company Header -->
         <div @click="openCompanyId = openCompanyId === {{ company_id }} ? null : {{ company_id }}" class="p-4 sm:px-6 sm:py-4 cursor-pointer flex flex-col sm:flex-row justify-between sm:items-center gap-4 hover:bg-background/50">
-            <div class="flex items-center gap-4"><h2 class="text-lg font-semibold text-heading">{{ company_data.company_name }}</h2><span class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{{ company_data.offers|length }} Open Offer(s)</span></div>
+            <div class="flex items-center gap-4"><h2 class="text-lg font-semibold text-heading">{{ company_data.company_name }}</h2><span class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">{{ company_data.offers|length }} Offer(s)</span></div>
             <div class="flex items-center space-x-3 self-end sm:self-center"><a href="{{ url_for('.view_company_schedules', company_id=company_id) }}" @click.stop class="btn-secondary text-xs py-1 px-2"><i class="bi bi-calendar-week-fill mr-1"></i> Schedule</a><i class="bi bi-chevron-down transition-transform" :class="{'rotate-180': openCompanyId === {{ company_id }} }"></i></div>
         </div>
 
         <!-- Collapsible Offer List -->
         <div x-show="openCompanyId === {{ company_id }}" x-collapse class="border-t border-border">
-            <!-- [UPDATED] Desktop Table -->
+            <!-- Desktop Table -->
             <div class="hidden sm:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-border text-sm">
                     <thead class="bg-background"><tr class="text-left text-xs font-medium text-text-muted uppercase tracking-wider"><th class="px-6 py-3">Job Title</th><th class="px-6 py-3">Date Posted</th><th class="px-6 py-3">Status</th><th class="relative px-6 py-3"><span class="sr-only">Actions</span></th></tr></thead>
@@ -43,7 +43,7 @@
                     </tbody>
                 </table>
             </div>
-            <!-- [NEW] Mobile Card View -->
+            <!-- Mobile Card View -->
             <div class="sm:hidden divide-y divide-border">
                 {% for offer in company_data.offers %}
                 <div class="p-4">
