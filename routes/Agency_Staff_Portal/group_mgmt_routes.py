@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash
 from utils.group_utils import sync_sessions_for_groups
 
 # Roles with management access
-GROUP_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder', 'Admin'] 
+GROUP_MANAGEMENT_ROLES = ['SalesManager', 'SalesAssistant', 'CEO', 'Founder', 'Admin'] 
 
 group_mgmt_bp = Blueprint('group_mgmt_bp', __name__,
                           template_folder='../../../templates',

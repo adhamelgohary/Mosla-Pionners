@@ -9,14 +9,14 @@ from flask_login import current_user
 AGENCY_STAFF_ROLES = ['CEO', 'Founder']
 
 # This is the single source of truth for who can access the main managerial portal.
-# SalesManager is REMOVED from this list.
+# SalesManager and SalesAssistant are EXCLUDED from this list.
 MANAGERIAL_PORTAL_ROLES = ['CEO', 'Founder']
 
 # These roles have full management access to packages.
-PACKAGE_MANAGEMENT_ROLES = ['SalesManager', 'CEO', 'Founder']
+PACKAGE_MANAGEMENT_ROLES = ['SalesManager', 'SalesAssistant', 'CEO', 'Founder']
 
 # These roles can view the package dashboard and lists.
-PACKAGE_VIEW_ROLES = ['SalesManager', 'CEO', 'Founder']
+PACKAGE_VIEW_ROLES = ['SalesManager', 'SalesAssistant', 'CEO', 'Founder']
 
 # All other role lists (ADMIN_ROLES, etc.)
 ADMIN_ROLES = ['Admin'] 
@@ -43,14 +43,14 @@ def login_required_with_role(allowed_roles, insufficient_role_redirect='public_r
                 f"Role Type: {repr(user_role)}, Required: {allowed_roles}, Path: {request.path}"
             )
             
-            # --- [NEW LOGIC] Special redirection for SalesManager ---
-            # If a SalesManager tries to access a page they shouldn't,
+            # --- [NEW LOGIC] Special redirection for the Sales team ---
+            # If a Sales team member tries to access a page they shouldn't,
             # redirect them to their dedicated packages dashboard.
-            if user_role == 'SalesManager' and user_role not in allowed_roles:
+            if user_role in ['SalesManager', 'SalesAssistant'] and user_role not in allowed_roles:
                 current_app.logger.warning(
-                    f"Access DENIED for SalesManager {current_user.email} to {request.path}. Redirecting to packages dashboard."
+                    f"Access DENIED for Sales Team member {current_user.email} to {request.path}. Redirecting to packages dashboard."
                 )
-                flash('You do not have permission to access this page.', 'danger')
+                flash('You do not have permission to access this specific managerial page.', 'danger')
                 return redirect(url_for('package_mgmt_bp.packages_dashboard'))
 
             if user_role not in allowed_roles:
