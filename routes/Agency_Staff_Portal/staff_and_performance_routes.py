@@ -53,8 +53,6 @@ def staff_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # --- Fetch all stats in a few queries ---
-    
     # Stat Card Data
     cursor.execute("""
         SELECT
@@ -76,15 +74,15 @@ def staff_dashboard():
     """)
     staff_by_role = cursor.fetchall()
 
-    # Top 5 Monthly Performers
+    # SCHEMA CHANGE: Top 5 Monthly Performers now queries PointTransactions
     cursor.execute("""
-        SELECT u.FirstName, u.LastName, s.Role, SUM(spl.PointsAmount) as Points
-        FROM StaffPointsLog spl
-        JOIN Staff s ON spl.AwardedToStaffID = s.StaffID
+        SELECT u.FirstName, u.LastName, s.Role, SUM(pt.Points) as Points
+        FROM PointTransactions pt
+        JOIN Staff s ON pt.RecipientStaffID = s.StaffID
         JOIN Users u ON s.UserID = u.UserID
-        WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
+        WHERE pt.TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
         GROUP BY u.UserID, u.FirstName, u.LastName, s.Role
-        HAVING SUM(spl.PointsAmount) > 0
+        HAVING SUM(pt.Points) > 0
         ORDER BY Points DESC LIMIT 5;
     """)
     top_performers = cursor.fetchall()
@@ -111,7 +109,7 @@ def staff_dashboard():
                            recent_hires=recent_hires)
 
 
-# --- [NEW] Application Review Flow ---
+# --- Application Review Flow ---
 
 @staff_perf_bp.route('/review-applications')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -198,7 +196,7 @@ def reject_application(application_id):
     return redirect(url_for('.review_staff_applications'))
 
 
-# --- Direct Staff Management (for Admins) ---
+# --- Direct Staff Management ---
 
 @staff_perf_bp.route('/list')
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -236,7 +234,7 @@ def add_staff():
     cursor_data = conn_data.cursor()
     cursor_data.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
     enum_str = cursor_data.fetchone()[1]
-    possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
+    possible_roles = enum_str.decode('utf-8').replace("enum('", "").replace("')", "").split("','")
     cursor_data.close()
     conn_data.close()
 
@@ -328,7 +326,7 @@ def my_team():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Base query to get members with their monthly points calculated
+    # SCHEMA CHANGE: Base query now uses PointTransactions for monthly calculation
     base_query = f"""
         SELECT 
             u.UserID, u.FirstName, u.LastName, u.ProfilePictureURL,
@@ -337,28 +335,25 @@ def my_team():
         FROM Staff s
         JOIN Users u ON s.UserID = u.UserID
         LEFT JOIN (
-            SELECT AwardedToStaffID, SUM(PointsAmount) as NetMonthlyPoints
-            FROM StaffPointsLog
-            WHERE AwardDate >= DATE_FORMAT(NOW() ,'%Y-%m-01')
-            GROUP BY AwardedToStaffID
-        ) as monthly ON s.StaffID = monthly.AwardedToStaffID
+            SELECT RecipientStaffID, SUM(Points) as NetMonthlyPoints
+            FROM PointTransactions
+            WHERE TransactionDate >= DATE_FORMAT(NOW() ,'%Y-%m-01')
+            GROUP BY RecipientStaffID
+        ) as monthly ON s.StaffID = monthly.RecipientStaffID
     """
     
-    # Determine view scope
     is_global_view = current_user.role_type in ['CEO', 'OperationsManager', 'Admin']
     params = []
     where_clause = "WHERE u.AccountStatus = 'Active'"
-
     if not is_global_view:
         where_clause += " AND s.ReportsToStaffID = %s"
         params.append(current_user.specific_role_id)
     
-    # Fetch team members
     final_query = f"{base_query} {where_clause} ORDER BY {order_by_clause}"
     cursor.execute(final_query, tuple(params))
     team_members = cursor.fetchall()
     
-    # Fetch team KPIs
+    # SCHEMA CHANGE: Team KPI query now uses PointTransactions
     kpi_query_where = "WHERE u.AccountStatus = 'Active'"
     if not is_global_view:
         kpi_query_where += f" AND s.ReportsToStaffID = {current_user.specific_role_id}"
@@ -367,7 +362,7 @@ def my_team():
         SELECT
             COUNT(s.StaffID) as member_count,
             SUM(s.TotalPoints) as total_points,
-            (SELECT SUM(PointsAmount) FROM StaffPointsLog spl JOIN Staff s_inner ON spl.AwardedToStaffID = s_inner.StaffID JOIN Users u_inner ON s_inner.UserID = u_inner.UserID WHERE AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND {kpi_query_where.replace('WHERE', '')}) as monthly_net_points
+            (SELECT SUM(Points) FROM PointTransactions pt JOIN Staff s_inner ON pt.RecipientStaffID = s_inner.StaffID JOIN Users u_inner ON s_inner.UserID = u_inner.UserID WHERE TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND {kpi_query_where.replace('WHERE', '')}) as monthly_net_points
         FROM Staff s JOIN Users u ON s.UserID = u.UserID
         {kpi_query_where}
     """
@@ -405,10 +400,11 @@ def view_staff_profile(user_id_viewing):
         if is_self_view:
             return render_template('agency_staff_portal/staff/my_profile.html', title="My Profile", user_profile=user_profile_data)
         else:
-            cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID ORDER BY FullName")
+            cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE u.AccountStatus = 'Active' ORDER BY FullName")
             team_leaders = cursor.fetchall()
             cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
-            possible_roles = cursor.fetchone()['Type'].replace("enum('", "").replace("')", "").split("','")
+            enum_str = cursor.fetchone()['Type']
+            possible_roles = enum_str.decode('utf-8').replace("enum('", "").replace("')", "").split("','")
             return render_template('agency_staff_portal/staff/view_staff_profile.html', title=f"Profile: {user_profile_data['FirstName']}", user_profile=user_profile_data, team_leaders=team_leaders, possible_roles=possible_roles)
     finally:
         if conn and conn.is_connected():
@@ -458,17 +454,37 @@ def add_points(staff_id_award_points):
     user_id_redirect = request.form.get('user_id')
     try:
         points = int(request.form.get('points'))
-        if request.form.get('action_type') == 'deduct': points = -points
+        reason = request.form.get('reason', 'Manual adjustment by manager.')
+        
+        if request.form.get('action_type') == 'deduct':
+            points = -abs(points)
+        else:
+            points = abs(points)
+
         conn = get_db_connection()
+        conn.start_transaction()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO StaffPointsLog (AwardedToStaffID, AwardedByStaffID, PointsAmount, ActivityType, Notes) VALUES (%s, %s, %s, %s, %s)",
-                       (staff_id_award_points, current_user.specific_role_id, points, 'ManualAdjustment', request.form.get('reason')))
-        cursor.execute("UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s", (points, staff_id_award_points))
+        
+        sql_log = "INSERT INTO PointTransactions (RecipientStaffID, AssignerStaffID, Points, Reason) VALUES (%s, %s, %s, %s)"
+        cursor.execute(sql_log, (staff_id_award_points, current_user.specific_role_id, points, reason))
+        
+        sql_update = "UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s"
+        cursor.execute(sql_update, (points, staff_id_award_points))
+        
         conn.commit()
-        conn.close()
         flash(f"{abs(points)} points processed successfully.", "success")
+
     except ValueError:
         flash("Invalid points value. Please enter a whole number.", "danger")
+    except Exception as e:
+        if 'conn' in locals() and conn.is_connected():
+            conn.rollback()
+        current_app.logger.error(f"Error processing points for StaffID {staff_id_award_points}: {e}")
+        flash("A database error occurred while processing points.", "danger")
+    finally:
+        if 'conn' in locals() and conn.is_connected():
+            conn.close()
+            
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 @staff_perf_bp.route('/profile/<int:target_staff_id>/generate-referral-code', methods=['POST'])
@@ -605,29 +621,33 @@ def api_team_hierarchy():
 def performance_leaderboard():
     period = request.args.get('period', 'all_time')
     title = "All-Time Performance Leaderboard"
+    
     sql = """
         SELECT u.FirstName, u.LastName, s.Role, s.TotalPoints as Points
         FROM Staff s JOIN Users u ON s.UserID = u.UserID
         WHERE s.TotalPoints IS NOT NULL AND s.TotalPoints != 0 AND u.AccountStatus = 'Active'
         ORDER BY s.TotalPoints DESC LIMIT 20
     """
+    
     if period == 'monthly':
         title = "Top Performers (This Month)"
         sql = """
-            SELECT u.FirstName, u.LastName, s.Role, SUM(spl.PointsAmount) as Points
-            FROM StaffPointsLog spl
-            JOIN Staff s ON spl.AwardedToStaffID = s.StaffID
+            SELECT u.FirstName, u.LastName, s.Role, SUM(pt.Points) as Points
+            FROM PointTransactions pt
+            JOIN Staff s ON pt.RecipientStaffID = s.StaffID
             JOIN Users u ON s.UserID = u.UserID
-            WHERE spl.AwardDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
+            WHERE pt.TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01') AND u.AccountStatus = 'Active'
             GROUP BY u.UserID, u.FirstName, u.LastName, s.Role
-            HAVING SUM(spl.PointsAmount) != 0
+            HAVING SUM(pt.Points) != 0
             ORDER BY Points DESC LIMIT 20
         """
+        
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute(sql)
     leaders = cursor.fetchall()
     conn.close()
+    
     return render_template('agency_staff_portal/staff/leaderboard.html',
                            title=title, leaders=leaders, current_period=period)
 
