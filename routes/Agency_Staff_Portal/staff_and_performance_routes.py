@@ -14,6 +14,13 @@ staff_perf_bp = Blueprint('staff_perf_bp', __name__,
                           url_prefix='/managerial/staff-performance')
 
 
+ROLES_ELIGIBLE_FOR_POINTS = [
+    'SourcingRecruiter',
+    'SourcingTeamLead',
+    'UnitManager'
+]
+
+
 # --- Helper Functions ---
 def _is_valid_new_leader(staff_to_change_id, new_leader_staff_id):
     """Prevents creating a reporting loop."""
@@ -390,19 +397,7 @@ def view_staff_profile(user_id_viewing):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        # --- 1. Fetch Core Profile Data ---
-        cursor.execute("""
-            SELECT u.*, s.*, 
-                   leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName,
-                   st.TeamName AS SourcingTeamName, amt.TeamName AS AMTeamName
-            FROM Users u 
-            JOIN Staff s ON u.UserID = s.UserID
-            LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
-            LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
-            LEFT JOIN SourcingTeams st ON s.TeamID = st.TeamID
-            LEFT JOIN AccountManagerTeams amt ON s.AMTeamID = amt.TeamID
-            WHERE u.UserID = %s
-        """, (user_id_viewing,))
+        cursor.execute("SELECT u.*, s.*, leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName, st.TeamName AS SourcingTeamName, amt.TeamName AS AMTeamName FROM Users u JOIN Staff s ON u.UserID = s.UserID LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID LEFT JOIN SourcingTeams st ON s.TeamID = st.TeamID LEFT JOIN AccountManagerTeams amt ON s.AMTeamID = amt.TeamID WHERE u.UserID = %s", (user_id_viewing,))
         user_profile_data = cursor.fetchone()
 
         if not user_profile_data:
@@ -410,56 +405,24 @@ def view_staff_profile(user_id_viewing):
             return redirect(url_for('.list_all_staff'))
             
         staff_id = user_profile_data['StaffID']
+        
+        is_profile_eligible_for_points = user_profile_data.get('Role') in ROLES_ELIGIBLE_FOR_POINTS
 
-        # --- 2. Fetch Performance Metrics ---
-        # Applications referred and hires this month
-        cursor.execute("""
-            SELECT 
-                COUNT(ApplicationID) as AppsReferredThisMonth,
-                SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as HiresThisMonth
-            FROM JobApplications
-            WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
-        """, (staff_id,))
+
+        cursor.execute("SELECT COUNT(ApplicationID) as AppsReferredThisMonth, SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as HiresThisMonth FROM JobApplications WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_FORMAT(NOW(), '%Y-%m-01')", (staff_id,))
         monthly_performance = cursor.fetchone()
         user_profile_data.update(monthly_performance)
-
-        # Points earned this month
-        cursor.execute("""
-            SELECT SUM(Points) as PointsThisMonth
-            FROM PointTransactions
-            WHERE RecipientStaffID = %s AND TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
-        """, (staff_id,))
+        cursor.execute("SELECT SUM(Points) as PointsThisMonth FROM PointTransactions WHERE RecipientStaffID = %s AND TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01')", (staff_id,))
         monthly_points = cursor.fetchone()
         user_profile_data['PointsThisMonth'] = monthly_points.get('PointsThisMonth') or 0
-
-        # --- 3. Fetch Recent Point Transactions ---
-        cursor.execute("""
-            SELECT pt.Points, pt.Reason, pt.TransactionDate, u_assigner.FirstName as AssignerFirstName
-            FROM PointTransactions pt
-            JOIN Staff s_assigner ON pt.AssignerStaffID = s_assigner.StaffID
-            JOIN Users u_assigner ON s_assigner.UserID = u_assigner.UserID
-            WHERE pt.RecipientStaffID = %s
-            ORDER BY pt.TransactionDate DESC LIMIT 10
-        """, (staff_id,))
+        cursor.execute("SELECT pt.Points, pt.Reason, pt.TransactionDate, u_assigner.FirstName as AssignerFirstName FROM PointTransactions pt JOIN Staff s_assigner ON pt.AssignerStaffID = s_assigner.StaffID JOIN Users u_assigner ON s_assigner.UserID = u_assigner.UserID WHERE pt.RecipientStaffID = %s ORDER BY pt.TransactionDate DESC LIMIT 10", (staff_id,))
         point_transactions = cursor.fetchall()
-        
-        # --- 4. Fetch Direct Reports (if any) ---
-        cursor.execute("""
-            SELECT u.FirstName, u.LastName, s.Role, s.StaffID, u.UserID
-            FROM Staff s
-            JOIN Users u ON s.UserID = u.UserID
-            WHERE s.ReportsToStaffID = %s AND u.AccountStatus = 'Active'
-        """, (staff_id,))
+        cursor.execute("SELECT u.FirstName, u.LastName, s.Role, s.StaffID, u.UserID FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.ReportsToStaffID = %s AND u.AccountStatus = 'Active'", (staff_id,))
         direct_reports = cursor.fetchall()
 
         if is_self_view:
-            return render_template('agency_staff_portal/staff/my_profile.html', 
-                                   title="My Profile", 
-                                   user_profile=user_profile_data,
-                                   point_transactions=point_transactions,
-                                   direct_reports=direct_reports)
+            return render_template('agency_staff_portal/staff/my_profile.html', title="My Profile", user_profile=user_profile_data, point_transactions=point_transactions, direct_reports=direct_reports)
         else:
-            # Data needed for management dropdowns
             cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE u.AccountStatus = 'Active' ORDER BY FullName")
             team_leaders = cursor.fetchall()
             cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
@@ -472,11 +435,14 @@ def view_staff_profile(user_id_viewing):
                                    team_leaders=team_leaders, 
                                    possible_roles=possible_roles,
                                    point_transactions=point_transactions,
-                                   direct_reports=direct_reports)
+                                   direct_reports=direct_reports,
+                                   # Pass the new authorization flag to the template
+                                   is_profile_eligible_for_points=is_profile_eligible_for_points)
     finally:
         if conn and conn.is_connected():
              if 'cursor' in locals() and cursor: cursor.close()
              conn.close()
+
 
 @staff_perf_bp.route('/profile/<int:staff_id_to_edit>/update-role', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -518,8 +484,16 @@ def update_leader(staff_id_to_edit):
 @staff_perf_bp.route('/profile/<int:staff_id_award_points>/add-points', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def add_points(staff_id_award_points):
-    user_id_redirect = request.form.get('user_id')
+    conn = get_db_connection()
     try:
+        cursor_check = conn.cursor(dictionary=True)
+        cursor_check.execute("SELECT Role FROM Staff WHERE StaffID = %s", (staff_id_award_points,))
+        target_staff = cursor_check.fetchone()
+        
+        if not target_staff or target_staff.get('Role') not in ROLES_ELIGIBLE_FOR_POINTS:
+            flash("This staff member's role is not eligible to receive points.", "danger")
+            return redirect(request.referrer or url_for('.list_all_staff'))
+
         points = int(request.form.get('points'))
         reason = request.form.get('reason', 'Manual adjustment by manager.')
         
@@ -528,15 +502,14 @@ def add_points(staff_id_award_points):
         else:
             points = abs(points)
 
-        conn = get_db_connection()
         conn.start_transaction()
-        cursor = conn.cursor()
+        cursor_transact = conn.cursor()
         
         sql_log = "INSERT INTO PointTransactions (RecipientStaffID, AssignerStaffID, Points, Reason) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql_log, (staff_id_award_points, current_user.specific_role_id, points, reason))
+        cursor_transact.execute(sql_log, (staff_id_award_points, current_user.specific_role_id, points, reason))
         
         sql_update = "UPDATE Staff SET TotalPoints = COALESCE(TotalPoints, 0) + %s WHERE StaffID = %s"
-        cursor.execute(sql_update, (points, staff_id_award_points))
+        cursor_transact.execute(sql_update, (points, staff_id_award_points))
         
         conn.commit()
         flash(f"{abs(points)} points processed successfully.", "success")
@@ -544,14 +517,15 @@ def add_points(staff_id_award_points):
     except ValueError:
         flash("Invalid points value. Please enter a whole number.", "danger")
     except Exception as e:
-        if 'conn' in locals() and conn.is_connected():
+        if conn.is_connected():
             conn.rollback()
         current_app.logger.error(f"Error processing points for StaffID {staff_id_award_points}: {e}")
         flash("A database error occurred while processing points.", "danger")
     finally:
-        if 'conn' in locals() and conn.is_connected():
+        if conn.is_connected():
             conn.close()
             
+    user_id_redirect = request.form.get('user_id')
     return redirect(url_for('.view_staff_profile', user_id_viewing=user_id_redirect))
 
 @staff_perf_bp.route('/profile/<int:target_staff_id>/generate-referral-code', methods=['POST'])

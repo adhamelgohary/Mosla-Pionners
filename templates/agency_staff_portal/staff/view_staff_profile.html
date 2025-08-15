@@ -129,8 +129,8 @@
             {% endif %}
         </div>
 
-        <!-- Add/Deduct Points Form -->
-        {% if can_manage_points_for_this_user %}
+        {% if is_profile_eligible_for_points %}
+        
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h4 class="text-lg font-semibold text-gray-900">Adjust Points</h4>
             <form action="{{ url_for('staff_perf_bp.add_points', staff_id_award_points=user_profile.StaffID) }}" method="POST" class="mt-4 space-y-4">
