@@ -140,10 +140,12 @@ def review_staff_applications():
 @staff_perf_bp.route('/applications/<int:application_id>/approve', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
 def approve_application(application_id):
-    """Approves a staff application: Creates the Staff record and activates the User account."""
+    """Approves a staff application: Creates Staff record, activates User, AND generates onboarding checklist."""
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
+        conn.start_transaction() # Use a transaction
+
         cursor.execute("SELECT UserID, DesiredRole FROM StaffApplications WHERE ApplicationID = %s AND Status = 'Pending'", (application_id,))
         app_data = cursor.fetchone()
 
@@ -154,17 +156,32 @@ def approve_application(application_id):
         user_id = app_data['UserID']
         role = app_data['DesiredRole']
 
+        # Step 1: Create Staff record
         cursor.execute("INSERT INTO Staff (UserID, Role) VALUES (%s, %s)", (user_id, role))
         staff_id = cursor.lastrowid
 
+        # Step 2: Activate User account
         cursor.execute("UPDATE Users SET AccountStatus = 'Active' WHERE UserID = %s", (user_id,))
 
+        # Step 3: Update the application record
         cursor.execute("""
             UPDATE StaffApplications SET Status = 'Approved', ReviewedByStaffID = %s, ReviewedAt = NOW(), ApprovedStaffID = %s WHERE ApplicationID = %s
         """, (current_user.specific_role_id, staff_id, application_id))
         
+        # V V V V V V V V V V V V V V V V V V V V V V V V
+        # >> NEW: Automatically generate the onboarding checklist <<
+        cursor.execute("SELECT TemplateTaskID FROM OnboardingChecklistTemplates WHERE ChecklistType = 'Onboarding' AND IsActive = 1")
+        onboarding_tasks = cursor.fetchall()
+        if onboarding_tasks:
+            tasks_to_assign = [(staff_id, task['TemplateTaskID']) for task in onboarding_tasks]
+            cursor.executemany(
+                "INSERT INTO AssignedChecklists (StaffID, TemplateTaskID) VALUES (%s, %s)",
+                tasks_to_assign
+            )
+        # ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
+        
         conn.commit()
-        flash("Application approved. The staff member is now active and can log in.", "success")
+        flash("Application approved. The staff member is now active and their onboarding checklist has been created.", "success")
     except Exception as e:
         if conn: conn.rollback()
         current_app.logger.error(f"Error approving staff application {application_id}: {e}")
@@ -173,6 +190,89 @@ def approve_application(application_id):
         if conn and conn.is_connected(): conn.close()
     
     return redirect(url_for('.review_staff_applications'))
+
+@staff_perf_bp.route('/staff/<int:staff_id>/checklist')
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def view_staff_checklist(staff_id):
+    """Displays the onboarding/offboarding checklist for a specific staff member."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get staff member's name for the title
+        cursor.execute("SELECT u.FirstName, u.LastName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE s.StaffID = %s", (staff_id,))
+        staff_member = cursor.fetchone()
+        if not staff_member:
+            flash("Staff member not found.", "danger")
+            return redirect(url_for('.list_all_staff'))
+            
+        # Get all assigned checklist tasks for this staff member
+        cursor.execute("""
+            SELECT 
+                ac.AssignedTaskID, ac.Status, ac.Notes,
+                oct.TaskName, oct.TaskDescription, oct.DefaultAssignedTo, oct.ChecklistType,
+                completer_user.FirstName AS CompleterFirstName
+            FROM AssignedChecklists ac
+            JOIN OnboardingChecklistTemplates oct ON ac.TemplateTaskID = oct.TemplateTaskID
+            LEFT JOIN Staff completer_staff ON ac.CompletedByStaffID = completer_staff.StaffID
+            LEFT JOIN Users completer_user ON completer_staff.UserID = completer_user.UserID
+            WHERE ac.StaffID = %s
+            ORDER BY oct.ChecklistType, oct.DisplayOrder
+        """, (staff_id,))
+        checklist_tasks = cursor.fetchall()
+
+    except Exception as e:
+        flash("An error occurred while loading the checklist.", "danger")
+        current_app.logger.error(f"Error fetching checklist for StaffID {staff_id}: {e}")
+        return redirect(url_for('.list_all_staff'))
+    finally:
+        if conn and conn.is_connected(): conn.close()
+        
+    return render_template('agency_staff_portal/staff/view_checklist.html',
+                           title=f"Checklist for {staff_member['FirstName']} {staff_member['LastName']}",
+                           staff_member=staff_member,
+                           tasks=checklist_tasks,
+                           staff_id=staff_id)
+
+@staff_perf_bp.route('/checklist/task/<int:assigned_task_id>/update', methods=['POST'])
+@login_required_with_role(MANAGERIAL_PORTAL_ROLES)
+def update_checklist_task(assigned_task_id):
+    """Updates the status of a single checklist task."""
+    new_status = request.form.get('status')
+    notes = request.form.get('notes', '')
+    staff_id_redirect = request.form.get('staff_id')
+
+    if not new_status or not staff_id_redirect:
+        flash("Invalid request.", "danger")
+        return redirect(url_for('.list_all_staff'))
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        
+        completion_date = None
+        completer_id = None
+        if new_status == 'Completed':
+            completion_date = 'NOW()' # Let MySQL handle the timestamp
+            completer_id = current_user.specific_role_id
+        
+        # Use COALESCE to handle the NOW() function correctly in the query
+        sql = f"""
+            UPDATE AssignedChecklists 
+            SET Status = %s, Notes = %s, CompletedByStaffID = %s, CompletionDate = {completion_date or 'NULL'}
+            WHERE AssignedTaskID = %s
+        """
+        cursor.execute(sql, (new_status, notes, completer_id, assigned_task_id))
+        conn.commit()
+        flash("Checklist task updated successfully.", "success")
+    except Exception as e:
+        if conn: conn.rollback()
+        flash("An error occurred while updating the task.", "danger")
+        current_app.logger.error(f"Error updating checklist task {assigned_task_id}: {e}")
+    finally:
+        if conn and conn.is_connected(): conn.close()
+
+    return redirect(url_for('.view_staff_checklist', staff_id=staff_id_redirect))
 
 @staff_perf_bp.route('/applications/<int:application_id>/reject', methods=['POST'])
 @login_required_with_role(MANAGERIAL_PORTAL_ROLES)
@@ -711,3 +811,5 @@ def company_leaderboard():
                            title="Top Partner Companies",
                            subtitle="Ranked by number of successfully filled positions.",
                            top_companies=top_companies)
+    
+    
