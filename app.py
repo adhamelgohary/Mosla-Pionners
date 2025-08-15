@@ -192,18 +192,36 @@ def log_error_to_db(e):
     conn = None
     try:
         user_id = current_user.id if current_user.is_authenticated else None
+
+        # --- IP ADDRESS LOGIC (Same as in log_audit) ---
+        if request.headers.getlist("X-Forwarded-For"):
+            ip_address = request.headers.getlist("X-Forwarded-For")[0]
+        else:
+            ip_address = request.remote_addr
+        # --- END IP LOGIC ---
+
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Updated SQL to include IPAddress
         sql = """
             INSERT INTO ErrorLog 
-            (UserID, Route, RequestMethod, RequestData, ErrorMessage, Traceback)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (UserID, IPAddress, Route, RequestMethod, RequestData, ErrorMessage, Traceback)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        params = (user_id, request.path, request.method, request_data_str, str(e), tb_str)
+        # Updated params tuple
+        params = (
+            user_id,
+            ip_address,
+            request.path,
+            request.method,
+            request_data_str,
+            str(e),
+            tb_str
+        )
         cursor.execute(sql, params)
         conn.commit()
     except Exception as log_e:
-        # Fallback to standard logger if DB logging fails
         app.logger.critical("--- DATABASE LOGGING FAILED ---")
         app.logger.error(f"Original Error: {e}\n{tb_str}")
         app.logger.error(f"DB Logging Error: {log_e}\n{traceback.format_exc()}")
