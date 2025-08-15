@@ -390,22 +390,89 @@ def view_staff_profile(user_id_viewing):
     conn = get_db_connection()
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT u.*, s.* FROM Users u JOIN Staff s ON u.UserID = s.UserID WHERE u.UserID = %s", (user_id_viewing,))
+        # --- 1. Fetch Core Profile Data ---
+        cursor.execute("""
+            SELECT u.*, s.*, 
+                   leader_user.FirstName AS LeaderFirstName, leader_user.LastName AS LeaderLastName,
+                   st.TeamName AS SourcingTeamName, amt.TeamName AS AMTeamName
+            FROM Users u 
+            JOIN Staff s ON u.UserID = s.UserID
+            LEFT JOIN Staff leader_s ON s.ReportsToStaffID = leader_s.StaffID
+            LEFT JOIN Users leader_user ON leader_s.UserID = leader_user.UserID
+            LEFT JOIN SourcingTeams st ON s.TeamID = st.TeamID
+            LEFT JOIN AccountManagerTeams amt ON s.AMTeamID = amt.TeamID
+            WHERE u.UserID = %s
+        """, (user_id_viewing,))
         user_profile_data = cursor.fetchone()
 
         if not user_profile_data:
             flash("Staff profile not found.", "danger")
             return redirect(url_for('.list_all_staff'))
+            
+        staff_id = user_profile_data['StaffID']
+
+        # --- 2. Fetch Performance Metrics ---
+        # Applications referred and hires this month
+        cursor.execute("""
+            SELECT 
+                COUNT(ApplicationID) as AppsReferredThisMonth,
+                SUM(CASE WHEN Status = 'Hired' THEN 1 ELSE 0 END) as HiresThisMonth
+            FROM JobApplications
+            WHERE ReferringStaffID = %s AND ApplicationDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
+        """, (staff_id,))
+        monthly_performance = cursor.fetchone()
+        user_profile_data.update(monthly_performance)
+
+        # Points earned this month
+        cursor.execute("""
+            SELECT SUM(Points) as PointsThisMonth
+            FROM PointTransactions
+            WHERE RecipientStaffID = %s AND TransactionDate >= DATE_FORMAT(NOW(), '%Y-%m-01')
+        """, (staff_id,))
+        monthly_points = cursor.fetchone()
+        user_profile_data['PointsThisMonth'] = monthly_points.get('PointsThisMonth') or 0
+
+        # --- 3. Fetch Recent Point Transactions ---
+        cursor.execute("""
+            SELECT pt.Points, pt.Reason, pt.TransactionDate, u_assigner.FirstName as AssignerFirstName
+            FROM PointTransactions pt
+            JOIN Staff s_assigner ON pt.AssignerStaffID = s_assigner.StaffID
+            JOIN Users u_assigner ON s_assigner.UserID = u_assigner.UserID
+            WHERE pt.RecipientStaffID = %s
+            ORDER BY pt.TransactionDate DESC LIMIT 10
+        """, (staff_id,))
+        point_transactions = cursor.fetchall()
         
+        # --- 4. Fetch Direct Reports (if any) ---
+        cursor.execute("""
+            SELECT u.FirstName, u.LastName, s.Role, s.StaffID, u.UserID
+            FROM Staff s
+            JOIN Users u ON s.UserID = u.UserID
+            WHERE s.ReportsToStaffID = %s AND u.AccountStatus = 'Active'
+        """, (staff_id,))
+        direct_reports = cursor.fetchall()
+
         if is_self_view:
-            return render_template('agency_staff_portal/staff/my_profile.html', title="My Profile", user_profile=user_profile_data)
+            return render_template('agency_staff_portal/staff/my_profile.html', 
+                                   title="My Profile", 
+                                   user_profile=user_profile_data,
+                                   point_transactions=point_transactions,
+                                   direct_reports=direct_reports)
         else:
+            # Data needed for management dropdowns
             cursor.execute("SELECT StaffID, CONCAT(u.FirstName, ' ', u.LastName) as FullName FROM Staff s JOIN Users u ON s.UserID = u.UserID WHERE u.AccountStatus = 'Active' ORDER BY FullName")
             team_leaders = cursor.fetchall()
             cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
             enum_str = cursor.fetchone()['Type']
             possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
-            return render_template('agency_staff_portal/staff/view_staff_profile.html', title=f"Profile: {user_profile_data['FirstName']}", user_profile=user_profile_data, team_leaders=team_leaders, possible_roles=possible_roles)
+            
+            return render_template('agency_staff_portal/staff/view_staff_profile.html', 
+                                   title=f"Profile: {user_profile_data['FirstName']}", 
+                                   user_profile=user_profile_data, 
+                                   team_leaders=team_leaders, 
+                                   possible_roles=possible_roles,
+                                   point_transactions=point_transactions,
+                                   direct_reports=direct_reports)
     finally:
         if conn and conn.is_connected():
              if 'cursor' in locals() and cursor: cursor.close()
