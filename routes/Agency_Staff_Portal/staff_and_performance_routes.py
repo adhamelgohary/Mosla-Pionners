@@ -234,7 +234,7 @@ def add_staff():
     cursor_data = conn_data.cursor()
     cursor_data.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
     enum_str = cursor_data.fetchone()[1]
-    possible_roles = enum_str.decode('utf-8').replace("enum('", "").replace("')", "").split("','")
+    possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
     cursor_data.close()
     conn_data.close()
 
@@ -404,7 +404,7 @@ def view_staff_profile(user_id_viewing):
             team_leaders = cursor.fetchall()
             cursor.execute("SHOW COLUMNS FROM Staff LIKE 'Role'")
             enum_str = cursor.fetchone()['Type']
-            possible_roles = enum_str.decode('utf-8').replace("enum('", "").replace("')", "").split("','")
+            possible_roles = enum_str.replace("enum('", "").replace("')", "").split("','")
             return render_template('agency_staff_portal/staff/view_staff_profile.html', title=f"Profile: {user_profile_data['FirstName']}", user_profile=user_profile_data, team_leaders=team_leaders, possible_roles=possible_roles)
     finally:
         if conn and conn.is_connected():
