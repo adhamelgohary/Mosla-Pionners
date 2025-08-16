@@ -179,6 +179,29 @@ def log_error_to_db(e):
     """Logs a Python exception to the ErrorLog database table."""
     tb_str = traceback.format_exc()
     
+    # --- PORTAL DETECTION LOGIC ---
+    path = request.path
+    portal = "Unknown" # Default value
+    if path.startswith('/admin'):
+        portal = "Admin Portal"
+    elif path.startswith('/instructor'):
+        portal = "Instructor Portal"
+    elif path.startswith('/staff-portal'):
+        portal = "Staff Portal"
+    elif path.startswith('/candidate'):
+        portal = "Candidate Portal"
+    elif path.startswith('/client-portal'):
+        portal = "Client Portal"
+    elif path.startswith('/account-manager-portal'):
+        portal = "Account Manager Portal"
+    elif path.startswith('/recruiter-portal'): # Assuming this prefix exists
+        portal = "Recruiter Portal"
+    elif path.startswith('/auth'):
+        portal = "Authentication"
+    else:
+        portal = "Public Website"
+    # --- END PORTAL LOGIC ---
+
     try:
         request_data = {
             'form': request.form.to_dict(),
@@ -192,27 +215,26 @@ def log_error_to_db(e):
     conn = None
     try:
         user_id = current_user.id if current_user.is_authenticated else None
-
-        # --- IP ADDRESS LOGIC (Same as in log_audit) ---
+        
         if request.headers.getlist("X-Forwarded-For"):
             ip_address = request.headers.getlist("X-Forwarded-For")[0]
         else:
             ip_address = request.remote_addr
-        # --- END IP LOGIC ---
 
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Updated SQL to include IPAddress
+        # Updated SQL to include Portal
         sql = """
             INSERT INTO ErrorLog 
-            (UserID, IPAddress, Route, RequestMethod, RequestData, ErrorMessage, Traceback)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (UserID, IPAddress, Portal, Route, RequestMethod, RequestData, ErrorMessage, Traceback)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         # Updated params tuple
         params = (
             user_id,
             ip_address,
+            portal, # <-- Add the detected portal name
             request.path,
             request.method,
             request_data_str,

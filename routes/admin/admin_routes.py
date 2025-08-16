@@ -219,25 +219,38 @@ def error_log_viewer():
     per_page = 20
     offset = (page - 1) * per_page
     search_route = request.args.get('route', '').strip()
+    filter_portal = request.args.get('portal', '').strip() # <-- NEW FILTER
     
     base_query = "FROM ErrorLog"
-    params = []
-    if search_route:
-        base_query += " WHERE Route LIKE %s"
-        params.append(f"%{search_route}%")
+    where_clauses, params = [], []
 
+    if search_route:
+        where_clauses.append("Route LIKE %s")
+        params.append(f"%{search_route}%")
+    if filter_portal:
+        where_clauses.append("Portal = %s") # <-- NEW WHERE CLAUSE
+        params.append(filter_portal)
+
+    if where_clauses:
+        base_query += " WHERE " + " AND ".join(where_clauses)
+    
     try:
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT COUNT(*) as total " + base_query, tuple(params))
         total_records = cursor.fetchone()['total']
         total_pages = (total_records + per_page - 1) // per_page
 
-        query = "SELECT ErrorID, Timestamp, Route, RequestMethod, ErrorMessage, UserID " + base_query + " ORDER BY Timestamp DESC LIMIT %s OFFSET %s"
+        # Get distinct portal names for the filter dropdown
+        cursor.execute("SELECT DISTINCT Portal FROM ErrorLog WHERE Portal IS NOT NULL ORDER BY Portal")
+        portals = [row['Portal'] for row in cursor.fetchall()]
+
+        # Fetch the Portal column in the main query
+        query = "SELECT ErrorID, Timestamp, Portal, Route, RequestMethod, ErrorMessage, UserID " + base_query + " ORDER BY Timestamp DESC LIMIT %s OFFSET %s"
         cursor.execute(query, tuple(params) + (per_page, offset))
         error_logs = cursor.fetchall()
     except Exception as e:
         current_app.logger.error(f"Error fetching error log: {e}", exc_info=True)
-        error_logs, total_pages = [], 0
+        error_logs, total_pages, portals = [], 0, []
     finally:
         if conn and conn.is_connected(): conn.close()
 
@@ -246,7 +259,9 @@ def error_log_viewer():
                            logs=error_logs,
                            current_page=page,
                            total_pages=total_pages,
-                           search_route=search_route)
+                           search_route=search_route,
+                           filter_portal=filter_portal, # <-- Pass to template
+                           portals=portals) # <-- Pass distinct portals
 
 # --- NEW ROUTE: Audit Log Viewer ---
 @admin_bp.route('/audit-log')
